@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by Jeff Ortel (Stonewall Networks, Inc.) -->
+<xs:schema xmlns:meta="http://www.xmodel.org" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:element name="cachingPolicy">
+    <xs:annotation>
+      <xs:documentation>An element which describes the caching policy to be applied to its parent.</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="prototype">
+          <xs:annotation>
+            <xs:documentation>The prototype for secondary caching stages.</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:any namespace="##local" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>The document fragment which defines secondary stages to be created for each new instance of the </xs:documentation>
+                </xs:annotation>
+              </xs:any>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="class" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>The fully-qualified name of a Java class that extends ConfiguredCachingPolicy.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

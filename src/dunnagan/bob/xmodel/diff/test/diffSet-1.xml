@@ -1,0 +1,153 @@
+<diffSet>
+  <lhs>
+		<en:domainPolicy xmlns:en="http://www.stonewallnetworks.com/ns/entity" id="140" type="domain">
+			<en:version>1</en:version>
+			<en:status>
+				<en:pending>false</en:pending>
+				<en:implemented>false</en:implemented>
+				<en:inSync>true</en:inSync>
+			</en:status>
+			<en:ruleSet>
+				<en:rule id="234">
+					<en:name>Allow all outgoing</en:name>
+					<en:priority>1</en:priority>
+					<en:selector>
+						<en:ipHeader id="235">
+							<en:source>
+								<en:address>10.10.0.0</en:address>
+								<en:mask>255.255.0.0</en:mask>
+								<en:port>
+									<en:start>0</en:start>
+									<en:end>65535</en:end>
+								</en:port>
+							</en:source>
+							<en:destination>
+								<en:address>0.0.0.0</en:address>
+								<en:mask>0.0.0.0</en:mask>
+								<en:port>
+									<en:start>0</en:start>
+									<en:end>65535</en:end>
+								</en:port>
+							</en:destination>
+							<en:protocol>IP</en:protocol>
+							<en:negate>false</en:negate>
+						</en:ipHeader>
+					</en:selector>
+					<en:action>
+						<en:filter>
+							<en:access>permit</en:access>
+							<en:secure>true</en:secure>
+						</en:filter>
+					</en:action>
+					<en:final>false</en:final>
+				</en:rule>
+			</en:ruleSet>
+			<en:parent>122</en:parent>
+			<en:name>US West policy</en:name>
+			<en:actionTemplates>
+				<en:IKETemplate>
+					<en:exchangeMode final="false">aggressive</en:exchangeMode>
+					<en:phase1>
+						<en:group final="false">2</en:group>
+						<en:cipher final="false">DES</en:cipher>
+						<en:hash final="false">SHA-1</en:hash>
+						<en:authentication final="false" method="Pre-shared Keys">test</en:authentication>
+						<en:lifetime final="false" unit="seconds">28800</en:lifetime>
+					</en:phase1>
+					<en:phase2>
+						<en:type final="false">tunnel</en:type>
+						<en:transform>
+							<en:esp>
+								<en:cipher final="false">DES</en:cipher>
+								<en:hash final="false">SHA-1</en:hash>
+								<en:pfs final="false">false</en:pfs>
+								<en:replayPrevention final="false">false</en:replayPrevention>
+							</en:esp>
+						</en:transform>
+						<en:group final="false">0</en:group>
+						<en:lifesize final="false">0</en:lifesize>
+						<en:lifetime final="false" unit="seconds">3600</en:lifetime>
+					</en:phase2>
+					<en:name>AutoKey IPSec Template</en:name>
+				</en:IKETemplate>
+			</en:actionTemplates>
+			<en:description>policy 1</en:description>
+		</en:domainPolicy>
+	</lhs>
+  
+  <rhs>
+		<en:domainPolicy xmlns:en="http://www.stonewallnetworks.com/ns/entity" id="140" type="domain">
+			<en:version>1</en:version>
+			<en:status>
+				<en:pending>false</en:pending>
+				<en:implemented>false</en:implemented>
+				<en:inSync>true</en:inSync>
+			</en:status>
+			<en:ruleSet>
+				<en:rule id="234">
+					<en:name>Allow all outgoing</en:name>
+					<en:priority>1</en:priority>
+					<en:selector>
+						<en:IPHeader id="235">
+							<en:source>
+								<en:address>10.10.0.0</en:address>
+								<en:mask>255.255.0.0</en:mask>
+								<en:port>
+									<en:start>0</en:start>
+									<en:end>65535</en:end>
+								</en:port>
+							</en:source>
+							<en:destination>
+								<en:address>0.0.0.0</en:address>
+								<en:mask>0.0.0.0</en:mask>
+								<en:port>
+									<en:start>0</en:start>
+									<en:end>65535</en:end>
+								</en:port>
+							</en:destination>
+							<en:protocol>IP</en:protocol>
+							<en:negate>false</en:negate>
+						</en:IPHeader>
+					</en:selector>
+					<en:action>
+						<en:filter>
+							<en:access>permit</en:access>
+							<en:secure>true</en:secure>
+						</en:filter>
+					</en:action>
+					<en:final>false</en:final>
+				</en:rule>
+			</en:ruleSet>
+			<en:parent>122</en:parent>
+			<en:name>US West policy</en:name>
+			<en:actionTemplates>
+				<en:IKETemplate>
+					<en:exchangeMode final="false">aggressive</en:exchangeMode>
+					<en:phase1>
+						<en:group final="false">2</en:group>
+						<en:cipher final="true">3DES</en:cipher>
+						<en:hash final="false">SHA-1</en:hash>
+						<en:authentication final="false" method="Pre-shared Keys">test</en:authentication>
+						<en:lifetime final="false" unit="seconds">28800</en:lifetime>
+					</en:phase1>
+					<en:phase2>
+						<en:type final="false">tunnel</en:type>
+						<en:transform>
+							<en:ESP>
+								<en:cipher final="false">DES</en:cipher>
+								<en:hash final="false">SHA-1</en:hash>
+								<en:PFS final="false">false</en:PFS>
+								<en:replayPrevention final="false">false</en:replayPrevention>
+							</en:ESP>
+						</en:transform>
+						<en:group final="false">0</en:group>
+						<en:lifesize final="false">0</en:lifesize>
+						<en:lifetime final="false" unit="seconds">3600</en:lifetime>
+					</en:phase2>
+					<en:name>AutoKey IPSec Template</en:name>
+				</en:IKETemplate>
+			</en:actionTemplates>
+			<en:description>policy 1</en:description>
+		</en:domainPolicy>
+  </rhs>
+</diffSet>

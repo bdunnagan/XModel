@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by Jeff Ortel (Stonewall Networks, Inc.) -->
+<xs:schema xmlns="http://www.stonewallnetworks.com" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.stonewallnetworks.com" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:simpleType name="XPath">
+    <xs:annotation>
+      <xs:documentation>Simple type for an xpath expression.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string"/>
+  </xs:simpleType>
+  <xs:complexType name="XAction">
+    <xs:annotation>
+      <xs:documentation>An action definition.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:any namespace="##any"/>
+    </xs:sequence>
+    <xs:attribute name="class">
+      <xs:annotation>
+        <xs:documentation>The fully qualified class name of an IXAction to be executed, or the name of a builtin action.</xs:documentation>
+      </xs:annotation>
+      <xs:simpleType>
+        <xs:restriction base="xs:string"/>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="GuardedAction">
+    <xs:annotation>
+      <xs:documentation>An action which has a guarding condition.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="when" type="XPath" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>An expression evaluated boolean which determines whether the action should execute.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="when" type="XPath">
+      <xs:annotation>
+        <xs:documentation>An expression evaluated boolean which determines whether the action should execute.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="AddAction">
+    <xs:annotation>
+      <xs:documentation>An action which adds a clone or reference of the source objects to the target.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="factory" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The fully qualified class name of the IModelFactory to use when cloning.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="matcher" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The fully qualified class of IXmlMatcher to use in unique, copy mode when the object already exists.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath whose first node is the source to be copied.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="target" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath whose first node is the destination.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="index" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>A numeric expression which gives the index where the sources will be inserted.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="mode" default="copy">
+          <xs:annotation>
+            <xs:documentation>The type of add to be performed.  fk1 creates a reference whose value is the id.  fk2 creates a reference with an id.</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="ref"/>
+              <xs:enumeration value="fk1"/>
+              <xs:enumeration value="fk2"/>
+              <xs:enumeration value="copy"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="unique" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>When true, the add operation will not add an object to a parent which has an object with the same id.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="create" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>True if the target path should be created when it does not exist.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="AssignAction">
+    <xs:annotation>
+      <xs:documentation>Set the value of a variable.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The name of the variable. Must be specified either here or in the name attribute.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="source" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An expression which will be assigned to the variable. The source may also be specified in the text of the parent. If the source element is not present then the context is the source.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="name">
+          <xs:annotation>
+            <xs:documentation>The name of the variable. Must be specified either here or in the name element.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="clone" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>True if the source elements should be cloned before assignment. Has no effect if source is not a node-set.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="replace" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>True if the variable should be replaced in the closest enclosing scope in which it is currently defined.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="BreakAction">
+    <xs:annotation>
+      <xs:documentation>Pause execution for instruction from the console.  Enter ? for help.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="watch" type="XPath" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>An expression which will be evaluated and printed when the breakpoint is reached.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>An action sequence to be debugged stepwise.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="skip" type="xs:int">
+          <xs:annotation>
+            <xs:documentation>An integer which specifies how many invocations to skip before prompting.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="lines" type="xs:int" default="20">
+          <xs:annotation>
+            <xs:documentation>Maximum number of lines to print at each breakpoint.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="ContextAction">
+    <xs:annotation>
+      <xs:documentation>An action which executes other actions in a nested, variable-isolated context.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An expression which gives the new context object. Only the first object in a node-set is considered.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="action" type="XAction" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>A list of actions executed as if within an AndAction.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="CopyAction">
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath whose first node is the source to be copied.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="target" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath which returns the destination nodes to which the source information will be copied.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="ordered" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An expression which specifies parent elements whose children are ordered.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="ignore" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An expression which specifies elements and attributes which should be ignored.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="op" default="copy">
+          <xs:annotation>
+            <xs:documentation>The type of differencing to perform.</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="copy"/>
+              <xs:enumeration value="union"/>
+              <xs:enumeration value="intersect"/>
+              <xs:enumeration value="annotate"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="CreateAction">
+    <xs:annotation>
+      <xs:documentation>An action which creates an element. If no elements are specified then the value of this action is an XPath whose location steps will be created.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="parent" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The parent where the new element will be created.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:choice minOccurs="0">
+            <xs:element name="name" type="XPath">
+              <xs:annotation>
+                <xs:documentation>An XPath that yields the name of the element.</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+            <xs:element name="schema">
+              <xs:annotation>
+                <xs:documentation>An XPath whose first node is the simplified schema from which the entity will be created.</xs:documentation>
+              </xs:annotation>
+              <xs:complexType>
+                <xs:simpleContent>
+                  <xs:extension base="XPath">
+                    <xs:attribute name="optional" type="xs:boolean" default="false">
+                      <xs:annotation>
+                        <xs:documentation>True if optional nodes should be created.</xs:documentation>
+                      </xs:annotation>
+                    </xs:attribute>
+                  </xs:extension>
+                </xs:simpleContent>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="template">
+              <xs:annotation>
+                <xs:documentation>A template for the new element.</xs:documentation>
+              </xs:annotation>
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:any/>
+                </xs:sequence>
+                <xs:attribute name="annotated" type="xs:boolean" default="false">
+                  <xs:annotation>
+                    <xs:documentation>When true, the template will be pre-processed by the AnnotationTransform to create external references.</xs:documentation>
+                  </xs:annotation>
+                </xs:attribute>
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:element name="attribute" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>Specify the value of an attribute of the new element.</xs:documentation>
+            </xs:annotation>
+            <xs:complexType>
+              <xs:simpleContent>
+                <xs:extension base="XPath">
+                  <xs:attribute name="name" use="required">
+                    <xs:annotation>
+                      <xs:documentation>The name of the attribute.</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:extension>
+              </xs:simpleContent>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>One or more actions that are executed in the context of the new element after it has been created and before it has been added to its parent. Annotation transformation happens after actions are executed.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="assign" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>The name of variable to which the new element will be assigned.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="collection" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>The name of a collection to which the new element will be added.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="CreatePathAction">
+    <xs:annotation>
+      <xs:documentation>An action which creates the nodes of a subtree.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>A simple xpath beginning with a location step and ending without a predicate. If no factory is defined, this path can be specified in the text() of the action.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="factory" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The fully qualified name of an implementation of IModelObjectFactory.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="DeleteAction">
+    <xs:annotation>
+      <xs:documentation>Delete one or more elements. If the target element is not present then the target path must be specified in the text node.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="target" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An xpath whose nodes will be deleted by the aciton.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="FileLoadAction">
+    <xs:annotation>
+      <xs:documentation>An action which loads uncompressed or compressed xml from a file.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="target" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>An expression giving the parent to which the element will be added.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="file" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>A string expression giving the name of the file. This expression may be provided in the text of the action.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="assign" type="xs:string">
+      <xs:annotation>
+        <xs:documentation>The name of the variable which will be assigned the element.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="FileSaveAction">
+    <xs:annotation>
+      <xs:documentation>Save an element to a file.</xs:documentation>
+    </xs:annotation>
+    <xs:all>
+      <xs:element name="source" type="XPath">
+        <xs:annotation>
+          <xs:documentation>An expression whose first node will be written to the file.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="file" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>A string expression giving the path of the file.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:all>
+    <xs:attribute name="mode" default="printable">
+      <xs:annotation>
+        <xs:documentation>Specifies whether the content should be compressed or written in printable or compact xml.</xs:documentation>
+      </xs:annotation>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="printable"/>
+          <xs:enumeration value="compact"/>
+          <xs:enumeration value="compressed"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="overwrite" default="false">
+      <xs:annotation>
+        <xs:documentation>True if the file should be overwritten if it exists.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="FlushExternalAction">
+    <xs:annotation>
+      <xs:documentation>Flush one or more external references.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="XPath"/>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="ForAction">
+    <xs:annotation>
+      <xs:documentation>An action which executes another action with each context from a node-set expression.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="assign" type="xs:string" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>Assign the current element to the named variable.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An expression returning the nodes to be iterated.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="action" type="XAction">
+            <xs:annotation>
+              <xs:documentation>The action to be executed for each node. The context of the action will be the current element unless it is assigned to a variable.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="assign" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>Assign the current element to the named variable.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="IfAction">
+    <xs:annotation>
+      <xs:documentation>Conditional execute scripts.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="XAction">
+        <xs:sequence>
+          <xs:element name="then" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>Actions that are executed when the boolean expression is true.</xs:documentation>
+            </xs:annotation>
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="else" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>Actions that are executed when the boolean expression is false.</xs:documentation>
+            </xs:annotation>
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="when" type="XPath" use="required">
+          <xs:annotation>
+            <xs:documentation>An expression evaluated boolean which determines which actions are executed.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="LoopAction">
+    <xs:annotation>
+      <xs:documentation>Loop until a condition is satisifed.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="while" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An expression which terminates the loop when it evaluates false.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="MoveAction">
+    <xs:annotation>
+      <xs:documentation>Move an element to another parent.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath whose first node is the source to be copied.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="target" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An xpath whose first node is the destination.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="index" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>A numeric expression which gives the index where the sources will be inserted.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="unique" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>When true, the add operation will not add an object to a parent which has an object with the same id.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="PrintAction">
+    <xs:annotation>
+      <xs:documentation>Print the result of the expression contained in the text().</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction"/>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="RandomAction">
+    <xs:annotation>
+      <xs:documentation>Generate an integer or decimal random number within a range and format to a certain radix.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="XPath">
+        <xs:attribute name="min" type="XPath"/>
+        <xs:attribute name="max" type="XPath"/>
+        <xs:attribute name="int" type="xs:boolean"/>
+        <xs:attribute name="radix">
+          <xs:simpleType>
+            <xs:restriction base="xs:int">
+              <xs:enumeration value="2"/>
+              <xs:enumeration value="8"/>
+              <xs:enumeration value="10"/>
+              <xs:enumeration value="16"/>
+              <xs:enumeration value="36"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="RunAction">
+    <xs:annotation>
+      <xs:documentation>An action which compiles and executes the XActions returned by an expression. Execution fails when the first XAction fails. The context of the expression is the root of the XActionDocument (not the action context).</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string"/>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="ScriptAction">
+    <xs:complexContent>
+      <xs:extension base="XAction">
+        <xs:sequence>
+          <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="SelectAction">
+    <xs:annotation>
+      <xs:documentation>An action that behaves like a switch/case statement.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An expression whose string value gives the selection string.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="case" maxOccurs="unbounded">
+            <xs:annotation>
+              <xs:documentation>One of the cases in the select/case statement.</xs:documentation>
+            </xs:annotation>
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="action" type="XAction" maxOccurs="unbounded"/>
+              </xs:sequence>
+              <xs:attribute name="id" type="xs:string" use="required">
+                <xs:annotation>
+                  <xs:documentation>The name that will be matched to the selector string.</xs:documentation>
+                </xs:annotation>
+              </xs:attribute>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="default" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>The default case which is executed when none of the cases are matched.</xs:documentation>
+            </xs:annotation>
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="action" type="XAction" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="SetAction">
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>A string expression to be used as the value of the element or attribute.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="target" type="XPath">
+            <xs:annotation>
+              <xs:documentation>A node expression defining the targets whose values will be set.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="ValidateAction">
+    <xs:annotation>
+      <xs:documentation>An action which schema validates one or more nodes and returns error nodes in the variable defined in the assign attribute.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="GuardedAction">
+        <xs:sequence>
+          <xs:element name="schema" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An expression which returns the root of the simplified schema.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="source" type="XPath">
+            <xs:annotation>
+              <xs:documentation>An expression which returns the nodes  to be validated.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+        </xs:sequence>
+        <xs:attribute name="assign" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>The name of the variable which will be populated with error elements containing the validation errors.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="ThrowAction">
+    <xs:annotation>
+      <xs:documentation>Throw a RuntimeException or subclass. The text of the element optionally contains the message.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="class" use="required">
+          <xs:annotation>
+            <xs:documentation>The fully-qualified class name of a subclass of Java RuntimeException.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+</xs:schema>

@@ -1,0 +1,34 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: XModel Plug-in
+Bundle-SymbolicName: dunnagan.bob.xmodel
+Bundle-Version: 1.0.0
+Bundle-Vendor: Bob Dunnagan
+Eclipse-LazyStart: true
+Require-Bundle: org.jdom,
+ org.junit
+Export-Package: dunnagan.bob.xmodel,
+ dunnagan.bob.xmodel.compress,
+ dunnagan.bob.xmodel.dependency,
+ dunnagan.bob.xmodel.diff,
+ dunnagan.bob.xmodel.external,
+ dunnagan.bob.xmodel.external.caching,
+ dunnagan.bob.xmodel.listeners,
+ dunnagan.bob.xmodel.memento,
+ dunnagan.bob.xmodel.net,
+ dunnagan.bob.xmodel.net.robust,
+ dunnagan.bob.xmodel.path,
+ dunnagan.bob.xmodel.record,
+ dunnagan.bob.xmodel.util,
+ dunnagan.bob.xmodel.xaction,
+ dunnagan.bob.xmodel.xml,
+ dunnagan.bob.xmodel.xpath,
+ dunnagan.bob.xmodel.xpath.expression,
+ dunnagan.bob.xmodel.xpath.function,
+ dunnagan.bob.xmodel.xpath.function.custom,
+ dunnagan.bob.xmodel.xpath.parser,
+ dunnagan.bob.xmodel.xpath.parser.generated,
+ dunnagan.bob.xmodel.xpath.variable,
+ dunnagan.bob.xmodel.xsd,
+ dunnagan.bob.xmodel.xsd.check,
+ org.apache.tools.bzip2

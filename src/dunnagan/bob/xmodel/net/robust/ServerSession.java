@@ -1,0 +1,209 @@
+/*
+ * XModel
+ * Author: Bob Dunnagan
+ * Copyright 2005. All rights reserved.
+ */
+package dunnagan.bob.xmodel.net.robust;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.TimerTask;
+
+/**
+ * An implementation of ISession for the server-side.
+ */
+public class ServerSession extends AbstractSession implements IServerSession
+{
+  public ServerSession( Server server, InetSocketAddress address, long sid)
+  {
+    this.server = server;
+    this.address = address;
+    this.sid = sid;
+    this.timeout = 30000;
+
+    // set default socket flags
+    settings = new SocketSettings();
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.ISession#getRemoteAddress()
+   */
+  public InetSocketAddress getRemoteAddress()
+  {
+    return address;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.ISession#getSessionNumber()
+   */
+  public long getSessionNumber()
+  {
+    return sid;
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.IServerSession#getServer()
+   */
+  public Server getServer()
+  {
+    return server;
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.ISession#open()
+   */
+  public void open()
+  {
+    if ( open) return;
+    open = true;
+    notifyOpen();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.ISession#close()
+   */
+  public void close()
+  {
+    if ( !open) return;
+    open = false;
+    
+    try
+    {
+      timeout = -1; // disable disconnect timer
+      socket.close();
+    }
+    catch( Exception e)
+    {
+      if ( debug) e.printStackTrace( System.err);
+    }
+    
+    // cleanup
+    socket = null;
+    input = null;
+    output = null;
+    
+    // tell server
+    server.removeSession( this);
+    
+    // notify
+    notifyClose();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.ISession#isOpen()
+   */
+  public boolean isOpen()
+  {
+    return open;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.ISession#blink()
+   */
+  public void bounce()
+  {
+    try { if ( socket != null) socket.close();} catch( Exception e) {}
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.IServerSession#initialize(java.net.Socket)
+   */
+  public void initialize( Socket newSocket) throws IOException
+  {
+    if ( socket != null)
+    {
+      // this means we did not know that we were not connected
+      try
+      {
+        socket.close();
+      }
+      catch( Exception e)
+      {
+        if ( debug) e.printStackTrace( System.err);
+      }
+    }
+    
+    // set connection objects
+    synchronized( this)
+    {
+      this.input = newSocket.getInputStream();
+      this.output = newSocket.getOutputStream();
+      socket = newSocket;
+      settings.configure( socket);
+    }
+
+    // notify
+    notifyConnect();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#getInputStream()
+   */
+  @Override
+  protected InputStream getSocketInputStream()
+  {
+    return input;
+  }
+
+  /**
+   * Returns the output stream safely.
+   * @return Returns the output stream safely.
+   */
+  protected synchronized OutputStream getSocketOutputStream()
+  {
+    return output;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyConnect()
+   */
+  @Override
+  protected void notifyConnect()
+  {
+    // cancel timeout timer
+    if ( task != null) task.cancel();
+    
+    // notify
+    super.notifyConnect();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyDisconnect()
+   */
+  @Override
+  protected void notifyDisconnect()
+  {
+    // notify
+    super.notifyDisconnect();
+
+    // set session timeout timer
+    if ( timeout >= 0)
+    {
+      task = new TimeoutTask();
+      server.getTimer().schedule( task, timeout);
+      System.err.println( "Disconnect timer started...");
+    }
+  }
+
+  private class TimeoutTask extends TimerTask
+  {
+    public void run()
+    {
+      close();
+    }
+  }
+  
+  private SocketSettings settings;  
+  private Server server;
+  private InetSocketAddress address;
+  private long sid;
+  private Socket socket;
+  private InputStream input;
+  private OutputStream output;
+  private boolean open;
+  private TimeoutTask task;
+  private int timeout;
+}

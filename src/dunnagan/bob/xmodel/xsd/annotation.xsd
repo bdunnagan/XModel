@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by Jeff Ortel (Stonewall Networks, Inc.) -->
+<xs:schema xmlns="schema" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="schema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:element name="errors">
+		<xs:annotation>
+			<xs:documentation>An annotation node placed on the document locus to indicate its schema validation errors.</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="error" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="schema">
+								<xs:annotation>
+									<xs:documentation>The schema fragment which produced the validation error.</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:any maxOccurs="unbounded"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="code">
+								<xs:annotation>
+									<xs:documentation>The error code.</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="rootNotFound"/>
+										<xs:enumeration value="valueEmpty"/>
+										<xs:enumeration value="valueIllegal"/>
+										<xs:enumeration value="attributeInvalid"/>
+										<xs:enumeration value="childInvalid"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

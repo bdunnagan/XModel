@@ -1,0 +1,14 @@
+<diffSet>
+  <lhs>
+    <a>1</a>
+    <b>2</b>
+    <c>3</c>
+    <d>4</d>
+    <e>5</e>
+  </lhs>
+  
+  <rhs>
+    <c>3</c>
+    <e>5</e>
+  </rhs>
+</diffSet>

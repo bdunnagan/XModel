@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by Jeff Ortel (Stonewall Networks, Inc.) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+  <xs:element name="schema">
+    <xs:annotation>
+      <xs:documentation>A simplified schema definition.</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="element" type="Element" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>List of allowable root elements.</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>The name of the schema.</xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="Element">
+    <xs:annotation>
+      <xs:documentation>The simplified specification for an element allowed in the document.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="attributes">
+        <xs:annotation>
+          <xs:documentation>The definitions of allowed attributes.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="attribute" type="Attribute" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="children">
+        <xs:annotation>
+          <xs:documentation>The definitions of allowed children.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="element" type="Element" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="constraint" type="Constraint">
+        <xs:annotation>
+          <xs:documentation>The constraint on the children of the element.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="value" type="Value" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>The value of the element.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="name" use="required">
+      <xs:annotation>
+        <xs:documentation>The name of the element.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="type">
+      <xs:annotation>
+        <xs:documentation>Complex type name.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:complexType name="Type">
+    <xs:annotation>
+      <xs:documentation>The definition of the type of an attribute or value.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="boolean">
+          <xs:annotation>
+            <xs:documentation>A boolean attribute.</xs:documentation>
+          </xs:annotation>
+          <xs:complexType/>
+        </xs:element>
+        <xs:element name="number">
+          <xs:annotation>
+            <xs:documentation>A numeric attribute.</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:choice minOccurs="0">
+                <xs:element name="integer" type="xs:integer">
+                  <xs:annotation>
+                    <xs:documentation>Indicates an integer value with a fixed number of digits.</xs:documentation>
+                  </xs:annotation>
+                </xs:element>
+                <xs:element name="float" type="xs:integer">
+                  <xs:annotation>
+                    <xs:documentation>Indicates floating point format and precision.</xs:documentation>
+                  </xs:annotation>
+                </xs:element>
+              </xs:choice>
+              <xs:element name="min" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation>The minimum value of the number.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:attribute name="exclusive" type="xs:boolean" default="false">
+                    <xs:annotation>
+                      <xs:documentation>True if the minimum value is exclusive.</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="max" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation>The maximum value of the number.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:attribute name="exclusive" type="xs:boolean" default="false">
+                    <xs:annotation>
+                      <xs:documentation>True if the minimum value is exclusive.</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="string">
+          <xs:annotation>
+            <xs:documentation>A string attribute.</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="min" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation>The minimum number of characters.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType/>
+              </xs:element>
+              <xs:element name="max" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation>The maximum number of characters.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType/>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+      <xs:element name="pattern" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>A string conforming to a regular expression pattern which is given by the value.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="enum" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>An enumeration.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="value" type="xs:string" maxOccurs="unbounded">
+              <xs:annotation>
+                <xs:documentation>One of the possible values.</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Attribute">
+    <xs:sequence>
+      <xs:element name="type" type="Type">
+        <xs:annotation>
+          <xs:documentation>The type of the attribute.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="use" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>The use of the attribute (required or optional).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="name" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>The name of the attribute.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="default" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="Value">
+    <xs:sequence>
+      <xs:element name="type" type="Type">
+        <xs:annotation>
+          <xs:documentation>The type of the attribute.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="default" type="xs:string" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>The default value of the attribute.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Constraint">
+    <xs:annotation>
+      <xs:documentation>A constraint placed on a collection of child elements.</xs:documentation>
+    </xs:annotation>
+    <xs:choice maxOccurs="unbounded">
+      <xs:element name="set" type="Constraint">
+        <xs:annotation>
+          <xs:documentation>Unordered set constraint.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="list" type="Constraint">
+        <xs:annotation>
+          <xs:documentation>Ordered list constraint.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="choice" type="Constraint">
+        <xs:annotation>
+          <xs:documentation>Choice constraint.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="child">
+        <xs:annotation>
+          <xs:documentation>Individual element constraint. Value contains the name of the element.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <xs:attribute name="min" type="xs:int" default="1">
+                <xs:annotation>
+                  <xs:documentation>Minimum occurences.</xs:documentation>
+                </xs:annotation>
+              </xs:attribute>
+              <xs:attribute name="max" type="xs:int" default="1">
+                <xs:annotation>
+                  <xs:documentation>Maximum occurences.</xs:documentation>
+                </xs:annotation>
+              </xs:attribute>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+    <xs:attribute name="min" type="xs:int">
+      <xs:annotation>
+        <xs:documentation>Minimum occurrences.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="max" type="xs:int" default="1">
+      <xs:annotation>
+        <xs:documentation>Maximum occurrences.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+</xs:schema>
