@@ -338,12 +338,14 @@ public class Schema
     File xsdFile = new File( args[ 0]);
     IExternalReference xsd = new ExternalReference( "xsd");
     xsd.setAttribute( "url", xsdFile.toURL());
-    xsd.setCachingPolicy( new XsdCachingPolicy( new UnboundedCache()), true);
+    xsd.setCachingPolicy( new XsdCachingPolicy( new UnboundedCache()));
+    xsd.setDirty( true);
 
     File docFile = new File( args[ 1]);
     IExternalReference doc = new ExternalReference( "doc");
     doc.setAttribute( "path", docFile.toString());
-    doc.setCachingPolicy( new FileCachingPolicy( new UnboundedCache()), true);
+    doc.setCachingPolicy( new FileCachingPolicy( new UnboundedCache()));
+    doc.setDirty( true);
     
     SchemaTransform transform = new SchemaTransform();
     IModelObject transformed = transform.transform( xsd.getChild( 0));

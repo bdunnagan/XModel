@@ -11,6 +11,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import dunnagan.bob.xmodel.util.Radix;
+
 /**
  * An abstract base class for ISession.
  */
@@ -22,7 +24,27 @@ public abstract class AbstractSession implements ISession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#addHandler(dunnagan.bob.xmodel.net.nu.ISession.Handler)
+   * @see dunnagan.bob.xmodel.net.robust.ISession#getLongSessionID()
+   */
+  public String getLongSessionID()
+  {
+    return Radix.convert( getSessionNumber(), 36).toUpperCase();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.ISession#getShortSessionID()
+   */
+  public String getShortSessionID()
+  {
+    String id = getLongSessionID();
+    int end = id.length() - 1;
+    int start = end - 5;
+    if ( start < 0) start = 0;
+    return id.substring( start, end);
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.ISession#addHandler(dunnagan.bob.xmodel.net.ISession.Handler)
    */
   public void addListener( Listener listener)
   {
@@ -30,7 +52,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#removeHandler(dunnagan.bob.xmodel.net.nu.ISession.Handler)
+   * @see dunnagan.bob.xmodel.net.ISession#removeHandler(dunnagan.bob.xmodel.net.ISession.Handler)
    */
   public void removeListener( Listener listener)
   {
@@ -38,7 +60,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getHandlers()
+   * @see dunnagan.bob.xmodel.net.ISession#getHandlers()
    */
   public List<Listener> getHandlers()
   {
@@ -46,7 +68,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#read(byte[])
+   * @see dunnagan.bob.xmodel.net.ISession#read(byte[])
    */
   public int read( byte[] buffer)
   {
@@ -68,7 +90,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#read(byte[], int, int)
+   * @see dunnagan.bob.xmodel.net.ISession#read(byte[], int, int)
    */
   public int read( byte[] buffer, int offset, int length)
   {
@@ -90,7 +112,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#send(byte[])
+   * @see dunnagan.bob.xmodel.net.ISession#send(byte[])
    */
   public boolean write( byte[] buffer)
   {
@@ -113,7 +135,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#send(byte[], int, int)
+   * @see dunnagan.bob.xmodel.net.ISession#send(byte[], int, int)
    */
   public boolean write( byte[] buffer, int offset, int length)
   {
@@ -136,7 +158,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#setStreamFactory(dunnagan.bob.xmodel.net.nu.ISession.StreamFactory)
+   * @see dunnagan.bob.xmodel.net.ISession#setStreamFactory(dunnagan.bob.xmodel.net.ISession.StreamFactory)
    */
   public void setStreamFactory( StreamFactory factory)
   {
@@ -144,7 +166,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getInputStream()
+   * @see dunnagan.bob.xmodel.net.ISession#getInputStream()
    */
   public InputStream getInputStream()
   {
@@ -157,7 +179,7 @@ public abstract class AbstractSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getOutputStream()
+   * @see dunnagan.bob.xmodel.net.ISession#getOutputStream()
    */
   public OutputStream getOutputStream()
   {

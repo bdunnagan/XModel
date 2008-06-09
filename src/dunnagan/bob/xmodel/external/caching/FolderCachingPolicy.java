@@ -34,9 +34,8 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     xmlIO = new XmlIO();
     fileCachingPolicy = new FileCachingPolicy( cache);
     
-    differ = new EntityDiffer();
-    differ.addCachingPolicy( folderPath, this, true);
-    differ.addCachingPolicy( filePath, fileCachingPolicy, true);
+    defineNextStage( folderPath, this, true);
+    defineNextStage( filePath, fileCachingPolicy, true);
     
     // create default filter
     filter = new FilenameFilter() {
@@ -121,42 +120,6 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#flush(
-   * dunnagan.bob.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-  
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#insert(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject, boolean)
-   */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#remove(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#update(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
-  {
-    differ.diffAndApply( reference, object);
-  }
-
   /**
    * Returns the root tag for the specified file. Currently, this method does not open the file.
    * Instead, it merely trims the file extension and uses the file name for the root tag.
@@ -192,7 +155,6 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
   static final IExpression filePath = XPath.createExpression( "file/*");
     
   private XmlIO xmlIO;
-  protected EntityDiffer differ;
   private FilenameFilter filter;
   private FileCachingPolicy fileCachingPolicy;
   
@@ -201,7 +163,8 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     ExternalReference reference = new ExternalReference( "xmodel");
     reference.setAttribute( "path", "c:/accurev/beta/cornerstone/client/XModelUIPlugin/src/dunnagan/bob/xmodel");
     FolderCachingPolicy cachingPolicy = new FolderCachingPolicy( new AccessOrderCache( 10));
-    reference.setCachingPolicy( cachingPolicy, true);
+    reference.setCachingPolicy( cachingPolicy);
+    reference.setDirty( true);
     
     IPath path = XPath.createPath( "ui/swt/file[ @id='lear.xml']/PLAY");
     IModelObject xml = path.queryFirst( reference);

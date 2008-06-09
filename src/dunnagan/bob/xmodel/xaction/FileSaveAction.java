@@ -44,6 +44,8 @@ public class FileSaveAction extends GuardedAction
   protected void doAction( IContext context)
   {
     IModelObject element = sourceExpr.queryFirst( context);
+    if ( element == null) return;
+    
     File file = new File( fileExpr.evaluateString( context));
     if ( !overwrite && file.exists())
       throw new IllegalArgumentException(

@@ -5,6 +5,7 @@
  */
 package dunnagan.bob.xmodel.net.robust;
 
+
 /**
  * A convenient implementation of Server.Handler which spawns a new thread for each session
  * and calls the <code>run</code> method which can perform an infinite loop handling session
@@ -25,12 +26,12 @@ public abstract class ServerHandler implements Server.Listener
    * Called from the newly created session thread.
    * @param session The new session.
    */
-  protected abstract void run( ISession session);
+  protected abstract void run( IServerSession session);
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.Server.Handler#notifySession(dunnagan.bob.xmodel.net.nu.ISession)
+   * @see dunnagan.bob.xmodel.net.Server.Handler#notifySession(dunnagan.bob.xmodel.net.ISession)
    */
-  public void notifyAccept( ISession session)
+  public void notifyAccept( IServerSession session)
   {
     // set session handler
     if ( sessionListener != null) session.addListener( sessionListener);
@@ -38,7 +39,7 @@ public abstract class ServerHandler implements Server.Listener
     // create runnable and spawn thread
     SessionRunnable runnable = new SessionRunnable();
     runnable.session = session;
-    thread = new Thread( runnable, "Session");
+    thread = new Thread( runnable, "XModel Server Session ("+session.getShortSessionID()+")");
     thread.start();
   }
   
@@ -55,7 +56,7 @@ public abstract class ServerHandler implements Server.Listener
     {
       ServerHandler.this.run( session);
     }
-    ISession session;
+    IServerSession session;
   }
   
   private Thread thread;

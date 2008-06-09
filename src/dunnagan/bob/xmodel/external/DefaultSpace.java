@@ -7,6 +7,8 @@ package dunnagan.bob.xmodel.external;
 
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.util.Collections;
+import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.xml.XmlIO;
@@ -27,13 +29,13 @@ public class DefaultSpace implements IExternalSpace
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.IExternalSpace#query(java.net.URI)
    */
-  public IModelObject query( URI uri) throws CachingException
+  public List<IModelObject> query( URI uri) throws CachingException
   {
     try
     {
       XmlIO xmlIO = new XmlIO();
       IModelObject element = xmlIO.read( uri.toURL().openStream());
-      return element;
+      return Collections.singletonList( element);
     }
     catch( MalformedURLException e)
     {

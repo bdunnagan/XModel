@@ -58,7 +58,6 @@ public class AttributeAxisListener extends FanoutListener
       IContext context = getListenerChain().getContext();
       if ( attrName.length() == 0)
       {
-        
         IModelObject node = object.getAttributeNode( "");
         if ( fanoutElement.evaluate( context, path, node)) 
           getNextListener().incrementalInstall( node);

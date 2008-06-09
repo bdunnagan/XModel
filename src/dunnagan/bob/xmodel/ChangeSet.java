@@ -213,6 +213,15 @@ public class ChangeSet implements IChangeSet, IModelListener
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    // resync
+    if ( dirty) object.getChildren();
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Runnable#run()
    */
   public void run()

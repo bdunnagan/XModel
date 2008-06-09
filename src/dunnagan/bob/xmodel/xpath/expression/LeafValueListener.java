@@ -134,6 +134,16 @@ public class LeafValueListener extends ModelListener
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.ModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  @Override
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    // resync if necessary
+    if ( dirty) object.getValue();
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   @Override

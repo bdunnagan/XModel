@@ -41,6 +41,16 @@ public abstract class ValueObserver extends ModelListener implements IPathListen
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.ModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  @Override
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    // resync if necessary
+    if ( dirty) object.getValue();
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IPathListener#notifyAdd(dunnagan.bob.xmodel.xpath.expression.IContext, 
    * dunnagan.bob.xmodel.IPath, int, java.util.List)
    */

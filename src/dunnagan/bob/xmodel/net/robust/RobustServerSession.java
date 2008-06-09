@@ -49,7 +49,7 @@ public class RobustServerSession extends RobustSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.IServerSession#initialize(java.net.Socket)
+   * @see dunnagan.bob.xmodel.net.IServerSession#initialize(java.net.Socket)
    */
   public void initialize( Socket newSocket) throws IOException
   {

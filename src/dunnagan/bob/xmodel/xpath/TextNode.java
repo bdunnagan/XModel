@@ -11,12 +11,9 @@ import dunnagan.bob.xmodel.*;
 import dunnagan.bob.xmodel.memento.IMemento;
 
 /**
- * An implementation of IModelObject which serves as a light-weight container for the text
- * attributes of other IModelObjects. The BasicConversion class stores the text node of an element
- * in an attribute with an empty attribute name. This container is used during the evaluation of
- * X-Path expressions.
+ * An implementation of IModelObject which serves as a light-weight container for the text attributes of other IModelObjects.
  */
-public class TextNode extends ModelListener implements IModelObject
+public class TextNode implements IModelObject
 {
   /**
    * Create a TextNode to hold the text information for the given object.
@@ -41,7 +38,6 @@ public class TextNode extends ModelListener implements IModelObject
   public String getID()
   {
     throw new UnsupportedOperationException();
-    //return "text()";
   }
 
   /* (non-Javadoc)
@@ -567,23 +563,44 @@ public class TextNode extends ModelListener implements IModelObject
       this.listener = listener;
     }
     
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyChange(dunnagan.bob.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
+     */
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
       if ( attrName.length() == 0)
         listener.notifyChange( textNode, "", newValue, oldValue);
     }
   
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyClear(dunnagan.bob.xmodel.IModelObject, java.lang.String, java.lang.Object)
+     */
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
       if ( attrName.length() == 0)
         listener.notifyClear( textNode, "", oldValue);
     }
 
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+     */
+    public void notifyDirty( IModelObject object, boolean dirty)
+    {
+      // resync if necessary
+      if ( dirty) object.getValue();
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
     public int hashCode()
     {
       return textNode.hashCode() + listener.hashCode();
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
     public boolean equals( Object object)
     {
       if ( object instanceof TextListener)

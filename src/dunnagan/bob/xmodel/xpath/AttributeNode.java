@@ -566,23 +566,44 @@ public class AttributeNode implements IModelObject
       this.listener = listener;
     }
     
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyChange(dunnagan.bob.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
+     */
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
       if ( attrName.equals( attrNode.attrName))
         listener.notifyChange( attrNode, "", newValue, oldValue);
     }
   
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyClear(dunnagan.bob.xmodel.IModelObject, java.lang.String, java.lang.Object)
+     */
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
       if ( attrName.equals( attrNode.attrName))
         listener.notifyClear( attrNode, "", oldValue);
     }
   
+    /* (non-Javadoc)
+     * @see dunnagan.bob.xmodel.ModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+     */
+    public void notifyDirty( IModelObject object, boolean dirty)
+    {
+      // resync if necessary
+      if ( dirty) object.getAttribute( attrNode.attrName);
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
     public int hashCode()
     {
       return attrNode.hashCode() + listener.hashCode();
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
     public boolean equals( Object object)
     {
       if ( object instanceof AttributeListener)

@@ -23,12 +23,10 @@ public interface IExternalReference extends IModelObject
   public IExternalReference getParentReference();
   
   /**
-   * Set the ICachingPolicy for this IExternalReference and optionally mark the reference dirty. An
-   * IExternalReference cannot be resolved until it has an ICachingPolicy. This method may be used
-   * to enable and disable synchronization and flushing of the IExternalReference.
+   * Set the ICachingPolicy for this IExternalReference.
    * @param cachingPolicy The ICachingPolicy to associate with this reference.
    */
-  public void setCachingPolicy( ICachingPolicy cachingPolicy, boolean dirty);
+  public void setCachingPolicy( ICachingPolicy cachingPolicy);
   
   /**
    * Returns the ICachingPolicy which controls the synchronization and flushing of this reference.
@@ -57,12 +55,6 @@ public interface IExternalReference extends IModelObject
   public boolean isDirty();
   
   /**
-   * Returns true iff there is at least one IModelListener in the subtree.
-   * @return Returns true iff there is at least one IModelListener in the subtree.
-   */
-  public boolean hasListeners();
-  
-  /**
    * Synchronize this IExternalReference using the installed ICachingPolicy. If no ICachingPolicy is
    * installed then this method will throw a CachingException. CachingExceptions may also be thrown
    * due to errors from IExternalStore.
@@ -82,4 +74,11 @@ public interface IExternalReference extends IModelObject
    * the object will be immediately resync'ed.
    */
   public void clearCache() throws CachingException;
+  
+  /**
+   * Returns a string representation of the reference with the specified indentation.
+   * @param indent The indentation (usually spaces).
+   * @return Returns a string representation.
+   */
+  public String toString( String indent);
 }

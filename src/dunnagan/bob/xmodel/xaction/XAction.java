@@ -13,6 +13,8 @@ import dunnagan.bob.xmodel.xml.IXmlIO.Style;
 import dunnagan.bob.xmodel.xpath.XPath;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
+import dunnagan.bob.xmodel.xpath.expression.StatefulContext;
+import dunnagan.bob.xmodel.xpath.variable.IVariableScope;
 
 /**
  * An abstract base implementation of IXAction which knows where to find the ClassLoader 
@@ -29,6 +31,16 @@ public abstract class XAction implements IXAction
    */
   public void configure( XActionDocument document)
   {
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xaction.IXAction#run()
+   */
+  public IVariableScope run()
+  {
+    StatefulContext context = new StatefulContext( new ModelObject( "root"));
+    run( context);
+    return context.getScope();
   }
 
   /* (non-Javadoc)
@@ -53,9 +65,7 @@ public abstract class XAction implements IXAction
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.xaction.IXAction#run(dunnagan.bob.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
-  {
-  }
+  public abstract void doRun( IContext context);
   
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.xaction.IXAction#shouldReturn()

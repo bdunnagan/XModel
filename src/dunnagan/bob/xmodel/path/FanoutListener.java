@@ -136,6 +136,20 @@ public abstract class FanoutListener extends ListenerChainLink
    */
   protected abstract void uninstallListeners( IModelObject object);
   
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.path.ListenerChainLink#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  @Override
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    if ( dirty)
+    {
+      // resync object if necessary
+      incrementalUninstall( object);
+      incrementalInstall( object);
+    }
+  }
+
   /**
    * Returns the next listener in the chain.
    * @return Returns the next listener in the chain.

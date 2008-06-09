@@ -178,6 +178,7 @@ public class TabularCompressor extends AbstractCompressor
       // write content
       byte[] content = contentArrayOut.toByteArray();
       rawOut.write( content);
+      rawOut.flush();
       rawOut.close();
     }
     catch( IOException e)

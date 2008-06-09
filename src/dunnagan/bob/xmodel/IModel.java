@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import dunnagan.bob.xmodel.net.IDispatcher;
 
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
@@ -59,7 +58,7 @@ public interface IModel
    * @param uri The URI specification.
    * @return Returns the result of the query.
    */
-  public IModelObject query( URI uri);
+  public List<IModelObject> query( URI uri);
   
   /**
    * Revert the current update (see Update for more information). This method may be called

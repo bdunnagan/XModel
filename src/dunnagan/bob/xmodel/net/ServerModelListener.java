@@ -6,15 +6,12 @@
 package dunnagan.bob.xmodel.net;
 
 import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Map;
 import java.util.Set;
 
 import dunnagan.bob.xmodel.IModelListener;
 import dunnagan.bob.xmodel.IModelObject;
-import dunnagan.bob.xmodel.ModelListenerList;
 import dunnagan.bob.xmodel.external.NonSyncingIterator;
-import dunnagan.bob.xmodel.net.robust.ISession;
+import dunnagan.bob.xmodel.net.robust.IServerSession;
 
 /**
  * A ModelListener installed by the Server to provide updates to the client. 
@@ -24,99 +21,40 @@ public class ServerModelListener implements IModelListener
 {
   /**
    * Create a listener which will notify the server of an update.
-   * @param server The server.
+   * @param session The session.
    */
-  protected ServerModelListener( ModelServer server, ISession session)
+  protected ServerModelListener( IServerSession session)
   {
-    this.server = server;
     this.session = session;
     this.ignoreAttributes = new HashSet<String>();
     this.ignoreElements = new HashSet<IModelObject>();
-    this.installSet = new HashSet<IModelObject>();
-  }
-  
-  /**
-   * Install this listener on the specified element and all of its ancestors. The general contract of this
-   * listener installation is that an element which has this listener will also have this listener installed
-   * on all of its ancestors.
-   * @param element The element.
-   */
-  public void install( IModelObject element)
-  {
-    while( element != null)
-    {
-      element.addModelListener( this);
-      installSet.add( element);
-      element = element.getParent();
-    }
-  }
-  
-  /**
-   * Uninstall this listener from all elements where it was installed.
-   */
-  public void uninstall()
-  {
-    for( IModelObject element: installSet)
-      element.removeModelListener( this);
-    installSet.clear();
-  }
-  
-  /**
-   * Remove this listener from the specified element, all of its descendants and any of its ancestors
-   * which do not have a child which has this listener on it. The general contract of this listener 
-   * installation is that an element which has this listener will also have this listener installed
-   * on all of its ancestors.
-   * @param element The element.
-   */
-  public void uninstall( IModelObject element)
-  {
-    // remove from element and descendants
-    uninstallTree( element);
-    
-    // remove from ancestors which do not have a child with this listener installed
-    IModelObject ancestor = element.getParent();
-    while( ancestor != null)
-    {
-      for( IModelObject child: ancestor.getChildren())
-      {
-        ModelListenerList listeners = child.getModelListeners();
-        if ( listeners != null && listeners.contains( this)) return;
-      }
-      
-      ancestor.removeModelListener( this);
-      installSet.remove( ancestor);
-      
-      ancestor = ancestor.getParent();
-    }
   }
 
   /**
-   * Install listener in subtree without syncing.
-   * @param element The root of the subtree.
+   * Install the listener in the tree of the element without syncing.
+   * @param element The root of the tree.
    */
-  protected void installTree( IModelObject element)
+  private void install( IModelObject element)
   {
-    NonSyncingIterator iterator = new NonSyncingIterator( element);
-    while( iterator.hasNext())
+    // install listener throughout tree except on dirty references
+    NonSyncingIterator iter = new NonSyncingIterator( element);
+    while( iter.hasNext())
     {
-      IModelObject descendant = (IModelObject)iterator.next();
-      descendant.addModelListener( this);
-      installSet.add( descendant);
+      IModelObject node = iter.next();
+      node.addModelListener( this);
     }
   }
   
   /**
-   * Uninstall listener in subtree without syncing.
-   * @param element The root of the subtree.
+   * Remove the listener from the specified element.
    */
-  private void uninstallTree( IModelObject element)
+  public void uninstall( IModelObject element)
   {
-    NonSyncingIterator iterator = new NonSyncingIterator( element);
-    while( iterator.hasNext())
+    NonSyncingIterator iter = new NonSyncingIterator( element);
+    while( iter.hasNext())
     {
-      IModelObject descendant = (IModelObject)iterator.next();
-      descendant.removeModelListener( this);
-      installSet.remove( descendant);
+      IModelObject node = iter.next();
+      node.removeModelListener( this);
     }
   }
   
@@ -162,7 +100,7 @@ public class ServerModelListener implements IModelListener
    */
   public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
   {
-    if ( newParent != oldParent) child.removeModelListener( this);
+    if ( newParent != oldParent) uninstall( child);
   }
 
   /* (non-Javadoc)
@@ -172,7 +110,8 @@ public class ServerModelListener implements IModelListener
   {
     try
     {
-      if ( !ignoreElements.contains( parent)) server.sendInsert( session, parent, child, index);
+      install( child);
+      if ( !ignoreElements.contains( parent)) getServer().sendInsert( session, parent, child, index);
     }
     catch( Exception e)
     {
@@ -188,8 +127,8 @@ public class ServerModelListener implements IModelListener
   {
     try
     {
-      uninstallTree( child);
-      if ( !ignoreElements.contains( parent)) server.sendDelete( session, child);
+      uninstall( child);
+      if ( !ignoreElements.contains( parent)) getServer().sendDelete( session, child);
     }
     catch( Exception e)
     {
@@ -206,7 +145,7 @@ public class ServerModelListener implements IModelListener
     try
     {
       if ( !ignoreAttributes.contains( attrName) && !ignoreElements.contains( object))
-        server.sendUpdate( session, object);
+        getServer().sendChange( session, object, attrName, newValue);
     }
     catch( Exception e)
     {
@@ -223,7 +162,7 @@ public class ServerModelListener implements IModelListener
     try
     {
       if ( !ignoreAttributes.contains( attrName) && !ignoreElements.contains( object))
-        server.sendUpdate( session, object);
+        getServer().sendClear( session, object, attrName);
     }
     catch( Exception e)
     {
@@ -233,52 +172,24 @@ public class ServerModelListener implements IModelListener
   }
 
   /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
+   * @see dunnagan.bob.xmodel.IModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
    */
-  @Override
-  public int hashCode()
+  public void notifyDirty( IModelObject object, boolean dirty)
   {
-    // hash code only needs to be unique by server since only one listener is installed per element
-    return server.hashCode();
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
-  @Override
-  public boolean equals( Object object)
-  {
-    if ( object instanceof ServerModelListener)
-    {
-      ServerModelListener listener = (ServerModelListener)object;
-      return listener.server == server && listener.session == session;
-    }
-    return false;
+    // send dirty notification to client but never resync
+    getServer().sendDirty( session, object, dirty);
   }
 
   /**
-   * Returns the listener for the specified server and session.
-   * @param server The server.
-   * @param session The session.
-   * @return Returns the listener for the specified server and session.
+   * Returns the server.
+   * @return Returns the server.
    */
-  public static ServerModelListener getInstance( ModelServer server, ISession session)
+  protected ModelServer getServer()
   {
-    if ( map == null) map = new Hashtable<ISession, ServerModelListener>();
-    ServerModelListener listener = map.get( session);
-    if ( listener == null)
-    {
-      listener = new ServerModelListener( server, session);
-      map.put( session, listener);
-    }
-    return listener;
+    return (ModelServer)session.getServer();
   }
-  
-  private static Map<ISession, ServerModelListener> map;
-  
-  private ModelServer server;
-  private ISession session;
+    
+  private IServerSession session;
   private Set<String> ignoreAttributes;
   private Set<IModelObject> ignoreElements;
-  private Set<IModelObject> installSet;
 }

@@ -6,6 +6,7 @@
 package dunnagan.bob.xmodel.external;
 
 import java.net.URI;
+import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
 
@@ -23,9 +24,9 @@ public interface IExternalSpace
   public boolean contains( URI uri);
   
   /**
-   * Obtain the first element identified by the specified URI query.
+   * Execute the specified URI query. The result will be an empty set for non-node-set queries.
    * @param uri The URI specification.
-   * @return Returns the first element identitifed by the URI query.
+   * @return Returns the result-set of the query.
    */
-  public IModelObject query( URI uri) throws CachingException;
+  public List<IModelObject> query( URI uri) throws CachingException;
 }

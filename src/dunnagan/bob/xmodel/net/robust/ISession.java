@@ -20,6 +20,18 @@ public interface ISession
   public long getSessionNumber();
   
   /**
+   * Returns the session number converted into a short hash which might overlap (for readability).
+   * @return Returns the session number converted into a short hash which might overlap.
+   */
+  public String getShortSessionID();
+  
+  /**
+   * Returns the session number converted into an string that will not overlap.
+   * @return Returns the session number converted into an string that will not overlap.
+   */
+  public String getLongSessionID();
+  
+  /**
    * Add a handler.
    * @param listener The handler.
    */

@@ -77,6 +77,15 @@ public class ModelAlgorithms implements IAxis
    */
   public static IModelObject findFastSimpleMatch( List<IModelObject> list, IModelObject object)
   {
+    // look for exact match
+    IModelObject referent = dereference( object);
+    for( IModelObject node: list)
+    {
+      IModelObject nodeReferent = dereference( node);
+      if ( referent == nodeReferent) return node;
+    }
+    
+    // look for best match
     String id = object.getID();
     if ( id.length() > 0)
     {
@@ -411,6 +420,7 @@ public class ModelAlgorithms implements IAxis
    */
   public static void copyChildren( IModelObject source, IModelObject destination, IModelObjectFactory factory)
   {
+    if ( factory == null) factory = new ModelObjectFactory();
     for ( IModelObject child: source.getChildren())
     {
       IModelObject clone = factory.createClone( child);
@@ -428,6 +438,20 @@ public class ModelAlgorithms implements IAxis
     // copy list since children will be removed from original list when moved
     List<IModelObject> children = new ArrayList<IModelObject>( source.getChildren());
     for ( IModelObject child: children) destination.addChild( child);
+  }
+  
+  /**
+   * Remove the first argument from its parent and insert the second argument at the same index.
+   * This method does nothing if the first argument does not have a parent.
+   * @param original The original child.
+   * @param replacement The replacement child.
+   */
+  public static void substitute( IModelObject original, IModelObject replacement)
+  {
+    IModelObject parent = original.getParent();
+    int index = parent.getChildren().indexOf( original);
+    original.removeFromParent();
+    parent.addChild( replacement, index);
   }
   
   /**
@@ -820,6 +844,22 @@ public class ModelAlgorithms implements IAxis
   }
   
   /**
+   * Completely dereference the specified object.
+   * @param object The object.
+   * @return Returns the dereferenced object.
+   */
+  public static IModelObject dereference( IModelObject object)
+  {
+    IModelObject referent = object.getReferent();
+    while( referent != object) 
+    {
+      object = referent;
+      referent = referent.getReferent();
+    }
+    return referent;
+  }
+  
+  /**
    * Returns a unique session ID for the XModel. Each object ID is prefixed with the session ID.
    * @return Returns a unique session ID for the XModel.
    */
@@ -883,7 +923,8 @@ public class ModelAlgorithms implements IAxis
         {
           ModelAlgorithms.copyAttributes( reference, clone);
         }
-        clone.setCachingPolicy( reference.getCachingPolicy(), reference.isDirty());
+        clone.setCachingPolicy( reference.getCachingPolicy());
+        clone.setDirty( reference.isDirty());
         return clone;
       }
       

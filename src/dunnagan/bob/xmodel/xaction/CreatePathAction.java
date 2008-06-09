@@ -6,9 +6,7 @@
 package dunnagan.bob.xmodel.xaction;
 
 import dunnagan.bob.xmodel.IModelObjectFactory;
-import dunnagan.bob.xmodel.IPath;
 import dunnagan.bob.xmodel.ModelAlgorithms;
-import dunnagan.bob.xmodel.xpath.XPath;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
@@ -36,12 +34,7 @@ public class CreatePathAction extends GuardedAction
   @Override
   protected void doAction( IContext context)
   {
-    IPath sourcePath = XPath.convertToPath( sourceExpr);
-    if ( sourcePath == null)
-      throw new IllegalArgumentException(
-        "Unable to convert source expression to simple path: "+this);
-    
-    ModelAlgorithms.createPathSubtree( context.getObject(), sourcePath, factory, null);
+    ModelAlgorithms.createPathSubtree( context, sourceExpr, factory, null);
   }
   
   private IModelObjectFactory factory;

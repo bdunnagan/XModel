@@ -6,13 +6,13 @@
 package dunnagan.bob.xmodel.net;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
-import dunnagan.bob.xmodel.ModelAlgorithms;
 import dunnagan.bob.xmodel.ModelRegistry;
 import dunnagan.bob.xmodel.external.CachingException;
-import dunnagan.bob.xmodel.external.ExternalReference;
+import dunnagan.bob.xmodel.external.ICache;
 import dunnagan.bob.xmodel.external.IExternalSpace;
 import dunnagan.bob.xmodel.external.UnboundedCache;
 
@@ -35,7 +35,7 @@ public class ExternalSpace implements IExternalSpace
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.IExternalSpace#query(java.net.URI)
    */
-  public IModelObject query( URI uri) throws CachingException
+  public List<IModelObject> query( URI uri) throws CachingException
   {
     if ( !contains( uri)) throw new CachingException( "Invalid URI scheme: "+uri.getScheme());
     
@@ -45,26 +45,24 @@ public class ExternalSpace implements IExternalSpace
     
     try
     {
-      ModelClient client = new ModelClient( host, port, ModelRegistry.getInstance().getModel());
+      ICache cache = new UnboundedCache();
+      ModelClient client = new ModelClient( host, port, cache, ModelRegistry.getInstance().getModel());
       client.open();
-      
-      NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy( new UnboundedCache(), client, query);
-      List<IModelObject> nodes = client.evaluateNodes( query);
-      if ( nodes.size() > 0)
+      Object result = client.bind( query);
+      if ( result instanceof List)
       {
-        IModelObject node = nodes.get( 0);
-        ExternalReference reference = new ExternalReference( node.getType());
-        reference.setCachingPolicy( cachingPolicy, false);
-        ModelAlgorithms.copyAttributes( node, reference);
-        cachingPolicy.update( reference, node);
-        return reference;
+        return (List<IModelObject>)result;
       }
-      
-      return null;
+      else
+      {
+        return Collections.emptyList();
+      }
     }
     catch( Exception e)
     {
       throw new CachingException( "Unable to perform query: "+uri, e); 
     }
   }
+  
+  public final static int timeout = 30000;
 }

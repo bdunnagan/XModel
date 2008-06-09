@@ -58,6 +58,31 @@ public class XActionDocument
   }
   
   /**
+   * Returns the root document of this document or null.
+   * @return Returns the root document of this document or null.
+   */
+  public XActionDocument getRootDocument()
+  {
+    XActionDocument root = this;
+    XActionDocument parent = getParentDocument();
+    while( parent != null)
+    {
+      root = parent;
+      parent = parent.getParentDocument();
+    }
+    return root;
+  }
+  
+  /**
+   * Returns the parent of this document or null.
+   * @return Returns the parent of this document or null.
+   */
+  public XActionDocument getParentDocument()
+  {
+    return parent;
+  }
+  
+  /**
    * Sets the root of the view model. Adapters configured with this model will be updated.
    * @param root The new root of the view model.
    */
@@ -65,11 +90,11 @@ public class XActionDocument
   {
     this.root = root;
 
-    // initialize packages
-    packages.add( "dunnagan.bob.xmodel.xaction");
-    
     // load variables
     loadVariables( root);
+    
+    // initialize packages
+    packages.add( "dunnagan.bob.xmodel.xaction");
     
     // load defined packages
     for( IModelObject packageElement: packagePath.query( root, null))
@@ -88,15 +113,6 @@ public class XActionDocument
     return root;
   }
   
-  /**
-   * Returns the document nesting depth.
-   * @return Returns the document nesting depth.
-   */
-  public int getDepth()
-  {
-    return depth;
-  }
-
   /**
    * Add a fully-qualified Java package to the list of packages searched when loading classes.
    * @param packageName The fully-qualified Java package name.
@@ -486,13 +502,8 @@ public class XActionDocument
 
       return action;
     }
-    catch (ClassNotFoundException cnfe)
-    {
-      return null;
-    }
     catch( Exception e)
     {
-      e.printStackTrace();
       return null;
     }
   }
@@ -596,9 +607,9 @@ public class XActionDocument
   public XActionDocument getDocument( IModelObject root)
   {
     XActionDocument document = new XActionDocument( loader);
-    document.depth = depth+1;
     
-    // set root
+    // set root and parent
+    document.parent = this;
     document.setRoot( root);
     
     // add packages
@@ -704,7 +715,7 @@ public class XActionDocument
   private static final IPath variablePath = XPath.createPath( 
     "ancestor-or-self::*/variable");
   
-  private int depth;
+  private XActionDocument parent;
   private ClassLoader loader;
   private IModelObject root;
   private List<String> packages;

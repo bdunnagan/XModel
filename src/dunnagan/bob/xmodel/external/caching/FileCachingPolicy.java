@@ -24,10 +24,7 @@ import dunnagan.bob.xmodel.xpath.expression.IContext;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
- * An implementation of ICachingPolicy for files containing XML documents. The meta-data annotation 
- * contains one element <i>meta:path</i> which defines the name of the attribute on the external
- * reference which contains the fully qualified file-system path of the file. If the <i>meta:path</i>
- * element is not defined then the default path <i>@path</i> is used.
+ * An implementation of ICachingPolicy for files containing XML documents.
  */
 public class FileCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -39,7 +36,6 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     setStaticAttributes( new String[] { "*"});
-    xmlIO = new XmlIO();
   }
 
   /* (non-Javadoc)
@@ -48,13 +44,8 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
-    pathExpr = defaultPathExpr;
-    
-    // get path expression
-    String spec = Xlate.childGet( annotation, "meta:path", "");
-    if ( spec.length() > 0) pathExpr = XPath.createExpression( spec);
-    
-    // get create flag
+    parentContext = context;
+    pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
     create = Xlate.get( annotation, "create", false);
   }
 
@@ -79,7 +70,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
    */
   public void syncImpl( IExternalReference reference) throws CachingException
   {
-    String path = pathExpr.evaluateString( new Context( reference));
+    String path = pathExpr.evaluateString( new Context( parentContext, reference));
     if ( path == null) throw new CachingException( "File reference path not defined.");
     
     File file = new File( path);
@@ -87,7 +78,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     {
       FileInputStream stream = new FileInputStream( file);
       IModelObject fileObject = reference.cloneObject();
-      IModelObject rootTag = xmlIO.read( stream);
+      IModelObject rootTag = (new XmlIO()).read( stream);
       ModelAlgorithms.moveChildren( rootTag, fileObject);
       update( reference, fileObject);
     }
@@ -106,9 +97,9 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
    */
   public void flush( IExternalReference reference) throws CachingException
   {
-    if ( reference.getNumberOfChildren() == 0) return;
+    if ( reference.isDirty()) return;
     
-    String path = pathExpr.evaluateString( new Context( reference));
+    String path = pathExpr.evaluateString( new Context( parentContext, reference));
     if ( path == null) throw new CachingException( "File reference path not defined.");
     
     File file = new File( path);
@@ -116,7 +107,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( create) file.createNewFile();
       FileOutputStream stream = new FileOutputStream( file);
-      xmlIO.write( reference, stream);
+      (new XmlIO()).write( reference, stream);
       stream.close();
     }
     catch( Exception e)
@@ -143,9 +134,10 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     throw new UnsupportedOperationException();
   }
 
-  private final static IExpression defaultPathExpr = XPath.createExpression( "@path");
+  private final static IExpression defaultPathExpr = XPath.createExpression( 
+    "@path");
   
-  private XmlIO xmlIO;
+  private IContext parentContext;
   private IExpression pathExpr = defaultPathExpr;
   private boolean create;
 }

@@ -3,7 +3,7 @@
  * Author: Bob Dunnagan
  * Copyright 2005. All rights reserved.
  */
-package dunnagan.bob.xmodel.net;
+package dunnagan.bob.xmodel;
 
 /**
  * An interface which the server uses to pass queries to the xmodel thread.

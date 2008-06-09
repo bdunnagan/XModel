@@ -64,7 +64,7 @@ public class RobustSession implements ISession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getRemoteAddress()
+   * @see dunnagan.bob.xmodel.net.ISession#getRemoteAddress()
    */
   public InetSocketAddress getRemoteAddress()
   {
@@ -72,11 +72,27 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getSessionNumber()
+   * @see dunnagan.bob.xmodel.net.ISession#getSessionNumber()
    */
   public long getSessionNumber()
   {
     return session.getSessionNumber();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.ISession#getLongSessionID()
+   */
+  public String getLongSessionID()
+  {
+    return session.getLongSessionID();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.ISession#getShortSessionID()
+   */
+  public String getShortSessionID()
+  {
+    return session.getShortSessionID();
   }
 
   /* (non-Javadoc)
@@ -88,7 +104,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#addHandler(dunnagan.bob.xmodel.net.nu.ISession.Handler)
+   * @see dunnagan.bob.xmodel.net.ISession#addHandler(dunnagan.bob.xmodel.net.ISession.Handler)
    */
   public void addListener( Listener listener)
   {
@@ -96,7 +112,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#removeHandler(dunnagan.bob.xmodel.net.nu.ISession.Handler)
+   * @see dunnagan.bob.xmodel.net.ISession#removeHandler(dunnagan.bob.xmodel.net.ISession.Handler)
    */
   public void removeListener( Listener listener)
   {
@@ -104,7 +120,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getHandlers()
+   * @see dunnagan.bob.xmodel.net.ISession#getHandlers()
    */
   public List<Listener> getHandlers()
   {
@@ -112,7 +128,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#open()
+   * @see dunnagan.bob.xmodel.net.ISession#open()
    */
   public void open()
   {
@@ -129,7 +145,11 @@ public class RobustSession implements ISession
     {
       exit = true;
       session.close();
-      if ( thread != null) thread.join();
+      if ( thread != null)
+      {
+        thread.interrupt();
+        thread.join();
+      }
     }
     catch( Exception e)
     {
@@ -139,7 +159,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#bounce()
+   * @see dunnagan.bob.xmodel.net.ISession#bounce()
    */
   public void bounce()
   {
@@ -147,7 +167,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#read(byte[])
+   * @see dunnagan.bob.xmodel.net.ISession#read(byte[])
    */
   public int read( byte[] buffer)
   {
@@ -155,7 +175,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#read(byte[], int, int)
+   * @see dunnagan.bob.xmodel.net.ISession#read(byte[], int, int)
    */
   public int read( byte[] buffer, int offset, int length)
   {
@@ -184,7 +204,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#send(byte[])
+   * @see dunnagan.bob.xmodel.net.AbstractSession#send(byte[])
    */
   public boolean write( byte[] buffer)
   {
@@ -192,7 +212,7 @@ public class RobustSession implements ISession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#send(byte[], int, int)
+   * @see dunnagan.bob.xmodel.net.AbstractSession#send(byte[], int, int)
    */
   public boolean write( byte[] buffer, int offset, int length)
   {
@@ -217,7 +237,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#setStreamFactory(dunnagan.bob.xmodel.net.nu.ISession.StreamFactory)
+   * @see dunnagan.bob.xmodel.net.ISession#setStreamFactory(dunnagan.bob.xmodel.net.ISession.StreamFactory)
    */
   public void setStreamFactory( StreamFactory factory)
   {
@@ -225,7 +245,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getInputStream()
+   * @see dunnagan.bob.xmodel.net.ISession#getInputStream()
    */
   public InputStream getInputStream()
   {
@@ -238,7 +258,7 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getOutputStream()
+   * @see dunnagan.bob.xmodel.net.ISession#getOutputStream()
    */
   public OutputStream getOutputStream()
   {

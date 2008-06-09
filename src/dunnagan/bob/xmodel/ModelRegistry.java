@@ -72,7 +72,7 @@ public class ModelRegistry implements IModelRegistry
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelRegistry#query(java.net.URI)
    */
-  public IModelObject query( URI uri)
+  public List<IModelObject> query( URI uri)
   {
     if ( externalSpaces != null)
     {

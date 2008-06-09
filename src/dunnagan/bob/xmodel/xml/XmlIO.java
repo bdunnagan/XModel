@@ -515,18 +515,18 @@ public class XmlIO implements IXmlIO
     }
   };
 
-  final static byte[] header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes();
-  final static byte[] space = " ".getBytes();
-  final static byte[] less = "<".getBytes();
-  final static byte[] greater = ">".getBytes();
-  final static byte[] quote = "\"".getBytes();
-  final static byte[] equals = "=".getBytes();
-  final static byte[] slash = "/".getBytes();
-  final static byte[] text= "text()".getBytes();
-  final static byte[] at = "@".getBytes();
-  final static byte[] qmark = "?".getBytes();
-  final static byte[] cr = "\n".getBytes();
-  final static byte[] unexpanded = "(unexpanded reference)".getBytes();
+  public final static byte[] header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes();
+  public final static byte[] space = " ".getBytes();
+  public final static byte[] less = "<".getBytes();
+  public final static byte[] greater = ">".getBytes();
+  public final static byte[] quote = "\"".getBytes();
+  public final static byte[] equals = "=".getBytes();
+  public final static byte[] slash = "/".getBytes();
+  public final static byte[] text= "text()".getBytes();
+  public final static byte[] at = "@".getBytes();
+  public final static byte[] qmark = "?".getBytes();
+  public final static byte[] cr = "\n".getBytes();
+  public final static byte[] unexpanded = "(unexpanded reference)".getBytes();
   
   private SAXParser parser;
   private IModelObjectFactory factory;

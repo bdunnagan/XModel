@@ -37,7 +37,7 @@ public class Client extends AbstractSession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getRemoteAddress()
+   * @see dunnagan.bob.xmodel.net.ISession#getRemoteAddress()
    */
   public InetSocketAddress getRemoteAddress()
   {
@@ -45,7 +45,7 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getSessionNumber()
+   * @see dunnagan.bob.xmodel.net.ISession#getSessionNumber()
    */
   public long getSessionNumber()
   {
@@ -53,17 +53,17 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#open()
+   * @see dunnagan.bob.xmodel.net.ISession#open()
    */
   public void open()
   {
     if ( open) return;
-    connect();
     notifyOpen();
+    connect();
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#close()
+   * @see dunnagan.bob.xmodel.net.ISession#close()
    */
   public void close()
   {
@@ -98,7 +98,7 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#blink()
+   * @see dunnagan.bob.xmodel.net.ISession#blink()
    */
   public void bounce()
   {
@@ -106,7 +106,7 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#getInputStream()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#getInputStream()
    */
   @Override
   protected synchronized InputStream getSocketInputStream()
@@ -115,7 +115,7 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#getOutputStream()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#getOutputStream()
    */
   protected synchronized OutputStream getSocketOutputStream()
   {
@@ -134,7 +134,7 @@ public class Client extends AbstractSession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyDisconnect()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#notifyDisconnect()
    */
   @Override
   protected void notifyDisconnect()
@@ -144,7 +144,7 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyClose()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#notifyClose()
    */
   @Override
   protected void notifyClose()

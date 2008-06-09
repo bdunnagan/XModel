@@ -69,4 +69,11 @@ public interface IModelListener
     @param oldValue The original value of the attribute.
   */
   public void notifyClear( IModelObject object, String attrName, Object oldValue);
+  
+  /**
+   * Called when the dirty state of an external reference changes. 
+   * @param object The external reference.
+   * @param dirty The new dirty state.
+   */
+  public void notifyDirty( IModelObject object, boolean dirty);
 }

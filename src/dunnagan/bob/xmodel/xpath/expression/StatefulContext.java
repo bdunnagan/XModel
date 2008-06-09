@@ -42,23 +42,23 @@ public class StatefulContext implements IContext
     
   /**
    * Create a context for the given context node with position and size equal to one and
-   * copy the variables from the specified scope.
+   * use the specified scope to store variables.
    * @param scope The scope to be associated with this context.
    * @param object The context node.
    */
-  public StatefulContext( ContextScope scope, IModelObject object)
+  public StatefulContext( IVariableScope scope, IModelObject object)
   {
     this( scope, object, 1, 1);
   }
   
   /**
-   * Create a context for the given context node and copy the variables from the specified scope.
+   * Create a context for the given context node and use the specified scope to store variables.
    * @param scope The scope to be associated with this context.
    * @param object The context node.
    * @param position The context position.
    * @param size The context size.
    */
-  public StatefulContext( ContextScope scope, IModelObject object, int position, int size)
+  public StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
   {
     this.object = object;
     this.position = position;

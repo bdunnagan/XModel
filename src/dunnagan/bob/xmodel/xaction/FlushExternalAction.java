@@ -27,7 +27,7 @@ public class FlushExternalAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    sourceExpr = document.getExpression( "source", false);
+    sourceExpr = document.getExpression();
   }
 
   /* (non-Javadoc)

@@ -73,7 +73,7 @@ public class EvaluateFunction extends Function
     List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
     for( IModelObject object: nodes)
     {
-      if ( !expr.evaluateBoolean( new Context( context, object))) 
+      if ( !expr.evaluateBoolean( new Context( object))) 
         return false;
     }
     
@@ -96,7 +96,7 @@ public class EvaluateFunction extends Function
     List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
     List<IModelObject> result = new ArrayList<IModelObject>();
     for( IModelObject object: nodes)
-      result.addAll( expr.evaluateNodes( new Context( context, object))); 
+      result.addAll( expr.evaluateNodes( new Context( object))); 
     
     return result;
   }
@@ -115,7 +115,7 @@ public class EvaluateFunction extends Function
     
     IExpression expr = buildExpression( context);
     IModelObject object = getArgument( 0).queryFirst( context);
-    return expr.evaluateNumber( new Context( context, object)); 
+    return expr.evaluateNumber( new Context( object)); 
   }
 
   /* (non-Javadoc)
@@ -132,7 +132,7 @@ public class EvaluateFunction extends Function
     
     IExpression expr = buildExpression( context);
     IModelObject object = getArgument( 0).queryFirst( context);
-    return expr.evaluateString( new Context( context, object)); 
+    return expr.evaluateString( new Context( object)); 
   }
 
   /**

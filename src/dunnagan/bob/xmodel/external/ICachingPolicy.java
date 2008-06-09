@@ -6,6 +6,7 @@
 package dunnagan.bob.xmodel.external;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
  * An interface for managing the synchronization of IExternalReference objects with their
@@ -18,6 +19,50 @@ public interface ICachingPolicy
    * @return Returns the cache or null.
    */
   public ICache getCache();
+
+  /**
+   * Define an additional caching stage for external references using this caching policy. The
+   * first argument is evaluated relative to an external reference and identifies descendants
+   * to be transformed into external references with the specified caching policy and initial
+   * dirty state. Objects are transformed in the <code>insert</code> and <code>update</code>
+   * methods. Note that objects are not automatically transformed by the <code>addChild</code>
+   * method of the external reference. Therefore, the client must always use the 
+   * <code>insert</code> and <code>update</code> methods to update the content of an external 
+   * reference.
+   * @param path An expression which identifies descendants of the external reference.
+   * @param cachingPolicy The caching policy to be applied to identified descendants.
+   * @param dirty The initial dirty state of identified descendants.
+   */
+  public void defineNextStage( IExpression path, ICachingPolicy cachingPolicy, boolean dirty);
+  
+  /**
+   * Define an additional caching stage for external references using this caching policy. The
+   * argument is cloned and added to an external reference when it is synchronized. The argument
+   * is added after other children. Unlike the other <code>defineNextStage</code> method, this
+   * method always adds the specified argument to the external reference.  In contrast the other
+   * method transforms a child created during synchronization which matches an expression.  Note 
+   * that the argument, itself, need not be an external reference.
+   * @param stage The child to be added during synchronization.
+   */
+  public void defineNextStage( IModelObject stage);
+  
+  /**
+   * Transform the specified subtree into an external reference tree. The argument is assumed to
+   * be a prototype of an external reference which will be assigned this caching policy. External
+   * references are created as necessary throughout the subtree according to the next stages 
+   * defined on this caching policy.  Next stages are processed recursively. Note that this 
+   * method destroys the argument subtree.
+   * @param local The local subtree which does not contain external references.
+   * @param dirty True if the root external reference should be marked dirty.
+   * @return Returns the transformed subtree.
+   */
+  public IExternalReference createExternalTree( IModelObject local, boolean dirty);
+  
+  /**
+   * Send a request to the external store to save the changes to the specified reference and unlock.
+   * @param reference The reference to be unlocked and flushed.
+   */
+  public void checkin( IExternalReference reference);
   
   /**
    * Send a request to the external store to lock the specified reference for writing. When this
@@ -27,19 +72,6 @@ public interface ICachingPolicy
    */
   public void checkout( IExternalReference reference);
 
-  /**
-   * Send a request to the external store to save the changes to the specified reference and unlock.
-   * @param reference The reference to be unlocked and flushed.
-   */
-  public void checkin( IExternalReference reference);
-  
-  /**
-   * Prepare the specified reference for use with this caching policy.
-   * @param reference The reference.
-   * @param dirty Whether the reference should be marked dirty.
-   */
-  public void prepare( IExternalReference reference, boolean dirty);
-  
   /**
    * Synchronize the specified reference with its representation in the external store.
    * @param reference The reference to be synced.
@@ -59,7 +91,7 @@ public interface ICachingPolicy
    * @param reference The reference to be cleared.
    */
   public void clear( IExternalReference reference) throws CachingException;
-  
+
   /**
    * Insert a new IExternalReference which has the content specified in the xml argument. If the
    * dirty argument is true then the content is assumed to be the partial reference schema and a
@@ -145,4 +177,11 @@ public interface ICachingPolicy
    * @param reference The reference which was accessed.
    */
   public void writeChildrenAccess( IExternalReference reference);
+  
+  /**
+   * Create a string representation with the specified indentation.
+   * @param indent The indentation (usually spaces).
+   * @return Returns the string representation.
+   */
+  public String toString( String indent);
 }

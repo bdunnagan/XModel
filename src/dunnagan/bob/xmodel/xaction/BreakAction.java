@@ -9,16 +9,12 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.BindException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
 import dunnagan.bob.xmodel.*;
-import dunnagan.bob.xmodel.net.IDispatcher;
-import dunnagan.bob.xmodel.net.ManualDispatcher;
-import dunnagan.bob.xmodel.net.ModelServer;
 import dunnagan.bob.xmodel.xml.XmlException;
 import dunnagan.bob.xmodel.xml.XmlIO;
 import dunnagan.bob.xmodel.xml.IXmlIO.Style;
@@ -92,32 +88,10 @@ public class BreakAction extends GuardedAction
   @Override
   protected void doAction( IContext context)
   {
-    ModelServer server = null;
-    IModel model = context.getModel();
     try
     {
       // push this breakpoint on the stack
       pushThreadBreak();
-      
-      // start xmodel server
-      try
-      {
-        modelDispatcher = model.getDispatcher();
-        breakDispatcher = new ManualDispatcher();
-        model.setDispatcher( breakDispatcher);
-        server = new ModelServer( context.getModel(), -1);
-        server.setContext( context);
-        server.start( port);
-      }
-      catch( BindException e)
-      {
-        server = null;
-      }
-      catch( IOException e)
-      {
-        e.printStackTrace( System.err);
-        server = null;
-      }
       
       // read past input
       try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
@@ -155,11 +129,6 @@ public class BreakAction extends GuardedAction
     {
       // pop this breakpoint off the stack
       popThreadBreak();
-      
-      // shutdown server
-      model.setDispatcher( modelDispatcher);
-      breakDispatcher.process();
-      if ( server != null) server.stop();
     }
   }
   
@@ -307,7 +276,6 @@ public class BreakAction extends GuardedAction
     while( true)
     {
       if ( reader.ready()) return reader.readLine();
-      breakDispatcher.process();
       try { Thread.sleep( 50);} catch( Exception e) {}
     }
   }
@@ -685,7 +653,6 @@ public class BreakAction extends GuardedAction
   
   private XmlIO xmlIO;
   private IDispatcher modelDispatcher;
-  private ManualDispatcher breakDispatcher;
   private BufferedReader reader;
   private IExpression condition;
   private ScriptAction script;

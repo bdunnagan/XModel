@@ -476,6 +476,9 @@ public class PathElement implements IPathElement, IAxis
     if ( result == null) result = new ArrayList<IModelObject>( 5);
     if ( name != null)
     {
+      if ( name.endsWith( ")") && name.equals( "text()"))
+        name = "";
+        
       if ( object.getAttribute( name) != null)
         result.add( object.getAttributeNode( name));
     }
@@ -590,19 +593,38 @@ public class PathElement implements IPathElement, IAxis
   /**
    * Perform the node-test for the specified object.  The node-test is defined in the type
    * argument and may be null, which means all element children.  It may also include a 
-   * namespace followed by a wildcard.
+   * namespace followed by a wildcard.  In some cases, text() or node() might be present.
    * @param object The object whose type is being tested.
    * @param test The node-test.
    * @return Returns true if the object conforms to the node-test.
    */
   private final boolean performNodeTest( IModelObject object, String test)
   {
-    if ( test != null)
+    if ( test == null) return true;
+    
+    int testLength = test.length();
+    if ( test.charAt( testLength - 1) == ')')
+    {
+      // text()
+      if ( test.charAt( 0) == 't')
+      {
+        if ( !(object instanceof AttributeNode)) return false;
+        AttributeNode node = (AttributeNode)object;
+        return node.attrName.length() == 0;
+      }
+      
+      // node()
+      else
+      {
+        return true;
+      }
+    }
+    else
     {
       String type = object.getType();
       boolean prefix = true;
       int i=0, j=0;
-      for( ; i<type.length() && j<test.length(); i++)
+      for( ; i<type.length() && j<testLength; i++)
       {
         char lc = type.charAt( i);
         char rc = test.charAt( j);
@@ -611,9 +633,8 @@ public class PathElement implements IPathElement, IAxis
         if ( !prefix || rc != '*') j++;
         if ( rc != '*' && lc != rc) return false;
       }
-      return (i == type.length() && j == test.length());
+      return (i == type.length() && j == testLength);
     }
-    return true;
   }
   
   /**

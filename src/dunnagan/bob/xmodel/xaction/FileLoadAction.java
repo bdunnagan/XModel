@@ -9,6 +9,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.Xlate;
@@ -48,11 +49,14 @@ public class FileLoadAction extends GuardedAction
     IModelObject parent = (targetExpr != null)? targetExpr.queryFirst( context): null;
     IModelObject element = null;
     
+    // initialize variable
+    IVariableScope scope = context.getScope();
+    if ( scope != null) scope.set( variable, new ArrayList<IModelObject>( 0));
+    
+    // get file
     File file = new File( fileExpr.evaluateString( context));
     long length = file.length();
-    if ( length == 0 || length >= (1L << 32))
-      throw new IllegalArgumentException( 
-        "File size is too large or too small: "+this);
+    if ( length == 0) return;
     
     // read file into memory
     byte[] content = new byte[ (int)length];
@@ -96,15 +100,7 @@ public class FileLoadAction extends GuardedAction
     }
     
     // set variable if defined
-    IVariableScope scope = context.getScope();
-    if ( variable != null)
-    {
-      if ( scope == null)
-        throw new IllegalArgumentException( 
-          "Unable to assign variable: "+variable+" in: "+this);
-      
-      scope.set( variable, element);
-    }
+    if ( scope != null) scope.set( variable, element);
     
     // add to parent
     if ( parent != null) parent.addChild( element);

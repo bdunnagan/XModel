@@ -5,6 +5,7 @@
  */
 package dunnagan.bob.xmodel.external;
 
+import dunnagan.bob.xmodel.IModel;
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.ModelListenerList;
 import dunnagan.bob.xmodel.ModelObject;
@@ -65,9 +66,9 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.IExternalReference#setCachingPolicy(dunnagan.bob.xmodel.external.ICachingPolicy, boolean)
+   * @see dunnagan.bob.xmodel.external.IExternalReference#setCachingPolicy(dunnagan.bob.xmodel.external.ICachingPolicy)
    */
-  public void setCachingPolicy( ICachingPolicy newCachingPolicy, boolean dirty)
+  public void setCachingPolicy( ICachingPolicy newCachingPolicy)
   {
     if ( cachingPolicy != null)
     {
@@ -76,8 +77,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
       if ( cache != null) cache.remove( this);
     }
     cachingPolicy = newCachingPolicy;
-    cachingPolicy.prepare( this, dirty);
-    this.dirty = dirty;
   }
 
   /* (non-Javadoc)
@@ -93,7 +92,9 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setDirty( boolean dirty)
   {
+    boolean wasDirty = this.dirty;
     this.dirty = dirty;
+    if ( wasDirty != dirty) notifyDirty( dirty);
   }
 
   /* (non-Javadoc)
@@ -110,32 +111,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
   public ICachingPolicy getCachingPolicy()
   {
     return cachingPolicy;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.IExternalReference#hasListeners()
-   */
-  public boolean hasListeners()
-  {
-    boolean hasListeners = getListenerCountInSubtree() > 0;
-    return hasListeners;
-  }
-
-  /**
-   * Returns the count of non-negative priority listeners in the subtree rooted at this object. 
-   * @return Returns the count of non-negative priority listeners in the subtree rooted at this object.
-   */
-  private int getListenerCountInSubtree()
-  {
-    int count = 0;
-    NonSyncingIterator iter = new NonSyncingIterator( this);
-    while( iter.hasNext())
-    {
-      IModelObject object = (IModelObject)iter.next();
-      ModelListenerList listeners = object.getModelListeners();
-      if ( listeners != null) count += listeners.count();
-    }
-    return count;
   }
 
   /* (non-Javadoc)
@@ -205,16 +180,47 @@ public class ExternalReference extends ModelObject implements IExternalReference
     cachingPolicy.clear( this);
   }
   
+  /**
+   * Notify listeners that the dirty state of a reference has changed.
+   * @param reference The reference.
+   * @param dirty The new dirty state.
+   */
+  protected void notifyDirty( boolean dirty)
+  {
+    ModelListenerList listeners = getModelListeners();
+    if ( listeners != null) listeners.notifyDirty( this, dirty);
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.external.IExternalReference#toString(java.lang.String)
+   */
+  public String toString( String indent)
+  {
+    IModel model = getModel();
+    boolean wasSyncLocked = model.getSyncLock();
+    model.setSyncLock( true);
+    try
+    {
+      StringBuilder sb = new StringBuilder();
+      sb.append( indent); sb.append( "&"); sb.append( super.toString()); sb.append( "\n");
+      sb.append( getCachingPolicy().toString( indent+"  "));
+      return sb.toString();
+    }
+    finally
+    {
+      model.setSyncLock( wasSyncLocked);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.ModelObject#toString()
+   */
   public String toString()
   {
-    boolean wasDirty = isDirty();
-    setDirty( false);
-    String string = "&"+super.toString();
-    setDirty( wasDirty);
-    return string;
+    return toString( "");
   }
 
   private ICachingPolicy cachingPolicy;

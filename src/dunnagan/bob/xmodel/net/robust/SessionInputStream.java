@@ -30,7 +30,8 @@ public class SessionInputStream extends InputStream
   @Override
   public int read() throws IOException
   {
-    if ( session.read( oneByte) == -1) throw new EOFException();
+    if ( session.read( oneByte) == -1) 
+      throw new EOFException();
     return (int)oneByte[ 0] & 0xff;
   }
 

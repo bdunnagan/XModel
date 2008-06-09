@@ -5,19 +5,19 @@
  */
 package dunnagan.bob.xmodel.net;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import dunnagan.bob.xmodel.IDispatcher;
 
 /**
  * An implementation of IDispatcher which allows runnables to be executed in the current thread.
  */
-public class ManualDispatcher implements IDispatcher
+public class BlockingDispatcher implements IDispatcher
 {
-  public ManualDispatcher()
+  public BlockingDispatcher()
   {
-    queue = new ConcurrentLinkedQueue<Runnable>();
+    queue = new ArrayBlockingQueue<Runnable>( 100);
   }
 
   /* (non-Javadoc)
@@ -25,18 +25,15 @@ public class ManualDispatcher implements IDispatcher
    */
   public void execute( Runnable runnable)
   {
-    while( !queue.offer( runnable))
-    {
-      try { Thread.sleep( 10);} catch( Exception e) {}
-    }
+    try { queue.put( runnable);} catch( InterruptedException e) {}
   }
   
   /**
    * Dequeue and execute all the runnables on the queue.
    */
-  public void process()
+  public void process() throws InterruptedException
   {
-    Runnable runnable = queue.poll();
+    Runnable runnable = queue.take();
     while( runnable != null)
     {
       runnable.run();
@@ -44,5 +41,5 @@ public class ManualDispatcher implements IDispatcher
     }
   }
   
-  private Queue<Runnable> queue;
+  private BlockingQueue<Runnable> queue;
 }

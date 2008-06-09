@@ -122,4 +122,41 @@ public class NosyncFunction extends Function
       model.setSyncLock( false);
     }
   }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.expression.Expression#bind(dunnagan.bob.xmodel.xpath.expression.IContext)
+   */
+  @Override
+  public void bind( IContext context)
+  {
+    IModel model = context.getModel();
+    try
+    {
+      model.setSyncLock( true);
+      super.bind( context);
+    }
+    finally
+    {
+      model.setSyncLock( false);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.expression.Expression#unbind(dunnagan.bob.xmodel.xpath.expression.IContext)
+   */
+  @Override
+  public void unbind( IContext context)
+  {
+    IModel model = context.getModel();
+    try
+    {
+      model.setSyncLock( true);
+      super.unbind( context);
+    }
+    finally
+    {
+      model.setSyncLock( false);
+    }
+  }
+  
 }

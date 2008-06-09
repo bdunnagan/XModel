@@ -49,4 +49,13 @@ public class ModelListener implements IModelListener
   public void notifyClear( IModelObject object, String attrName, Object oldValue)
   {
   }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    // default behavior is to resync the object since generic listener is interested in everything
+    if ( dirty) object.getChildren();
+  }
 }

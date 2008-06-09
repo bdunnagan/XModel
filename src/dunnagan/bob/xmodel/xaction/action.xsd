@@ -166,6 +166,20 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+  <xs:complexType name="BuildReferencesAction">
+    <xs:annotation>
+      <xs:documentation>An action which transforms extern:* declarations and replaces elements with external references.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="XPath">
+        <xs:attribute name="assign" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>The variable to which the result will be assigned.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
   <xs:complexType name="ContextAction">
     <xs:annotation>
       <xs:documentation>An action which executes other actions in a nested, variable-isolated context.</xs:documentation>
@@ -188,6 +202,9 @@
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="CopyAction">
+    <xs:annotation>
+      <xs:documentation>An action which uses an XmlDiffer to update a target element from a source element.</xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="GuardedAction">
         <xs:sequence>
@@ -264,11 +281,15 @@
             </xs:element>
             <xs:element name="template">
               <xs:annotation>
-                <xs:documentation>A template for the new element.</xs:documentation>
+                <xs:documentation>A template for the new element. The template may either be embedded as children of this element or returned by an expression in the value of this element.</xs:documentation>
               </xs:annotation>
               <xs:complexType>
                 <xs:sequence>
-                  <xs:any/>
+                  <xs:any minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                      <xs:documentation>One or more templates.</xs:documentation>
+                    </xs:annotation>
+                  </xs:any>
                 </xs:sequence>
                 <xs:attribute name="annotated" type="xs:boolean" default="false">
                   <xs:annotation>
@@ -569,6 +590,9 @@
     </xs:simpleContent>
   </xs:complexType>
   <xs:complexType name="ScriptAction">
+    <xs:annotation>
+      <xs:documentation>An action which executes one or more action children.</xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="XAction">
         <xs:sequence>
@@ -619,6 +643,9 @@
     </xs:complexContent>
   </xs:complexType>
   <xs:complexType name="SetAction">
+    <xs:annotation>
+      <xs:documentation>An action which sets the value of a node.</xs:documentation>
+    </xs:annotation>
     <xs:complexContent>
       <xs:extension base="GuardedAction">
         <xs:sequence>
@@ -635,6 +662,33 @@
         </xs:sequence>
       </xs:extension>
     </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="StartServer">
+    <xs:annotation>
+      <xs:documentation>An action which starts a network caching policy server. The value of the element an optional source expression giving the context of the server.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="XPath">
+        <xs:attribute name="assign" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>The name of a variable which holds the server instance.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="port" type="xs:int">
+          <xs:annotation>
+            <xs:documentation>An optional port.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="StopServer">
+    <xs:annotation>
+      <xs:documentation>Stop a network caching policy server. The value of the element is the server instance.</xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:extension base="XPath"/>
+    </xs:simpleContent>
   </xs:complexType>
   <xs:complexType name="ValidateAction">
     <xs:annotation>

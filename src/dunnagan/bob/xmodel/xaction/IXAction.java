@@ -6,6 +6,7 @@
 package dunnagan.bob.xmodel.xaction;
 
 import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.variable.IVariableScope;
 
 /**
  * An interface for the implementation of an action defined in a viewmodel.
@@ -29,6 +30,12 @@ public interface IXAction
    * @param document The viewmodel.
    */
   public void configure( XActionDocument document);
+
+  /**
+   * Run this action with an arbitrary context and return its variable scope.
+   * @return Returns the variable scope of the context so variables can be examined.
+   */
+  public IVariableScope run();
   
   /**
    * Run the specified action given its viewmodel.

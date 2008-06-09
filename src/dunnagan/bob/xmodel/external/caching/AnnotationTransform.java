@@ -11,14 +11,12 @@ package dunnagan.bob.xmodel.external.caching;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
-import java.util.Stack;
 
 import dunnagan.bob.xmodel.*;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
 import dunnagan.bob.xmodel.external.ExternalReference;
 import dunnagan.bob.xmodel.external.ICache;
-import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.xpath.XPath;
 import dunnagan.bob.xmodel.xpath.expression.Context;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
@@ -62,90 +60,55 @@ public class AnnotationTransform
    */
   public IModelObject transform( IModelObject root)
   {
-    IExternalReference result = null;
-   
-    // expand annotations
+    IModelObject result = root;
+    
     expandAllAnnotations( root);
     
-    // manually iterate tree to optimize branch selection
-    Stack<IModelObject> stack = new Stack<IModelObject>();
-    stack.push( root);
-    while( !stack.empty())
+    for( IModelObject annotated: annotatedExpr.query( root, null))
     {
-      IModelObject element = stack.pop();
-      IModelObject annotation = element.getFirstChild( "extern:cache");
-      if ( annotation != null && !annotation.getParent().isType( "extern:match"))
-      {
-        IExternalReference reference = transform( element, annotation);
+      IModelObject annotation = annotated.getFirstChild( "extern:cache");
+      annotation.removeFromParent();
 
-        // replace element with new reference
-        IModelObject parent = element.getParent();
+      if ( annotated.isType( "extern:match"))
+      {
+        ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, annotated.getChildren());
+        annotated.setAttribute( "extern:cp", cachingPolicy);
+      }
+      else
+      {
+        IModelObject transformed = transform( annotated, annotation);
+  
+        IModelObject parent = annotated.getParent();
         if ( parent != null)
         {
-          int index = parent.getChildren().indexOf( element);
-          element.removeFromParent();
-          parent.addChild( reference, index);
+          int index = parent.getChildren().indexOf( annotated);
+          annotated.removeFromParent();
+          parent.addChild( transformed, index);
         }
         
-        // replace root
-        if ( element == root) result = reference;
+        if ( annotated == root) result = transformed; 
       }
-      
-      // annotation branch has already been removed
-      for( IModelObject child: element.getChildren())
-        stack.push( child);
     }
     
-    return (result != null)? result: root;
+    return result;
   }
   
   /**
-   * Transform the specified element into an IExternalReference based on the specified annotation.
-   * @param element The element to be transformed.
-   * @param annotation The annotation element.
-   * @return Returns the new reference.
+   * Transform the specified annotated element.
+   * @param element The element.
+   * @param annotation The annotation.
+   * @return Returns the transformed element.
    */
-  private IExternalReference transform( IModelObject element, IModelObject annotation)
+  public IModelObject transform( IModelObject element, IModelObject annotation)
   {
+    ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
+    
     ExternalReference reference = new ExternalReference( element.getType());
     ModelAlgorithms.copyAttributes( element, reference);
 
-    // get secondary stages (match specifications)
-    List<IModelObject> externMatches = annotation.getChildren( "extern:match");
-    
-    // create caching policy
-    ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation);
-    if ( cachingPolicy == null) return null;
-    
-    // define secondary stages
-    for( IModelObject externMatch: externMatches)
-    {
-      IModelObject matchAnnotation = externMatch.getFirstChild( "extern:cache");
-      IExpression path = XPath.createExpression( Xlate.get( externMatch, "path", (String)null));
-      ConfiguredCachingPolicy matchedPolicy = createCachingPolicy( matchAnnotation);
-      
-      // support nesting
-      if ( matchedPolicy == null) matchedPolicy = cachingPolicy;
-      
-      // define
-      cachingPolicy.defineSecondaryStage( path, matchedPolicy, Xlate.get( externMatch, "dirty", true));
-
-      // add skeleton to matched caching policy
-      if ( matchedPolicy != cachingPolicy)
-      {
-        externMatch.removeFromParent();
-        matchAnnotation.removeFromParent();
-        matchedPolicy.defineSkeleton( transform( externMatch));
-      }
-    }
-    
-    // define skeleton
-    annotation.removeFromParent();
-    cachingPolicy.defineSkeleton( transform( element));
-    
-    // associate caching policy
     boolean dirty = Xlate.get( annotation, "dirty", true);
-    reference.setCachingPolicy( cachingPolicy, dirty);
+    reference.setCachingPolicy( cachingPolicy);
+    reference.setDirty( dirty);
     
     return reference;
   }
@@ -201,9 +164,10 @@ public class AnnotationTransform
   /**
    * Create a ConfiguredCachingPolicy based on the specified annotation.
    * @param annotation The annotation.
+   * @param staticStages The static stages (see ICachingPolicy).
    * @return Returns the ConfiguredCachingPolicy.
    */
-  private ConfiguredCachingPolicy createCachingPolicy( IModelObject annotation)
+  private ConfiguredCachingPolicy createCachingPolicy( IModelObject annotation, List<IModelObject> staticStages)
   {
     String policyClassName = Xlate.get( annotation, "class", (String)null);
     if ( policyClassName == null) return null;
@@ -214,7 +178,24 @@ public class AnnotationTransform
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( cache, annotation, policyClassName);
     if ( cachingPolicy != null)
     {
+      // configure
       cachingPolicy.configure( parent, annotation);
+      
+      // create dynamic next stages
+      for( IModelObject stage: annotation.getChildren( "extern:match"))
+      {
+        IExpression stagePath = Xlate.get( stage, "path", (IExpression)null);
+        boolean dirty = Xlate.get( stage, "dirty", true);
+        ConfiguredCachingPolicy stageCachingPolicy = (ConfiguredCachingPolicy)stage.getAttribute( "extern:cp");
+        cachingPolicy.defineNextStage( stagePath, stageCachingPolicy, dirty);
+        stage.removeFromParent();
+      }
+      
+      // define static next stages
+      for( IModelObject staticStage: staticStages)
+        if ( !staticStage.isType( "extern:cache") && !staticStage.isType( "extern:match"))
+          cachingPolicy.defineNextStage( staticStage);
+      
       return cachingPolicy;
     }
     
@@ -296,6 +277,12 @@ public class AnnotationTransform
   
   private final IExpression extendsExpr = XPath.createExpression(
     "descendant-or-self::extern:cache[ @extends]");
+  
+  private final IExpression annotatedExpr = XPath.createExpression(
+    "reverse( descendant-or-self::*[ extern:cache])");
+  
+  private final IExpression isStageExpr = XPath.createExpression(
+    "parent::extern:match");
   
   private ClassLoader loader;
   private IContext parent;

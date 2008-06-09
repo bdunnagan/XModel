@@ -18,6 +18,7 @@ import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.net.ManualDispatcher;
 import dunnagan.bob.xmodel.net.ModelServer;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
 import dunnagan.bob.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -38,10 +39,12 @@ public class StartServerAction extends GuardedAction
     
     // get port and timeout
     port = Xlate.get( document.getRoot(), "port", ModelServer.defaultPort);
-    int timeout = Xlate.get( document.getRoot(), "timeout", 10000);
+    
+    // get context expression
+    sourceExpr = document.getExpression();
     
     // create server
-    server = new ModelServer( document.getRoot().getModel(), timeout);
+    server = new ModelServer( document.getRoot().getModel());
   }
 
   /* (non-Javadoc)
@@ -50,10 +53,13 @@ public class StartServerAction extends GuardedAction
   @Override
   protected void doAction( IContext context)
   {
+    // get context
+    IModelObject source = (sourceExpr != null)? sourceExpr.queryFirst( context): null;
+    
     // start server
     try
     {
-      server.setContext( context);
+      server.setQueryContext( (source != null)? new StatefulContext( context.getScope(), source): context);
       server.start( port);
       
       StatefulContext stateful = (StatefulContext)context;
@@ -83,4 +89,5 @@ public class StartServerAction extends GuardedAction
   private ModelServer server;
   private String assign;
   private int port;
+  private IExpression sourceExpr;
 }

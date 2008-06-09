@@ -194,6 +194,29 @@ public class ModelListenerList implements IModelListener
   }
   
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+    // NOTE: the listeners have to be copied here because the set must be kept up-to-date elsewhere
+    for( IModelListener listener: set.keySet().toArray( proto))
+    {
+      try
+      {
+        listener.notifyDirty( object, dirty);
+      }
+      catch( Exception e)
+      {
+        object.getModel().handleException( e);
+      }
+      finally
+      {
+        object.getModel().restore();
+      }
+    }        
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   public String toString()

@@ -11,8 +11,9 @@ import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.external.*;
 import dunnagan.bob.xmodel.xml.XmlIO;
+import dunnagan.bob.xmodel.xpath.expression.IContext;
 
-public class URLCachingPolicy extends AbstractCachingPolicy
+public class URLCachingPolicy extends ConfiguredCachingPolicy
 {
   /**
    * Create a URLCachingPolicy which uses the specified cache.
@@ -23,13 +24,22 @@ public class URLCachingPolicy extends AbstractCachingPolicy
     super( cache);
     setStaticAttributes( new String[] { "id", "url"});
     xmlIO = new XmlIO();
-    differ = new EntityDiffer();
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#sync(dunnagan.bob.xmodel.external.IExternalReference)
+   * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#configure(dunnagan.bob.xmodel.xpath.expression.IContext, dunnagan.bob.xmodel.IModelObject)
    */
-  public void sync( IExternalReference reference) throws CachingException
+  @Override
+  public void configure( IContext context, IModelObject annotation) throws CachingException
+  {
+    super.configure( context, annotation);
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#syncImpl(dunnagan.bob.xmodel.external.IExternalReference)
+   */
+  @Override
+  protected void syncImpl( IExternalReference reference) throws CachingException
   {
     String string = Xlate.get( reference, "url", (String)null);
     if ( string == null) return;
@@ -49,41 +59,5 @@ public class URLCachingPolicy extends AbstractCachingPolicy
     }
   }
 
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#flush(dunnagan.bob.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#insert(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject, boolean)
-   */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#remove(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#update(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
-  {
-    differ.diffAndApply( reference, object);
-  }
-
-  XmlIO xmlIO;
-  EntityDiffer differ;
+  private XmlIO xmlIO;
 }

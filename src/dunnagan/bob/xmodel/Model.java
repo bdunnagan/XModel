@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import dunnagan.bob.xmodel.net.IDispatcher;
 import dunnagan.bob.xmodel.util.HashMultiMap;
 import dunnagan.bob.xmodel.util.MultiMap;
 
@@ -73,7 +72,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModel#query(java.net.URI)
    */
-  public IModelObject query( URI uri)
+  public List<IModelObject> query( URI uri)
   {
     return ModelRegistry.getInstance().query( uri);
   }
@@ -245,9 +244,9 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModel#setSyncLock(boolean)
    */
-  public void setSyncLock( boolean lock)
+  public void setSyncLock( boolean syncLock)
   {
-    if ( lock) syncLock++; else syncLock--;
+    this.syncLock = syncLock;
   }
 
   /* (non-Javadoc)
@@ -255,7 +254,7 @@ public class Model implements IModel
    */
   public boolean getSyncLock()
   {
-    return syncLock > 0;
+    return syncLock;
   }
 
   /* (non-Javadoc)
@@ -272,5 +271,5 @@ public class Model implements IModel
   private List<IModelObject> locked;
   private int counter;
   private IDispatcher dispatcher;
-  private int syncLock;
+  private boolean syncLock;
 }

@@ -147,6 +147,13 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
   {
   }
 
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelListener#notifyDirty(dunnagan.bob.xmodel.IModelObject, boolean)
+   */
+  public void notifyDirty( IModelObject object, boolean dirty)
+  {
+  }
+
   IListenerChain chain;
   int chainIndex;
 }

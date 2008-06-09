@@ -6,6 +6,7 @@
 package dunnagan.bob.xmodel;
 
 import java.net.URI;
+import java.util.List;
 
 import dunnagan.bob.xmodel.external.IExternalSpace;
 
@@ -48,5 +49,5 @@ public interface IModelRegistry
    * @param uri The URI specification.
    * @return Returns the result of the query.
    */
-  public IModelObject query( URI uri);
+  public List<IModelObject> query( URI uri);
 }

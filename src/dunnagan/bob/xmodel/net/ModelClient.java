@@ -1,652 +1,622 @@
-/*
- * XModel
- * Author: Bob Dunnagan
- * Copyright 2005. All rights reserved.
- */
 package dunnagan.bob.xmodel.net;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
-import dunnagan.bob.xmodel.IModel;
-import dunnagan.bob.xmodel.IModelObject;
-import dunnagan.bob.xmodel.ModelAlgorithms;
-import dunnagan.bob.xmodel.Xlate;
-import dunnagan.bob.xmodel.compress.CompressorException;
+import dunnagan.bob.xmodel.*;
 import dunnagan.bob.xmodel.compress.ICompressor;
 import dunnagan.bob.xmodel.compress.TabularCompressor;
 import dunnagan.bob.xmodel.compress.TabularCompressor.PostCompression;
-import dunnagan.bob.xmodel.external.ICachingPolicy;
+import dunnagan.bob.xmodel.external.ExternalReference;
+import dunnagan.bob.xmodel.external.ICache;
 import dunnagan.bob.xmodel.external.IExternalReference;
-import dunnagan.bob.xmodel.external.NonSyncingIterator;
-import dunnagan.bob.xmodel.net.message.*;
 import dunnagan.bob.xmodel.net.robust.Client;
 import dunnagan.bob.xmodel.net.robust.ISession;
 import dunnagan.bob.xmodel.net.robust.RobustSession;
-import dunnagan.bob.xmodel.xml.XmlIO;
-import dunnagan.bob.xmodel.xpath.expression.IExpression.ResultType;
-import dunnagan.bob.xmodel.xpath.function.BooleanFunction;
-import dunnagan.bob.xmodel.xpath.function.NumberFunction;
-import dunnagan.bob.xmodel.xpath.function.StringFunction;
+import dunnagan.bob.xmodel.util.Radix;
+import dunnagan.bob.xmodel.xpath.XPath;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
- * A TCP-based client which provides remote access to xmodel collections.
+ * A client for the data-model server.
  */
 public class ModelClient extends RobustSession
 {
   /**
-   * Create a client to connect to the specified host.  Clients are not intended to be 
-   * constructed directly.  Instead call the <code>getClient</code> method on the
-   * <code>IModel</code> interface.
-   * @param host A host running an xmodel server.
-   * @param port The port to which the server is bound.
-   * @param model The model with which to associate this client.
+   * Create a client to the specified host and port.
+   * @param host The host.
+   * @param port The port.
+   * @param cache The cache to use for external references.
    */
-  public ModelClient( String host, int port, IModel model)
+  public ModelClient( String host, int port, ICache cache)
+  {
+    this( host, port, cache, ModelRegistry.getInstance().getModel());
+  }
+  
+  /**
+   * Create a client to the specified host and port.
+   * @param host The host.
+   * @param port The port.
+   * @param cache The cache to use for external references.
+   * @param model The model.
+   */
+  public ModelClient( String host, int port, ICache cache, IModel model)
   {
     super( new Client( host, port), 100);
     
-    this.model = model; 
-    this.identities = new IdentityTable();
-    this.inCompressor = new TabularCompressor( PostCompression.zip);
-    this.outCompressor = new TabularCompressor( PostCompression.zip);
-    this.synchronizer = new Semaphore( 0);
+    this.model = model;
+
+    timeout = Integer.parseInt( System.getProperty( "xmodel.network.timeout", "30000"));
+    cachingPolicy = new NetIDCachingPolicy( cache, this);
+    compressor = new TabularCompressor( PostCompression.zip);
+    decompressor = new TabularCompressor( PostCompression.zip);
+    netIDs = new HashMap<String, IModelObject>();
+    block = new Semaphore( 0);
+    nextID = System.nanoTime();
+    limit = 10000;
     
-    addListener( sessionHandler);
-    
-    setStreamFactory( new StreamFactory() {
-      public InputStream getInputStream( InputStream stream)
-      {
-        return new DataInputStream( stream);
-      }
-      public OutputStream getOutputStream( OutputStream stream)
-      {
-        return new DataOutputStream( stream);
-      }
-    });
+    addListener( listener);
+  }
+
+  /**
+   * Set the timeout for blocking messages.
+   * @param timeout The timeout in milliseconds.
+   */
+  public void setTimeout( int timeout)
+  {
+    this.timeout = timeout;
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.Client#open()
+   */
+  @Override
+  public void open()
+  {
+    super.open();
+    sendInit();
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.robust.RobustSession#close()
+   * @see dunnagan.bob.xmodel.net.robust.Client#close()
    */
   @Override
   public void close()
   {
-    if ( isOpen()) try { sendMessage( new CloseRequest());} catch( MessageException e) { e.printStackTrace( System.err);}
-    super.close();
+    sendClose( "Client closed.");
   }
 
   /**
-   * Register the specified element by the given remote id.
-   * @param remoteID The remote id.
-   * @param element The element.
-   */
-  public void register( String remoteID, IModelObject element)
-  {
-    String storeID = identities.get( element);
-    if ( storeID == null) identities.insert( remoteID, element);
-    element.removeAttribute( "remote:id");
-  }
-  
-  /**
-   * Register the remote id of the specified element.
-   * @param element The element.
-   */
-  public void register( IModelObject element)
-  {
-    NonSyncingIterator iterator = new NonSyncingIterator( element);
-    while( iterator.hasNext())
-    {
-      IModelObject descendant = (IModelObject)iterator.next();
-      String remoteID = Xlate.get( descendant, "remote:id", (String)null);
-      if ( remoteID == null) throw new IllegalArgumentException( "Missing remote:id attribute: "+element);
-      register( remoteID, descendant);
-    }
-  }
-  
-  /**
-   * Unregister the specified element with its remote id.
-   * @param element The element.
-   */
-  public void unregister( IModelObject element)
-  {
-    NonSyncingIterator iterator = new NonSyncingIterator( element);
-    while( iterator.hasNext())
-    {
-      IModelObject descendant = (IModelObject)iterator.next();
-      identities.remove( descendant);
-    }
-  }
-  
-  /**
-   * Add a listener for notifications of server events.
-   * @param listener The listener.
-   */
-  public void addUpdateListener( IUpdateListener listener)
-  {
-    if ( listeners == null) listeners = new ArrayList<IUpdateListener>( 1);
-    listeners.add( listener);
-  }
-  
-  /**
-   * Remove a listener for notifications of server events.
-   * @param listener The listener.
-   */
-  public void removeUpdateListener( IUpdateListener listener)
-  {
-    if ( listeners == null) return;
-    listeners.remove( listener);
-    if ( listeners.size() == 0) listeners = null;
-  }
-  
-  /**
-   * (XModel Thread)
-   * Perform the specified remote query and return the string result.
-   * @param query The query specification.
-   * @return Returns the string result of the query.
-   */
-  public String evaluateString( String query) throws MessageException
-  {
-    QueryRequest request = new QueryRequest( query);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-
-    IModelObject queryResult = getQueryResult();
-    String error = Xlate.childGet( queryResult, "error", (String)null);
-    if ( error != null) throw new MessageException( error);
-    
-    IModelObject type = queryResult.getChild( 0);
-    if ( type.isType( "string")) return Xlate.get( type, "");
-    if ( type.isType( "boolean")) return StringFunction.stringValue( Xlate.get( type, false));
-    if ( type.isType( "number")) return StringFunction.stringValue( Xlate.get( type, 0));
-    if ( type.isType( "nodes")) return StringFunction.stringValue( type.getChildren());
-    
-    throw new MessageException( "Undefined result type: "+type.getType());
-  }
-  
-  /**
-   * (XModel Thread)
-   * Perform the specified remote query and return the numeric result.
-   * @param query The query specification.
-   * @return Returns the numeric result of the query.
-   */
-  public double evaluateNumber( String query) throws MessageException
-  {
-    QueryRequest request = new QueryRequest( query);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-
-    IModelObject queryResult = getQueryResult();
-    String error = Xlate.childGet( queryResult, "error", (String)null);
-    if ( error != null) throw new MessageException( error);
-    
-    IModelObject type = queryResult.getChild( 0);
-    if ( type.isType( "number")) return Xlate.get( type, 0);
-    if ( type.isType( "string")) return NumberFunction.numericValue( Xlate.get( type, "false"));
-    if ( type.isType( "boolean")) return NumberFunction.numericValue( Xlate.get( type, false));
-    if ( type.isType( "nodes")) return NumberFunction.numericValue( type.getChildren());
-    
-    throw new MessageException( "Undefined result type: "+type.getType());
-  }
-  
-  /**
-   * (XModel Thread)
-   * Perform the specified remote query and return the boolean result.
-   * @param query The query specification.
-   * @return Returns the boolean result of the query.
-   */
-  public boolean evaluateBoolean( String query) throws MessageException
-  {
-    QueryRequest request = new QueryRequest( query);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-
-    IModelObject queryResult = getQueryResult();
-    String error = Xlate.childGet( queryResult, "error", (String)null);
-    if ( error != null) throw new MessageException( error);
-    
-    IModelObject type = queryResult.getChild( 0);
-    if ( type.isType( "boolean")) return Xlate.get( type, false);
-    if ( type.isType( "string")) return BooleanFunction.booleanValue( Xlate.get( type, "false"));
-    if ( type.isType( "number")) return BooleanFunction.booleanValue( Xlate.get( type, 0));
-    if ( type.isType( "nodes")) return BooleanFunction.booleanValue( type.getChildren());
-    
-    throw new MessageException( "Undefined result type: "+type.getType());
-  }
-  
-  /**
-   * (XModel Thread)
-   * Perform the specified remote query and return the node-set. If the query does not 
-   * evaluate to a node-set then an empty node-set is returned since there are no rules
-   * for converting other types to a node-set.
-   * @param query The query specification.
-   * @return Returns the query node-set.
-   */
-  public List<IModelObject> evaluateNodes( String query) throws MessageException
-  {
-    QueryRequest request = new QueryRequest( query);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-
-    IModelObject queryResult = getQueryResult();
-    String error = Xlate.childGet( queryResult, "error", (String)null);
-    if ( error != null) throw new MessageException( error);
-    
-    IModelObject nodes = queryResult.getFirstChild( "nodes");
-    if ( nodes == null) return Collections.emptyList();
-
-    return nodes.getChildren();
-  }
-  
-  /**
-   * (XModel Thread)
-   * Returns a clone of the query result for the calling thread.
-   * @return Returns a clone of the query result for the calling thread.
-   */
-  private IModelObject getQueryResult()
-  {
-    return queryResult.cloneTree();
-  }
-  
-  /**
-   * Returns the result type of the specified query on the remote host.
+   * Perform an arbitrary query and return the result.
    * @param query The query.
-   * @return Returns the result type of the query.
+   * @param timeout The timeout.
+   * @return Returns the query result.
    */
-  public ResultType sendResultTypeRequest( String query) throws MessageException
+  public Object query( String query, int timeout) throws TimeoutException
   {
-    ResultTypeRequest request = new ResultTypeRequest( query);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-    return queryResultType;
+    IModelObject response = sendQuery( query, limit, timeout);
+    String type = Xlate.get( response, "type", "");
+    if ( type.equals( "NODES"))
+    {
+      return parseResult( response.getChildren());
+    }
+    else if ( type.equals( "STRING"))
+    {
+      return Xlate.get( response, "result", ""); 
+    }
+    else if ( type.equals( "NUMBER"))
+    {
+      return Xlate.get( response, "result", 0d); 
+    }
+    else if ( type.equals( "BOOLEAN"))
+    {
+      return Xlate.get( response, "result", false); 
+    }
+    return null;
   }
-  
-  /**
-   * (XModel Thread)
-   * Query using the remote id of the specified reference.
-   * @param reference The reference being synchronized.
-   * @return Returns the result of the sync.
-   */
-  public IModelObject sendSyncRequest( IExternalReference reference) throws MessageException
-  {
-    String remoteID = identities.get( reference);
-    SyncRequest request = new SyncRequest( remoteID);
-    sendMessage( request);
-    synchronizer.acquireUninterruptibly();
-    
-    String error = Xlate.childGet( queryResult, "error", (String)null);
-    if ( error != null) throw new MessageException( error);
-    
-    IModelObject nodes = queryResult.getFirstChild( "nodes");
-    if ( nodes == null) return null;
-    
-    if ( nodes.getNumberOfChildren() != 1) 
-      throw new MessageException( "Unable to synchronize reference: "+reference);
 
-    return nodes.getChild( 0);
+  /**
+   * Set the maximum number of elements to be queried at one time. All root elements of 
+   * a query will be returned even if the number exceeds the limit. Stubs representing
+   * elements which could not be returned due to the limit will be converted into 
+   * dirty external references.
+   * @param limit The maximum number of elements per query.
+   */
+  public void setQueryLimit( int limit)
+  {
+    this.limit = limit;
   }
   
   /**
-   * (XModel Thread)
-   * Send a mark dirty request for the specified element.
-   * @param elements The elements.
+   * Perform a node-set query, bind it for updates, and limit the number of elements returned 
+   * in the tree. If the number of descendants of all elements returned by the query exceeds 
+   * the limit, then some elements will not have all of their children.  These elements will 
+   * be created as dirty references. Root elements are always returned even if the count 
+   * exceeds the limit.  All non-dirty elements will be kept up-to-date.
+   * @param query The node-set query. 
+   * @return Returns the root elements of the query.
    */
-  public void sendMarkDirty( List<IModelObject> elements) throws MessageException
+  public List<IModelObject> bind( String query) throws TimeoutException
   {
-    DirtyRequest request = new DirtyRequest();
+    // send
+    IModelObject response = sendBind( query, limit, timeout);
+    if ( response == null) return null;
+    
+    // parse response
+    return parseResult( response.getChildren());
+  }
+  
+  /**
+   * Sync the remote object with the specified network id and limit the number of elements
+   * returned in the tree. If the number of descendants of all elements returned by the query 
+   * exceeds the limit, then some elements will not have all of their children.  These elements 
+   * will be created as dirty references. Root elements are always returned even if the count 
+   * exceeds the limit.  All non-dirty elements will be kept up-to-date.
+   * @param reference The reference being synced.
+   * @return Returns the result.
+   */
+  public IModelObject sync( IExternalReference reference) throws TimeoutException
+  {
+    // send
+    String netID = Xlate.get( reference, "net:id", (String)null);
+    IModelObject response = sendSync( netID, limit, timeout);
+    if ( response == null) return null;
+    
+    // parse response
+    IModelObject result = parseResult( response.getChild( 0));
+    
+    // write over the incorrect map entry made by parseResponse
+    netIDs.put( netID, reference);
+    
+    return result;
+  }
+  
+  /**
+   * Unbind the remote element with the specified network id.
+   * @param netID The network ID of the element.
+   */
+  public void unbind( String netID) throws TimeoutException
+  {
+    sendUnbind( netID, timeout);
+    netIDs.remove( netID);
+  }
+  
+  /**
+   * Mark dirty the remote external reference which the specified object represents.
+   * @param object An object representing a remote external reference.
+   */
+  public void markDirty( IModelObject object)
+  {
+    sendMarkDirty( Xlate.get( object, "net:id", (String)null));
+  }
+  
+  /**
+   * Parse a message result and return the result with reference substitutions.
+   * @param result The result elements.
+   * @return Returns the parsed result.
+   */
+  protected List<IModelObject> parseResult( List<IModelObject> result)
+  {
+    List<IModelObject> parsed = new ArrayList<IModelObject>( result.size());
+    for( IModelObject root: result)
+      parsed.add( parseResult( root));
+    return parsed;
+  }
+  
+  /**
+   * Parse a message result and return the result with reference substitutions.
+   * @param result The result elements.
+   * @return Returns the parsed result.
+   */
+  protected IModelObject parseResult( IModelObject result)
+  {
+    List<IModelObject> elements = descendantOrSelfExpr.query( result, null);
     for( IModelObject element: elements)
     {
-      String remoteID = identities.get( element);
-      if ( remoteID != null) request.addRemoteID( remoteID);
+      String netID = Xlate.get( element, "net:id", "");
+      
+      if ( element.getAttribute( "net:stub") != null)
+      {
+        //System.out.println( "STUBBED: "+element);
+        //element.removeAttribute( "net:stub");
+        
+        boolean dirty = Xlate.get( element, "net:dirty", true);
+        //element.removeAttribute( "net:dirty");
+        
+        // create reference
+        ExternalReference reference = new ExternalReference( element.getType());
+        ModelAlgorithms.copyAttributes( element, reference);
+        ModelAlgorithms.moveChildren( element, reference);
+        reference.setCachingPolicy( cachingPolicy);
+        reference.setDirty( dirty);
+        
+        // substitute
+        IModelObject parent = element.getParent();
+        int index = parent.getChildren().indexOf( element);
+        element.removeFromParent();
+        parent.addChild( reference, index);
+
+        // update map
+        netIDs.put( netID, reference);
+        
+        // change root
+        if ( element == result) result = reference;
+      }
+      else
+      {
+        netIDs.put( netID, element);
+      }
     }
-    sendMessage( request);
+    
+    return result;
   }
   
   /**
-   * (XModel Thread)
+   * Send init message to server. 
+   * @return Returns the message correlation id.
+   */
+  protected String sendInit()
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "init");
+    request.setID( messageID);
+    send( request);
+    return messageID;
+  }
+  
+  /**
+   * Send a close message to the server.
+   * @param message The message.
+   */
+  protected void sendClose( String message)
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "close");
+    request.setID( messageID);
+    request.setValue( message);
+    send( request);
+  }
+  
+  /**
+   * Send a query request to the server.
+   * @param query The node-set query.
+   * @param limit The maximum number of elements to return.
+   * @return Returns the query result.
+   */
+  protected IModelObject sendQuery( String query, int limit, int timeout) throws TimeoutException
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "query");
+    request.setID( messageID);
+    request.setAttribute( "query", query);
+    request.setAttribute( "limit", limit);
+    return sendAndWait( request, timeout);
+  }
+  
+  /**
+   * Send a bind request to the server.
+   * @param query The node-set query.
+   * @param limit The maximum number of elements to return.
+   * @return Returns the bind result.
+   */
+  protected IModelObject sendBind( String query, int limit, int timeout) throws TimeoutException
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "bind");
+    request.setID( messageID);
+    request.setAttribute( "query", query);
+    request.setAttribute( "limit", limit);
+    return sendAndWait( request, timeout);
+  }
+  
+  /**
+   * Send a sync request to the server.
+   * @param netID The network ID of the element.
+   * @param limit The maximum number of elements to return.
+   * @param timeout The timeout.
+   * @return Returns the sync response.
+   */
+  protected IModelObject sendSync( String netID, int limit, int timeout) throws TimeoutException
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "sync");
+    request.setID( messageID);
+    request.setAttribute( "net:id", netID);
+    request.setAttribute( "limit", limit);
+    return sendAndWait( request, timeout);
+  }
+  
+  /**
+   * Send an unbind request to the server.
+   * @param netID The network ID of the element to be unbound.
+   * @param timeout The timeout.
+   */
+  protected void sendUnbind( String netID, int timeout) throws TimeoutException
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "unbind");
+    request.setID( messageID);
+    request.setAttribute( "net:id", netID);
+    sendAndWait( request, timeout);
+  }    
+  
+  /**
+   * Send a mark dirty request to the server.
+   * @param netID The network ID of the element to be marked dirty.
+   */
+  protected void sendMarkDirty( String netID)
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "dirty");
+    request.setID( messageID);
+    request.setAttribute( "net:id", netID);
+    send( request);    
+  }
+  
+  /**
    * Send a message to the server.
    * @param message The message.
    */
-  protected void sendMessage( Request request) throws MessageException
+  protected void send( IModelObject message)
   {
-    try
-    {
-      if ( debug) System.err.printf( "Sending: \n%s\n", request.toXml());
-     
-      DataOutputStream stream = (DataOutputStream)getOutputStream();
-      if ( stream != null) 
-      {
-        byte[] bytes = outCompressor.compress( request.content);
-        stream.writeInt( bytes.length);
-        stream.write( bytes);
-        stream.flush();
-        
-        if ( debug) System.err.printf( "Sent %2.1fK.\n", (bytes.length / 1000f));
-      }
+    //System.out.printf( "OUT (%s): %s\n", Thread.currentThread(), message);
+    byte[] compressed = compressor.compress( message);
+    write( compressed);
+  }
+  
+  /**
+   * Send a message to the server and wait for the response.
+   * @param message The message.
+   * @param timeout The timeout.
+   * @return Returns the response.
+   */
+  protected IModelObject sendAndWait( IModelObject message, int timeout) throws TimeoutException
+  {
+    //System.out.println( "sendAndWait from thread: "+Thread.currentThread());
+    // set message id to block on
+    messageID = message.getID();
+    
+    // send message
+    send( message);
+    
+    // block on semaphore
+    try 
+    { 
+      if ( !block.tryAcquire( timeout, TimeUnit.MILLISECONDS))
+        throw new TimeoutException( "Timeout waiting for response to: "+message);
+    } 
+    catch( InterruptedException e) 
+    { 
+      throw new TimeoutException( "Operation interrupted.", e);
     }
-    catch( Exception e)
+    
+    // return message
+    return response.cloneTree();
+  }
+    
+  /**
+   * Handle an asynchronous message from the server.
+   * @param message The message.
+   */
+  protected void handle( IModelObject message)
+  {
+    if ( message.isType( "insert"))
     {
-      e.printStackTrace( System.err);
-      throw new MessageException( "Unable to send message: "+request, e);
+      handleInsert( message);
     }
+    else if ( message.isType( "delete"))
+    {
+      handleDelete( message);
+    }
+    else if ( message.isType( "change"))
+    {
+      handleChange( message);
+    }
+    else if ( message.isType( "clear"))
+    {
+      handleClear( message);
+    }
+    else if ( message.isType( "close"))
+    {
+      handleClose( message);
+    }
+    else if ( message.isType( "dirty"))
+    {
+      handleDirty( message);
+    }
+    else if ( message.isType( "error"))
+    {
+      handleError( message);
+    }
+  }
+  
+  /**
+   * Handle an asynchronous update message from the server.
+   * @param message The message.
+   */
+  protected void handleInsert( IModelObject message)
+  {
+    String netID = Xlate.childGet( message, "parent", (String)null);
+    IModelObject parent = netIDs.get( netID);
+    if ( parent != null)
+    {
+      IModelObject child = parseResult( message.getFirstChild( "child").getChild( 0));
+      int index = Xlate.childGet( message, "index", parent.getNumberOfChildren());
+      parent.addChild( child, index);
+    }
+  }
+  
+  /**
+   * Handle an asynchronous update message from the server.
+   * @param message The message.
+   */
+  protected void handleDelete( IModelObject message)
+  {
+    String netID = Xlate.get( message, "net:id", (String)null);
+    IModelObject object = netIDs.get( netID);
+    if ( object != null) object.removeFromParent();
+  }
+  
+  /**
+   * Handle an asynchronous update message from the server.
+   * @param message The message.
+   */
+  protected void handleChange( IModelObject message)
+  {
+    String netID = Xlate.get( message, "net:id", (String)null);
+    IModelObject object = netIDs.get( netID);
+    if ( object != null)
+    {
+      String attribute = Xlate.childGet( message, "attribute", (String)null);
+      String value = Xlate.childGet( message, "value", (String)null);
+      object.setAttribute( attribute, value);
+    }
+  }
+  
+  /**
+   * Handle an asynchronous update message from the server.
+   * @param message The message.
+   */
+  protected void handleClear( IModelObject message)
+  {
+    String netID = Xlate.get( message, "net:id", (String)null);
+    IModelObject object = netIDs.get( netID);
+    if ( object != null)
+    {
+      String attribute = Xlate.childGet( message, "attribute", (String)null);
+      object.removeAttribute( attribute);
+    }
+  }
+  
+  /**
+   * Handle an asynchronous close message.
+   * @param message The message.
+   */
+  protected void handleClose( IModelObject message)
+  {
+    close();
   }
 
   /**
-   * (Connection Thread)
-   * Set the query result and release the semaphore.
-   * @param content The query response.
+   * Handle an asynchronous dirty message.
+   * @param message The message.
    */
-  private void handleQueryResponse( IModelObject content)
+  protected void handleDirty( IModelObject message)
   {
-    queryResult = content;
-    synchronizer.release();
-  }
-  
-  /**
-   * (Connection Thread)
-   * Set the query result type and release the semaphore.
-   * @param content The result type response.
-   */
-  private void handleResultTypeResponse( IModelObject content)
-  {
-    queryResultType = ResultType.valueOf( Xlate.childGet( content, "type", ""));
-    synchronizer.release();
-  }
-  
-  /**
-   * (Connection Thread)
-   * Set the query result and release the semaphore.
-   * @param content The sync response.
-   */
-  private void handleSyncResponse( IModelObject content)
-  {
-    queryResult = content;
-    synchronizer.release();
-  }
-  
-  /**
-   * (XModel Thread)
-   * Handle a message from the server.
-   * @param content The message content.
-   */
-  private void handleMessage( IModelObject content)
-  {
-    try
+    String netID = Xlate.get( message, "net:id", (String)null);
+    IModelObject object = netIDs.get( netID);
+    if ( object != null)
     {
-      String type = content.getType();
-      if ( type.equals( "updateResponse"))
-      {
-      }
-      else if ( type.equals( "insert"))
-      {
-        IModelObject result = content.getFirstChild( "nodes");
-        if ( result != null)
-        {
-          String parentID = Xlate.childGet( content, "id", ""); 
-          int index = Xlate.childGet( content, "index", -1);
-          
-          IModelObject element = result.getChild( 0);
-          element.removeFromParent();
-          
-          IExternalReference parent = (IExternalReference)identities.get( parentID);
-          ICachingPolicy cachingPolicy = parent.getCachingPolicy();
-          cachingPolicy.insert( parent, element, index, true);
-
-          notifyInsert( parent, element);
-        }
-      }
-      else if ( type.equals( "update"))
-      {
-        IModelObject result = content.getFirstChild( "nodes");
-        if ( result != null)
-        {
-          IModelObject element = result.getChild( 0); 
-          element.removeFromParent();
-          
-          String remoteID = Xlate.get( element, "remote:id", "");
-          IExternalReference updatee = (IExternalReference)identities.get( remoteID);
-          IModelObject original = updatee.cloneObject();
-          if ( updatee != null) ModelAlgorithms.copyAttributes( element, updatee);
-
-          notifyUpdate( original, element);
-        }
-      }
-      else if ( type.equals( "delete"))
-      {
-        String id = Xlate.childGet( content, "id", ""); 
-        IExternalReference element = (IExternalReference)identities.get( id);
-        if ( element != null) 
-        {
-          unregister( element);
-          element.getCachingPolicy().remove( (IExternalReference)element.getParent(), element);  
-          
-          notifyDelete( element.getParent(), element);
-        }
-      }
-      else if ( type.equals( "context"))
-      {
-        // root should be sent from server
-        //root.clearCache();
-      }
-    }
-    catch( Exception e)
-    {
-      e.printStackTrace( System.err);
-      close();
+      boolean dirty = Xlate.get( message, "dirty", false);
+      object.setAttribute( "net:dirty", dirty);
+      
+      // all remote external references are references locally
+      if ( dirty) ((IExternalReference)object).clearCache();
     }
   }
   
   /**
-   * Notify listeners of an insert event.
-   * @param parent The parent.
-   * @param child The child.
+   * Handle an asynchronous error message.
+   * @param message The message.
    */
-  private void notifyInsert( IModelObject parent, IModelObject child)
+  protected void handleError( IModelObject message)
   {
-    try
-    {
-      if ( listeners == null) return;
-      IUpdateListener[] listeners = this.listeners.toArray( new IUpdateListener[ 0]);
-      for( IUpdateListener listener: listeners) listener.notifyInsert( parent, child);
-    }
-    catch( Exception e)
-    {
-      e.printStackTrace( System.err);
-    }
+    IModelObject errors = errorsExpr.queryFirst();
+    errors.addChild( message);
   }
   
   /**
-   * Notify listeners of a delete event.
-   * @param parent The parent.
-   * @param child The child.
+   * Client session listener.
    */
-  private void notifyDelete( IModelObject parent, IModelObject child)
-  {
-    try
-    {
-      if ( listeners == null) return;
-      IUpdateListener[] listeners = this.listeners.toArray( new IUpdateListener[ 0]);
-      for( IUpdateListener listener: listeners) listener.notifyDelete( parent, child);
-    }
-    catch( Exception e)
-    {
-      e.printStackTrace( System.err);
-    }
-  }
-
-  /**
-   * Notify listeners of an update event.
-   * @param element The original element.
-   * @param update The updated element.
-   */
-  private void notifyUpdate( IModelObject element, IModelObject update)
-  {
-    try
-    {
-      if ( listeners == null) return;
-      IUpdateListener[] listeners = this.listeners.toArray( new IUpdateListener[ 0]);
-      for( IUpdateListener listener: listeners) listener.notifyUpdate( element, update);
-    }
-    catch( Exception e)
-    {
-      e.printStackTrace( System.err);
-    }
-  }
-  
-  private final ISession.Listener sessionHandler = new ISession.Listener() {
+  private final Listener listener = new ISession.Listener() {
     public void notifyOpen( ISession session)
     {
-      exit = false;
-      thread = new Thread( connectionRunnable, "Session");
-      thread.setDaemon( true);
-      thread.start();
     }
     public void notifyClose( ISession session)
     {
       exit = true;
-      if ( thread != null)
-      {
-        thread.interrupt();
-        try { thread.join();} catch( InterruptedException e) {}
-        thread = null;
-      }
     }
     public void notifyConnect( ISession session)
     {
+      messageLoopThread = new Thread( messageLoop, "Session Loop ("+session.getShortSessionID()+")");
+      messageLoopThread.setDaemon( true);
+      messageLoopThread.start();
     }
     public void notifyDisconnect( ISession session)
     {
+      exit = true;
+      messageLoopThread.interrupt();
+      messageLoopThread = null;
     }
   };
   
   /**
-   * (Connection Thread)
+   * Message loop runnable.
    */
-  private final Runnable connectionRunnable = new Runnable() {
+  private final Runnable messageLoop = new Runnable() {
     public void run()
     {
-      try
+      InputStream stream = session.getInputStream();
+      while( !exit)
       {
-        DataInputStream stream = (DataInputStream)getInputStream();
-        while( !exit)
+        IModelObject message = decompressor.decompress( stream);
+        //System.out.printf( "IN (%s): %s\n", Thread.currentThread(), message);
+        if ( messageID != null && message.getID().equals( messageID))
         {
-          int length = stream.readInt();
-          if ( length == -1) break;
-          
-          byte[] buffer = new byte[ length];
-          stream.readFully( buffer, 0, length);
-          
-          IModelObject message = parse( buffer);
-          if ( message.isType( "queryResponse"))
-          {
-            handleQueryResponse( message);
-          }
-          else if ( message.isType( "resultTypeResponse"))
-          {
-            handleResultTypeResponse( message);
-          }
-          else if ( message.isType( "syncResponse"))
-          {
-            handleSyncResponse( message);
-          }
-          else
-          {
-            model.dispatch( new MessageRunnable( message));
-          }
+          // synchronous message
+          messageID = null;
+          response = message;
+          block.release();
         }
-      }
-      catch( Exception e1)
-      {
-        e1.printStackTrace( System.err);
-      }
-      finally
-      {
-        exit = true;
+        else
+        {
+          // asynchronous message
+          AsyncRunnable runnable = new AsyncRunnable();
+          runnable.message = message;
+          model.dispatch( runnable);
+        }
       }
     }
   };
   
   /**
-   * Parse the specified buffer into a message.
-   * @param buffer The message buffer.
-   * @return Returns the message.
+   * Asynchronous message runnable.
    */
-  private IModelObject parse( byte[] buffer)
+  private class AsyncRunnable implements Runnable
   {
-    try
-    {
-      if ( debug) System.err.printf( "Received ?K:\n");
-      IModelObject content = inCompressor.decompress( buffer, 0);
-      if ( debug) System.err.printf( "%s\n", (new XmlIO()).write( content));
-      return content;
-    }
-    catch( CompressorException e)
-    {
-      e.printStackTrace( System.err);
-      synchronizer.release();
-      exit = true;
-      return null;
-    }
-  }
-
-  private class MessageRunnable implements Runnable
-  {
-    public MessageRunnable( IModelObject message)
-    {
-      this.message = message;
-    }
-    
     /* (non-Javadoc)
      * @see java.lang.Runnable#run()
      */
     public void run()
     {
-      handleMessage( message);
+      handle( message.cloneTree());
     }
     
-    private IModelObject message;
+    public IModelObject message;
   }
   
-  public static interface IUpdateListener
-  {
-    /**
-     * Called when a child is inserted.
-     * @param parent The parent.
-     * @param child The child.
-     */
-    public void notifyInsert( IModelObject parent, IModelObject child);
-    
-    /**
-     * Called when a child is deleted.
-     * @param parent The parent.
-     * @param child The child.
-     */
-    public void notifyDelete( IModelObject parent, IModelObject child);
-    
-    /**
-     * Called when an element is updated.
-     * @param element The element prior to updating.
-     * @param update The update to the element.
-     */
-    public void notifyUpdate( IModelObject element, IModelObject update);
-  }
+  private final IExpression descendantOrSelfExpr = XPath.createExpression(
+    "nosync( descendant-or-self::*)");
   
-  private final static boolean debug = false;
-  
+  private final IExpression errorsExpr = XPath.createExpression(
+   "collection('errors')");
+
   private IModel model;
+  private Thread messageLoopThread;
+  private NetIDCachingPolicy cachingPolicy;
+  private Map<String, IModelObject> netIDs;
+  private ICompressor compressor;
+  private ICompressor decompressor;
+  private Semaphore block;
+  private String messageID;
+  private IModelObject response;
+  private int limit;
+  private int timeout;
+  private long nextID;
   private boolean exit;
-  private ICompressor inCompressor;
-  private ICompressor outCompressor;
-  private Semaphore synchronizer;
-  private IModelObject queryResult;
-  private ResultType queryResultType;
-  private IdentityTable identities;
-  private Thread thread;
-  private List<IUpdateListener> listeners;
 }

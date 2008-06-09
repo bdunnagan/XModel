@@ -66,7 +66,7 @@ public class Server
     exit = false;
     timer = new Timer( true);
     serverSocket = new ServerSocket( port);
-    serverThread = new Thread( serverRunnable, "Server-"+port);
+    serverThread = new Thread( serverRunnable, "XModel Server ("+port+")");
     serverThread.start();
   }
   
@@ -274,7 +274,7 @@ public class Server
      * Called when a new session is accepted.
      * @param session The session.
      */
-    public void notifyAccept( ISession session);
+    public void notifyAccept( IServerSession session);
     
     /**
      * Called after the last session closes.

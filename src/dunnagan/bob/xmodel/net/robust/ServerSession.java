@@ -29,7 +29,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getRemoteAddress()
+   * @see dunnagan.bob.xmodel.net.ISession#getRemoteAddress()
    */
   public InetSocketAddress getRemoteAddress()
   {
@@ -37,7 +37,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#getSessionNumber()
+   * @see dunnagan.bob.xmodel.net.ISession#getSessionNumber()
    */
   public long getSessionNumber()
   {
@@ -53,7 +53,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#open()
+   * @see dunnagan.bob.xmodel.net.ISession#open()
    */
   public void open()
   {
@@ -63,7 +63,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#close()
+   * @see dunnagan.bob.xmodel.net.ISession#close()
    */
   public void close()
   {
@@ -101,7 +101,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.ISession#blink()
+   * @see dunnagan.bob.xmodel.net.ISession#blink()
    */
   public void bounce()
   {
@@ -109,7 +109,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
   
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.IServerSession#initialize(java.net.Socket)
+   * @see dunnagan.bob.xmodel.net.IServerSession#initialize(java.net.Socket)
    */
   public void initialize( Socket newSocket) throws IOException
   {
@@ -140,7 +140,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#getInputStream()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#getInputStream()
    */
   @Override
   protected InputStream getSocketInputStream()
@@ -158,7 +158,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyConnect()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#notifyConnect()
    */
   @Override
   protected void notifyConnect()
@@ -171,7 +171,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.net.nu.AbstractSession#notifyDisconnect()
+   * @see dunnagan.bob.xmodel.net.AbstractSession#notifyDisconnect()
    */
   @Override
   protected void notifyDisconnect()
@@ -184,7 +184,6 @@ public class ServerSession extends AbstractSession implements IServerSession
     {
       task = new TimeoutTask();
       server.getTimer().schedule( task, timeout);
-      System.err.println( "Disconnect timer started...");
     }
   }
 

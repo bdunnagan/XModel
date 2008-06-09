@@ -5,15 +5,16 @@
  */
 package dunnagan.bob.xmodel.net;
 
-import java.net.InetSocketAddress;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.Xlate;
-import dunnagan.bob.xmodel.external.*;
-import dunnagan.bob.xmodel.xpath.XPath;
+import dunnagan.bob.xmodel.external.CachingException;
+import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
+import dunnagan.bob.xmodel.external.ICache;
+import dunnagan.bob.xmodel.external.IExternalReference;
+import dunnagan.bob.xmodel.net.robust.ISession;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
-import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
  * A ConfiguredCachingPolicy which uses the simple client/server protocol defined in this
@@ -27,57 +28,10 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
    */
   public NetworkCachingPolicy( ICache cache)
   {
-    this( cache, "", 0, null);
-  }
-  
-  /**
-   * Create a NetworkCachingPolicy which connects locally. 
-   * @param cache The cache.
-   * @param query The path of the root in the remote model.
-   */
-  public NetworkCachingPolicy( ICache cache, String query)
-  {
-    this( cache, ModelServer.defaultHost, ModelServer.defaultPort, query);
-  }
-
-  /**
-   * Create a NetworkCachingPolicy which addresses the specified server.
-   * @param cache The cache.
-   * @param host The server host.
-   * @param port The server port.
-   * @param query The path of the root in the remote model.
-   */
-  public NetworkCachingPolicy( ICache cache, String host, int port, String query)
-  {
     super( cache);
     setStaticAttributes( new String[] { "id", "xm:*", "net:*"});
-    
-    this.query = query;
-    this.host = host;
-    this.port = port;
-
-    defineSecondaryStage( descendantExpr, this, false);
-  }
-
-  /**
-   * Create a NetworkCachingPolicy with the specified client and query.
-   * @param cache The cache.
-   * @param client The client.
-   * @param query The path of the root in the remote model.
-   */
-  public NetworkCachingPolicy( ICache cache, ModelClient client, String query)
-  {
-    super( cache);
-    setStaticAttributes( new String[] { "id", "xm:*", "remote:*"});
-    
-    this.query = query;
-    this.client = client;
-    
-    InetSocketAddress address = client.getRemoteAddress();
-    this.host = address.getHostName();
-    this.port = address.getPort();
-
-    defineSecondaryStage( descendantExpr, this, false);
+    this.host = ModelServer.defaultHost;
+    this.port = ModelServer.defaultPort;
   }
   
   /* (non-Javadoc)
@@ -86,22 +40,67 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void finalize() throws Throwable
   {
-    client.close();
+    if ( client != null) client.close();
     super.finalize();
   }
+  
+  /**
+   * Set the query.
+   * @param query The query.
+   */
+  public void setQuery( String query)
+  {
+    this.query = query;
+  }
 
+  /**
+   * Set the host.
+   * @param host The host.
+   */
+  public void setHost( String host)
+  {
+    this.host = host;
+  }
+  
+  /**
+   * Set the port.
+   * @param port The port.
+   */
+  public void setPort( int port)
+  {
+    this.port = port;
+  }
+
+  /**
+   * Set the query limit.
+   * @param limit The limit.
+   */
+  public void setQueryLimit( int limit)
+  {
+    this.limit = limit;
+  }
+  
+  /**
+   * By default, the first node in the query result will be used to update the reference. If the multi
+   * flag is true, however, all the nodes in the query result will become children of the reference.
+   * @param multi True if the nodes of the query result should become children of the reference.
+   */
+  public void setMultipleResult( boolean multi)
+  {
+    this.multi = multi;
+  }
+  
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#configure(dunnagan.bob.xmodel.IModelObject)
    */
   @Override
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
-    // create client if necessary
+    multi = Xlate.childGet( annotation, "multi", false);
     host = Xlate.childGet( annotation, "host", ModelServer.defaultHost);
     port = Xlate.childGet( annotation, "port", ModelServer.defaultPort);
-    
-    // set query if necessary
     if ( query == null) query = Xlate.childGet( annotation, "query", "");
+    if ( limit == 0) limit = Xlate.childGet( annotation, "limit", 1000);
   }
 
   /**
@@ -120,77 +119,44 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    boolean isRoot = isRoot( reference);
+    assert( this.reference != null && this.reference != reference);
+    this.reference = reference;
+    
+    client = new ModelClient( host, port, getCache(), reference.getModel());
+    client.addListener( listener);
+    client.open();
+    client.setQueryLimit( limit);
     try
     {
-      IModelObject result = null;
-      if ( isRoot) 
+      if ( multi)
       {
-        if ( client == null)
-        {
-          // create and open new client session
-          client = new ModelClient( host, port, reference.getModel());
-          client.open();
-        }
-        
-        // perform sync query
-        List<IModelObject> elements = client.evaluateNodes( query);
-        if ( elements.size() > 0) result = elements.get( 0);
+        List<IModelObject> elements = client.bind( query);
+        for( IModelObject element: elements) insert( reference, element, -1, false);
       }
       else
       {
-        // send sync request
-        result = client.sendSyncRequest( reference);
+        List<IModelObject> elements = client.bind( query);
+        update( reference, elements.get( 0));
       }
-
-      // result may be null if the sync occured and the backing element has already been removed
-      // in which case there is a pending delete for this reference and syncing is not necessary
-      // FIXME: this behavior is slightly erroneous because it would appear that reference never
-      // had any information, which is not true.
-      if ( result == null) return;
-
-      // register root
-      if ( isRoot) client.register( Xlate.get( result, "remote:id", ""), reference);
-      
-      // update
-      result.removeFromParent();
-      update( reference, result);
     }
-    catch( Exception e)
+    catch( TimeoutException e)
     {
-      throw new CachingException( "Unable to connect to remote datamodel.", e);
+      throw new CachingException( "Timeout trying to sync network reference: "+reference, e);
     }
   }
   
-  /**
-   * Returns true if the specified reference is the root of the remote tree.
-   * @param reference The reference to be tested.
-   * @return Returns true if the specified reference is the root of the remote tree.
-   */
-  private boolean isRoot( IExternalReference reference)
-  {
-    IModelObject parent = reference.getParent();
-    return parent == null || 
-          !(parent instanceof IExternalReference) || 
-          ((IExternalReference)parent).getCachingPolicy() != this;
-  }
-
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.AbstractCachingPolicy#clear(dunnagan.bob.xmodel.external.IExternalReference)
    */
   @Override
   public void clear( IExternalReference reference) throws CachingException
   {
-    if ( isRoot( reference))
+    try
     {
-      // dispose of session
-      if ( client != null)
-      {
-        client.close();
-        client = null;
-      }
+      if ( client != null) client.close();
+      client = null;
     }
-    else
+    finally
     {
       super.clear( reference);
     }
@@ -201,70 +167,60 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
    */
   public void flush( IExternalReference reference) throws CachingException
   {
+    throw new CachingException( "Flush operation is not supported.");
   }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#insert(
-   * dunnagan.bob.xmodel.external.IExternalReference, dunnagan.bob.xmodel.IModelObject, boolean)
-   */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
-  {
-    ExternalReference reference = new ExternalReference( object.getType());
-    reference.setCachingPolicy( this);
-
-    // diff
-    differ.diffAndApply( reference, object);
-
-    // register remote ids
-    client.register( reference);
-    
-    // set dirty flags
-    for( IModelObject partial: stubsExpr.query( reference, null))
-      ((IExternalReference)partial).setDirty( true);
-    reference.setDirty( Xlate.get( object, "remote:stub", false));
-    
-    // add to parent
-    if ( index < 0) parent.addChild( reference); else parent.addChild( reference, index);
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#update(dunnagan.bob.xmodel.external.IExternalReference, dunnagan.bob.xmodel.IModelObject)
-   */
-  @Override
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
-  {
-    reference.getModel().setSyncLock( true);
-    try
-    {
-      super.update( reference, object);
-      
-      // register remote ids
-      client.register( reference);
-      
-      // mark dirty
-      for( IModelObject partial: stubsExpr.query( reference, null))
-        ((IExternalReference)partial).setDirty( true);
-    }
-    finally
-    {
-      reference.getModel().setSyncLock( false);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#remove(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
-  {
-    object.removeFromParent();
-  }
-
-  private static IExpression descendantExpr = XPath.createExpression( "nosync( descendant::*)");
-  private static IExpression stubsExpr = XPath.createExpression( "nosync( descendant::*[ @remote:stub = 'true'])");
   
+  private final ISession.Listener listener = new ISession.Listener() {
+    public void notifyOpen( ISession session)
+    {
+      AsyncRunnable runnable = new AsyncRunnable();
+      runnable.session = session;
+      runnable.state = "open";
+      reference.getModel().dispatch( runnable);
+    }
+    public void notifyClose( ISession session)
+    {
+      AsyncRunnable runnable = new AsyncRunnable();
+      runnable.session = session;
+      runnable.state = "closed";
+      reference.getModel().dispatch( runnable);
+    }
+    public void notifyConnect( ISession session)
+    {
+      AsyncRunnable runnable = new AsyncRunnable();
+      runnable.session = session;
+      runnable.state = "connected";
+      reference.getModel().dispatch( runnable);
+    }
+    public void notifyDisconnect( ISession session)
+    {
+      AsyncRunnable runnable = new AsyncRunnable();
+      runnable.session = session;
+      runnable.state = "disconnected";
+      reference.getModel().dispatch( runnable);
+    }
+  };
+  
+  private class AsyncRunnable implements Runnable
+  {
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    public void run()
+    {
+      reference.setAttribute( "net:state", state);
+      reference.setAttribute( "net:session", session.getShortSessionID());
+    }
+    
+    public ISession session;
+    public String state;
+  }
+
   private String host;
   private int port;
   private ModelClient client;
   private String query;
+  private int limit;
+  private boolean multi;
+  private IExternalReference reference;
 }

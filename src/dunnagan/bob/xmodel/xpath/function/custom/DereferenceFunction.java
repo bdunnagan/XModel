@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.ModelAlgorithms;
 import dunnagan.bob.xmodel.xpath.expression.ExpressionException;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
@@ -46,7 +47,7 @@ public class DereferenceFunction extends Function
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     List<IModelObject> nodes = new ArrayList<IModelObject>( getArgument( 0).evaluateNodes( context));
-    for( int i=0; i<nodes.size(); i++) nodes.set( i, dereference( nodes.get( i)));
+    for( int i=0; i<nodes.size(); i++) nodes.set( i, ModelAlgorithms.dereference( nodes.get( i)));
     return nodes;
   }
 
@@ -58,7 +59,7 @@ public class DereferenceFunction extends Function
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
     nodes = new ArrayList<IModelObject>( nodes);
-    for( int i=0; i<nodes.size(); i++) nodes.set( i, dereference( nodes.get( i)));
+    for( int i=0; i<nodes.size(); i++) nodes.set( i, ModelAlgorithms.dereference( nodes.get( i)));
     getParent().notifyAdd( this, context, nodes);
   }
 
@@ -70,7 +71,7 @@ public class DereferenceFunction extends Function
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
     nodes = new ArrayList<IModelObject>( nodes);
-    for( int i=0; i<nodes.size(); i++) nodes.set( i, dereference( nodes.get( i)));
+    for( int i=0; i<nodes.size(); i++) nodes.set( i, ModelAlgorithms.dereference( nodes.get( i)));
     getParent().notifyRemove( this, context, nodes);
   }
   
@@ -81,22 +82,6 @@ public class DereferenceFunction extends Function
   @Override
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
-    getParent().notifyValue( this, contexts, dereference( object), newValue, oldValue);
-  }
-
-  /**
-   * Completely dereference the specified object.
-   * @param object The object.
-   * @return Returns the dereferenced object.
-   */
-  private IModelObject dereference( IModelObject object)
-  {
-    IModelObject referent = object.getReferent();
-    while( referent != object) 
-    {
-      object = referent;
-      referent = referent.getReferent();
-    }
-    return referent;
+    getParent().notifyValue( this, contexts, ModelAlgorithms.dereference( object), newValue, oldValue);
   }
 }

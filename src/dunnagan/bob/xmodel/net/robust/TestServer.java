@@ -44,7 +44,7 @@ public class TestServer
     });
     
     server.addHandler( new ServerHandler( handler) {
-      public void run( ISession session)
+      public void run( IServerSession session)
       {
         byte[] buffer = new byte[ 100];
         int count = 0;

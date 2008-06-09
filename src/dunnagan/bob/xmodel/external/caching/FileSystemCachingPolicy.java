@@ -11,18 +11,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dunnagan.bob.xmodel.*;
-import dunnagan.bob.xmodel.diff.XmlDiffer;
 import dunnagan.bob.xmodel.external.*;
+import dunnagan.bob.xmodel.xml.XmlException;
 import dunnagan.bob.xmodel.xml.XmlIO;
 import dunnagan.bob.xmodel.xpath.XPath;
+import dunnagan.bob.xmodel.xpath.expression.Context;
+import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
  * A ConfiguredCachingPolicy which creates a datamodel for a file or folder of the file system.
- * The datamodel recursively creates external references for each nested file or folder. An element
- * representing a file or folder is named with the file name. The root of the file-system data-model
- * must have an attribute <i>path</i> which is the absolute file system path of the root element.
+ * The datamodel recursively creates external references for each nested xml file or folder. An element
+ * representing an xml file or folder is named with the file name. The root external reference must
+ * define the <i>path</i> attribute which specifies the base path in the file system.  The name of 
+ * the root element is appended to the base path to find the absolute path of the root.
  * <p>
- * The user.dir and user.home system properties are defined as variables before evaluating the path.
+ * NOTE: This caching policy must be unique for each root external reference.
  */
 public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -35,50 +39,48 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     setStaticAttributes( new String[] { "*"});
-    init();
   }
 
-  private void init()
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#configure(dunnagan.bob.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IContext context, IModelObject annotation) throws CachingException
   {
-    xmlIO = new XmlIO();
-    differ = new XmlDiffer();
+    parentContext = context;
+    pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
   }
-  
+
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#syncImpl(dunnagan.bob.xmodel.external.IExternalReference)
    */
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
+    // save root
+    if ( fileSystemRoot == null) fileSystemRoot = reference;
+   
+    // just in case
+    reference.removeChildren();
+    
+    // sync
     File path = buildPath( reference);
     if ( path.isDirectory())
     {
-      IModelObject element = new ModelObject( reference.getType());
-      ModelAlgorithms.copyAttributes( reference, element);
-      
-      List<ExternalReference> children = new ArrayList<ExternalReference>();
       for( String member: path.list())
       {
         ExternalReference child = new ExternalReference( member);
-        element.addChild( child);
-        children.add( child);
+        child.setCachingPolicy( this);
+        child.setDirty( true);
+        reference.addChild( child);
       }
-
-      update( reference, element);
-
-      for( ExternalReference child: children)
-        child.setCachingPolicy( this, true);
     }
-    else
+    else if ( path.exists())
     {
-      IModelObject element = new ModelObject( path.getName());
-      ModelAlgorithms.copyAttributes( reference, element);
-      
       try
       {
-        IModelObject content = xmlIO.read( new FileInputStream( path));
-        element.addChild( content);
-        update( reference, element);
+        IModelObject content = (new XmlIO()).read( new FileInputStream( path));
+        reference.addChild( content);
       }
       catch( Exception e)
       {
@@ -94,11 +96,6 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    */
   private File buildPath( IModelObject element) throws CachingException
   {
-    IModelObject fileSystemRoot = fileSystemRootPath.queryFirst( element);
-    if ( fileSystemRoot == null)
-      throw new CachingException(
-        "Unable to find root of file system data-model denoted by path attribute.");
-
     // get levels
     List<String> levels = new ArrayList<String>();
     while( element != fileSystemRoot)
@@ -110,7 +107,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
       
     // get base path
     String userDir = System.getProperty( "user.dir");
-    String basePath = Xlate.get( fileSystemRoot, "path", "");
+    String basePath = pathExpr.evaluateString( new Context( parentContext, fileSystemRoot));
     basePath = basePath.replaceFirst( "\\~", userDir.replaceAll( "\\\\", "\\\\\\\\"));
     
     // build path
@@ -131,37 +128,25 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    */
   public void flush( IExternalReference reference) throws CachingException
   {
+    File path = buildPath( reference);
+    if ( path.isDirectory())
+      throw new CachingException( 
+        "Directory cannot be flushed: "+reference);
+    
+    try
+    {
+      (new XmlIO()).write( reference.getChild( 0), path);
+    }
+    catch( XmlException e)
+    {
+      throw new CachingException( "Unable to flush reference: "+reference, e);
+    }
   }
 
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#insert(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject, boolean)
-   */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ConfiguredCachingPolicy#update(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  @Override
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
-  {
-    differ.diffAndApply( reference, object);
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#remove(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
-  {
-  }
-
-  private final static IPath fileSystemRootPath = XPath.createPath( 
-    "ancestor-or-self::*[ boolean( @path)]");
+  private final static IExpression defaultPathExpr = XPath.createExpression( 
+    "@path");
   
-  private XmlIO xmlIO;
-  private XmlDiffer differ;
+  private IContext parentContext;
+  private IExpression pathExpr;
+  private IExternalReference fileSystemRoot;
 }

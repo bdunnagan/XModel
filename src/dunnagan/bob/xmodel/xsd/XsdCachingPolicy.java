@@ -28,7 +28,6 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
     super( cache);
     setStaticAttributes( new String[] { "id", "url"});
     xmlIO = new XmlIO();
-    differ = new EntityDiffer();
   }
 
   /* (non-Javadoc)
@@ -63,33 +62,5 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
     throw new UnsupportedOperationException();
   }
 
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#insert(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject, boolean)
-   */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#remove(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#update(dunnagan.bob.xmodel.external.IExternalReference, 
-   * dunnagan.bob.xmodel.IModelObject)
-   */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
-  {
-    differ.diffAndApply( reference, object);
-  }
-
-  XmlIO xmlIO;
-  EntityDiffer differ;
+  private XmlIO xmlIO;
 }

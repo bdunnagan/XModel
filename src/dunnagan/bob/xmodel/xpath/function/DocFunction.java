@@ -52,8 +52,8 @@ public class DocFunction extends Function
     {
       String spec = getArgument( 0).evaluateString( context);
       URI uri = new URI( spec);
-      IModelObject result = context.getModel().query( uri);
-      if ( result != null) return Collections.singletonList( result);
+      List<IModelObject> result = context.getModel().query( uri);
+      if ( result != null) return result;
       return Collections.emptyList();
     }
     catch( URISyntaxException e)
