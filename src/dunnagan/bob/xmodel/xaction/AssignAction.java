@@ -49,6 +49,7 @@ public class AssignAction extends XAction
     
     clone = Xlate.get( document.getRoot(), "clone", false);
     replace = Xlate.get( document.getRoot(), "replace", false);
+    define = Xlate.get( document.getRoot(), "define", false);
   }
 
   /* (non-Javadoc)
@@ -66,6 +67,10 @@ public class AssignAction extends XAction
     if ( sourceExpr == null)
     {
       scope.set( name, context.getObject());
+    }
+    else if ( define)
+    {
+      scope.define( name, sourceExpr);
     }
     else
     {
@@ -120,6 +125,7 @@ public class AssignAction extends XAction
   private String name;
   private boolean clone;
   private boolean replace;
+  private boolean define;
   private IModelObjectFactory factory;
   private IExpression sourceExpr;
 }
