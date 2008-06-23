@@ -67,7 +67,7 @@ public class AnnotationTransform
     for( IModelObject annotated: annotatedExpr.query( root, null))
     {
       IModelObject annotation = annotated.getFirstChild( "extern:cache");
-      annotation.removeFromParent();
+      //annotation.removeFromParent();
 
       if ( annotated.isType( "extern:match"))
       {
@@ -88,6 +88,9 @@ public class AnnotationTransform
         
         if ( annotated == root) result = transformed; 
       }
+      
+      // some caching policies rely on their the configuration of their ancestors
+      annotation.removeFromParent();
     }
     
     return result;
