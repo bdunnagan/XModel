@@ -237,8 +237,12 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     parentClone.addChild( object);
     applyNextStages( parentClone);
     
+    // mark child dirty
+    IExternalReference child = (IExternalReference)parentClone.getChild( 0);
+    child.setDirty( dirty);
+    
     // move child from clone to parent
-    parent.addChild( parentClone.getChild( 0));
+    parent.addChild( child);
   }
 
   /* (non-Javadoc)
