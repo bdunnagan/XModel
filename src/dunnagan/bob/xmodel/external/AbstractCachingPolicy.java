@@ -242,7 +242,14 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     child.setDirty( dirty);
     
     // move child from clone to parent
-    parent.addChild( child);
+    if ( index >= 0)
+    {
+      parent.addChild( child, index);
+    }
+    else
+    {
+      parent.addChild( child);
+    }
   }
 
   /* (non-Javadoc)
