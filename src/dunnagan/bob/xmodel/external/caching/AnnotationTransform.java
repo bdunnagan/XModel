@@ -190,6 +190,11 @@ public class AnnotationTransform
         IExpression stagePath = Xlate.get( stage, "path", (IExpression)null);
         boolean dirty = Xlate.get( stage, "dirty", true);
         ConfiguredCachingPolicy stageCachingPolicy = (ConfiguredCachingPolicy)stage.getAttribute( "extern:cp");
+        
+        // inherit parent caching policy if extern:match does not define a caching policy
+        if ( stageCachingPolicy == null) stageCachingPolicy = cachingPolicy;
+        
+        // define stage and detach
         cachingPolicy.defineNextStage( stagePath, stageCachingPolicy, dirty);
         stage.removeFromParent();
       }
