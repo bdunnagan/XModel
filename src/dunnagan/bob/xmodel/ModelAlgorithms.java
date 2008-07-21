@@ -449,9 +449,12 @@ public class ModelAlgorithms implements IAxis
   public static void substitute( IModelObject original, IModelObject replacement)
   {
     IModelObject parent = original.getParent();
-    int index = parent.getChildren().indexOf( original);
-    original.removeFromParent();
-    parent.addChild( replacement, index);
+    if ( parent != null)
+    {
+      int index = parent.getChildren().indexOf( original);
+      original.removeFromParent();
+      parent.addChild( replacement, index);
+    }
   }
   
   /**

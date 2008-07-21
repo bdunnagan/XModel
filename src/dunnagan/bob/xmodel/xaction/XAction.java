@@ -98,6 +98,7 @@ public abstract class XAction implements IXAction
    * @param locus The locus.
    * @return Returns the factory.
    */
+  @SuppressWarnings("unchecked")
   protected IModelObjectFactory getFactory( IModelObject locus)
   {
     IModelObject factoryElement = factoryExpr.queryFirst( locus);

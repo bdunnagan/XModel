@@ -66,9 +66,11 @@ public class ScriptAction extends GuardedAction
     
     actions = new ArrayList<IXAction>( elements.size());
     for( IModelObject element: elements)
-      actions.add( document.getAction( element));
-
-    configure( document);
+    {
+      IXAction action = document.getAction( element);
+      actions.add( action);
+      action.configure( document.getDocument( element));
+    }
   }
 
   /**
