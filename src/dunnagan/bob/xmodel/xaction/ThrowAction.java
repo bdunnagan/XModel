@@ -19,6 +19,7 @@ public class ThrowAction extends GuardedAction
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.xaction.GuardedAction#configure(dunnagan.bob.xmodel.xaction.XActionDocument)
    */
+  @SuppressWarnings("unchecked")
   @Override
   public void configure( XActionDocument document)
   {

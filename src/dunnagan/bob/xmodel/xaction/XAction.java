@@ -133,6 +133,7 @@ public abstract class XAction implements IXAction
    * @param locus The locus.
    * @return Returns the matcher.
    */
+  @SuppressWarnings("unchecked")
   protected IXmlMatcher getMatcher( IModelObject locus)
   {
     IModelObject matcherElement = matcherExpr.queryFirst( locus);
