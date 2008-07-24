@@ -238,8 +238,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     applyNextStages( parentClone);
     
     // mark child dirty
-    IExternalReference child = (IExternalReference)parentClone.getChild( 0);
-    child.setDirty( dirty);
+    IModelObject child = parentClone.getChild( 0);
+    if ( child instanceof IExternalReference) ((IExternalReference)child).setDirty( dirty);
     
     // move child from clone to parent
     if ( index >= 0)
