@@ -514,9 +514,14 @@
     <xs:complexContent>
       <xs:extension base="GuardedAction">
         <xs:sequence>
-          <xs:element name="while" type="XPath">
+          <xs:element name="while" type="XPath" minOccurs="0">
             <xs:annotation>
-              <xs:documentation>An expression which terminates the loop when it evaluates false.</xs:documentation>
+              <xs:documentation>An expression which terminates the loop when it evaluates false. May be an attribute.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="count" type="XPath" minOccurs="0">
+            <xs:annotation>
+              <xs:documentation>An expression which gives the number of times to loop.</xs:documentation>
             </xs:annotation>
           </xs:element>
           <xs:element name="action" type="XAction" minOccurs="0" maxOccurs="unbounded"/>

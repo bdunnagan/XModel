@@ -57,6 +57,10 @@ public class IdAction extends GuardedAction
       IVariableScope scope = context.getScope();
       if ( scope != null) scope.set( variable, generate( length));
     }
+    else
+    {
+      context.getObject().setID( generate( length));
+    }
   }
   
   /**

@@ -129,14 +129,15 @@ public class ModelObject implements IModelObject
    */
   public Object setAttribute( String attrName, Object attrValue)
   {
-    // debug code
-    if ( attrName.equals( "id") && parent != null)
-      System.out.println( "LATE-ID: "+this+", id="+attrValue);
-    
     writeAttributeAccess( attrName);
     
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
+
+    // DEBUG
+    if ( parent != null && attrName.equals( "id"))
+      System.out.println( "LATE-ID: "+this+", id="+attrValue);
+    // DEBUG
     
     if ( attrValue == null) 
     {

@@ -21,7 +21,8 @@ public class LoopAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    whileExpr = document.getExpression( "while", false);
+    whileExpr = document.getExpression( "while", true);
+    countExpr = document.getExpression( "count", true);
     script = document.createScript( actionExpr);;
   }
 
@@ -31,13 +32,29 @@ public class LoopAction extends GuardedAction
   @Override
   protected void doAction( IContext context)
   {
-    while( whileExpr.evaluateBoolean( context))
-      script.run( context);
+    if ( countExpr == null)
+    {
+      while( whileExpr == null || whileExpr.evaluateBoolean( context))
+        script.run( context);
+    }
+    else if ( whileExpr == null)
+    {
+      int count = (int)countExpr.evaluateNumber( context);
+      for( int i=0; i<count; i++)
+        script.run( context);
+    }
+    else
+    {
+      int count = (int)countExpr.evaluateNumber( context);
+      for( int i=0; i<count && whileExpr.evaluateBoolean( context); i++)
+        script.run( context);
+    }
   }
   
   private final static IExpression actionExpr = XPath.createExpression(
     "*[ not( matches( name(), '^while|when|condition$'))]");
 
   private IExpression whileExpr;
+  private IExpression countExpr;
   private ScriptAction script;
 }

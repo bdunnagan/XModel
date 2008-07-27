@@ -26,8 +26,8 @@ public class RandomAction extends GuardedAction
   {
     super.configure( document);
     IModelObject root = document.getRoot();
-    minExpr = document.getExpression( root.getAttributeNode( "min"));
-    maxExpr = document.getExpression( root.getAttributeNode( "max"));
+    minExpr = document.getExpression( "min", true);
+    maxExpr = document.getExpression( "max", true);
     decimal = Xlate.get( document.getRoot(), "decimal", false);
     radix = Xlate.get( root, "radix", -1);
     variable = Xlate.get( document.getRoot(), "assign", (String)null); 
@@ -46,16 +46,33 @@ public class RandomAction extends GuardedAction
     if ( minExpr != null) min = minExpr.evaluateNumber( context);
     if ( maxExpr != null) max = maxExpr.evaluateNumber( context);
     
-    Number value = random( min, max, decimal);
-    if ( variable != null)
+    Number number = random( min, max, decimal);
+    if ( radix != -1)
     {
-      IVariableScope scope = context.getScope();
-      scope.set( variable, value);
+      String value = convert( number, radix);
+      if ( variable != null)
+      {
+        IVariableScope scope = context.getScope();
+        scope.set( variable, value);
+      }
+      if ( targetExpr != null)
+      {
+        for( IModelObject target: targetExpr.query( context, null))
+          target.setValue( value);
+      }
     }
-    if ( targetExpr != null)
+    else
     {
-      for( IModelObject target: targetExpr.query( context, null))
-        target.setValue( value);
+      if ( variable != null)
+      {
+        IVariableScope scope = context.getScope();
+        scope.set( variable, number);
+      }
+      if ( targetExpr != null)
+      {
+        for( IModelObject target: targetExpr.query( context, null))
+          target.setValue( number);
+      }
     }
   }
 
@@ -79,7 +96,7 @@ public class RandomAction extends GuardedAction
     {
       if ( range == 0) return random.nextLong();
       double value = random.nextDouble();
-      return (long)Math.round( value * range + min);
+      return (long)(value * range + min);
     }
   }
   

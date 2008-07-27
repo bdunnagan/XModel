@@ -48,7 +48,7 @@ public class ScriptAction extends GuardedAction
     document.setRoot( element);
     setDocument( document);
     
-    actions = document.getActions( document.getRoot().getChildren());
+    actions = document.getActions( actionExpr.query( document.getRoot(), null));
     configure( document);
   }
   
@@ -67,6 +67,8 @@ public class ScriptAction extends GuardedAction
     actions = new ArrayList<IXAction>( elements.size());
     for( IModelObject element: elements)
     {
+      if ( element.isType( "package")) continue;
+      
       IXAction action = document.getAction( element);
       actions.add( action);
       action.configure( document.getDocument( element));
