@@ -59,7 +59,7 @@ public class IdAction extends GuardedAction
     }
     else
     {
-      context.getObject().setID( generate( length));
+      context.getObject().setValue( generate( length));
     }
   }
   
