@@ -5,15 +5,27 @@
  */
 package dunnagan.bob.xmodel.xpath.variable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import dunnagan.bob.xmodel.IModel;
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
+import dunnagan.bob.xmodel.ModelObjectFactory;
 import dunnagan.bob.xmodel.ModelRegistry;
 import dunnagan.bob.xmodel.Update;
 import dunnagan.bob.xmodel.memento.IMemento;
 import dunnagan.bob.xmodel.memento.VariableMemento;
-import dunnagan.bob.xmodel.xpath.expression.*;
+import dunnagan.bob.xmodel.xpath.expression.ExpressionException;
+import dunnagan.bob.xmodel.xpath.expression.ExpressionListener;
+import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
+import dunnagan.bob.xmodel.xpath.expression.IExpressionListener;
+import dunnagan.bob.xmodel.xpath.expression.RootExpression;
 import dunnagan.bob.xmodel.xpath.expression.IExpression.ResultType;
 
 /**
@@ -55,6 +67,7 @@ public abstract class AbstractVariableScope implements IVariableScope
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.util.List)
    */
+  @SuppressWarnings("unchecked")
   public List<IModelObject> set( String name, List<IModelObject> value)
   {
     Object old = internal_set( name, value);
@@ -90,6 +103,35 @@ public abstract class AbstractVariableScope implements IVariableScope
     Object old = internal_set( name, value);
     if ( old instanceof String) return (String)old;
     return "";
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#setPojo(java.lang.String, java.lang.Object, dunnagan.bob.xmodel.IModelObjectFactory)
+   */
+  @SuppressWarnings("unchecked")
+  public Object setPojo( String name, Object pojo, IModelObjectFactory factory)
+  {
+    Object object = get( name);
+    if ( object instanceof List)
+    {
+      List<IModelObject> nodes = (List<IModelObject>)object;
+      if ( nodes.size() > 0)
+      {
+        IModelObject node = nodes.get( 0);
+        if ( node.isType( "xm:pojo"))
+        {
+          node.setValue( pojo);
+          return node.getValue();
+        }
+      }
+    }
+    
+    if ( factory == null) factory = new ModelObjectFactory();
+    IModelObject element = factory.createObject( null, "xm:pojo");
+    element.setValue( pojo);
+    set( name, element);
+
+    return null;
   }
 
   /**
@@ -165,6 +207,7 @@ public abstract class AbstractVariableScope implements IVariableScope
    * @param newValue The new value.
    * @param oldValue The old value.
    */
+  @SuppressWarnings("unchecked")
   private void performNotification( Variable variable, String name, Object newValue, Object oldValue)
   {
     if ( variable.bindings == null) return;
@@ -230,6 +273,26 @@ public abstract class AbstractVariableScope implements IVariableScope
     Variable variable = variables.get( name);
     if ( variable == null) return null;
     return variable.value;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#getPojo(java.lang.String)
+   */
+  @SuppressWarnings("unchecked")
+  public Object getPojo( String name)
+  {
+    Object object = get( name);
+    if ( object != null && object instanceof List)
+    {
+      List<IModelObject> nodes = (List<IModelObject>)object;
+      if ( nodes.size() > 0)
+      {
+        IModelObject node = nodes.get( 0);
+        if ( node.isType( "xm:pojo")) return node.getValue();
+      }
+    }
+    
+    return null;
   }
 
   /* (non-Javadoc)

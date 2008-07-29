@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
 import dunnagan.bob.xmodel.memento.IMemento;
 import dunnagan.bob.xmodel.xpath.expression.ExpressionException;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
@@ -85,6 +86,16 @@ public interface IVariableScope
   public List<IModelObject> set( String name, IModelObject value);
 
   /**
+   * Set the specified variable with an automatically generated element whose values it the POJO (plain, old Java object).
+   * The generated element has a reserved element name in the XModel namespace which indicates its POJO content.
+   * @param name The name of the variable.
+   * @param pojo The plain, old Java object.
+   * @param factory An optional factory for creating the generated element.
+   * @return Returns the previous content of the variable.
+   */
+  public Object setPojo( String name, Object pojo, IModelObjectFactory factory);
+  
+  /**
    * Define the specified variable with the specified expression. This method may only be called
    * once for a given variable. The definition is permanent.
    * @param name The name of the variable.
@@ -100,6 +111,15 @@ public interface IVariableScope
    */
   public Object get( String name);
 
+  /**
+   * Returns the POJO (plain, old Java object) stored in the value of the element assigned to the variable.
+   * Only the first element in the variable node-set is considered.  Returns null if variable does not 
+   * contain a node-set.
+   * @param name The name of the variable.
+   * @return Returns the POJO stored in the element assigned to the variable.
+   */
+  public Object getPojo( String name);
+  
   /**
    * Get the value of the specified variable and evaluate its expression if necessary.
    * @param name The name of the variable.

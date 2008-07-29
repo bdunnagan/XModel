@@ -483,6 +483,14 @@ class ReturnScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#setPojo(java.lang.String, java.lang.Object, dunnagan.bob.xmodel.IModelObjectFactory)
+   */
+  public Object setPojo( String name, Object pojo, IModelObjectFactory factory)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#define(java.lang.String, dunnagan.bob.xmodel.xpath.expression.IExpression)
    */
   public void define( String name, IExpression expression)
@@ -508,6 +516,16 @@ class ReturnScope implements IVariableScope
     if ( name.equals( this.name)) return value;
     if ( parent == null) return null;
     return parent.get( name);
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.xpath.variable.IVariableScope#getPojo(java.lang.String)
+   */
+  public Object getPojo( String name)
+  {
+    if ( name.equals( this.name)) return value;
+    if ( parent == null) return null;
+    return parent.getPojo( name);
   }
 
   /* (non-Javadoc)

@@ -471,6 +471,21 @@
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
+  <xs:complexType name="IdAction">
+    <xs:annotation>
+      <xs:documentation>Create a random unique ID for an element. The text of the action is an expression giving the target node.</xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="assign" type="xs:string">
+      <xs:annotation>
+        <xs:documentation>The variable to which the generated ID will be assigned.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="length" type="xs:int">
+      <xs:annotation>
+        <xs:documentation>The length of the generated ID string (only applicable for radii other than 10).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
   <xs:complexType name="IfAction">
     <xs:annotation>
       <xs:documentation>Conditional execute scripts.</xs:documentation>
