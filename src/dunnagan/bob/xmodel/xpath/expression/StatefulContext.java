@@ -11,6 +11,7 @@ import java.util.Map;
 
 import dunnagan.bob.xmodel.IModel;
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.NullObject;
 import dunnagan.bob.xmodel.xpath.variable.IVariableScope;
 import dunnagan.bob.xmodel.xpath.variable.Precedences;
 
@@ -20,6 +21,14 @@ import dunnagan.bob.xmodel.xpath.variable.Precedences;
  */
 public class StatefulContext implements IContext
 {
+  /**
+   * Create a context with a dummy node.
+   */
+  public StatefulContext()
+  {
+    this( new NullObject());
+  }
+  
   /**
    * Create a context for the given context node with position and size equal to one.
    * @param object The context node.

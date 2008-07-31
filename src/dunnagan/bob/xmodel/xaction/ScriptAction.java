@@ -67,8 +67,7 @@ public class ScriptAction extends GuardedAction
     actions = new ArrayList<IXAction>( elements.size());
     for( IModelObject element: elements)
     {
-      if ( element.isType( "package")) continue;
-      
+      if ( element.isType( "condition") || element.isType( "when") || element.isType( "package")) continue;
       IXAction action = document.getAction( element);
       actions.add( action);
       action.configure( document.getDocument( element));
@@ -100,16 +99,9 @@ public class ScriptAction extends GuardedAction
   @Override
   public void doAction( IContext context)
   {
-    try
-    {
-      if ( actions != null)
-        for( IXAction action: actions)
-          action.run( context);
-    }
-    catch( Exception e)
-    {
-      e.printStackTrace( System.err); 
-    }
+    if ( actions != null)
+      for( IXAction action: actions)
+        action.run( context);
   }
 
   private final static IExpression actionExpr = XPath.createExpression(

@@ -191,13 +191,17 @@ public class VariableSource implements IVariableSource
     IVariableSource parent = getParent();
     if ( parent != null) 
     {
+      string.append( "Source: "); string.append( hashCode()); string.append( "\n");
       string.append( parent.toString());
       string.append( "\n");
    }
     
     // print this
     for( IVariableScope scope: getScopes())
+    {
+      string.append( "\nScope: "); string.append( scope.getName()); string.append( "\n");
       string.append( scope.toString());
+    }
     
     return string.toString();
   }

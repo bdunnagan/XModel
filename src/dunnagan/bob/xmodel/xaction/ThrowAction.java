@@ -73,7 +73,7 @@ public class ThrowAction extends GuardedAction
     }
     catch( Exception e)
     {
-      exception = new RuntimeException();
+      exception = new XActionException( "Unable to create instance of clss: "+clss, e);
     }
     
     throw exception; 
