@@ -15,6 +15,7 @@ import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.ModelAlgorithms;
 import dunnagan.bob.xmodel.ModelRegistry;
 import dunnagan.bob.xmodel.diff.IXmlDiffer;
+import dunnagan.bob.xmodel.diff.IXmlMatcher;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
 import dunnagan.bob.xmodel.xml.IXmlIO;
 import dunnagan.bob.xmodel.xml.XmlException;
@@ -56,6 +57,15 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     return cache;
   }
 
+  /**
+   * Returns the IXmlDiffer used by this caching policy.
+   * @return Returns the IXmlDiffer used by this caching policy.
+   */
+  public IXmlDiffer getDiffer()
+  {
+    return differ;
+  }
+  
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.external.ICachingPolicy#defineNextStage(dunnagan.bob.xmodel.xpath.expression.IExpression, 
    * dunnagan.bob.xmodel.external.ICachingPolicy, boolean)
