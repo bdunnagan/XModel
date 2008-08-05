@@ -85,10 +85,13 @@ public class ForExpression extends Expression
   @Override
   public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
   {
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+    IExpression arg0 = getArgument( 0);
+    IExpression arg1 = getArgument( 1);
+    List<IModelObject> nodes = arg0.evaluateNodes( context);
     for( int i=0; i<nodes.size(); i++)
     {
-      getArgument( 1).createSubtree( new SubContext( context, nodes.get( i), i+1, nodes.size()), factory, undo);
+      ReturnContext returnContext = new ReturnContext( context, variable, nodes.get( i));
+      arg1.createSubtree( returnContext, factory, undo);
     }
   }
 
