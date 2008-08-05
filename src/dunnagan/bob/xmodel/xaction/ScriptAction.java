@@ -7,6 +7,7 @@ package dunnagan.bob.xmodel.xaction;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
@@ -80,6 +81,7 @@ public class ScriptAction extends GuardedAction
    */
   public List<IXAction> getActions()
   {
+    if ( actions == null) return Collections.emptyList();
     return actions;
   }
   
