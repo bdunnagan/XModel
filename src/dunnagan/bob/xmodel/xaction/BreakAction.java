@@ -546,7 +546,7 @@ public class BreakAction extends GuardedAction
     {
       String[] lines = text.split( "\n");
       if ( maxLines <= 0) maxLines = lines.length;
-      for( int i=0; i<maxLines; i++)
+      for( int i=0; i<maxLines && i<lines.length; i++)
         System.out.printf( "%s%s\n", prefix, lines[ i]);
     }
     catch( Exception e)

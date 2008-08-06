@@ -89,6 +89,7 @@ public class ModelClient extends RobustSession
   public void close()
   {
     sendClose( "Client closed.");
+    super.close();
   }
 
   /**
