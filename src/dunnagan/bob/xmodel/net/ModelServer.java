@@ -1,5 +1,6 @@
 package dunnagan.bob.xmodel.net;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -55,11 +56,26 @@ public class ModelServer extends Server
   }
   
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.net.robust.Server#start(int)
+   */
+  @Override
+  public void start( int port) throws IOException
+  {
+    super.start( port);
+
+    // add shutdown hook
+    Runtime.getRuntime().addShutdownHook( shutdownHook);
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.net.robust.Server#stop()
    */
   @Override
   public void stop()
   {
+    // remove shutdown hook
+    Runtime.getRuntime().removeShutdownHook( shutdownHook);
+    
     // tell clients that sessions are exitting and reset init state
     for( ISession session: getSessions())
       close( session, "Server stopped.");
@@ -702,6 +718,22 @@ public class ModelServer extends Server
       catch( CompressorException e)
       {
         session.close();
+      }
+    }
+  };
+  
+  private final Thread shutdownHook = new Thread( "Shutdown") {
+    public void run()
+    {
+      System.out.println( "Executing xmodel server shutdown hook...");
+      for( ISession session: getSessions())
+      {
+        SessionState state = states.get( session.getSessionNumber());
+        if ( state != null && state.init && !state.exit)
+        {
+          System.out.println( "Sending close message to session "+session.getSessionNumber());
+          sendClose( session, "Server shutdown.");
+        }
       }
     }
   };
