@@ -139,6 +139,9 @@ public class ModelObject implements IModelObject
       System.out.println( "LATE-ID: "+this+", id="+attrValue);
     // DEBUG
     
+    if ( attrName.length() == 0 && attrValue == null && isType( "image"))
+      attrValue = null;
+    
     if ( attrValue == null) 
     {
       removeAttribute( attrName);

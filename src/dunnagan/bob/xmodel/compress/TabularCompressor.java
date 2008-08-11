@@ -155,6 +155,10 @@ public class TabularCompressor extends AbstractCompressor
       writeElement( contentOut, element);
       boolean compress = contentArrayOut.size() > compressionThreshold;
       
+      // write magic number (to debug zip exceptions)
+      finalArrayOut.write( 0xca);
+      finalArrayOut.write( 0xfe);
+      
       // write header
       byte header = 0;
       if ( compress && post == PostCompression.zip) header |= 0x80;
@@ -176,6 +180,7 @@ public class TabularCompressor extends AbstractCompressor
       }
       
       // write content
+      contentOut.flush();
       byte[] content = contentArrayOut.toByteArray();
       rawOut.write( content);
       rawOut.flush();
@@ -194,6 +199,12 @@ public class TabularCompressor extends AbstractCompressor
   {
     try
     {
+      // read magic number (to debug zip exceptions)
+      int mb1 = rawArrayIn.read();
+      int mb2 = rawArrayIn.read();
+      if ( mb1 != 0xca || mb2 != 0xfe)
+        throw new CompressorException( "Magic number missing from message header.");
+      
       // read header
       byte header = (byte)rawArrayIn.read();
       boolean predefined = (header & 0x40) != 0;
