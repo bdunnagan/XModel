@@ -8,8 +8,15 @@ package dunnagan.bob.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.List;
 
-import dunnagan.bob.xmodel.*;
+import dunnagan.bob.xmodel.AnnotatingChangeSet;
+import dunnagan.bob.xmodel.IChangeSet;
+import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IntersectChangeSet;
+import dunnagan.bob.xmodel.ModelObjectFactory;
+import dunnagan.bob.xmodel.UnionChangeSet;
+import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.diff.ConfiguredXmlMatcher;
+import dunnagan.bob.xmodel.diff.DefaultXmlMatcher;
 import dunnagan.bob.xmodel.diff.IXmlMatcher;
 import dunnagan.bob.xmodel.diff.RegularChangeSet;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
@@ -27,7 +34,7 @@ public class CopyAction extends GuardedAction
     super.configure( document);
 
     IModelObject viewRoot = document.getRoot();
-    IXmlMatcher matcher = getMatcher( viewRoot);
+    matcher = getMatcher( viewRoot);
     differ.setMatcher( matcher);
     differ.setFactory( new ModelObjectFactory());
         
@@ -59,26 +66,30 @@ public class CopyAction extends GuardedAction
     List<IModelObject> targets = targetExpr.query( context, null);
     for( IModelObject target: targets) 
     {
-      // configure matcher
-      ConfiguredXmlMatcher matcher = new ConfiguredXmlMatcher();
-      differ.setMatcher( matcher);
-      
-      IContext sourceContext = new StatefulContext( context, source);
-      IContext targetContext = new StatefulContext( context, target);
-      if ( ignoreExpr != null)
+      // if matcher class wasn't specified then use configurable matcher
+      // TODO: need a more flexible configuration here
+      if ( matcher == null)
       {
-        ignoreList.clear();
-        ignoreExpr.query( sourceContext, ignoreList);
-        ignoreExpr.query( targetContext, ignoreList);
-        matcher.ignore( ignoreList);
-      }
+        ConfiguredXmlMatcher matcher = new ConfiguredXmlMatcher();
+        differ.setMatcher( matcher);
       
-      if ( orderedExpr != null)
-      {
-        orderedList.clear();
-        orderedExpr.query( sourceContext, orderedList);
-        orderedExpr.query( targetContext, orderedList);
-        matcher.setOrdered( orderedList);
+        IContext sourceContext = new StatefulContext( context, source);
+        IContext targetContext = new StatefulContext( context, target);
+        if ( ignoreExpr != null)
+        {
+          ignoreList.clear();
+          ignoreExpr.query( sourceContext, ignoreList);
+          ignoreExpr.query( targetContext, ignoreList);
+          matcher.ignore( ignoreList);
+        }
+        
+        if ( orderedExpr != null)
+        {
+          orderedList.clear();
+          orderedExpr.query( sourceContext, orderedList);
+          orderedExpr.query( targetContext, orderedList);
+          matcher.setOrdered( orderedList);
+        }
       }
       
       // diff
@@ -89,6 +100,7 @@ public class CopyAction extends GuardedAction
   }
   
   private XmlDiffer differ = new XmlDiffer();
+  private IXmlMatcher matcher;
   private IExpression sourceExpr;
   private IExpression targetExpr;
   private IExpression ignoreExpr;

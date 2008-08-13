@@ -148,7 +148,7 @@ public abstract class XAction implements IXAction
     ClassLoader loader = null;
     IModelObject loaderElement = loaderExpr.queryFirst( locus);
     if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
-    if ( loader == null) loader = getClass().getClassLoader();
+    if ( loader == null) loader = getDocument().getClassLoader();
     
     try
     {

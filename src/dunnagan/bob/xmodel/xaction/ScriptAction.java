@@ -70,8 +70,11 @@ public class ScriptAction extends GuardedAction
     {
       if ( element.isType( "condition") || element.isType( "when") || element.isType( "package")) continue;
       IXAction action = document.getAction( element);
-      actions.add( action);
-      action.configure( document.getDocument( element));
+      if ( action != null)
+      {
+        action.configure( document.getDocument( element));
+        actions.add( action);
+      }
     }
   }
 
