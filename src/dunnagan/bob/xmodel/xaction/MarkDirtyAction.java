@@ -10,6 +10,7 @@
 package dunnagan.bob.xmodel.xaction;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.ModelAlgorithms;
 import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
@@ -36,8 +37,11 @@ public class MarkDirtyAction extends GuardedAction
   protected void doAction( IContext context)
   {
     for( IModelObject target: targetExpr.query( context, null))
+    {
+      target = ModelAlgorithms.dereference( target);
       if ( target instanceof IExternalReference)
         ((IExternalReference)target).clearCache();
+    }
   }
 
   private IExpression targetExpr;

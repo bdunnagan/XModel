@@ -10,8 +10,11 @@ import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.IPathElement;
+import dunnagan.bob.xmodel.IPathListener;
 import dunnagan.bob.xmodel.xpath.PathElement;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
+import dunnagan.bob.xmodel.xpath.expression.PathExpression;
 
 /**
  * A base implementation of IFanoutListener which does the fanout during install/uninstall.
@@ -144,8 +147,19 @@ public abstract class FanoutListener extends ListenerChainLink
   {
     if ( dirty)
     {
-      // resync object if necessary
+      // un-fanout
       incrementalUninstall( object);
+
+      // HACK: enable additional notification if this is part of an expression tree
+      IListenerChain chain = getListenerChain();
+      IPathListener listener = chain.getPathListener();
+      if ( listener instanceof PathExpression)
+      {
+        IExpression expression = ((PathExpression)listener).getRoot();
+        chain.getContext().markUpdate( expression);
+      }
+      
+      // fanout
       incrementalInstall( object);
     }
   }

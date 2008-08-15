@@ -204,6 +204,9 @@ public class ModelListenerList implements IModelListener
       try
       {
         listener.notifyDirty( object, dirty);
+        
+        // object was resynced by last notification so no further notification is necessary
+        if ( object.isDirty() != dirty) break;
       }
       catch( Exception e)
       {

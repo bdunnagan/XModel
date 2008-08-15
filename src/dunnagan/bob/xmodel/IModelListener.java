@@ -71,7 +71,10 @@ public interface IModelListener
   public void notifyClear( IModelObject object, String attrName, Object oldValue);
   
   /**
-   * Called when the dirty state of an external reference changes. 
+   * Called when the dirty state of an external reference changes. An implementation of this method may
+   * immediately resync an object which has become dirty. In this case, the listeners which follow the
+   * listener which resyncs the object will not receive notification because the object is no longer
+   * dirty.
    * @param object The external reference.
    * @param dirty The new dirty state.
    */
