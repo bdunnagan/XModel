@@ -53,8 +53,8 @@ public class ModelClient extends RobustSession
 
     timeout = Integer.parseInt( System.getProperty( "xmodel.network.timeout", "30000"));
     cachingPolicy = new NetIDCachingPolicy( cache, this);
-    compressor = new TabularCompressor( PostCompression.zip);
-    decompressor = new TabularCompressor( PostCompression.zip);
+    compressor = new TabularCompressor( PostCompression.none);
+    decompressor = new TabularCompressor( PostCompression.none);
     netIDs = new HashMap<String, IModelObject>();
     block = new Semaphore( 0);
     nextID = System.nanoTime();
@@ -365,7 +365,6 @@ public class ModelClient extends RobustSession
    */
   protected void send( IModelObject message)
   {
-    //System.out.printf( "OUT (%s): %s\n", Thread.currentThread(), message);
     byte[] compressed = compressor.compress( message);
     write( compressed);
   }
@@ -566,7 +565,6 @@ public class ModelClient extends RobustSession
       while( !exit)
       {
         IModelObject message = decompressor.decompress( stream);
-        //System.out.printf( "IN (%s): %s\n", Thread.currentThread(), message);
         if ( messageID != null && message.getID().equals( messageID))
         {
           // synchronous message

@@ -10,8 +10,14 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import dunnagan.bob.xmodel.*;
-import dunnagan.bob.xmodel.external.*;
+import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.Xlate;
+import dunnagan.bob.xmodel.external.CachingException;
+import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
+import dunnagan.bob.xmodel.external.ExternalReference;
+import dunnagan.bob.xmodel.external.ICache;
+import dunnagan.bob.xmodel.external.IExternalReference;
+import dunnagan.bob.xmodel.external.UnboundedCache;
 import dunnagan.bob.xmodel.xml.XmlException;
 import dunnagan.bob.xmodel.xml.XmlIO;
 import dunnagan.bob.xmodel.xpath.XPath;

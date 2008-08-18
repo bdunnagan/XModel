@@ -20,10 +20,9 @@ public abstract class AbstractCompressor implements ICompressor
    */
   public byte[] compress( IModelObject element) throws CompressorException
   {
-    if ( stream == null) stream = new ByteArrayOutputStream();
+    ByteArrayOutputStream stream = new ByteArrayOutputStream();
     compress( element, stream);
     byte[] bytes = stream.toByteArray();
-    stream.reset();
     return bytes;
   }
 
@@ -33,8 +32,7 @@ public abstract class AbstractCompressor implements ICompressor
   public IModelObject decompress( byte[] bytes, int offset) throws CompressorException
   {
     ByteArrayInputStream stream = new ByteArrayInputStream( bytes, offset, bytes.length - offset);
-    return decompress( stream);
+    IModelObject result = decompress( stream);
+    return result;
   }
-  
-  private ByteArrayOutputStream stream;
 }

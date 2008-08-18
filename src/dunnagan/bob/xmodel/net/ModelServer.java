@@ -695,8 +695,8 @@ public class ModelServer extends Server
       SessionState state = new SessionState();
       state.init = false;
       state.exit = false;
-      state.compressor = new TabularCompressor( PostCompression.zip);
-      state.decompressor = new TabularCompressor( PostCompression.zip);
+      state.compressor = new TabularCompressor( PostCompression.none);
+      state.decompressor = new TabularCompressor( PostCompression.none);
       state.listener = new ServerModelListener( session);
       state.listenees = new HashSet<IModelObject>();
       states.put( session.getSessionNumber(), state);
