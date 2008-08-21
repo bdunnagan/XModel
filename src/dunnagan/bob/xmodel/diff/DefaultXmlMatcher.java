@@ -240,16 +240,16 @@ public class DefaultXmlMatcher implements IXmlMatcher
    */
   public boolean isMatch( IModelObject localChild, IModelObject foreignChild)
   {
-    String localName = localChild.getID();
-    String foreignName = foreignChild.getID();
-    if ( localName.length() == 0 && foreignName.length() == 0)
+    String localID = localChild.getID();
+    String foreignID = foreignChild.getID();
+    if ( localID.length() == 0 && foreignID.length() == 0)
     {
       return localChild.isType( foreignChild.getType());
     }
     else
     {
       // check type and id
-      return (localChild.isType( foreignChild.getType())) && (localName.equals( foreignName));
+      return (localChild.isType( foreignChild.getType())) && (localID.equals( foreignID));
     }
   }
   
