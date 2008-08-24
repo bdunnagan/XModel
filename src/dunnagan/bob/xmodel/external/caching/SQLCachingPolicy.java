@@ -45,7 +45,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   public SQLCachingPolicy( ICache cache)
   {
     super( cache);
-    setStaticAttributes( new String[] { "meta:*"});
+    setStaticAttributes( new String[] { "id", "meta:*"});
   }
   
   /* (non-Javadoc)
