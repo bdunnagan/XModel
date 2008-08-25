@@ -168,28 +168,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
    */
   public void flush( IExternalReference reference) throws CachingException
   {
-    // get SQLManager
-    IModelObject sqlManagerNode = sqlManagerExpr.queryFirst( reference);
-    SQLManager sqlManager = (SQLManager)sqlManagerNode.getValue();
-    
-    // set parameters and execute PreparedStatement
-    try
-    {
-      IModelObject updateNode = annotation.getFirstChild( "update");
-      String update = Xlate.get( updateNode, "");
-      PreparedStatement statement = sqlManager.prepareStatement( update);
-      ParameterMetaData parameterMetaData = statement.getParameterMetaData();
-      if ( parameterMetaData.getParameterCount() == 0)
-        throw new CachingException(
-          "Update statement does not contain a parameter: "+update);
-      statement.setString( 1, reference.getID());
-      if ( statement.executeUpdate() != 1)
-        throw new CachingException( "Zero or multiple table rows updated for reference: "+reference);
-    }
-    catch( SQLException e)
-    {
-      throw new CachingException( "Error executing UPDATE for reference: "+reference, e);
-    }
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
