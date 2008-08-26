@@ -92,8 +92,6 @@ public class Xsd
    */
   protected IModelObject load( String prefix, URL url) throws XmlException
   {
-    System.out.println( "Loading schema: "+url);
-    
     // load root xsd
     XmlIO xmlIO = new XmlIO();
     IModelObject root = xmlIO.read( url);
