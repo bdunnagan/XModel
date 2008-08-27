@@ -110,7 +110,7 @@ public class ScriptAction extends GuardedAction
   }
 
   private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), '^condition|when|package$'))]");
+    "*[ not( matches( name(), '^condition|when|package|factory|matcher$'))]");
   
   private List<IXAction> actions;
 }

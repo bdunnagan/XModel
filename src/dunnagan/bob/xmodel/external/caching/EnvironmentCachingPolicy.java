@@ -12,7 +12,6 @@ package dunnagan.bob.xmodel.external.caching;
 import java.util.Properties;
 
 import dunnagan.bob.xmodel.IModelObject;
-import dunnagan.bob.xmodel.ModelObject;
 import dunnagan.bob.xmodel.external.CachingException;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
 import dunnagan.bob.xmodel.external.ICache;
@@ -40,7 +39,7 @@ public class EnvironmentCachingPolicy extends ConfiguredCachingPolicy
     Properties properties = System.getProperties();
     for( Object key: properties.keySet())
     {
-      ModelObject property = new ModelObject( "property");
+      IModelObject property = getFactory().createObject( reference, "property");
       property.setAttribute( "id", key);
       property.setValue( properties.get( key));
       reference.addChild( property);

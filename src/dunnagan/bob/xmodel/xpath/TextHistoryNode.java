@@ -40,7 +40,6 @@ public class TextHistoryNode implements IModelObject
   public String getID()
   {
     throw new UnsupportedOperationException();
-    //return "text()";
   }
 
   /* (non-Javadoc)
@@ -122,6 +121,14 @@ public class TextHistoryNode implements IModelObject
   public IModelObject cloneTree()
   {
     return cloneObject();
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObject#createObject(java.lang.String)
+   */
+  public IModelObject createObject( String type)
+  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -260,15 +267,6 @@ public class TextHistoryNode implements IModelObject
   public PathListenerList getPathListeners()
   {
     return null;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#getName()
-   */
-  public String getName()
-  {
-    throw new UnsupportedOperationException();
-    //return "text()";
   }
 
   /* (non-Javadoc)
@@ -469,13 +467,6 @@ public class TextHistoryNode implements IModelObject
   {
     if ( attrName.length() == 0) return oldValue;
     return null;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#setName(java.lang.String)
-   */
-  public void setName( String name)
-  {
   }
 
   /* (non-Javadoc)

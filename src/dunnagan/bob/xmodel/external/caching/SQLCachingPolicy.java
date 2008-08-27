@@ -16,7 +16,6 @@ import java.util.List;
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.IPath;
 import dunnagan.bob.xmodel.ModelAlgorithms;
-import dunnagan.bob.xmodel.ModelObject;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.external.CachingException;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
@@ -92,7 +91,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     SQLManager sqlManager = getSQLManager( reference);
     
     // execute queries
-    IModelObject object = new ModelObject( reference.getType());
+    IModelObject object = getFactory().createObject( null, reference.getType());
     ModelAlgorithms.copyAttributes( reference, object);
     List<IModelObject> queries = annotation.getChildren( "query");    
     for( IModelObject query: queries)
@@ -120,7 +119,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
             for( int i=0; i<columns.length; i++)
             {
               if ( columns[ i].equals( "id")) continue;
-              IModelObject field = new ModelObject( columns[ i]);
+              IModelObject field = getFactory().createObject( object, columns[ i]);
               field.setValue( result.getObject( i+1));
               object.addChild( field);
             }        
@@ -133,7 +132,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         {
           // handle result set for bulk load
           IPath createPath = XPath.createPath( createSpec);
-          IModelObject dummy = new ModelObject( "dummy");
+          IModelObject dummy = getFactory().createObject( null, "dummy");
           while( result.next())
           {
             ModelAlgorithms.createPathSubtree( dummy, createPath, null, null);

@@ -6,17 +6,28 @@
 package dunnagan.bob.xmodel;
 
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.zip.CRC32;
 
 import dunnagan.bob.xmodel.diff.XmlDiffer;
-import dunnagan.bob.xmodel.external.ExternalReference;
 import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.util.Fifo;
 import dunnagan.bob.xmodel.xml.XmlIO;
 import dunnagan.bob.xmodel.xpath.AttributeNode;
 import dunnagan.bob.xmodel.xpath.PathElement;
-import dunnagan.bob.xmodel.xpath.expression.*;
+import dunnagan.bob.xmodel.xpath.expression.Context;
+import dunnagan.bob.xmodel.xpath.expression.FilteredExpression;
+import dunnagan.bob.xmodel.xpath.expression.IContext;
+import dunnagan.bob.xmodel.xpath.expression.IExpression;
+import dunnagan.bob.xmodel.xpath.expression.LiteralExpression;
+import dunnagan.bob.xmodel.xpath.expression.NamePredicate;
+import dunnagan.bob.xmodel.xpath.expression.PathExpression;
+import dunnagan.bob.xmodel.xpath.expression.PredicateExpression;
+import dunnagan.bob.xmodel.xpath.expression.RootExpression;
 import dunnagan.bob.xmodel.xpath.function.CollectionFunction;
 
 /**
@@ -916,7 +927,7 @@ public class ModelAlgorithms implements IAxis
       if ( object instanceof IExternalReference)
       {
         IExternalReference reference = (IExternalReference)object;
-        ExternalReference clone = new ExternalReference( reference.getType());
+        IExternalReference clone = (IExternalReference)reference.createObject( reference.getType());
         if ( reference.isDirty())
         {
           for( String attrName: reference.getStaticAttributes())

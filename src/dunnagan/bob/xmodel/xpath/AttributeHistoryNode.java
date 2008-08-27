@@ -127,6 +127,14 @@ public class AttributeHistoryNode implements IModelObject
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObject#createObject(java.lang.String)
+   */
+  public IModelObject createObject( String type)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelObject#getReferent()
    */
   public IModelObject getReferent()
@@ -264,15 +272,6 @@ public class AttributeHistoryNode implements IModelObject
   public PathListenerList getPathListeners()
   {
     return null;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#getName()
-   */
-  public String getName()
-  {
-    throw new UnsupportedOperationException();
-    //return attrName;
   }
 
   /* (non-Javadoc)
@@ -473,13 +472,6 @@ public class AttributeHistoryNode implements IModelObject
   {
     if ( attrName.equals( this.attrName)) return this.attrValue;
     return null;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#setName(java.lang.String)
-   */
-  public void setName( String name)
-  {
   }
 
   /* (non-Javadoc)

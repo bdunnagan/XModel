@@ -143,6 +143,7 @@ public class CreateAction extends GuardedAction
       {
         IModelObject element = elements.get( i);
         AnnotationTransform transform = new AnnotationTransform();
+        transform.setFactory( factory);
         transform.setParentContext( context);
         transform.setClassLoader( document.getClassLoader());
         element = transform.transform( element);

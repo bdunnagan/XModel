@@ -9,7 +9,10 @@ import java.net.URL;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.Xlate;
-import dunnagan.bob.xmodel.external.*;
+import dunnagan.bob.xmodel.external.CachingException;
+import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
+import dunnagan.bob.xmodel.external.ICache;
+import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.xml.XmlIO;
 
 /**
@@ -27,7 +30,6 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     setStaticAttributes( new String[] { "id", "url"});
-    xmlIO = new XmlIO();
   }
 
   /* (non-Javadoc)
@@ -38,6 +40,9 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
     String string = Xlate.get( reference, "url", (String)null);
     if ( string == null) return;
 
+    XmlIO xmlIO = new XmlIO();
+    xmlIO.setFactory( getFactory());
+    
     URL url = null;
     try
     {
@@ -61,6 +66,4 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
   {
     throw new UnsupportedOperationException();
   }
-
-  private XmlIO xmlIO;
 }

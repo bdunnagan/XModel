@@ -5,34 +5,31 @@
  */
 package dunnagan.bob.xmodel;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import dunnagan.bob.xmodel.listeners.ClimbingListener;
-import dunnagan.bob.xmodel.memento.*;
+import dunnagan.bob.xmodel.memento.IMemento;
 import dunnagan.bob.xmodel.xml.XmlIO;
 import dunnagan.bob.xmodel.xpath.AttributeNode;
 
 /**
- * An reference implementation of IModelObject.
- * <p>
- * During listener notification, changes made to the object performing the notification must be deferred
- * until all listeners have been notified.  This guarantees that all listeners are notified of all changes
- * regardless of the order in which the listeners are iterated.
- * <p>
- * Objects which are created without a name will return a name which is guaranteed to be unique across
- * multiple invocations of the application.  The name consists of a time-stamp, a secure random number
- * and the Java system hash code for the object.  The generated name is not stored in the attribute table.
- * <p>
- * <b>Warning #1: The lists returned by this implementation are modifiable, but they should never be modified.
- * <b>Warning #2: Fragments containing this instance may only ever be accessed by a single thread.
+ * An implementation of IModelObject which does not provide listener semantics. Although this implementation
+ * is not thread-safe, a fragment containing Element instances may be operated on by different threads in 
+ * sequence. 
  */
-public class ModelObject implements IModelObject
+public class Element implements IModelObject
 {
   /**
    * Create a ModelObject with the specified type.
    * @param type The type.
    */
-  public ModelObject( String type)
+  public Element( String type)
   {
     this.type = type.intern();
   }
@@ -42,7 +39,7 @@ public class ModelObject implements IModelObject
    * @param type The type.
    * @param id The id.
    */
-  public ModelObject( String type, String id)
+  public Element( String type, String id)
   {
     this( type);
     setAttributeImpl( "id", id);
@@ -128,28 +125,8 @@ public class ModelObject implements IModelObject
       return oldValue;
     }
     
-    IModel model = getModel();
-    IChangeSet transaction = model.isLocked( this);
-    if ( transaction != null)
-    {
-      transaction.setAttribute( this, attrName, attrValue);
-      return oldValue;
-    }
-    else
-    {
-      Update update = model.startUpdate();
-      update.setAttribute( this, attrName, attrValue, oldValue);
-      setAttributeImpl( attrName, attrValue);
-      
-      // lock state and notify
-      model.lock( this);
-      notifyChange( attrName, attrValue, oldValue);
-      
-      // unlock state and end update
-      model.unlock( this);
-      model.endUpdate();
-      return oldValue;
-    }
+    setAttributeImpl( attrName, attrValue);
+    return oldValue;
   }
 
   /* (non-Javadoc)
@@ -193,28 +170,8 @@ public class ModelObject implements IModelObject
     Object oldValue = getAttribute( attrName);
     if ( oldValue == null) return null;
     
-    IModel model = getModel();
-    IChangeSet transaction = model.isLocked( this);
-    if ( transaction != null)
-    {
-      transaction.removeAttribute( this, attrName);
-      return oldValue;
-    }
-    else
-    {
-      Update update = model.startUpdate();
-      update.removeAttribute( this, attrName, oldValue);
-      removeAttributeImpl( attrName);
-      
-      // lock state and notify
-      model.lock( this);
-      notifyClear( attrName, oldValue);
-      
-      // unlock state and end update
-      model.unlock( this);
-      model.endUpdate();
-      return oldValue;
-    }
+    removeAttributeImpl( attrName);
+    return oldValue;
   }
 
   /* (non-Javadoc)
@@ -282,74 +239,32 @@ public class ModelObject implements IModelObject
   {
     if ( child == this) throw new IllegalArgumentException();
     
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
-    if ( transaction != null)
+    writeChildrenAccess();
+    
+    IModelObject oldParent = child.getParent();
+    if ( oldParent == this)
     {
-      transaction.addChild( this, child, index);
+      int oldIndex = getChildren().indexOf( child);
+
+      // reposition child
+      if ( removeChildImpl( oldIndex) != null && oldIndex < index) index--;
+      addChildImpl( child, index);
     }
     else
     {
-      writeChildrenAccess();
+      // update parent of child
+      child.internal_setParent( this);
       
-      IModelObject oldParent = child.getParent();
-      if ( oldParent == this)
+      // remove child from old parent
+      int oldIndex = -1;
+      if ( oldParent != null) 
       {
-        // create mementos
-        int oldIndex = getChildren().indexOf( child);
-        Update update = model.startUpdate();
-        update.moveChild( this, child, oldIndex, index);
-
-        // reposition child
-        if ( removeChildImpl( oldIndex) != null && oldIndex < index) index--;
-        addChildImpl( child, index);
-        
-        // lock state and notify
-        model.lock( this); 
-        model.lock( child);
-        notifyRemoveChild( child, oldIndex);
-        notifyAddChild( child, index);
-        
-        // unlock state and end update
-        model.unlock( this); 
-        model.unlock( child);
-        model.endUpdate();
+        oldIndex = oldParent.getChildren().indexOf( child);
+        oldParent.internal_removeChild( oldIndex);
       }
-      else
-      {
-        // create mementos
-        Update update = model.startUpdate();
-        update.addChild( this, child, index);
-        
-        // update parent of child
-        child.internal_setParent( this);
-        
-        // remove child from old parent
-        int oldIndex = -1;
-        if ( oldParent != null) 
-        {
-          oldIndex = oldParent.getChildren().indexOf( child);
-          oldParent.internal_removeChild( oldIndex);
-        }
-        
-        // add child to new parent (this)
-        addChildImpl( child, index);
-        
-        // lock state and notify
-        model.lock( this); 
-        model.lock( oldParent); 
-        model.lock( child);
-        
-        child.internal_notifyParent( this, oldParent);
-        if ( oldParent != null) oldParent.internal_notifyRemoveChild( child, oldIndex);
-        notifyAddChild( child, index);
-        
-        // unlock state and end update
-        model.unlock( this); 
-        model.unlock( oldParent); 
-        model.unlock( child);
-        model.endUpdate();
-      }
+      
+      // add child to new parent (this)
+      addChildImpl( child, index);
     }
   }
 
@@ -369,46 +284,19 @@ public class ModelObject implements IModelObject
    */
   public IModelObject removeChild( int index)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
-    if ( transaction != null)
+    writeChildrenAccess();
+    
+    // bail if no children
+    if ( children == null) return null;
+    
+    IModelObject child = children.get( index);
+    if ( child != null)
     {
-      // bail if no children
-      if ( children == null) return null;
-      
-      // create change record
-      IModelObject child = getChild( index);
-      transaction.removeChild( this, child, index);
-      return child;
+      removeChildImpl( index);
+      child.internal_setParent( null);
     }
-    else
-    {
-      writeChildrenAccess();
-      
-      // bail if no children
-      if ( children == null) return null;
-      
-      IModelObject child = children.get( index);
-      if ( child != null)
-      {
-        Update update = model.startUpdate();
-        update.removeChild( this, child, index);
-        
-        removeChildImpl( index);
-        child.internal_setParent( null);
-        
-        // lock state and notify
-        model.lock( this);
-        model.lock( child);
-        notifyRemoveChild( child, index);
-        
-        // unlock state and end update
-        model.unlock( this);
-        model.unlock( child);
-        model.endUpdate();
-      }
-      return child;
-    }
+    
+    return child;
   }
 
   /* (non-Javadoc)
@@ -416,38 +304,16 @@ public class ModelObject implements IModelObject
    */
   public void removeChild( IModelObject child)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
-    if ( transaction != null)
+    writeChildrenAccess();
+    
+    // bail if no children
+    if ( children == null) return;
+    
+    int index = children.indexOf( child);
+    if ( index >= 0)
     {
-      transaction.removeChild( this, child);
-    }
-    else
-    {
-      writeChildrenAccess();
-      
-      // bail if no children
-      if ( children == null) return;
-      
-      int index = children.indexOf( child);
-      if ( index >= 0)
-      {
-        Update update = model.startUpdate();
-        update.removeChild( this, child, index);
-          
-        removeChildImpl( index);
-        child.internal_setParent( null);
-
-        // lock state and notify
-        model.lock( this);
-        model.lock( child);
-        notifyRemoveChild( child, index);
-        
-        // unlock state and end update
-        model.unlock( this);
-        model.unlock( child);
-        model.endUpdate();
-      }
+      removeChildImpl( index);
+      child.internal_setParent( null);
     }
   }
 
@@ -554,7 +420,7 @@ public class ModelObject implements IModelObject
     IModelObject child = getFirstChild( type);
     if ( child == null)
     {
-      child = new ModelObject( type);
+      child = new Element( type);
       addChild( child);
     }
     return child;
@@ -568,7 +434,7 @@ public class ModelObject implements IModelObject
     IModelObject child = getChild( type, name);
     if ( child == null) 
     {
-      child = new ModelObject( type);
+      child = new Element( type);
       child.setID( name);
       addChild( child);
     }
@@ -661,7 +527,6 @@ public class ModelObject implements IModelObject
    */
   public void internal_notifyParent( IModelObject newParent, IModelObject oldParent)
   {
-    notifyParent( newParent, oldParent);
   }
 
   /* (non-Javadoc)
@@ -669,7 +534,6 @@ public class ModelObject implements IModelObject
    */
   public void internal_notifyAddChild( IModelObject child, int index)
   {
-    notifyAddChild( child, index);
   }
 
   /* (non-Javadoc)
@@ -677,7 +541,6 @@ public class ModelObject implements IModelObject
    */
   public void internal_notifyRemoveChild( IModelObject child, int index)
   {
-    notifyRemoveChild( child, index);
   }
 
   /* (non-Javadoc)
@@ -784,8 +647,7 @@ public class ModelObject implements IModelObject
    */
   public void addModelListener( IModelListener listener)
   {
-    if ( listeners == null) listeners = new ModelListenerList();
-    listeners.addListener( listener);
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -793,8 +655,7 @@ public class ModelObject implements IModelObject
    */
   public void removeModelListener( IModelListener listener)
   {
-    if ( listeners == null) return;
-    listeners.removeListener( listener);
+    throw new UnsupportedOperationException();
   }
   
   /* (non-Javadoc)
@@ -802,7 +663,7 @@ public class ModelObject implements IModelObject
    */
   public ModelListenerList getModelListeners()
   {
-    return listeners;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -810,8 +671,7 @@ public class ModelObject implements IModelObject
    */
   public PathListenerList getPathListeners()
   {
-    if ( pathListeners == null) pathListeners = new PathListenerList();
-    return pathListeners;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -819,8 +679,7 @@ public class ModelObject implements IModelObject
    */
   public void addAncestorListener( IAncestorListener listener)
   {
-    ClimbingListener climber = new ClimbingListener( listener);
-    climber.addListenerToTree( this);
+    throw new UnsupportedOperationException();
   }
   
   /* (non-Javadoc)
@@ -828,9 +687,7 @@ public class ModelObject implements IModelObject
    */
   public void removeAncestorListener( IAncestorListener listener)
   {
-    // this works because ClimbingListener implements the equals method
-    ClimbingListener climber = new ClimbingListener( listener);
-    climber.removeListenerFromTree( this);
+    throw new UnsupportedOperationException();
   }
   
   /* (non-Javadoc)
@@ -838,9 +695,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject cloneObject()
   {
-    IModelObject clone = new ModelObject( getType());
-    ModelAlgorithms.copyAttributes( this, clone);
-    return clone;
+    return factory.createClone( this);
   }
   
   /* (non-Javadoc)
@@ -848,7 +703,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject cloneTree()
   {
-    return ModelAlgorithms.cloneTree( this);
+    return ModelAlgorithms.cloneTree( this, factory);
   }
 
   /* (non-Javadoc)
@@ -856,7 +711,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject createObject( String type)
   {
-    return new ModelObject( type);
+    return new Element( type);
   }
 
   /* (non-Javadoc)
@@ -872,35 +727,7 @@ public class ModelObject implements IModelObject
    */
   public void revertUpdate( IMemento iMemento)
   {
-    if ( iMemento instanceof SetAttributeMemento)
-    {
-      SetAttributeMemento memento = (SetAttributeMemento)iMemento;
-      if ( memento.oldValue == null)
-        attributes.remove( memento.attrName);
-      else
-        attributes.put( memento.attrName, memento.oldValue);
-    }
-    else if ( iMemento instanceof SetParentMemento)
-    {
-      SetParentMemento memento = (SetParentMemento)iMemento;
-      parent = memento.oldParent;
-    }
-    else if ( iMemento instanceof AddChildMemento)
-    {
-      AddChildMemento memento = (AddChildMemento)iMemento;
-      children.remove( memento.index);
-    }
-    else if ( iMemento instanceof RemoveChildMemento)
-    {
-      RemoveChildMemento memento = (RemoveChildMemento)iMemento;
-      if ( children == null) children = new ArrayList<IModelObject>( 1);
-      children.add( memento.index, memento.child);
-    }
-    else
-    {
-      RemoveAttributeMemento memento = (RemoveAttributeMemento)iMemento;
-      attributes.put( memento.attrName, memento.oldValue);
-    }
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -908,31 +735,7 @@ public class ModelObject implements IModelObject
    */
   public void restoreUpdate( IMemento iMemento)
   {
-    if ( iMemento instanceof SetAttributeMemento)
-    {
-      SetAttributeMemento memento = (SetAttributeMemento)iMemento;
-      attributes.put( memento.attrName, memento.newValue);
-    }
-    else if ( iMemento instanceof SetParentMemento)
-    {
-      SetParentMemento memento = (SetParentMemento)iMemento;
-      parent = memento.newParent;
-    }
-    else if ( iMemento instanceof AddChildMemento)
-    {
-      AddChildMemento memento = (AddChildMemento)iMemento;
-      children.add( memento.index, memento.child);
-    }
-    else if ( iMemento instanceof RemoveChildMemento)
-    {
-      RemoveChildMemento memento = (RemoveChildMemento)iMemento;
-      children.remove( memento.index);
-    }
-    else
-    {
-      RemoveAttributeMemento memento = (RemoveAttributeMemento)iMemento;
-      attributes.remove( memento.attrName);
-    }
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -1023,77 +826,6 @@ public class ModelObject implements IModelObject
     }
   }
   
-  /**
-   * Do parent change notification to listeners. An IChangeSet is installed before doing the notification
-   * so that any changes made to the model from within an IModelListener context will be deferred until all
-   * listeners have received notification. The records are processed at the end of this method. Notification
-   * is performed within a try/catch block which catches all exceptions of type Exception and logged to
-   * stderr.
-   * @param newParent The new parent.
-   * @param oldParent The old parent.
-   */
-  private void notifyParent( IModelObject newParent, IModelObject oldParent)
-  {
-    if ( listeners != null) listeners.notifyParent( this, newParent, oldParent);
-  }
-  
-  /**
-   * Do child added notification to listeners. An IChangeSet is installed before doing the notification
-   * so that any changes made to the model from within an IModelListener context will be deferred until all
-   * listeners have received notification. The records are processed at the end of this method. Notification
-   * is performed within a try/catch block which catches all exceptions of type Exception and logged to
-   * stderr.
-   * @param child The child which was added.
-   * @param index The index at which the child was added.
-   */
-  private void notifyAddChild( IModelObject child, int index)
-  {
-    if ( listeners != null) listeners.notifyAddChild( this, child, index);
-  }
-  
-  /**
-   * Do child removed notification to listeners. An IChangeSet is installed before doing the notification
-   * so that any changes made to the model from within an IModelListener context will be deferred until all
-   * listeners have received notification. The records are processed at the end of this method. Notification
-   * is performed within a try/catch block which catches all exceptions of type Exception and logged to
-   * stderr.
-   * @param child The child which was removed.
-   * @param index The index of the child that was removed.
-   */
-  private void notifyRemoveChild( IModelObject child, int index)
-  {
-    if ( listeners != null) listeners.notifyRemoveChild( this, child, index);
-  }
-  
-  /**
-   * Do attribute change notification to listeners. An IChangeSet is installed before doing the notification
-   * so that any changes made to the model from within an IModelListener context will be deferred until all
-   * listeners have received notification. The records are processed at the end of this method. Notification
-   * is performed within a try/catch block which catches all exceptions of type Exception and logged to
-   * stderr.
-   * @param attrName The name of the attribute.
-   * @param newValue The new value of the attribute.
-   * @param oldValue The old value of the attribute.
-   */
-  private void notifyChange( String attrName, Object newValue, Object oldValue)
-  {
-    if ( listeners != null) listeners.notifyChange( this, attrName, newValue, oldValue);
-  }
-  
-  /**
-   * Do attribute clear notification to listeners. An IChangeSet is installed before doing the notification
-   * so that any changes made to the model from within an IModelListener context will be deferred until all
-   * listeners have received notification. The records are processed at the end of this method. Notification
-   * is performed within a try/catch block which catches all exceptions of type Exception and logged to
-   * stderr.
-   * @param attrName The name of the attribute.
-   * @param oldValue The old value of the attribute.
-   */
-  private void notifyClear( String attrName, Object oldValue)
-  {
-    if ( listeners != null) listeners.notifyClear( this, attrName, oldValue);
-  }
-  
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */
@@ -1103,12 +835,12 @@ public class ModelObject implements IModelObject
     if ( object instanceof Reference) return object.equals( this);
     return super.equals( object);
   }
+  
+  private final static IModelObjectFactory factory = new ElementFactory();
 
   private IModel model;
   private String type;
   private IModelObject parent;
   private List<IModelObject> children;
   private Map<String, Object> attributes;
-  private ModelListenerList listeners;
-  private PathListenerList pathListeners;
 }

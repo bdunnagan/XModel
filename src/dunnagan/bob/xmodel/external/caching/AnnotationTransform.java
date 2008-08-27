@@ -12,11 +12,18 @@ package dunnagan.bob.xmodel.external.caching;
 import java.lang.reflect.Constructor;
 import java.util.List;
 
-import dunnagan.bob.xmodel.*;
+import dunnagan.bob.xmodel.IBoundChangeRecord;
+import dunnagan.bob.xmodel.IChangeRecord;
+import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
+import dunnagan.bob.xmodel.ModelAlgorithms;
+import dunnagan.bob.xmodel.ModelObjectFactory;
+import dunnagan.bob.xmodel.UnionChangeSet;
+import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
-import dunnagan.bob.xmodel.external.ExternalReference;
 import dunnagan.bob.xmodel.external.ICache;
+import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.xpath.XPath;
 import dunnagan.bob.xmodel.xpath.expression.Context;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
@@ -33,6 +40,7 @@ public class AnnotationTransform
   public AnnotationTransform()
   {
     loader = getClass().getClassLoader();
+    factory = new ModelObjectFactory();
   }
   
   /**
@@ -42,6 +50,15 @@ public class AnnotationTransform
   public void setClassLoader( ClassLoader loader)
   {
     this.loader = loader;
+  }
+  
+  /**
+   * Set the factory.
+   * @param factory The factory.
+   */
+  public void setFactory( IModelObjectFactory factory)
+  {
+    this.factory = factory;
   }
   
   /**
@@ -106,7 +123,7 @@ public class AnnotationTransform
   {
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
     
-    ExternalReference reference = new ExternalReference( element.getType());
+    IExternalReference reference = factory.createExternalObject( null, element.getType());
     ModelAlgorithms.copyAttributes( element, reference);
 
     boolean dirty = Xlate.get( annotation, "dirty", true);
@@ -254,6 +271,7 @@ public class AnnotationTransform
       Constructor constructor = policyClass.getConstructor( new Class[] { ICache.class});
       Object[] params = new Object[] { cache};
       ConfiguredCachingPolicy cachingPolicy = (ConfiguredCachingPolicy)constructor.newInstance( params);
+      cachingPolicy.setFactory( factory);
       return cachingPolicy;
     }
     catch( Exception e)
@@ -266,6 +284,7 @@ public class AnnotationTransform
    * Create the specified ICache class.
    * @param className The class name of the ICache.
    */
+  @SuppressWarnings("unchecked")
   private ICache createCache( String className)
   {
     try
@@ -289,9 +308,7 @@ public class AnnotationTransform
   private final IExpression annotatedExpr = XPath.createExpression(
     "reverse( descendant-or-self::*[ extern:cache])");
   
-  private final IExpression isStageExpr = XPath.createExpression(
-    "parent::extern:match");
-  
   private ClassLoader loader;
   private IContext parent;
+  private IModelObjectFactory factory;
 }

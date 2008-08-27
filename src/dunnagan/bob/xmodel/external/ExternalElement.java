@@ -5,21 +5,20 @@
  */
 package dunnagan.bob.xmodel.external;
 
+import dunnagan.bob.xmodel.Element;
 import dunnagan.bob.xmodel.IModel;
 import dunnagan.bob.xmodel.IModelObject;
-import dunnagan.bob.xmodel.ModelListenerList;
-import dunnagan.bob.xmodel.ModelObject;
 
 /**
- * An implementation of IExternalReference which extends ModelObject to provide listener semantics.
+ * An implementation of IExternalReference which extends Element and does not provide listener semantics.
  */
-public class ExternalReference extends ModelObject implements IExternalReference
+public class ExternalElement extends Element implements IExternalReference
 {  
   /**
    * Create the ExternalReference with the specified type which is not dirty.
    * @param type The type of this reference.
    */
-  public ExternalReference( String type)
+  public ExternalElement( String type)
   {
     super( type);
     dirty = false;
@@ -52,9 +51,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setDirty( boolean dirty)
   {
-    boolean wasDirty = this.dirty;
     this.dirty = dirty;
-    if ( wasDirty != dirty) notifyDirty( dirty);
   }
 
   /* (non-Javadoc)
@@ -140,24 +137,13 @@ public class ExternalReference extends ModelObject implements IExternalReference
     cachingPolicy.clear( this);
   }
   
-  /**
-   * Notify listeners that the dirty state of a reference has changed.
-   * @param reference The reference.
-   * @param dirty The new dirty state.
-   */
-  protected void notifyDirty( boolean dirty)
-  {
-    ModelListenerList listeners = getModelListeners();
-    if ( listeners != null) listeners.notifyDirty( this, dirty);
-  }
-  
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.ModelObject#createObject(java.lang.String)
+   * @see dunnagan.bob.xmodel.Element#createObject(java.lang.String)
    */
   @Override
   public IModelObject createObject( String type)
   {
-    return new ExternalReference( type);
+    return new ExternalElement( type);
   }
 
   /* (non-Javadoc)

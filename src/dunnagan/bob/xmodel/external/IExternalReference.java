@@ -17,12 +17,6 @@ import dunnagan.bob.xmodel.IModelObject;
 public interface IExternalReference extends IModelObject
 {
   /**
-   * Return the nearest ancestor IExternalReference.
-   * @return Return the nearest ancestor IExternalReference.
-   */
-  public IExternalReference getParentReference();
-  
-  /**
    * Set the ICachingPolicy for this IExternalReference.
    * @param cachingPolicy The ICachingPolicy to associate with this reference.
    */

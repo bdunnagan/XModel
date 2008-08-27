@@ -42,20 +42,6 @@ public interface IModelObject
   public IModel getModel();
   
   /**
-   * Set the name of this object.
-   * @param name The new name of the object.
-   * @deprecated Replaced by the <code>setID</code> method.
-   */
-  public void setName( String name);
-  
-  /**
-   * Get the name of this object.
-   * @return Returns the name of this object.
-   * @deprecated Replaced by the <code>getID</code> method.
-   */
-  public String getName();
-  
-  /**
    * Set the id of the object.
    * @param id The object id.
    */
@@ -435,6 +421,13 @@ public interface IModelObject
    * @return Returns a copy of the subtree rooted at this object.
    */
   public IModelObject cloneTree();
+
+  /**
+   * Returns a new object of the same class as this object.
+   * @param type The type of the new object.
+   * @return Returns a new object of the same class as this object.
+   */
+  public IModelObject createObject( String type);
   
   /**
    * If the implementation is a reference to another IModelObject, then this method will return

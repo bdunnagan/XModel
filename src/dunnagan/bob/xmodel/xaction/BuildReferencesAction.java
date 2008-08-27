@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.external.caching.AnnotationTransform;
 import dunnagan.bob.xmodel.xpath.expression.IContext;
@@ -32,6 +33,7 @@ public class BuildReferencesAction extends GuardedAction
   {
     super.configure( document);
     
+    factory = getFactory( document.getRoot());
     variable = Xlate.get( document.getRoot(), "assign", (String)null);
     sourceExpr = document.getExpression();
   }
@@ -43,6 +45,7 @@ public class BuildReferencesAction extends GuardedAction
   protected void doAction( IContext context)
   {
     AnnotationTransform transform = new AnnotationTransform();
+    transform.setFactory( factory);
     transform.setClassLoader( document.getClassLoader());
     transform.setParentContext( context);
 
@@ -57,7 +60,7 @@ public class BuildReferencesAction extends GuardedAction
     if ( scope != null) scope.set( variable, result);
   }
   
-  private IExpression sourceExpr;
-  private IExpression targetExpr;
   private String variable;
+  private IExpression sourceExpr;
+  private IModelObjectFactory factory;
 }

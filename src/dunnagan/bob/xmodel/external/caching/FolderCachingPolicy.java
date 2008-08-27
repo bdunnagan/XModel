@@ -5,13 +5,21 @@
  */
 package dunnagan.bob.xmodel.external.caching;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import dunnagan.bob.xmodel.*;
-import dunnagan.bob.xmodel.external.*;
-import dunnagan.bob.xmodel.xml.XmlIO;
+import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.ModelAlgorithms;
+import dunnagan.bob.xmodel.Xlate;
+import dunnagan.bob.xmodel.external.CachingException;
+import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
+import dunnagan.bob.xmodel.external.ICache;
+import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.xpath.XPath;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
@@ -31,7 +39,6 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     super( cache);
     setStaticAttributes( new String[] { "id", "type", "path"});
 
-    xmlIO = new XmlIO();
     fileCachingPolicy = new FileCachingPolicy( cache);
     
     defineNextStage( folderPath, this, true);
@@ -86,13 +93,13 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
       File[] files = folder.listFiles( filter);
       try
       {
-        IModelObject newFolder = new ModelObject( reference.getType());
+        IModelObject newFolder = getFactory().createObject( null, reference.getType());
         ModelAlgorithms.copyAttributes( reference, newFolder);
         for( File file: files)
         {
           if ( file.isDirectory())
           {
-            IModelObject folderEntry = new ModelObject( file.getName());
+            IModelObject folderEntry = getFactory().createObject( newFolder, file.getName());
             folderEntry.setAttribute( "path", file.getPath());
             folderEntry.setAttribute( "type", "folder");
             newFolder.addChild( folderEntry);
@@ -102,7 +109,7 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
             String tag = getRootTag( file);
             if ( tag != null)
             {
-              IModelObject fileEntry = new ModelObject( "file");
+              IModelObject fileEntry = getFactory().createObject( newFolder, "file");
               fileEntry.setID( file.getName());
               fileEntry.setAttribute( "path", file.getParent());
               newFolder.addChild( fileEntry);
@@ -154,34 +161,6 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
   static final IExpression folderPath = XPath.createExpression( "*[ @type='folder']");
   static final IExpression filePath = XPath.createExpression( "file/*");
     
-  private XmlIO xmlIO;
   private FilenameFilter filter;
   private FileCachingPolicy fileCachingPolicy;
-  
-  public static void main( String[] args)
-  {
-    ExternalReference reference = new ExternalReference( "xmodel");
-    reference.setAttribute( "path", "c:/accurev/beta/cornerstone/client/XModelUIPlugin/src/dunnagan/bob/xmodel");
-    FolderCachingPolicy cachingPolicy = new FolderCachingPolicy( new AccessOrderCache( 10));
-    reference.setCachingPolicy( cachingPolicy);
-    reference.setDirty( true);
-    
-    IPath path = XPath.createPath( "ui/swt/file[ @id='lear.xml']/PLAY");
-    IModelObject xml = path.queryFirst( reference);
-    XmlIO xmlIO = new XmlIO();
-    xmlIO.skipOutputPrefix( "xm");
-    System.out.println( xmlIO.write( xml));
-    
-    path = XPath.createPath( "ui/swt/file[ @id='test.xml']/PLAY");
-    xml = path.queryFirst( reference);
-    xmlIO.skipOutputPrefix( "xm");
-    System.out.println( xmlIO.write( xml));
-    
-    path = XPath.createPath( "ui/swt/file[ @id='dream.xml']/PLAY");
-    xml = path.queryFirst( reference);
-    xmlIO.skipOutputPrefix( "xm");
-    System.out.println( xmlIO.write( xml));
-    
-    System.out.println( "done");
-  }
 }

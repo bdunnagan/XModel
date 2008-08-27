@@ -7,13 +7,13 @@ package dunnagan.bob.xmodel;
 
 import org.xml.sax.Attributes;
 
-import dunnagan.bob.xmodel.external.ExternalReference;
+import dunnagan.bob.xmodel.external.ExternalElement;
 import dunnagan.bob.xmodel.external.IExternalReference;
 
 /**
  * An implementation of IModelObjectFactory which creates instances of ModelObject.
  */
-public class ModelObjectFactory implements IModelObjectFactory
+public class ElementFactory implements IModelObjectFactory
 {
   /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelObjectFactory#createObject(dunnagan.bob.xmodel.IModelObject, 
@@ -21,7 +21,7 @@ public class ModelObjectFactory implements IModelObjectFactory
    */
   public IModelObject createObject( IModelObject parent, String type)
   {
-    return new ModelObject( type);
+    return new Element( type);
   }
 
   /* (non-Javadoc)
@@ -29,7 +29,7 @@ public class ModelObjectFactory implements IModelObjectFactory
    */
   public IModelObject createObject( IModelObject parent, Attributes attributes, String type)
   {
-    return new ModelObject( type);
+    return new Element( type);
   }
 
   /* (non-Javadoc)
@@ -37,7 +37,9 @@ public class ModelObjectFactory implements IModelObjectFactory
    */
   public IModelObject createClone( IModelObject object)
   {
-    return object.cloneObject();
+    Element clone = new Element( object.getType());
+    ModelAlgorithms.copyAttributes( object, clone);
+    return clone;
   }
 
   /* (non-Javadoc)
@@ -45,6 +47,6 @@ public class ModelObjectFactory implements IModelObjectFactory
    */
   public IExternalReference createExternalObject( IModelObject parent, String type)
   {
-    return new ExternalReference( type);
+    return new ExternalElement( type);
   }
 }

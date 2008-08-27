@@ -80,6 +80,14 @@ public class NullObject implements IModelObject
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObject#createObject(java.lang.String)
+   */
+  public IModelObject createObject( String type)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelObject#getAncestor(java.lang.String)
    */
   public IModelObject getAncestor( String type)
@@ -205,14 +213,6 @@ public class NullObject implements IModelObject
   public ModelListenerList getModelListeners()
   {
     return new ModelListenerList();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#getName()
-   */
-  public String getName()
-  {
-    return "";
   }
 
   /* (non-Javadoc)
@@ -451,14 +451,6 @@ public class NullObject implements IModelObject
    * @see dunnagan.bob.xmodel.IModelObject#setID(java.lang.String)
    */
   public void setID( String id)
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#setName(java.lang.String)
-   */
-  public void setName( String name)
   {
     throw new UnsupportedOperationException();
   }

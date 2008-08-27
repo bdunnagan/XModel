@@ -43,6 +43,7 @@ public class SystemResourceCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       XmlIO xmlIO = new XmlIO();
+      xmlIO.setFactory( getFactory());
       IModelObject object = xmlIO.read( url);
       if ( object != null) update( reference, object);
     }

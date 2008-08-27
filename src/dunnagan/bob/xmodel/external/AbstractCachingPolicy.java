@@ -12,10 +12,11 @@ import java.util.List;
 
 import dunnagan.bob.xmodel.IModel;
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
 import dunnagan.bob.xmodel.ModelAlgorithms;
+import dunnagan.bob.xmodel.ModelObjectFactory;
 import dunnagan.bob.xmodel.ModelRegistry;
 import dunnagan.bob.xmodel.diff.IXmlDiffer;
-import dunnagan.bob.xmodel.diff.IXmlMatcher;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
 import dunnagan.bob.xmodel.xml.IXmlIO;
 import dunnagan.bob.xmodel.xml.XmlException;
@@ -47,6 +48,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     xmlIO = new XmlIO();
     differ = new XmlDiffer();
     staticAttributes = new String[] { "id"};
+    factory = new ModelObjectFactory();
   }
   
   /* (non-Javadoc)
@@ -55,6 +57,22 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   public ICache getCache()
   {
     return cache;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.external.ICachingPolicy#setFactory(dunnagan.bob.xmodel.IModelObjectFactory)
+   */
+  public void setFactory( IModelObjectFactory factory)
+  {
+    this.factory = factory;
+  }
+  
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.external.ICachingPolicy#getFactory()
+   */
+  public IModelObjectFactory getFactory()
+  {
+    return factory;
   }
 
   /**
@@ -91,11 +109,11 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.external.ICachingPolicy#createExternalTree(dunnagan.bob.xmodel.IModelObject)
+   * @see dunnagan.bob.xmodel.external.ICachingPolicy#createExternalTree(dunnagan.bob.xmodel.IModelObject, boolean, dunnagan.bob.xmodel.external.IExternalReference)
    */
-  public IExternalReference createExternalTree( IModelObject local, boolean dirty)
+  public IExternalReference createExternalTree( IModelObject local, boolean dirty, IExternalReference proto)
   {
-    ExternalReference external = new ExternalReference( local.getType());
+    IExternalReference external = (IExternalReference)proto.createObject( local.getType());
     if ( dirty)
     {
       // copy static attributes to reference which will become dirty
@@ -110,7 +128,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
       ModelAlgorithms.moveChildren( local, external);
       
       // apply next stages
-      applyNextStages( external);
+      applyNextStages( external, proto);
     }
     
     external.setCachingPolicy( this);
@@ -123,8 +141,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * which should be, but are not yet, external references according to the next stages defined on
    * this caching policy.
    * @param object The object to which next stages will be applied.
+   * @param proto The prototype for external references.
    */
-  protected void applyNextStages( IModelObject object)
+  protected void applyNextStages( IModelObject object, IExternalReference proto)
   {
     Context context = new Context( object);
     
@@ -136,7 +155,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
         List<IModelObject> matches = stage.path.evaluateNodes( context);
         for( IModelObject matched: matches)
         {
-          IExternalReference replacement = stage.cachingPolicy.createExternalTree( matched, stage.dirty);
+          IExternalReference replacement = stage.cachingPolicy.createExternalTree( matched, stage.dirty, proto);
           ModelAlgorithms.substitute( matched, replacement);
         }
       }
@@ -246,7 +265,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     // must insert object after applying next stages so create a clone of parent
     IModelObject parentClone = parent.cloneObject();
     parentClone.addChild( object);
-    applyNextStages( parentClone);
+    applyNextStages( parentClone, parent);
     
     // mark child dirty
     IModelObject child = parentClone.getChild( 0);
@@ -270,7 +289,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   public void update( IExternalReference reference, IModelObject object) throws CachingException
   {
     // create next stages on prototype object
-    applyNextStages( object);
+    applyNextStages( object, reference);
     
     // turn off syncing while updating reference
     boolean syncLock = reference.getModel().getSyncLock();
@@ -516,5 +535,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   private String[] staticAttributes;
   private List<NextStage> dynamicStages;
   private List<IModelObject> staticStages;
+  private IModelObjectFactory factory;
   private boolean traversed; // debug
 }

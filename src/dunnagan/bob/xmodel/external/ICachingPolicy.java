@@ -6,6 +6,7 @@
 package dunnagan.bob.xmodel.external;
 
 import dunnagan.bob.xmodel.IModelObject;
+import dunnagan.bob.xmodel.IModelObjectFactory;
 import dunnagan.bob.xmodel.xpath.expression.IExpression;
 
 /**
@@ -20,6 +21,18 @@ public interface ICachingPolicy
    */
   public ICache getCache();
 
+  /**
+   * Set the factory.
+   * @param factory The factory.
+   */
+  public void setFactory( IModelObjectFactory factory);
+  
+  /**
+   * Returns the factory.
+   * @return Returns the factory.
+   */
+  public IModelObjectFactory getFactory();
+  
   /**
    * Define an additional caching stage for external references using this caching policy. The
    * first argument is evaluated relative to an external reference and identifies descendants
@@ -54,9 +67,10 @@ public interface ICachingPolicy
    * method destroys the argument subtree.
    * @param local The local subtree which does not contain external references.
    * @param dirty True if the root external reference should be marked dirty.
+   * @param proto The prototype for external references.
    * @return Returns the transformed subtree.
    */
-  public IExternalReference createExternalTree( IModelObject local, boolean dirty);
+  public IExternalReference createExternalTree( IModelObject local, boolean dirty, IExternalReference proto);
   
   /**
    * Send a request to the external store to save the changes to the specified reference and unlock.

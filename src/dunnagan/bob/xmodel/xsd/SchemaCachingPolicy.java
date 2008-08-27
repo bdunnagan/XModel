@@ -14,7 +14,6 @@ import dunnagan.bob.xmodel.external.CachingException;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
 import dunnagan.bob.xmodel.external.ICache;
 import dunnagan.bob.xmodel.external.IExternalReference;
-import dunnagan.bob.xmodel.xml.XmlIO;
 
 /**
  * A caching policy for loading schemas.  The caching policy loads all imports and includes when
@@ -30,7 +29,6 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
   public SchemaCachingPolicy( ICache cache)
   {
     super( cache);
-    xmlIO = new XmlIO();
     setStaticAttributes( new String[] { "id", "url", "unordered", "cachingPolicy"});
   }
 
@@ -100,6 +98,5 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
     ModelAlgorithms.moveChildren( object, reference);
   }
 
-  private XmlIO xmlIO;
   private boolean unordered;
 }

@@ -15,6 +15,7 @@ import java.util.Map;
 import org.xml.sax.Attributes;
 
 import dunnagan.bob.xmodel.*;
+import dunnagan.bob.xmodel.external.IExternalReference;
 
 /**
  * A class for transforming the model of an XML document containing namespace declarations.
@@ -100,6 +101,14 @@ public class NamespaceTransform implements IModelObjectFactory
     type = createTypeString( prefix, type);
     IModelObject object = factory.createObject( parent, type);
     return object;
+  }
+
+  /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObjectFactory#createExternalObject(dunnagan.bob.xmodel.IModelObject, java.lang.String)
+   */
+  public IExternalReference createExternalObject( IModelObject parent, String type)
+  {
+    throw new UnsupportedOperationException();
   }
 
   /**

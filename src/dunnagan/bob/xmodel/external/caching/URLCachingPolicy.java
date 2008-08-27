@@ -23,7 +23,6 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     setStaticAttributes( new String[] { "id", "url"});
-    xmlIO = new XmlIO();
   }
 
   /* (non-Javadoc)
@@ -44,6 +43,9 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     String string = Xlate.get( reference, "url", (String)null);
     if ( string == null) return;
 
+    XmlIO xmlIO = new XmlIO();
+    xmlIO.setFactory( getFactory());
+    
     URL url = null;
     try
     {
@@ -58,6 +60,4 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Unable to sync url: "+url, e);
     }
   }
-
-  private XmlIO xmlIO;
 }

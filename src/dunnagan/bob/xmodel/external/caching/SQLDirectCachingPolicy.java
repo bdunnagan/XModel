@@ -6,7 +6,6 @@
 package dunnagan.bob.xmodel.external.caching;
 
 import java.sql.Connection;
-import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -15,9 +14,6 @@ import java.util.List;
 
 import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.IModelObjectFactory;
-import dunnagan.bob.xmodel.IPath;
-import dunnagan.bob.xmodel.ModelAlgorithms;
-import dunnagan.bob.xmodel.ModelObject;
 import dunnagan.bob.xmodel.ModelObjectFactory;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.external.CachingException;
@@ -118,7 +114,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
           for( int i=0; i<columns.length; i++)
           {
             if ( columns[ i].equals( key)) continue;
-            IModelObject field = new ModelObject( columns[ i]);
+            IModelObject field = getFactory().createObject( object, columns[ i]);
             field.setValue( result.getObject( i+1));
             object.addChild( field);
           }        

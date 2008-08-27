@@ -23,7 +23,6 @@ public class Reference implements IModelObject
    */
   public Reference( IModelObject referent)
   {
-    this.type = referent.getType();
     this.referent = referent;
   }
   
@@ -34,7 +33,6 @@ public class Reference implements IModelObject
    */
   public Reference( String type, IModelObject referent)
   {
-    this.type = type;
     this.referent = referent;
   }
 
@@ -44,22 +42,6 @@ public class Reference implements IModelObject
   public IModel getModel()
   {
     return referent.getModel();
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#setName(java.lang.String)
-   */
-  public void setName( String name)
-  {
-    referent.setID( name);
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#getName()
-   */
-  public String getName()
-  {
-    return referent.getID();
   }
 
   /* (non-Javadoc)
@@ -482,6 +464,14 @@ public class Reference implements IModelObject
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObject#createObject(java.lang.String)
+   */
+  public IModelObject createObject( String type)
+  {
+    return referent.createObject(  type);
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelObject#getReferent()
    */
   public IModelObject getReferent()
@@ -570,7 +560,6 @@ public class Reference implements IModelObject
     return "&"+referent;
   }
   
-  private String type;
   private IModelObject parent;
   private IModelObject referent;
 }

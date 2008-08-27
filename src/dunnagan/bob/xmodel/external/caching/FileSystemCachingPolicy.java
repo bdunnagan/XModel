@@ -15,7 +15,6 @@ import dunnagan.bob.xmodel.IModelObject;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.external.CachingException;
 import dunnagan.bob.xmodel.external.ConfiguredCachingPolicy;
-import dunnagan.bob.xmodel.external.ExternalReference;
 import dunnagan.bob.xmodel.external.ICache;
 import dunnagan.bob.xmodel.external.IExternalReference;
 import dunnagan.bob.xmodel.external.UnboundedCache;
@@ -106,7 +105,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     {
       for( String member: path.list())
       {
-        ExternalReference child = new ExternalReference( member);
+        IExternalReference child = (IExternalReference)reference.createObject( member);
         child.setCachingPolicy( this);
         child.setDirty( true);
         reference.addChild( child);

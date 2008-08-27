@@ -119,6 +119,14 @@ public class AttributeNode implements IModelObject
   }
 
   /* (non-Javadoc)
+   * @see dunnagan.bob.xmodel.IModelObject#createObject(java.lang.String)
+   */
+  public IModelObject createObject( String type)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see dunnagan.bob.xmodel.IModelObject#getReferent()
    */
   public IModelObject getReferent()
@@ -266,15 +274,6 @@ public class AttributeNode implements IModelObject
   {
     if ( pathListeners == null) pathListeners = new PathListenerList();
     return pathListeners;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#getName()
-   */
-  public String getName()
-  {
-    throw new UnsupportedOperationException();
-    //return attrName;
   }
 
   /* (non-Javadoc)
@@ -476,13 +475,6 @@ public class AttributeNode implements IModelObject
   {
     if ( attrName.length() == 0) return setValue( "");
     return null;
-  }
-
-  /* (non-Javadoc)
-   * @see dunnagan.bob.xmodel.IModelObject#setName(java.lang.String)
-   */
-  public void setName( String name)
-  {
   }
 
   /* (non-Javadoc)
