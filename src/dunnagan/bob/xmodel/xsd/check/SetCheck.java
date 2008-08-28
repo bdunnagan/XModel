@@ -35,6 +35,7 @@ public class SetCheck extends ConstraintCheck
     for( int i=0; i<constraints.length; i++) remaining.add( constraints[ i]);
     
     // match all constraints to a consequetive subset of the children
+    index = start; // bdunnagan: added 082808
     while( remaining.size() > 0 && index < end) 
     {
       int matching = findMatching( remaining, documentLocus, index, end);
