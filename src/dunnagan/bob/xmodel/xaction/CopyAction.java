@@ -16,7 +16,6 @@ import dunnagan.bob.xmodel.ModelObjectFactory;
 import dunnagan.bob.xmodel.UnionChangeSet;
 import dunnagan.bob.xmodel.Xlate;
 import dunnagan.bob.xmodel.diff.ConfiguredXmlMatcher;
-import dunnagan.bob.xmodel.diff.DefaultXmlMatcher;
 import dunnagan.bob.xmodel.diff.IXmlMatcher;
 import dunnagan.bob.xmodel.diff.RegularChangeSet;
 import dunnagan.bob.xmodel.diff.XmlDiffer;
