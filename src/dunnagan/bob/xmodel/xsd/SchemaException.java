@@ -10,6 +10,7 @@ import dunnagan.bob.xmodel.xml.XmlException;
 /**
  * An exception generated when parsing XSD documents.
  */
+@SuppressWarnings("serial")
 public class SchemaException extends XmlException
 {
   /**

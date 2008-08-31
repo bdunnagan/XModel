@@ -26,7 +26,11 @@ public class SchemaCheck extends AbstractCheck
   {
     globalElementFinder.setVariable( "name", documentLocus.getType());
     IModelObject elementSchemaLocus = globalElementFinder.queryFirst( getSchemaLocus());
-    if ( elementSchemaLocus == null) return false;
+    if ( elementSchemaLocus == null) 
+    {
+      addFailed( this);
+      return false;
+    }
     
     ElementCheck elementCheck = new ElementCheck( elementSchemaLocus);
     if ( !elementCheck.validate( documentLocus))

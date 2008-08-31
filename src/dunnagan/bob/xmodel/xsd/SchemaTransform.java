@@ -275,6 +275,7 @@ public class SchemaTransform
     for( IModelObject element: elements) 
     {
       IModelObject transformed = transformElement( schema, element);
+      Xlate.set( transformed, "global", true);
       result.add( transformed);
     }
     return result;
@@ -404,17 +405,6 @@ public class SchemaTransform
   }
   
   /**
-   * Returns the transformed attributes of the specified element.
-   * @param schema The schema.
-   * @param element The element schema.
-   * @return Returns the transformed attributes of the specified element.
-   */
-  private List<IModelObject> transformElementAttributes( IModelObject schema, IModelObject element) throws SchemaException
-  {
-    return null;
-  }
-  
-  /**
    * Returns the transformed attribute.
    * @param schema The schema.
    * @param attribute The attribute.
@@ -509,25 +499,6 @@ public class SchemaTransform
       globalSimpleTypes.put( name, type);
     }
     return type;
-  }
-  
-  /**
-   * Returns the global attribute with the specified name.
-   * @param schema The schema.
-   * @param name The name of a global attribute.
-   * @return Returns the global attribute with the specified name.
-   */
-  private IModelObject lookupGlobalAttribute( IModelObject schema, String name) throws SchemaException
-  {
-    IModelObject result = globalAttributes.get( name);
-    if ( result != null) return result;
-    
-    attributeFinder.setVariable( "name", name);
-    IModelObject attribute = attributeFinder.queryFirst( schema);
-    result = transformAttribute( schema, attribute);
-    globalAttributes.put( name, result);
-    
-    return result;
   }
   
   /**
@@ -1034,20 +1005,11 @@ public class SchemaTransform
     primitives.put( "xs:gYearMonth", primitive);
   }
   
-  private IExpression elementFinder = XPath.createExpression(
-    "xs:element[ @name = $name]");
-  
   private IExpression complexTypeFinder = XPath.createExpression(
     "xs:complexType[ @name = $name]");
   
   private IExpression simpleTypeFinder = XPath.createExpression(
     "xs:simpleType[ @name = $name]");
-  
-  private IExpression simpleTypeRestrictionExpr = XPath.createExpression(
-     "xs:restriction/*");
-  
-  private IExpression attributeFinder = XPath.createExpression(
-    "xs:attribute[ @name = $name]");
   
   private IExpression groupFinder = XPath.createExpression(
     "xs:group[ @name = $ref]");

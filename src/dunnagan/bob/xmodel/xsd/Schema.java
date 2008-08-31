@@ -309,9 +309,6 @@ public class Schema
   private static IPath schemaAttributesPath = XPath.createPath( 
     "attributes/attribute");
   
-  private static IPath schemaValuePath = XPath.createPath( 
-    "type/*[ matches( name(), 'boolean|number|string')]");
-  
   private static IPath schemaConstraintPath = XPath.createPath( 
     "constraint/*");
   
