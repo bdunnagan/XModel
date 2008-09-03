@@ -42,10 +42,4 @@ public interface IXAction
    * @param context The adapter context.
    */
   public void run( IContext context);
-  
-  /**
-   * Returns true if the enclosing script should terminate.
-   * @return Returns true if the enclosing script should terminate.
-   */
-  public boolean shouldReturn();
 }
