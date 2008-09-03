@@ -18,7 +18,6 @@ import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
-
 public class XActionDocument
 {
   protected XActionDocument()
@@ -52,7 +51,6 @@ public class XActionDocument
   public XActionDocument( IModelObject root, ClassLoader loader)
   {
     packages = new ArrayList<String>();
-    varList = new ArrayList<Variable>();
     this.loader = loader;
     if ( root != null) setRoot( root);
   }
@@ -90,9 +88,6 @@ public class XActionDocument
   {
     this.root = root;
 
-    // load variables
-    loadVariables( root);
-    
     // initialize packages
     packages.add( "org.xmodel.xaction");
     
@@ -347,10 +342,6 @@ public class XActionDocument
     if ( expression == null)
     {
       expression = XPath.createExpression( string);
-      
-      // don't set local variable (use global variable instead)
-      if ( expression != null) setVariables( expression);
-      
       try { object.setAttribute( cachedExpressionAttribute, expression);} catch( UnsupportedOperationException e) {}
     }
     
@@ -642,47 +633,6 @@ public class XActionDocument
     return (object != null)? getDocument( object): null;
   }
 
-  /**
-   * Read the variable definitions from the view-model at the specified root.
-   * @param root The root of the view-model.
-   */
-  private void loadVariables( IModelObject root)
-  {
-    varList.clear();
-    List<IModelObject> variableSet = variablePath.query( root, null);
-    for( IModelObject variable: variableSet)
-    {
-      String varName = Xlate.get( variable, "name", (String)null);
-      if ( varName != null)
-      {
-        IExpression varExpression = getExpression( variable);
-        Variable var = new Variable();
-        var.name = varName;
-        var.expression = varExpression;
-        varList.add( var);
-      }
-    }
-  }
-
-  /**
-   * Set all of the defined variables on the specified expression. The variable expressions are
-   * all evaluated relative to the root of the view-model.
-   * @param expression The expression.
-   */
-  protected void setVariables( IExpression expression)
-  {
-    for( Variable var: varList)
-      if ( var.value != null)
-      {
-        // everything should be a string coming from an xml file
-        expression.setVariable( var.name, var.value.toString());
-      }
-      else
-      {
-        expression.setVariable( var.name, var.expression);
-      }
-  }
-    
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -690,16 +640,6 @@ public class XActionDocument
   public String toString()
   {
     return ModelAlgorithms.createIdentityPath( getRoot()).toString();
-  }
-
-  /**
-   * A data-structure to hold a variable definition.
-   */
-  private class Variable
-  {
-    String name;
-    Object value;
-    IExpression expression;
   }
 
   private final IPath functionFinder = XPath.createPath( 
@@ -712,12 +652,8 @@ public class XActionDocument
     "for $a in reverse( ancestor-or-self::*)" +
     "return $a/package");
   
-  private static final IPath variablePath = XPath.createPath( 
-    "ancestor-or-self::*/variable");
-  
   private XActionDocument parent;
   private ClassLoader loader;
   private IModelObject root;
   private List<String> packages;
-  private List<Variable> varList;
 }

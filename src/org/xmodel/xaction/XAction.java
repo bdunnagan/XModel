@@ -68,14 +68,6 @@ public abstract class XAction implements IXAction
   public abstract void doRun( IContext context);
   
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.IXAction#shouldReturn()
-   */
-  public boolean shouldReturn()
-  {
-    return false;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.xaction.IXAction#setDocument(org.xmodel.xaction.XActionDocument)
    */
   public void setDocument( XActionDocument document)
