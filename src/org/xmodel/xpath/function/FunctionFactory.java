@@ -36,6 +36,7 @@ public class FunctionFactory implements IFunctionFactory
       FalseFunction.class,
       FloorFunction.class,
       IDFunction.class,
+      HashCodeFunction.class,
       IndexOfFunction.class,
       LastFunction.class,
       LowercaseFunction.class,

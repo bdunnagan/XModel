@@ -128,7 +128,8 @@ public class ServerModelListener implements IModelListener
     try
     {
       uninstall( child);
-      if ( !ignoreElements.contains( parent)) getServer().sendDelete( session, child);
+      if ( !ignoreElements.contains( parent)) 
+        getServer().sendDelete( session, child);
     }
     catch( Exception e)
     {

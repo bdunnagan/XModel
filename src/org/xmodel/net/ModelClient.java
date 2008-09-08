@@ -365,6 +365,9 @@ public class ModelClient extends RobustSession
    */
   protected void send( IModelObject message)
   {
+//System.out.println( "____________________________________");
+//System.out.println( "CLIENT SENT: \n"+((ModelObject)message).toXml());          
+    
     byte[] compressed = compressor.compress( message);
     write( compressed);
   }
@@ -387,6 +390,7 @@ public class ModelClient extends RobustSession
     // block on semaphore
     try 
     { 
+      timeout = 3600000;
       if ( !block.tryAcquire( timeout, TimeUnit.MILLISECONDS))
         throw new TimeoutException( "Timeout waiting for response to: "+message);
     } 
@@ -445,7 +449,13 @@ public class ModelClient extends RobustSession
     IModelObject parent = netIDs.get( netID);
     if ( parent != null)
     {
-      IModelObject child = parseResult( message.getFirstChild( "child").getChild( 0));
+      IModelObject child = message.getFirstChild( "child");
+      String childNetID = Xlate.get( child.getChild( 0), "net:id", "");
+      if ( netIDs.get( childNetID) != null)
+      {
+        System.out.println( "Duplicate: "+childNetID);
+      }
+      child = parseResult( child.getChild( 0));
       int index = Xlate.childGet( message, "index", parent.getNumberOfChildren());
       parent.addChild( child, index);
     }
@@ -458,7 +468,7 @@ public class ModelClient extends RobustSession
   protected void handleDelete( IModelObject message)
   {
     String netID = Xlate.get( message, "net:id", (String)null);
-    IModelObject object = netIDs.get( netID);
+    IModelObject object = netIDs.remove( netID);
     if ( object != null) object.removeFromParent();
   }
   
@@ -499,6 +509,7 @@ public class ModelClient extends RobustSession
    */
   protected void handleClose( IModelObject message)
   {
+    System.out.println( "Client closed because: "+message);
     close();
   }
 
@@ -561,24 +572,34 @@ public class ModelClient extends RobustSession
   private final Runnable messageLoop = new Runnable() {
     public void run()
     {
-      InputStream stream = session.getInputStream();
-      while( !exit)
+      try
       {
-        IModelObject message = decompressor.decompress( stream);
-        if ( messageID != null && message.getID().equals( messageID))
+        InputStream stream = session.getInputStream();
+        while( !exit)
         {
-          // synchronous message
-          messageID = null;
-          response = message;
-          block.release();
+          IModelObject message = decompressor.decompress( stream);
+//System.out.println( "____________________________________");
+//System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());          
+          if ( messageID != null && message.getID().equals( messageID))
+          {
+            // synchronous message
+            messageID = null;
+            response = message;
+            block.release();
+          }
+          else
+          {
+            // asynchronous message
+            AsyncRunnable runnable = new AsyncRunnable();
+            runnable.message = message;
+            model.dispatch( runnable);
+          }
         }
-        else
-        {
-          // asynchronous message
-          AsyncRunnable runnable = new AsyncRunnable();
-          runnable.message = message;
-          model.dispatch( runnable);
-        }
+      }
+      finally
+      {
+        // unblock send-and-wait semaphore if necessary
+        block.release();
       }
     }
   };

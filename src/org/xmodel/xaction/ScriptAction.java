@@ -47,7 +47,6 @@ public class ScriptAction extends GuardedAction
     
     XActionDocument document = new XActionDocument( loader);
     document.setRoot( element);
-    setDocument( document);
     
     actions = document.getActions( actionExpr.query( document.getRoot(), null));
     configure( document);

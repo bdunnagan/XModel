@@ -552,6 +552,15 @@ public class Reference implements IModelObject
     return getReferent( referent).hashCode();
   }
   
+  /**
+   * Returns the native hash code of this object.
+   * @return Returns the native hash code of this object.
+   */
+  public int nativeHashCode()
+  {
+    return super.hashCode();
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */

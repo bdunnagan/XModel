@@ -279,7 +279,7 @@ public class RobustSession implements ISession
     try
     {
       // wait for connection to go down
-      while( connected) try { Thread.sleep( 500);} catch( Exception e) {}
+      while( connected) try { Thread.sleep( 5000);} catch( Exception e) {}
       
       // wait for connection to come back up
       blocker.acquire();

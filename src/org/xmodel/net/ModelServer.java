@@ -3,17 +3,29 @@ package org.xmodel.net;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.net.robust.*;
+import org.xmodel.net.robust.IServerSession;
+import org.xmodel.net.robust.ISession;
+import org.xmodel.net.robust.RobustServerSession;
+import org.xmodel.net.robust.Server;
+import org.xmodel.net.robust.ServerHandler;
+import org.xmodel.net.robust.ServerSession;
 import org.xmodel.util.Fifo;
 import org.xmodel.util.Radix;
 import org.xmodel.xpath.XPath;
@@ -92,7 +104,11 @@ public class ModelServer extends Server
   protected void close( ISession session, String message)
   {
     sendClose( session, message);
-    session.close();
+
+    // delayed session closing
+    CloseRunnable runnable = new CloseRunnable();
+    runnable.session = session;
+    model.dispatch( runnable);
   }
 
   /**
@@ -218,6 +234,7 @@ public class ModelServer extends Server
   /**
    * Send a delete notification to the client.
    * @param session The session.
+   * @param parent The parent of the object before it was deleted.
    * @param object The object that was deleted.
    */
   protected void sendDelete( ISession session, IModelObject object)
@@ -309,8 +326,9 @@ public class ModelServer extends Server
    */
   protected void send( ISession session, IModelObject message)
   {
-    //System.out.printf( "OUT (%s): %s\n", Thread.currentThread(), message);
-    
+//System.out.println( "____________________________________");
+//System.out.println( "SERVER SENT: \n"+((ModelObject)message).toXml());          
+        
     SessionState state = states.get( session.getSessionNumber());
     if ( state == null) return;
     
@@ -367,7 +385,6 @@ public class ModelServer extends Server
     catch( Exception e)
     {
       close( session, e.getMessage());
-      session.close();
     }
   }
   
@@ -655,7 +672,8 @@ public class ModelServer extends Server
    */
   private String getNetID( IModelObject object)
   {
-    String netID = Radix.convert( object.hashCode(), 36);
+    int hashCode = (object == object.getReferent())? object.hashCode(): ((Reference)object).nativeHashCode();
+    String netID = Radix.convert( hashCode, 36);
     netIDs.put( netID, object);
     return netID;
   }
@@ -707,7 +725,8 @@ public class ModelServer extends Server
         while( !state.exit)
         {
           IModelObject message = state.decompressor.decompress( stream);
-          //System.out.printf( "IN (%s): %s\n", Thread.currentThread(), message);
+//System.out.println( "____________________________________");
+//System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());          
           MessageRunnable runnable = new MessageRunnable();
           runnable.session = session;
           runnable.message = message;
@@ -754,6 +773,22 @@ public class ModelServer extends Server
     public ISession session;
     public IModelObject message;
   }
+  
+  /**
+   * Delayed session closing runnable (allows time for close message to arrive at client).
+   */
+  private class CloseRunnable implements Runnable
+  {
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    public void run()
+    {
+      session.close();
+    }
+    
+    public ISession session;
+  }
 
   /**
    * Some state information about each session.
@@ -771,7 +806,6 @@ public class ModelServer extends Server
   
   private final static int maxQueryCount = 10000;
   private final static int maxInsertCount = 10000;
-  private final static int maxUpdateCount = 10000;
   
   private IModel model;
   private IContext context;
