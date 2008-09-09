@@ -19,6 +19,7 @@ import org.xmodel.IModelObject;
  * <i>BOOLEAN</i>. All other values are treated as strings. A null value is converted to an
  * empty string.
  */
+@SuppressWarnings("unchecked")
 public class LiteralExpression extends Expression
 {
   public LiteralExpression()

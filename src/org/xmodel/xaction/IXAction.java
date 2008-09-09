@@ -32,14 +32,14 @@ public interface IXAction
   public void configure( XActionDocument document);
 
   /**
-   * Run this action with an arbitrary context and return its variable scope.
-   * @return Returns the variable scope of the context so variables can be examined.
-   */
-  public IVariableScope run();
-  
-  /**
    * Run the specified action given its viewmodel.
    * @param context The adapter context.
    */
   public void run( IContext context);
+  
+  /**
+   * Run this action with an arbitrary context and return its variable scope.
+   * @return Returns the variable scope of the context so variables can be examined.
+   */
+  public IVariableScope run();
 }

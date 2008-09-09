@@ -712,5 +712,4 @@ public abstract class Expression implements IExpression
   
   IExpression parent;
   List<IExpression> arguments;
-  long update;
 }

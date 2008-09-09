@@ -50,6 +50,20 @@ public class Aggregator
   }
   
   /**
+   * Remove the specified runnable.
+   * @param runnable The runnable.
+   */
+  public void remove( Runnable runnable)
+  {
+    for( int i=0; i<entries.size(); i++)
+      if ( entries.get( i).runnable == runnable)
+      {
+        entries.remove( i);
+        return;
+      }
+  }
+  
+  /**
    * Start the aggregator thread.
    */
   public void start()

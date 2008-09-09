@@ -168,30 +168,29 @@ public class IfExpression extends Expression
   public void rebind( IContext context)
   {
     IExpression condition = getArgument( 0);
-    
-    context.getModel().revert();
     IExpression arg1 = getArgument( 1);
     IExpression arg2 = getArgument( 2);
-    if ( condition.evaluateBoolean( context))
-      arg1.unbind( context);
-    else
-      arg2.unbind( context);
 
-    context.getModel().restore();
+    boolean needRebind = false;
+    boolean newState = condition.evaluateBoolean( context);
     try
     {
-      if ( condition.evaluateBoolean( context))
+      context.getModel().revert();
+      boolean oldState = condition.evaluateBoolean( context);
+      if ( newState != oldState)
       {
-        arg1.bind( context);
-      }
-      else
-      {
-        arg2.bind( context);
+        if ( oldState) arg1.unbind( context); else arg2.unbind( context);
+        needRebind = true;
       }
     }
-    catch( ExpressionException e)
+    finally
     {
-      if ( parent != null) parent.handleException( this, context, e);
+      context.getModel().restore();
+    }
+
+    if ( needRebind)
+    {
+      if ( newState) arg1.bind( context); else arg2.bind( context);
     }
   }
   
@@ -207,7 +206,6 @@ public class IfExpression extends Expression
     if ( expression == condition)
     {
       rebind( context);
-      //FIXME: this could be more efficient
       notifyChange( this, context);
     }
     else
@@ -228,7 +226,6 @@ public class IfExpression extends Expression
     if ( expression == condition)
     {
       rebind( context);
-      //FIXME: this could be more efficient
       notifyChange( this, context);
     }
     else
@@ -249,7 +246,6 @@ public class IfExpression extends Expression
     if ( expression == condition)
     {
       rebind( context);
-      //FIXME: this could be more efficient
       notifyChange( this, context);
     }
     else
@@ -270,7 +266,6 @@ public class IfExpression extends Expression
     if ( expression == condition)
     {
       rebind( context);
-      //FIXME: this could be more efficient
       notifyChange( this, context);
     }
     else
@@ -291,7 +286,6 @@ public class IfExpression extends Expression
     if ( expression == condition)
     {
       rebind( context);
-      //FIXME: this could be more efficient
       notifyChange( this, context);
     }
     else

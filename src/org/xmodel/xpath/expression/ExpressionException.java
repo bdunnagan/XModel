@@ -8,6 +8,7 @@ package org.xmodel.xpath.expression;
 /**
  * An exceptional condition which occurs during the processing of Expressions.
  */
+@SuppressWarnings("serial")
 public class ExpressionException extends RuntimeException
 {
   /**
