@@ -7,7 +7,6 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.xml.XmlIO;
 
 
 /**
@@ -238,22 +237,6 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
     context.getModel().restore();
     boolean newResult = evaluate( context, lhs, rhs);
     
-System.out.printf( "{%s} old=%b, new=%b\n", this, oldResult, newResult);
-if ( context.getObject().isType( "en:device"))
-{
-  if ( lhs.getType( context) == ResultType.NODES && rhs.getType( context) == ResultType.NODES)
-  {
-    IModelObject device = context.getObject();
-    IModelObject site = lhs.queryFirst( context);
-    if ( site == null)
-    {
-      System.out.println( (new XmlIO()).write( device));
-      System.out.println( "-----------------------------------------");
-    }
-    IModelObject id = rhs.queryFirst( context);
-    System.out.println( "    device="+device+", site="+site+", id="+id);
-  }
-}
     if ( oldResult != newResult) parent.notifyChange( this, context, newResult);
   }
   
