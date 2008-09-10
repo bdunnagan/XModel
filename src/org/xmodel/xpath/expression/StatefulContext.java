@@ -30,6 +30,15 @@ public class StatefulContext implements IContext
   }
   
   /**
+   * Create a duplicate of the specified context.
+   * @param context The context.
+   */
+  public StatefulContext( IContext context)
+  {
+    this( new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
+  }
+  
+  /**
    * Create a context for the given context node with position and size equal to one.
    * @param object The context node.
    */
