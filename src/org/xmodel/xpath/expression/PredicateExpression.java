@@ -198,11 +198,8 @@ public class PredicateExpression extends Expression implements IPredicate
   {
     try
     {
-      context.getModel().revert();
-      List<IModelObject> oldNodes = expression.evaluateNodes( context);
-      context.getModel().restore();
-      oldNodes.removeAll( nodes);
-      if ( oldNodes.size() == 0) notifyChange( expression, context, false);
+      List<IModelObject> newNodes = expression.evaluateNodes( context);
+      if ( newNodes.size() == 0) notifyChange( expression, context, false);
     }
     catch( ExpressionException e)
     {

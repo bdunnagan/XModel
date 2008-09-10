@@ -5,6 +5,7 @@
  */
 package org.xmodel.net.robust;
 
+@SuppressWarnings("unused")
 public class TestClient
 {
   private static Simulator sim;

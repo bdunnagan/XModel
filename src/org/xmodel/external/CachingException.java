@@ -8,6 +8,7 @@ package org.xmodel.external;
 /**
  * An exception which is thrown by implementations of ICachingPolicy.
  */
+@SuppressWarnings("serial")
 public class CachingException extends RuntimeException
 {
   /**

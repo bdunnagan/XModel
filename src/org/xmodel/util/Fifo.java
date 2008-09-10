@@ -30,6 +30,7 @@ import java.util.*;
 /**
   A first-in, first-out container implemented using a LinkedList.
 */
+@SuppressWarnings("serial")
 public class Fifo<T> extends ArrayList<T>
 {
   /**
@@ -52,6 +53,7 @@ public class Fifo<T> extends ArrayList<T>
    * Push a collection of objects onto the end of the fifo.
    * @param objects The objects to put on the end of the fifo.
    */
+  @SuppressWarnings("unchecked")
   public void push( Collection<T> objects)
   {
     for( Object object: objects) push( (T)object);

@@ -7,10 +7,7 @@ package org.xmodel.xsd.check;
 
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.IPath;
 import org.xmodel.Xlate;
-import org.xmodel.xpath.XPath;
-
 
 /**
  * A string enumeration check.
@@ -35,6 +32,5 @@ public class EnumCheck extends AbstractCheck
     return false;
   }
 
-  private static IPath entryPath = XPath.createPath( "enum/value");
   private List<IModelObject> entries;
 }

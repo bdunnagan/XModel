@@ -245,7 +245,7 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   {
     IContext pathContext = getListenerChain().getContext();
     if ( context.getParent() != pathContext) return;
-    
+
     if ( newValue)
       guardedLink.incrementalInstall( context.getObject());
     else

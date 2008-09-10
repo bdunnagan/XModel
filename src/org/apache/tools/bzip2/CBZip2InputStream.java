@@ -68,6 +68,7 @@ import java.io.IOException;
  *
  * @author <a href="mailto:keiron@aftexsw.com">Keiron Liddle</a>
  */
+@SuppressWarnings("unused")
 public class CBZip2InputStream extends InputStream implements BZip2Constants {
     private static void cadvise() {
         System.out.println("CRC Error");

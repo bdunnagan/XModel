@@ -141,8 +141,8 @@ public class PathExpression extends Expression implements IPathListener
         LeafValueListener listener = LeafValueListener.findListener( node, this, context);
         if ( listener != null) 
           node.removeModelListener( listener);
-        else 
-          System.err.println( "Warning: LeafValueListener not found: "+this+", "+context+", "+node);
+//        else 
+//          System.err.println( "Warning: LeafValueListener not found: "+this+", "+context+", "+node);
       }
     }
   }

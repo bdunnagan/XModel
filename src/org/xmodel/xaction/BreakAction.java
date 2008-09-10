@@ -649,10 +649,8 @@ public class BreakAction extends GuardedAction
   private static char[] separator;
   private static String prefix = "    ";
   private static int maxLines = 1000;
-  private static int port = 17311;
   
   private XmlIO xmlIO;
-  private IDispatcher modelDispatcher;
   private BufferedReader reader;
   private IExpression condition;
   private ScriptAction script;

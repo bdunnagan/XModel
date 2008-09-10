@@ -9,11 +9,8 @@ import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IPathElement;
-import org.xmodel.IPathListener;
 import org.xmodel.xpath.PathElement;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.PathExpression;
 
 
 /**
@@ -147,17 +144,23 @@ public abstract class FanoutListener extends ListenerChainLink
   {
     if ( dirty)
     {
-      // un-fanout
-      incrementalUninstall( object);
+      // AbstractCachingPolicy is required to remove children when clearCache is called. Therefore, it is not
+      // necessary to call incrementalUninstall here.  In fact, the HACK code that follows the incrementalUninstall
+      // was put there because the incrementalUninstall causes an expression notification which prevents the
+      // incrementalInstall notification from being received.  But the incrementalUninstall is not necessary
+      // because the removeChildren call in clearCache performs that duty correctly.
+
+      // un-fanout (is this necessary?)
+      //incrementalUninstall( object);
 
       // HACK: enable additional notification if this is part of an expression tree
-      IListenerChain chain = getListenerChain();
-      IPathListener listener = chain.getPathListener();
-      if ( listener instanceof PathExpression)
-      {
-        IExpression expression = ((PathExpression)listener).getRoot();
-        chain.getContext().markUpdate( expression);
-      }
+      //IListenerChain chain = getListenerChain();
+      //IPathListener listener = chain.getPathListener();
+      //if ( listener instanceof PathExpression)
+      //{
+      //  IExpression expression = ((PathExpression)listener).getRoot();
+      //  chain.getContext().markUpdate( expression);
+      //}
       
       // fanout
       incrementalInstall( object);

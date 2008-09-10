@@ -494,8 +494,8 @@ IExpression PrimaryExpr():
 IExpression Expr():
 { IExpression expression = null;}
 {
-  expression = ForExpr() { return expression; }
-  | expression = IfExpr() { return expression; }
+  LOOKAHEAD( ForExpr()) expression = ForExpr() { return expression; }
+  | LOOKAHEAD( IfExpr()) expression = IfExpr() { return expression; }
   | expression = OrExpr() { return expression;}
 }
 

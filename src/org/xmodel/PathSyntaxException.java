@@ -5,6 +5,7 @@
  */
 package org.xmodel;
 
+@SuppressWarnings("serial")
 public class PathSyntaxException extends Exception
 {
   public PathSyntaxException( String message)

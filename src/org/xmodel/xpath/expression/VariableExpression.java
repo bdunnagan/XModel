@@ -20,6 +20,7 @@ import org.xmodel.xpath.variable.VariableScope;
 /**
  * An IExpression which implements a variable reference in an expression tree.
  */
+@SuppressWarnings("unchecked")
 public class VariableExpression extends Expression
 {
   /**

@@ -19,6 +19,7 @@ import org.xmodel.xpath.expression.IExpression;
  * In addition to transforming attribute values, this class also provides methods for transforming
  * between namespaces.  
  */
+@SuppressWarnings("unchecked")
 public class Xlate
 {
   /**

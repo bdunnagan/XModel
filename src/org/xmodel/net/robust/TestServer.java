@@ -8,7 +8,7 @@ package org.xmodel.net.robust;
 import java.net.InetSocketAddress;
 import org.xmodel.net.robust.Server.SessionFactory;
 
-
+@SuppressWarnings("unused")
 public class TestServer
 {
   private static Simulator sim;

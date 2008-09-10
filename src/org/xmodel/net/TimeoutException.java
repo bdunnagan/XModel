@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+@SuppressWarnings("serial")
 public class TimeoutException extends Exception
 {
   public TimeoutException()

@@ -8,6 +8,7 @@ package org.xmodel.xml;
 /**
  * An exception generated when parsing XML documents.
  */
+@SuppressWarnings("serial")
 public class XmlException extends Exception
 {
   /**

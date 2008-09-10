@@ -35,6 +35,7 @@ public class ExternalSpace implements IExternalSpace
   /* (non-Javadoc)
    * @see org.xmodel.external.IExternalSpace#query(java.net.URI)
    */
+  @SuppressWarnings("unchecked")
   public List<IModelObject> query( URI uri) throws CachingException
   {
     if ( !contains( uri)) throw new CachingException( "Invalid URI scheme: "+uri.getScheme());

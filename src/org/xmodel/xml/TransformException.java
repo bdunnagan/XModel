@@ -8,6 +8,7 @@ package org.xmodel.xml;
 /**
  * An unchecked exception for errors encountered while processing an ITransform.
  */
+@SuppressWarnings("serial")
 public class TransformException extends RuntimeException
 {
   public TransformException()

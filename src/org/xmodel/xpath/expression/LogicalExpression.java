@@ -67,17 +67,6 @@ public class LogicalExpression extends AbstractBinaryBooleanExpression
     return (operator == Operator.OR)? (result0 || result1): (result0 && result1);
   }
 
-  /**
-   * Returns the result of applying this operation to the operands.
-   * @param arg0 The first operand.
-   * @param arg1 The second operand.
-   * @return Returns the result of applying this operation to the operands.
-   */
-  private boolean compareResult( boolean arg0, boolean arg1)
-  {
-    return (operator == Operator.OR)? (arg0 || arg1): (arg0 && arg1);
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.Expression#cloneOne()
    */

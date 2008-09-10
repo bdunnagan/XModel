@@ -29,6 +29,7 @@ import org.xmodel.xpath.expression.IExpression;
  * A caching policy for accessing information from an SQL database. This caching policy is used to load both rows
  * and columns of a table.
  */
+@SuppressWarnings("unused")
 public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
 {
   public SQLDirectCachingPolicy()

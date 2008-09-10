@@ -5,6 +5,7 @@
  */
 package org.xmodel.compress;
 
+@SuppressWarnings("serial")
 public class CompressorException extends RuntimeException
 {
   public CompressorException()

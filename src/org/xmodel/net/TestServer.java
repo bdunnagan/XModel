@@ -8,6 +8,7 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IExpression;
 
+@SuppressWarnings("unused")
 public class TestServer
 {
   public static void main( String[] args) throws Exception

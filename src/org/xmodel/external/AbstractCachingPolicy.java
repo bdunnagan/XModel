@@ -193,12 +193,11 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   {
     if ( reference.isDirty()) return;
     
-    // 09/08/08: Removing children here causes unnecessary notifications when the entity 
-    //           has listeners, since the entity will be immediately resynced.  I believe
-    //           that originally, I removed the children to save space in the model. This
-    //           should be done by the ICache, instead.
-    // purge
-    //reference.removeChildren();
+    // removing children here is a fundamental semantic and has two major interactions:
+    //   1. It enables the ICache to manage the space in the cache using this method.
+    //   2. It causes FanoutListener to remove its listeners, so that its notifyDirty method only needs to install listeners.
+    //
+    reference.removeChildren();
     
     // changing dirty state may cause immediate resync by listeners
     reference.setDirty( true);
