@@ -189,6 +189,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
         List<IModelObject> matches = stage.path.evaluateNodes( context);
         for( IModelObject matched: matches)
         {
+          // stage may be dirty since diff was performed with sync turned off (see update)
+          ((IExternalReference)matched).setDirty( false);
+          
           // capture location of next stage
           IModelObject parent = matched.getParent();
           int index = parent.getChildren().indexOf( matched);
