@@ -52,9 +52,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setDirty( boolean dirty)
   {
-    boolean wasDirty = this.dirty;
     this.dirty = dirty;
-    if ( wasDirty != dirty) notifyDirty( dirty);
   }
 
   /* (non-Javadoc)

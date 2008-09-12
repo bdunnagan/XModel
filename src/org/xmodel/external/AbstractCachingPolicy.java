@@ -13,6 +13,7 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.ModelRegistry;
 import org.xmodel.diff.IXmlDiffer;
@@ -171,6 +172,40 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
       }
     }
   }
+  
+  /**
+   * Set the dirty state of the dynamic next stages.
+   * @param reference The reference.
+   */
+  protected void markNextStages( IExternalReference reference)
+  {
+    if ( dynamicStages == null) return;
+    
+    Context context = new Context( reference);
+    for( NextStage stage: dynamicStages)
+    {
+      if ( stage.dirty)
+      {
+        List<IModelObject> matches = stage.path.evaluateNodes( context);
+        for( IModelObject matched: matches)
+        {
+          // capture location of next stage
+          IModelObject parent = matched.getParent();
+          int index = parent.getChildren().indexOf( matched);
+          
+          // remove from parent
+          matched.removeFromParent();
+          
+          // mark dirty
+//System.out.println( "Mark dirty: "+matched+", children? "+matched.getNumberOfChildren());          
+          ((IExternalReference)matched).setDirty( true);
+          
+          // add back to parent
+          parent.addChild( matched, index);
+        }
+      }
+    }
+  }
 
   /**
    * This default implementation does not performing locking.
@@ -193,14 +228,29 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   {
     if ( reference.isDirty()) return;
     
-    // removing children here is a fundamental semantic and has two major interactions:
-    //   1. It enables the ICache to manage the space in the cache using this method.
-    //   2. It causes FanoutListener to remove its listeners, so that its notifyDirty method only needs to install listeners.
-    //
-    reference.removeChildren();
+    // resync immediately if reference has listeners
+    ModelListenerList listeners = reference.getModelListeners();
+    if ( listeners != null && listeners.count() > 0)
+    {
+//System.out.println( "Resyncing: "+reference);
+      sync( reference);
+      markNextStages( reference);
+    }
     
-    // changing dirty state may cause immediate resync by listeners
-    reference.setDirty( true);
+    // remove children and set reference dirty
+    else
+    {
+//System.out.println( "Clearing: "+reference);
+      
+      // removing children here is a fundamental semantic and has two major interactions:
+      //   1. It enables the ICache to manage the space in the cache using this method.
+      //   2. It causes FanoutListener to remove its listeners.
+      //
+      reference.removeChildren();
+
+      // set dirty
+      reference.setDirty( true);
+    }
   }
 
   /* (non-Javadoc)
@@ -300,6 +350,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     {
       reference.getModel().setSyncLock( true);
       differ.diffAndApply( reference, object);
+      markNextStages( reference);
     }
     finally
     {
