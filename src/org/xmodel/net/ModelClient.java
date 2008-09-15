@@ -389,6 +389,61 @@ public class ModelClient extends RobustSession
   }
   
   /**
+   * Send an insert request to the server.
+   * @param netID The net:id of the parent.
+   * @param child The child. 
+   * @param index The insert index.
+   */
+  protected void sendInsert( String netID, IModelObject child, int index)
+  {
+    ModelObject request = new ModelObject( "insert");
+    request.setAttribute( "net:id", netID);
+    Xlate.childSet( request, "index", index);
+    request.getCreateChild( "child").addChild( child);
+    send( request);
+  }
+
+  /**
+   * Send a delete request to the server.
+   * @param netID The net:id of the object to delete.
+   */
+  protected void sendDelete( String netID)
+  {
+    ModelObject request = new ModelObject( "delete");
+    request.setAttribute( "net:id", netID);
+    send( request);
+  }
+  
+  /**
+   * Send an update notification to the client.
+   * @param netID The net:id of the object to update.
+   * @param attrName The name of the attribute.
+   * @param newValue The new value.
+   */
+  protected void sendChange( String netID, String attrName, Object newValue)
+  {
+    ModelObject request = new ModelObject( "change");
+    request.setAttribute( "net:id", netID);
+    Xlate.childSet( request, "attribute", attrName);
+    Xlate.childSet( request, "value", newValue.toString());
+    send( request);
+  }
+  
+  /**
+   * Send an update notification to the client.
+   * @param netID The net:id of the object.
+   * @param attrName The name of the attribute.
+   * @param newValue The new value.
+   */
+  protected void sendClear( String netID, String attrName)
+  {
+    ModelObject request = new ModelObject( "clear");
+    Xlate.set( request, "net:id", netID);
+    Xlate.childSet( request, "attribute", attrName);
+    send( request);
+  }
+  
+  /**
    * Send a message to the server.
    * @param message The message.
    */

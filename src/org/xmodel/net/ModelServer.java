@@ -404,6 +404,22 @@ public class ModelServer extends Server
       {
         handleInit( session, message);
       }
+      else if ( message.isType( "insert"))
+      {
+        handleInsert( session, message);
+      }
+      else if ( message.isType( "delete"))
+      {
+        handleDelete( session, message);
+      }
+      else if ( message.isType( "change"))
+      {
+        handleChange( session, message);
+      }
+      else if ( message.isType( "clear"))
+      {
+        handleClear( session, message);
+      }
       else if ( message.isType( "close"))
       {
         handleClose( session, message);
@@ -574,6 +590,64 @@ public class ModelServer extends Server
       ((IExternalReference)object).clearCache();
       object.addModelListener( state.listener);
       sendDirty( session, object, object.isDirty());
+    }
+  }
+  
+  /**
+   * Handle an insert request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleInsert( ISession session, IModelObject message)
+  {
+    IModelObject object = netIDs.get( Xlate.get( message, "net:id", (String)null));
+    if ( object != null)
+    {
+      IModelObject child = message.getFirstChild( "child").getChild( 0);
+      int index = Xlate.childGet( message, "index", -1);
+      object.addChild( child, index);
+    }    
+  }
+  
+  /**
+   * Handle an delete request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleDelete( ISession session, IModelObject message)
+  {
+    IModelObject object = netIDs.get( Xlate.get( message, "net:id", (String)null));
+    if ( object != null) object.removeFromParent();
+  }
+  
+  /**
+   * Handle an change attribute request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleChange( ISession session, IModelObject message)
+  {
+    IModelObject object = netIDs.get( Xlate.get( message, "net:id", (String)null));
+    if ( object != null)
+    {
+      String attrName = Xlate.childGet( message, "attribute", "");
+      String attrValue = Xlate.childGet( message, "value", "");
+      object.setAttribute( attrName, attrValue);
+    }
+  }
+  
+  /**
+   * Handle an clear attribute request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleClear( ISession session, IModelObject message)
+  {
+    IModelObject object = netIDs.get( Xlate.get( message, "net:id", (String)null));
+    if ( object != null)
+    {
+      String attrName = Xlate.childGet( message, "attribute", "");
+      object.removeAttribute( attrName);
     }
   }
   
