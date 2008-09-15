@@ -112,6 +112,18 @@ public class ModelServer extends Server
   }
 
   /**
+   * Send the ready message to client indicating successfull initialization.
+   * @param session The session.
+   * @param messageID The message id.
+   */
+  protected void sendReady( ISession session, String messageID)
+  {
+    ModelObject message = new ModelObject( "ready");
+    message.setID( messageID);
+    send( session, message);
+  }
+  
+  /**
    * Send the query result to the client.
    * @param session The session.
    * @param messageID The message id.
@@ -208,6 +220,17 @@ public class ModelServer extends Server
   protected void sendUnbindResult( ISession session, String messageID)
   {
     ModelObject message = new ModelObject( "unbind");
+    message.setID( messageID);
+    send( session, message);
+  }
+  
+  /**
+   * Send a hearbeat response.
+   * @param session The session.
+   */
+  protected void sendHeartbeat( ISession session, String messageID)
+  {
+    ModelObject message = new ModelObject( "beat");
     message.setID( messageID);
     send( session, message);
   }
@@ -369,6 +392,10 @@ public class ModelServer extends Server
       {
         handleUnbind( session, message);
       }
+      else if ( message.isType( "beat"))
+      {
+        handleHeartbeat( session, message);
+      }
       else if ( message.isType( "dirty"))
       {
         handleMarkDirty( session, message);
@@ -399,6 +426,7 @@ public class ModelServer extends Server
     if ( !state.init)
     {
       state.init = true;
+      sendReady( session, message.getID());
     }
     else
     {
@@ -519,6 +547,16 @@ public class ModelServer extends Server
     
     // send result
     sendUnbindResult( session, message.getID());
+  }
+  
+  /**
+   * Handle a heartbeat message.
+   * @param session The session.
+   * @param message The heartbeat message.
+   */
+  private void handleHeartbeat( ISession session, IModelObject message)
+  {
+    sendHeartbeat( session, message.getID());
   }
   
   /**

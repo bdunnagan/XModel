@@ -145,7 +145,7 @@ public class Server
    * @param sid The session number.
    * @return Returns the ServerSession.
    */
-  private IServerSession getCreateSession( InetSocketAddress address, long sid)
+  private IServerSession getCreateSession( InetSocketAddress address, long sid) throws IOException
   {
     String id = address.getHostName()+":"+sid;
     IServerSession session = sessions.get( id);

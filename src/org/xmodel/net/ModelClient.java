@@ -1,13 +1,21 @@
 package org.xmodel.net;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import org.xmodel.*;
+import org.xmodel.IModel;
+import org.xmodel.IModelObject;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.ModelRegistry;
+import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
@@ -76,10 +84,17 @@ public class ModelClient extends RobustSession
    * @see org.xmodel.net.robust.Client#open()
    */
   @Override
-  public void open()
+  public void open() throws IOException
   {
     super.open();
-    sendInit();
+    try
+    {
+      sendInit();
+    }
+    catch( TimeoutException e)
+    {
+      throw new IOException( "Timeout connecting to server."); 
+    }
   }
 
   /* (non-Javadoc)
@@ -261,12 +276,12 @@ public class ModelClient extends RobustSession
    * Send init message to server. 
    * @return Returns the message correlation id.
    */
-  protected String sendInit()
+  protected String sendInit() throws TimeoutException
   {
     String messageID = Radix.convert( nextID++, 36);
     ModelObject request = new ModelObject( "init");
     request.setID( messageID);
-    send( request);
+    sendAndWait( request, 5000);
     return messageID;
   }
   
@@ -360,6 +375,20 @@ public class ModelClient extends RobustSession
   }
   
   /**
+   * Send a heartbeat request to the server.
+   */
+  protected void sendHeartbeat()
+  {
+    String messageID = Radix.convert( nextID++, 36);
+    ModelObject request = new ModelObject( "beat");
+    request.setID( messageID);
+    send( request);
+    
+    // set receive timer
+    timer.schedule( new DeathTask(), 3000);
+  }
+  
+  /**
    * Send a message to the server.
    * @param message The message.
    */
@@ -390,7 +419,7 @@ public class ModelClient extends RobustSession
     // block on semaphore
     try 
     { 
-      timeout = 3600000;
+      timeout = 10000;
       if ( !block.tryAcquire( timeout, TimeUnit.MILLISECONDS))
         throw new TimeoutException( "Timeout waiting for response to: "+message);
     } 
@@ -398,6 +427,9 @@ public class ModelClient extends RobustSession
     { 
       throw new TimeoutException( "Operation interrupted.", e);
     }
+    
+    // check if released without response
+    if ( response == null) throw new TimeoutException( "Operation aborted.");
     
     // return message
     return response.cloneTree();
@@ -409,7 +441,10 @@ public class ModelClient extends RobustSession
    */
   protected void handle( IModelObject message)
   {
-    if ( message.isType( "insert"))
+    if ( message.isType( "beat"))
+    {
+    }
+    else if ( message.isType( "insert"))
     {
       handleInsert( message);
     }
@@ -432,6 +467,9 @@ public class ModelClient extends RobustSession
     else if ( message.isType( "dirty"))
     {
       handleDirty( message);
+    }
+    else if ( message.isType( "ready"))
+    {
     }
     else if ( message.isType( "error"))
     {
@@ -550,16 +588,21 @@ public class ModelClient extends RobustSession
     }
     public void notifyClose( ISession session)
     {
+      block.release();
       exit = true;
     }
     public void notifyConnect( ISession session)
     {
+      if ( timer == null) timer = new Timer( "Heart", true);
+      heartbeatTask = new HeartbeatTask();
+      timer.scheduleAtFixedRate( heartbeatTask, 5000, 2000);
       messageLoopThread = new Thread( messageLoop, "Session Loop ("+session.getShortSessionID()+")");
       messageLoopThread.setDaemon( true);
       messageLoopThread.start();
     }
     public void notifyDisconnect( ISession session)
     {
+      heartbeatTask.cancel();
       exit = true;
       messageLoopThread.interrupt();
       messageLoopThread = null;
@@ -604,6 +647,24 @@ public class ModelClient extends RobustSession
     }
   };
   
+  private class HeartbeatTask extends TimerTask
+  {
+    public void run()
+    {
+      sendHeartbeat();
+    }
+  };
+
+  private class DeathTask extends TimerTask
+  {
+    public void run()
+    {
+      block.release();
+      System.out.println( "Closing client because no heartbeat.");
+      close();
+    }
+  };
+  
   /**
    * Asynchronous message runnable.
    */
@@ -624,7 +685,7 @@ public class ModelClient extends RobustSession
     "nosync( descendant-or-self::*)");
   
   private final IExpression errorsExpr = XPath.createExpression(
-   "collection('errors')");
+    "collection( 'errors')");
 
   private IModel model;
   private Thread messageLoopThread;
@@ -635,6 +696,8 @@ public class ModelClient extends RobustSession
   private Semaphore block;
   private String messageID;
   private IModelObject response;
+  private Timer timer;
+  private HeartbeatTask heartbeatTask;
   private int limit;
   private int timeout;
   private long nextID;

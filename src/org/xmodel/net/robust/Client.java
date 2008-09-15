@@ -184,6 +184,8 @@ public class Client extends AbstractSession
         catch( IOException e)
         {
           e.printStackTrace( System.err);
+          exit = true;
+          notifyClose();
         }
       }
       

@@ -5,6 +5,7 @@
  */
 package org.xmodel.net;
 
+import java.io.IOException;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -122,9 +123,17 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     assert( this.reference != null && this.reference != reference);
     this.reference = reference;
     
-    client = new ModelClient( host, port, getCache(), reference.getModel());
-    client.addListener( listener);
-    client.open();
+    try
+    {
+      client = new ModelClient( host, port, getCache(), reference.getModel());
+      client.addListener( listener);
+      client.open();
+    }
+    catch( IOException e)
+    {
+      throw new CachingException( "Unable to connect to server: ", e);
+    }
+    
     client.setQueryLimit( limit);
     try
     {

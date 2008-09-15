@@ -5,6 +5,7 @@
  */
 package org.xmodel.net.robust;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -130,7 +131,7 @@ public class RobustSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#open()
    */
-  public void open()
+  public void open() throws IOException
   {
     exit = false;
     session.open();

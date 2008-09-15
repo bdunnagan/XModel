@@ -5,6 +5,7 @@
  */
 package org.xmodel.net.robust;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -58,7 +59,7 @@ public interface ISession
   /**
    * Open this session. This method does not block.
    */
-  public void open();
+  public void open() throws IOException;
 
   /**
    * Close this session. This method may or may not block until the session closes.
