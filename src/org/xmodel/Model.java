@@ -97,6 +97,9 @@ public class Model implements IModel
    */
   public void revert()
   {
+    // disable syncing while model is reverted (what would be the point?)
+    setSyncLock( true);
+    
     // there may not be a current update if this is an initial or final notification
     Update update = getCurrentUpdate();
     if ( update != null) update.revert();
@@ -108,6 +111,9 @@ public class Model implements IModel
   public void restore()
   {
     for( Update update: updateStack) update.restore();
+    
+    // reenable syncing
+    setSyncLock( false);
   }
 
   /* (non-Javadoc)

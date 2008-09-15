@@ -209,6 +209,20 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
       }
     }
   }
+  
+  /**
+   * Mark the static and dynamic next stages not-dirty.
+   * @param reference The reference.
+   */
+  protected void markCleanNextStages( IExternalReference reference)
+  {
+    NonSyncingIterator iter = new NonSyncingIterator( reference);
+    while( iter.hasNext())
+    {
+      IModelObject element = iter.next();
+      if ( element.isDirty()) ((IExternalReference)element).setDirty( false);
+    }
+  }
 
   /**
    * This default implementation does not performing locking.
@@ -231,13 +245,22 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   {
     if ( reference.isDirty()) return;
     
+    // mark all next stages not-dirty
+    markCleanNextStages( reference);
+    
     // resync immediately if reference has listeners
     ModelListenerList listeners = reference.getModelListeners();
     if ( listeners != null && listeners.count() > 0)
     {
+      // HACK: this is only necessary until proper reference diffing is implemented
+      reference.removeChildren();
+      
 //System.out.println( "Resyncing: "+reference);
+      // sync
       sync( reference);
-      markNextStages( reference);
+      
+      // mark next stages dirty (only necessary if children are not removed - see above)
+      //markNextStages( reference);
     }
     
     // remove children and set reference dirty
