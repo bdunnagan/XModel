@@ -385,7 +385,9 @@ public class ModelClient extends RobustSession
     send( request);
     
     // set receive timer
-    timer.schedule( new DeathTask(), 3000);
+    if ( deathTask != null) deathTask.cancel();
+    deathTask = new DeathTask();
+    timer.schedule( deathTask, 3000);
   }
   
   /**
@@ -498,6 +500,7 @@ public class ModelClient extends RobustSession
   {
     if ( message.isType( "beat"))
     {
+      deathTask.cancel();
     }
     else if ( message.isType( "insert"))
     {
@@ -753,6 +756,7 @@ public class ModelClient extends RobustSession
   private IModelObject response;
   private Timer timer;
   private HeartbeatTask heartbeatTask;
+  private DeathTask deathTask;
   private int limit;
   private int timeout;
   private long nextID;
