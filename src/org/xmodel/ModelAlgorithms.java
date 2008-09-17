@@ -18,15 +18,17 @@ import org.xmodel.util.Fifo;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.PathElement;
+import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
+import org.xmodel.xpath.expression.EqualityExpression;
 import org.xmodel.xpath.expression.FilteredExpression;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.LiteralExpression;
-import org.xmodel.xpath.expression.NamePredicate;
 import org.xmodel.xpath.expression.PathExpression;
 import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.RootExpression;
+import org.xmodel.xpath.expression.EqualityExpression.Operator;
 import org.xmodel.xpath.function.CollectionFunction;
 
 
@@ -485,7 +487,14 @@ public class ModelAlgorithms implements IAxis
       String id = Xlate.get( object, "id", (String)null);
       if ( id != null)
       {
-        IPredicate predicate = new NamePredicate( path, id);
+        PredicateExpression predicate = new PredicateExpression( path);
+        PathExpression idPath = new PathExpression( XPath.createPath( "@id"));
+        LiteralExpression literal = new LiteralExpression( path);
+        literal.setValue( id);
+        EqualityExpression compare = new EqualityExpression( Operator.EQ);
+        compare.addArgument( idPath);
+        compare.addArgument( literal);
+        predicate.addArgument( compare);
         IPathElement element = new PathElement( axis, object.getType(), predicate);
         path.addElement( 0, element);
       }
