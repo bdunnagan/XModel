@@ -376,7 +376,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     {
       reference.getModel().setSyncLock( true);
       differ.diffAndApply( reference, object);
-      markNextStages( reference);
+      
+      // This is necessary when children have not been removed by the clear method
+      //markNextStages( reference);
     }
     finally
     {
