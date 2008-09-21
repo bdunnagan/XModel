@@ -5,12 +5,14 @@
  */
 package org.xmodel.external.caching;
 
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelObjectFactory;
@@ -116,7 +118,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
           {
             if ( columns[ i].equals( key)) continue;
             IModelObject field = getFactory().createObject( object, columns[ i]);
-            field.setValue( result.getObject( i+1));
+            Object value = transformValue( reference, field, result.getObject( i+1));
+            field.setValue( value);
             object.addChild( field);
           }        
         }
@@ -132,6 +135,34 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       {
         throw new CachingException( "Unable to cache reference: "+reference, e);
       }
+    }
+  }
+  
+  /**
+   * Transform the value of a table row column into the value to be stored in the fragment.
+   * @param rowElement The table row element.
+   * @param columnElement The column element.
+   * @param value The value of the column from the ResultSet.
+   * @return Returns the value to be stored in the element.
+   */
+  private Object transformValue( IModelObject rowElement, IModelObject columnElement, Object value) throws CachingException
+  {
+    if ( value instanceof Blob)
+    {
+      try
+      {
+        PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
+        BlobAccess access = new BlobAccess( statement);
+        return access;
+      }
+      catch( SQLException e)
+      {
+        throw new CachingException( "Unable to create blob access for column: "+columnElement, e);
+      }
+    }
+    else
+    {
+      return value;
     }
   }
 
@@ -244,11 +275,32 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT * "); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( key); sb.append( "=?");
+    sb.append(" WHERE "); sb.append( key); sb.append( "= ?");
     
     SQLManager sqlManager = getSQLManager( reference.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
     statement.setString( 1, reference.getID());
+    
+    return statement;
+  }
+  
+  /**
+   * Returns a prepared statement which will select a table row column.
+   * @param rowElement The element representing a table row.
+   * @param columnElement The element representing a table row column.
+   * @return Returns a prepared statement which will select the column.
+   */
+  private PreparedStatement createColumnSelectStatement( IModelObject rowElement, IModelObject columnElement) throws SQLException
+  {
+    String table = Xlate.get( rowElement.getParent(), "table", (String)null);
+    
+    StringBuilder sb = new StringBuilder();
+    sb.append( "SELECT "); sb.append( columnElement.getType()); sb.append( " FROM "); sb.append( table);
+    sb.append(" WHERE "); sb.append( key); sb.append( "= ?");
+    
+    SQLManager sqlManager = getSQLManager( rowElement.getParent());
+    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    statement.setString( 1, rowElement.getID());
     
     return statement;
   }
