@@ -57,9 +57,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   {
     factory = new ModelObjectFactory();
     
-    // get manager defined in annotation
-    defaultManager = annotation.getFirstChild( "meta:sqlmanager");
-
     // get parameters
     key = Xlate.childGet( annotation, "key", (String)null);
     child = Xlate.childGet( annotation, "child", (String)null);
@@ -191,16 +188,16 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
-   * Returns the SQLManager for the specified reference. If the manager annotation exists, but the
-   * manager has not yet been initialized, then it will be initialized here.
+   * Returns the SQLManager for the specified reference.
    * @param locus Either a table or row reference.
    * @return Returns the SQLManager for the specified reference.
    */
   @SuppressWarnings("unchecked")
-  private SQLManager getSQLManager( IModelObject locus) throws CachingException
+  public static SQLManager getSQLManager( IModelObject locus) throws CachingException
   {
-    IModelObject sqlManagerNode = defaultManager;
-    if ( sqlManagerNode == null) sqlManagerNode = sqlManagerExpr.queryFirst( locus);
+    IModelObject sqlManagerNode = sqlManagerExpr.queryFirst( locus);
+    if ( sqlManagerNode == null) return null;
+    
     SQLManager sqlManager = (SQLManager)sqlManagerNode.getAttribute( "instance");
     if ( sqlManager == null)
     {
@@ -209,7 +206,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       
       try
       {
-        Class clss = getClass().getClassLoader().loadClass( "org.xmodel.external.caching."+className);
+        Class clss = SQLDirectCachingPolicy.class.getClassLoader().loadClass( "org.xmodel.external.caching."+className);
         sqlManager = (SQLManager)clss.newInstance();
         sqlManager.configure( sqlManagerNode);
         sqlManagerNode.setAttribute( "instance", sqlManager);
@@ -275,7 +272,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT * "); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( key); sb.append( "= ?");
+    sb.append(" WHERE "); sb.append( key); sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( reference.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -296,7 +293,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); sb.append( columnElement.getType()); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( key); sb.append( "= ?");
+    sb.append(" WHERE "); sb.append( key); sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( rowElement.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -416,39 +413,10 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
   
   private static IExpression sqlManagerExpr = XPath.createExpression( 
-    "ancestor::*/meta:sqlmanager");
+    "ancestor-or-self::*/meta:sqlmanager");
   
-  private IModelObject defaultManager;
   private IModelObjectFactory factory;
   private String[] columns;
   private String key;
-  private String child;
-  
-  /**
-   * An interface for creating (and possibly caching) instances of java.sql.Statement. An implementation
-   * of the interface must be defined on the <i>meta:sqlmanager</i> attribute or <i>meta:sqlmanager</i> child 
-   * of an ancestor of each IExternalReference which uses an SQLCachingPolicy.
-   */
-  public interface SQLManager
-  {
-    /**
-     * Configure this manager from the specified annotation.
-     * @param annotation The annotation.
-     */
-    public void configure( IModelObject annotation) throws CachingException;
-    
-    /**
-     * Returns a Connection possibly from a pool of Connection objects.
-     * @return Returns a Connection possibly from a pool of Connection objects.
-     */
-    public Connection getConnection() throws CachingException;
-    
-    /**
-     * Returns a PreparedStatement built from the specified SQL. This method is provided to allow
-     * the implementation to optionally cache PreparedStatement instances.
-     * @param sql The SQL statement.
-     * @return Returns a PreparedStatement built from the specified SQL.
-     */
-    public PreparedStatement prepareStatement( String sql) throws CachingException; 
-  }
+  private String child;  
 }

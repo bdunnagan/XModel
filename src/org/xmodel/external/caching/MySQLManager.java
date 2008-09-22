@@ -11,8 +11,6 @@ import java.sql.PreparedStatement;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
-import org.xmodel.external.caching.SQLCachingPolicy.SQLManager;
-
 
 /**
  * An SQLManager for the MySQL database.
@@ -76,7 +74,7 @@ public class MySQLManager implements SQLManager
     }
   }
 
-  private final static String urlPrefix = "jdbc:mysql://localhost/";
+  private final static String urlPrefix = "jdbc:mysql://127.0.0.1/";
   private final static String driverClassName = "com.mysql.jdbc.Driver";
   
   private boolean init;
