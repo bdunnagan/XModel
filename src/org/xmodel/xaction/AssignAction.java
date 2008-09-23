@@ -94,6 +94,7 @@ public class AssignAction extends XAction
         case STRING:  scope.set( name, sourceExpr.evaluateString( context)); break;
         case NUMBER:  scope.set( name, sourceExpr.evaluateNumber( context)); break;
         case BOOLEAN: scope.set( name, sourceExpr.evaluateBoolean( context)); break;
+        case UNDEFINED: throw new XActionException( "Expression type is undefined: "+sourceExpr);
       }
     }
   }

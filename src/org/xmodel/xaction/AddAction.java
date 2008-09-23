@@ -25,38 +25,24 @@ public class AddAction extends GuardedAction
   {
     super.configure( document);
 
-    if ( document.getRoot().getNumberOfChildren() == 0)
-    {
-      sourceExpr = document.getExpression( document.getRoot());
-      targetExpr = defaultTargetExpr;
-    }
-    else
-    {
-      // load IModelObjectFactory and IXmlMatcher classes
-      IModelObject viewRoot = document.getRoot();
-      factory = getFactory( viewRoot);
-      matcher = getMatcher( viewRoot);
-      
-      // get source and target expressions
-      sourceExpr = document.getExpression( "source", false);
-      targetExpr = document.getExpression( "target", false);
-      indexExpr = document.getExpression( "index", false);
-      
-      // get flags (with backwards compatible support)
-      Collection<String> attributes = viewRoot.getAttributeNames();
-      if ( attributes == null || attributes.size() == 0)
-      {
-        create = Xlate.childGet( viewRoot, "create", false);
-        unique = Xlate.childGet( viewRoot, "unique", false);
-        mode = Xlate.childGet( viewRoot, "mode", "copy");
-      }
-      else
-      {
-        create = Xlate.get( viewRoot, "create", false);
-        unique = Xlate.get( viewRoot, "unique", false);
-        mode = Xlate.get( viewRoot, "mode", "copy");
-      }
-    }
+    // load IModelObjectFactory and IXmlMatcher classes
+    IModelObject viewRoot = document.getRoot();
+    factory = getFactory( viewRoot);
+    matcher = getMatcher( viewRoot);
+    
+    // get source and target expressions
+    sourceExpr = document.getExpression( "source", true);
+    targetExpr = document.getExpression( "target", true);
+    indexExpr = document.getExpression( "index", true);
+    
+    // alternate form with either source or target expression defined in value
+    if ( sourceExpr == null) sourceExpr = document.getExpression();
+    if ( targetExpr == null) targetExpr = document.getExpression();
+    
+    // get flags
+    create = Xlate.get( viewRoot, "create", Xlate.childGet( viewRoot, "create", false));
+    unique = Xlate.get( viewRoot, "unique", Xlate.childGet( viewRoot, "unique", false));
+    mode = Xlate.get( viewRoot, "mode", Xlate.childGet( viewRoot, "mode", "copy"));
   }
 
   /* (non-Javadoc)
@@ -148,8 +134,6 @@ public class AddAction extends GuardedAction
     }
   }
 
-  private final static IExpression defaultTargetExpr = XPath.createExpression( ".");
-  
   private IModelObjectFactory factory;
   private IXmlMatcher matcher;
   private IExpression sourceExpr;
