@@ -19,6 +19,10 @@ import org.xmodel.record.RemoveChildBoundRecord;
  * appropriate entries for each method and provides an implementation of the normalize method. This
  * class also implements IModelListener so that it can automatically track changes to the
  * IModelObjects where it is installed.
+ * <p>
+ * By default, this implementation ignores the difference between null text and empty text. This
+ * is equivalent to assuming that every element has a text node. This behavior can be disabled
+ * by calling the <code>regardNullText</code> method.
  */
 public class ChangeSet implements IChangeSet, IModelListener
 {
@@ -58,6 +62,13 @@ public class ChangeSet implements IChangeSet, IModelListener
    */
   public void setAttribute( IModelObject object, String attrName, Object attrValue)
   {
+    if ( !regardNullText && attrName.length() == 0)
+    {
+      Object oldValue = object.getValue();
+      if ( attrValue == null && oldValue != null && oldValue.toString().length() == 0) return;
+      if ( oldValue == null && attrValue != null && attrValue.toString().length() == 0) return;
+    }
+    
     IBoundChangeRecord record = null;
     if ( attrValue.equals( ""))
       record = new ChangeAttributeBoundRecord( object, attrName);
@@ -71,6 +82,13 @@ public class ChangeSet implements IChangeSet, IModelListener
    */
   public void removeAttribute( IModelObject object, String attrName)
   {
+    // need to perform this test here because removeAttribute doesn't have oldValue
+    if ( !regardNullText && attrName.length() == 0)
+    {
+      Object oldValue = object.getValue();
+      if ( oldValue != null && oldValue.toString().length() == 0) return;
+    }
+    
     IBoundChangeRecord record = new ClearAttributeBoundRecord( object, attrName);
     addRecord( record);
   }
@@ -121,6 +139,15 @@ public class ChangeSet implements IChangeSet, IModelListener
   public void normalize()
   {
     throw new RuntimeException( "Not implemented.");
+  }
+  
+  /**
+   * Specify whether the change set should ignore the difference between null text and empty text.
+   * @param regard True if null text should be treated as different from empty text.
+   */
+  public void regardNullText( boolean regard)
+  {
+    regardNullText = regard;
   }
   
   /* (non-Javadoc)
@@ -183,6 +210,13 @@ public class ChangeSet implements IChangeSet, IModelListener
    */
   public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
   {
+    // need to perform this test here because setAttribute doesn't have oldValue
+    if ( !regardNullText && attrName.length() == 0)
+    {
+      if ( newValue == null && oldValue != null && oldValue.toString().length() == 0) return;
+      if ( oldValue == null && newValue != null && newValue.toString().length() == 0) return;
+    }
+    
     setAttribute( object, attrName, newValue);
   }
   
@@ -192,6 +226,12 @@ public class ChangeSet implements IChangeSet, IModelListener
    */
   public void notifyClear( IModelObject object, String attrName, Object oldValue)
   {
+    // need to perform this test here because removeAttribute doesn't have oldValue
+    if ( !regardNullText && attrName.length() == 0)
+    {
+      if ( oldValue != null && oldValue.toString().length() == 0) return;
+    }
+    
     removeAttribute( object, attrName);
   }
   
@@ -251,4 +291,5 @@ public class ChangeSet implements IChangeSet, IModelListener
   }
   
   protected List<IBoundChangeRecord> records;
+  private boolean regardNullText;
 }
