@@ -127,6 +127,31 @@
             <xs:documentation>True if the source elements should be cloned before assignment. Has no effect if source is not a node-set.</xs:documentation>
           </xs:annotation>
         </xs:attribute>
+        <xs:attribute name="mode" default="direct">
+          <xs:annotation>
+            <xs:documentation>The assignment mode: 
+direct - exact result 
+ref - references are created
+copy - clones are created
+fk1 - foreign key (value)
+fk2 - foreign key (id)</xs:documentation>
+          </xs:annotation>
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="direct"/>
+              <xs:enumeration value="ref"/>
+              <xs:enumeration value="copy"/>
+              <xs:enumeration value="fk1"/>
+              <xs:enumeration value="fk2"/>
+              <xs:enumeration value="add"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="append" type="xs:boolean" default="false">
+          <xs:annotation>
+            <xs:documentation>True if nodes should be appended to variable node-set.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
         <xs:attribute name="replace" type="xs:boolean" default="false">
           <xs:annotation>
             <xs:documentation>True if the variable should be replaced in the closest enclosing scope in which it is currently defined.</xs:documentation>

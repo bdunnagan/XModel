@@ -10,6 +10,8 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -46,8 +48,10 @@ public class AssignAction extends XAction
     // load IModelObjectFactory class
     IModelObject viewRoot = document.getRoot();
     factory = getFactory( viewRoot);
-    
-    clone = Xlate.get( document.getRoot(), "clone", false);
+
+    // flags
+    mode = Xlate.get( document.getRoot(), "mode", "direct");
+    append = Xlate.get( document.getRoot(), "append", false);
     replace = Xlate.get( document.getRoot(), "replace", false);
     define = Xlate.get( document.getRoot(), "define", false);
   }
@@ -79,15 +83,46 @@ public class AssignAction extends XAction
         case NODES:   
         {
           List<IModelObject> sources = sourceExpr.evaluateNodes( context);
-          if ( clone)
+          if ( mode.equals( "direct"))
+          {
+            setVariable( scope, sources);
+          }
+          else if ( mode.startsWith( "ref"))
+          {
+            List<IModelObject> refs = new ArrayList<IModelObject>( sources.size());
+            for( IModelObject source: sources)
+              refs.add( new Reference( source));
+            setVariable( scope, refs);
+          }
+          else if ( mode.equals( "copy"))
           {
             List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
             for( IModelObject source: sources)
               clones.add( ModelAlgorithms.cloneTree( source, factory));
-            scope.set( name, clones);
+            setVariable( scope, clones);
           }
-          else
-            scope.set( name, sources);
+          else if ( mode.equals( "fk1"))
+          {
+            List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
+            for( IModelObject source: sources)
+            {
+              IModelObject fk = (factory != null)? factory.createObject( null, source.getType()): new ModelObject( source.getType());
+              fk.setValue( source.getID());
+              fks.add( fk);
+            }
+            setVariable( scope, fks);
+          }
+          else if ( mode.equals( "fk2"))
+          {
+            List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
+            for( IModelObject source: sources)
+            {
+              IModelObject fk = (factory != null)? factory.createObject( null, source.getType()): new ModelObject( source.getType());
+              fk.setID( source.getID());
+              fks.add( fk);
+            }
+            setVariable( scope, fks);
+          }
         }
         break;
         
@@ -96,6 +131,26 @@ public class AssignAction extends XAction
         case BOOLEAN: scope.set( name, sourceExpr.evaluateBoolean( context)); break;
         case UNDEFINED: throw new XActionException( "Expression type is undefined: "+sourceExpr);
       }
+    }
+  }
+  
+  /**
+   * Replace or append variable node-set depending on the <i>append</i> flag.
+   * @param scope The variable scope.
+   * @param list The new elements.
+   */
+  @SuppressWarnings("unchecked")
+  private void setVariable( IVariableScope scope, List<IModelObject> list)
+  {
+    if ( append)
+    {
+      List<IModelObject> newList = new ArrayList<IModelObject>();
+      newList.addAll( (List<IModelObject>)scope.get( name));
+      newList.addAll( list);
+    }
+    else
+    {
+      scope.set( name, list);
     }
   }
   
@@ -124,7 +179,8 @@ public class AssignAction extends XAction
   }
 
   private String name;
-  private boolean clone;
+  private String mode;
+  private boolean append;
   private boolean replace;
   private boolean define;
   private IModelObjectFactory factory;

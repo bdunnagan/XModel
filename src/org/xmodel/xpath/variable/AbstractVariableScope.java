@@ -506,7 +506,9 @@ public abstract class AbstractVariableScope implements IVariableScope
     StringBuilder sb = new StringBuilder();
     if ( variables != null)
     {
-      for( String name: getAll())
+      List<String> names = new ArrayList<String>( getAll());
+      Collections.sort( names);
+      for( String name: names)
       {
         sb.append( name);
         sb.append( "=");

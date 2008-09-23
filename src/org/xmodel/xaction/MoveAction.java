@@ -8,7 +8,6 @@ package org.xmodel.xaction;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -26,26 +25,19 @@ public class MoveAction extends GuardedAction
   {
     super.configure( document);
 
-    if ( document.getRoot().getNumberOfChildren() == 0)
-    {
-      sourceExpr = document.getExpression( document.getRoot());
-      targetExpr = defaultTargetExpr;
-    }
-    else
-    {
-      IModelObject viewRoot = document.getRoot();
-      
-      // get source and target expressions
-      sourceExpr = document.getExpression( "source", false);
-      targetExpr = document.getExpression( "target", false);
-      indexExpr = document.getExpression( "index", false);
-      
-      // get flags (with backwards compatible support)
-      Object attribute = viewRoot.getAttribute( "unique");
-      unique = (attribute != null)? 
-        Xlate.get( viewRoot, "unique", false): 
-        Xlate.childGet( viewRoot, "unique", false);
-    }
+    IModelObject viewRoot = document.getRoot();
+    
+    // get source and target expressions
+    sourceExpr = document.getExpression( "source", true);
+    targetExpr = document.getExpression( "target", true);
+    indexExpr = document.getExpression( "index", true);
+    
+    // alternate form with either source or target expression defined in value
+    if ( sourceExpr == null) sourceExpr = document.getExpression();
+    if ( targetExpr == null) targetExpr = document.getExpression();
+    
+    // get flags
+    unique = Xlate.get( viewRoot, "unique", Xlate.childGet( viewRoot, "unique", false));
   }
 
   /* (non-Javadoc)
@@ -78,8 +70,6 @@ public class MoveAction extends GuardedAction
     }
   }
 
-  private final static IExpression defaultTargetExpr = XPath.createExpression( ".");
-  
   private IExpression sourceExpr;
   private IExpression targetExpr;
   private IExpression indexExpr;

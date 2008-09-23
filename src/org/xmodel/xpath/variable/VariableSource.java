@@ -7,7 +7,9 @@ package org.xmodel.xpath.variable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -185,25 +187,23 @@ public class VariableSource implements IVariableSource
   @Override
   public String toString()
   {
-    StringBuilder string = new StringBuilder();
+    StringBuilder sb = new StringBuilder();
     
-    // print parent first
-    IVariableSource parent = getParent();
-    if ( parent != null) 
-    {
-      string.append( "Source: "); string.append( hashCode()); string.append( "\n");
-      string.append( parent.toString());
-      string.append( "\n");
-   }
-    
-    // print this
+    // create set of all variables
+    Set<String> set = new HashSet<String>();
     for( IVariableScope scope: getScopes())
+      set.addAll( scope.getAll());
+    
+    List<String> names = new ArrayList<String>( set);
+    Collections.sort( names);
+    for( String name: names)
     {
-      string.append( "\nScope: "); string.append( scope.getName()); string.append( "\n");
-      string.append( scope.toString());
+      sb.append( name); sb.append( "=");
+      IVariableScope scope = getVariableScope( name);
+      sb.append( scope.get( name));
     }
     
-    return string.toString();
+    return sb.toString();
   }
 
   IVariableSource parent;

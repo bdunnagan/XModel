@@ -264,21 +264,11 @@ public class ContextScope extends AbstractVariableScope
    */
   public IVariableScope cloneOne()
   {
-    throw new UnsupportedOperationException();
+    ContextScope clone = new ContextScope();
+    if ( variables != null) clone.copyFrom( this);
+    return clone;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.variable.AbstractVariableScope#toString()
-   */
-  @Override
-  public String toString()
-  {
-    StringBuilder builder = new StringBuilder();
-    if ( parent != null) builder.append( parent.toString());
-    builder.append( super.toString());
-    return builder.toString();
-  }
-
   IVariableScope parent;
   boolean reverted;
 }

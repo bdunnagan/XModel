@@ -5,12 +5,15 @@
  */
 package org.xmodel.xaction;
 
-import java.util.Collection;
 import java.util.List;
-import org.xmodel.*;
+import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.Reference;
+import org.xmodel.Xlate;
 import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.diff.XmlDiffer;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
