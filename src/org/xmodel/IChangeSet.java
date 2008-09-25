@@ -111,4 +111,10 @@ public interface IChangeSet extends Runnable
    * Clear the contents of this IChangeSet.
    */
   public void clearChanges();
+  
+  /**
+   * Returns a change set which will undo the result of applying this change set.
+   * @return Returns a change set which will undo the result of applying this change set.
+   */
+  public IChangeSet createUndoSet();
 }

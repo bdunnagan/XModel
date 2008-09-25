@@ -196,6 +196,20 @@ public class ChangeSet implements IChangeSet, IModelListener
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IChangeSet#createUndoSet()
+   */
+  public IChangeSet createUndoSet()
+  {
+    ChangeSet undoSet = new ChangeSet();
+    if ( records != null)
+    {
+      for( IBoundChangeRecord record: records)
+        undoSet.addRecord( record.createUndoRecord());
+    }
+    return undoSet;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyAdd(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
