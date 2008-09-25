@@ -172,7 +172,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
     try
     {
       StringBuilder sb = new StringBuilder();
-      sb.append( indent); sb.append( "&"); sb.append( super.toString()); sb.append( "\n");
+      sb.append( indent); sb.append( "&"); sb.append( super.toString()); sb.append( " + ");
       sb.append( getCachingPolicy().toString( indent+"  "));
       return sb.toString();
     }

@@ -5,16 +5,13 @@
  */
 package org.xmodel.xaction;
 
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.xmodel.IModelObject;
-import org.xmodel.xml.XmlException;
-import org.xmodel.xml.XmlIO;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 
 
 /**
@@ -22,61 +19,52 @@ import org.xmodel.xpath.expression.IExpression;
  */
 public class ScriptAction extends GuardedAction
 {
-  protected ScriptAction()
+  public ScriptAction()
   {
-  }
-  
-  /**
-   * Create a ScriptAction which will execute the script at the specified URL.
-   * @param loader The class loader.
-   * @param url The URL pointing to the script.
-   */
-  public ScriptAction( ClassLoader loader, URL url) throws XmlException
-  {
-    this( loader, (new XmlIO()).read( url));
+    ignore = new HashSet<String>();
   }
   
   /**
    * Create a ScriptAction which will execute the children of the specified element.
    * @param loader The class loader.
-   * @param element The parent element.
+   * @param element The root of the script.
    */
   public ScriptAction( ClassLoader loader, IModelObject element)
   {
-    if ( element == null) return;
-    
-    XActionDocument document = new XActionDocument( loader);
-    document.setRoot( element);
-    
-    actions = document.getActions( actionExpr.query( document.getRoot(), null));
-    configure( document);
+    this( loader, element, new String[ 0]);
+  }
+
+  /**
+   * Create a ScriptAction which will execute the children of the specified element except those in the ignore array.
+   * @param loader The class loader.
+   * @param root The root of the script.
+   * @param ignore The element names to ignore.
+   */
+  public ScriptAction( ClassLoader loader, IModelObject root, String... ignore)
+  {
+    if ( root != null)
+    {
+      XActionDocument document = new XActionDocument( loader);
+      document.setRoot( root);
+      
+      this.ignore = new HashSet<String>();
+      ignore( defaultIgnore);
+      ignore( ignore);
+
+      configure( document);
+    }
   }
   
   /**
-   * Create a script which will execute the specified elements. All of the elements
-   * must have the same parent node, which will be used as the root of the action
-   * document. The list must contain at least one element.
-   * @param loader The class loader.
-   * @parma document The document.
-   * @param elements The elements to be executed.
+   * Ignore elements with the specified names when creating actions.
+   * @param ignore The list of names to ignore.
    */
-  public ScriptAction( XActionDocument document, List<IModelObject> elements)
+  public void ignore( String... ignore)
   {
-    if ( elements.size() == 0) return;
-    
-    actions = new ArrayList<IXAction>( elements.size());
-    for( IModelObject element: elements)
-    {
-      if ( element.isType( "condition") || element.isType( "when") || element.isType( "package")) continue;
-      IXAction action = document.getAction( element);
-      if ( action != null)
-      {
-        action.configure( document.getDocument( element));
-        actions.add( action);
-      }
-    }
+    for( int i=0; i<ignore.length; i++) 
+      this.ignore.add( ignore[ i]);
   }
-
+  
   /**
    * Returns the actions in the script.
    * @return Returns the actions in the script.
@@ -94,7 +82,16 @@ public class ScriptAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    if ( actions == null) actions = document.getActions( actionExpr.query( document.getRoot(), null));
+    
+    actions = new ArrayList<IXAction>();
+    for( IModelObject element: document.getRoot().getChildren())
+    {
+      if ( !ignore.contains( element.getType()))
+      {
+        IXAction action = document.getAction( element);
+        if ( action != null) actions.add( action);
+      }
+    }
   }
 
   /* (non-Javadoc)
@@ -108,8 +105,14 @@ public class ScriptAction extends GuardedAction
         action.run( context);
   }
 
-  private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), '^condition|when|package|factory|matcher$'))]");
+  private final static String[] defaultIgnore = {
+    "condition",
+    "factory",
+    "matcher",
+    "package",
+    "when",
+  };
   
+  private Set<String> ignore;
   private List<IXAction> actions;
 }

@@ -25,8 +25,8 @@ public class IfAction extends XAction
     
     IModelObject root = document.getRoot();
     whenExpr = document.getExpression( root.getAttributeNode( "when"));
-    thenScript = document.createScript( thenPath);
-    elseScript = document.createScript( elsePath);
+    thenScript = document.createChildScript( "then");
+    elseScript = document.createChildScript( "else");
   }
 
   /* (non-Javadoc)
@@ -37,9 +37,6 @@ public class IfAction extends XAction
     if ( whenExpr.evaluateBoolean( context)) thenScript.run( context); else elseScript.run( context);
   }
 
-  private final static IExpression thenPath = XPath.createExpression( "then/*");
-  private final static IExpression elsePath = XPath.createExpression( "else/*");
-  
   private IExpression whenExpr;
   private ScriptAction thenScript;
   private ScriptAction elseScript;

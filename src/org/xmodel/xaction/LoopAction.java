@@ -5,7 +5,6 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -23,7 +22,7 @@ public class LoopAction extends GuardedAction
     super.configure( document);
     whileExpr = document.getExpression( "while", true);
     countExpr = document.getExpression( "count", true);
-    script = document.createScript( actionExpr);;
+    script = document.createScript( document.getRoot(), "while");
   }
 
   /* (non-Javadoc)
@@ -51,9 +50,6 @@ public class LoopAction extends GuardedAction
     }
   }
   
-  private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), '^while|when|condition$'))]");
-
   private IExpression whileExpr;
   private IExpression countExpr;
   private ScriptAction script;

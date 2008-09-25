@@ -27,8 +27,7 @@ public class TryAction extends GuardedAction
     super.configure( document);
     
     // try script
-    List<IModelObject> tryActions = tryActionExpr.query( document.getRoot(), null);
-    tryScript = new ScriptAction( document, tryActions);
+    tryScript = document.createScript( document.getRoot(), "catch");
     
     // catch blocks
     List<IModelObject> catchElements = catchActionExpr.query( document.getRoot(), null);
@@ -104,9 +103,6 @@ public class TryAction extends GuardedAction
     Class<Throwable> thrownClass;
     ScriptAction script;
   }
-  
-  private final static IExpression tryActionExpr = XPath.createExpression(
-    "*[ name() != 'catch']");
   
   private final static IExpression catchActionExpr = XPath.createExpression(
     "*[ name() = 'catch']");

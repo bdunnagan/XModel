@@ -6,7 +6,6 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -27,7 +26,7 @@ public class ContextAction extends XAction
     super.configure( document);
 
     sourceExpr = document.getExpression( "source", false);
-    script = document.createScript( actionExpr);;
+    script = document.createScript( document.getRoot(), "source");
   }
 
   /* (non-Javadoc)
@@ -56,9 +55,6 @@ public class ContextAction extends XAction
     }
   }
 
-  private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), '^when|condition|source$'))]");
-  
   private IExpression sourceExpr;
   private ScriptAction script;
 }

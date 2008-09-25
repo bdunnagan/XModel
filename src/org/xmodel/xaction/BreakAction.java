@@ -13,7 +13,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
-import org.xmodel.*;
+import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObjectFactory;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
@@ -73,7 +76,7 @@ public class BreakAction extends GuardedAction
     history = new ArrayList<String>( 1);
     reader = new BufferedReader( new InputStreamReader( System.in));
     
-    script = document.createScript( actionExpr);;
+    script = document.createScript( document.getRoot(), "skip", "lines", "watch");
     
     watches = new ArrayList<IExpression>();
     for( IModelObject watchSpec: document.getRoot().getChildren( "watch")) 
@@ -642,9 +645,6 @@ public class BreakAction extends GuardedAction
       return clone;
     }
   };
-  
-  private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), 'when|condition|skip|lines|watch'))]");
   
   private static char[] separator;
   private static String prefix = "    ";

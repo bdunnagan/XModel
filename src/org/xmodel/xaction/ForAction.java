@@ -8,7 +8,6 @@ package org.xmodel.xaction;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -35,7 +34,7 @@ public class ForAction extends GuardedAction
     IModelObject root = document.getRoot();
     variable = Xlate.get( root, "assign", (String)null);    
     sourceExpr = document.getExpression( "source", true);
-    script = document.createScript( actionExpr);;
+    script = document.createScript( root, "source");
   }
 
   /* (non-Javadoc)
@@ -67,9 +66,6 @@ public class ForAction extends GuardedAction
       script.run( context);
     }
   }
-
-  private final static IExpression actionExpr = XPath.createExpression(
-    "*[ not( matches( name(), '^source|when|condition$'))]");
 
   private String variable;
   private IExpression sourceExpr;

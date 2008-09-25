@@ -57,7 +57,7 @@ public class CreateAction extends GuardedAction
     factory = getFactory( root);
 
     // create the script
-    script = document.createScript( actionExpr);
+    script = document.createScript( root, "parent", "name", "template", "attribute", "schema");
     
     // if annotated then preprocess template
     annotated = Xlate.get( root.getFirstChild( "template"), "annotated", false);
@@ -253,9 +253,6 @@ public class CreateAction extends GuardedAction
   
   private final static Pattern expressionPattern = Pattern.compile(
     "[{]([^}]+)[}]");
-  
-  private final static IExpression actionExpr = XPath.createExpression( 
-    "*[ not( matches( name(), '^parent|name|template|attribute|when|condition|schema$'))]");
   
   private IModelObjectFactory factory;
   private String variable;

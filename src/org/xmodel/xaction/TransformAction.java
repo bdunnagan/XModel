@@ -8,9 +8,7 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
 
@@ -31,8 +29,8 @@ public class TransformAction extends GuardedAction
   {
     super.configure( document);
 
-    fromLeftScript = document.createScript( fromLeftActionExpr);
-    fromRightScript = document.createScript( fromRightActionExpr);
+    fromLeftScript = document.createChildScript( "fromLeft");
+    fromRightScript = document.createChildScript( "fromRight");
 
     List<IModelObject> preNodes = new ArrayList<IModelObject>();
     List<IModelObject> postNodes = new ArrayList<IModelObject>();
@@ -52,8 +50,19 @@ public class TransformAction extends GuardedAction
       if ( pre) preNodes.add( child); else postNodes.add( child);
     }
     
-    preScript = document.createScript( preNodes);
-    postScript = document.createScript( postNodes);
+    preActions = new ArrayList<IXAction>();
+    for( IModelObject node: preNodes)
+    {
+      IXAction action = document.getAction( node);
+      if ( action != null) preActions.add( action);
+    }
+    
+    postActions = new ArrayList<IXAction>();
+    for( IModelObject node: postNodes)
+    {
+      IXAction action = document.getAction( node);
+      if ( action != null) postActions.add( action);
+    }
   }
 
   /* (non-Javadoc)
@@ -71,7 +80,8 @@ public class TransformAction extends GuardedAction
     }
 
     // run pre-script
-    preScript.run( context);
+    for( IXAction action: preActions)
+      action.run( context);
 
     // transform
     String direction = value.toString();
@@ -90,17 +100,12 @@ public class TransformAction extends GuardedAction
     }
 
     // run post script
-    postScript.run( context);
+    for( IXAction action: postActions)
+      action.run( context);
   }
-  
-  private final static IExpression fromLeftActionExpr = XPath.createExpression(
-    "fromLeft/*");
-  
-  private final static IExpression fromRightActionExpr = XPath.createExpression(
-    "fromRight/*");
   
   private ScriptAction fromLeftScript;
   private ScriptAction fromRightScript;
-  private ScriptAction preScript;
-  private ScriptAction postScript;
+  private List<IXAction> preActions;
+  private List<IXAction> postActions;
 }

@@ -18,8 +18,6 @@ import org.xmodel.IDispatcher;
  * A class which can dispatch runnables at high frequency insuring that the runnable will run only once
  * within a certain predesignated time window. One use of this mechanism is for detecting changes made
  * to a large subtree.
- * <p>
- * Only 64 different runnables can be dispatched using the same instance of aggregator.
  */
 public class Aggregator
 {
@@ -29,8 +27,8 @@ public class Aggregator
    */
   public Aggregator( long window)
   {
-    winms = (int)(window / 1000000);
-    winns = (int)(window % 1000000);
+    winms = (int)(window % 1000000);
+    winns = (int)(window / 1000000);
     entries = new ArrayList<Entry>();
   }
 
@@ -68,7 +66,9 @@ public class Aggregator
    */
   public void start()
   {
-    Thread thread = new Thread( dispatcher, "Aggregator");
+    exit = false;
+    thread = new Thread( dispatcher, "Aggregator");
+    thread.setDaemon( true);
     thread.start();
   }
   
@@ -77,8 +77,11 @@ public class Aggregator
    */
   public void stop()
   {
-    exit = true;
-    thread.interrupt();
+    if ( thread != null)
+    {
+      exit = true;
+      thread.interrupt();
+    }
   }
   
   /**

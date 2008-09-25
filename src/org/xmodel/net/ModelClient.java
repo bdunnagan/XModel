@@ -212,6 +212,26 @@ public class ModelClient extends RobustSession
   }
   
   /**
+   * Send an xaction debug go request.
+   */
+  public void sendGo()
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "go");
+    send( message);
+  }
+  
+  /**
+   * Send an xaction debug step request.
+   */
+  public void sendStep()
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "step");
+    send( message);
+  }
+
+  /**
    * Parse a message result and return the result with reference substitutions.
    * @param result The result elements.
    * @return Returns the parsed result.
@@ -461,7 +481,7 @@ public class ModelClient extends RobustSession
   /**
    * Send a message to the server and wait for the response.
    * @param message The message.
-   * @param timeout The timeout.
+   * @param timeout The timeout (0 means forever).
    * @return Returns the response.
    */
   protected IModelObject sendAndWait( IModelObject message, int timeout) throws TimeoutException
@@ -476,9 +496,15 @@ public class ModelClient extends RobustSession
     // block on semaphore
     try 
     { 
-      timeout = 10000;
-      if ( !block.tryAcquire( timeout, TimeUnit.MILLISECONDS))
-        throw new TimeoutException( "Timeout waiting for response to: "+message);
+      if ( timeout > 0)
+      {
+        if ( !block.tryAcquire( timeout, TimeUnit.MILLISECONDS))
+          throw new TimeoutException( "Timeout waiting for response to: "+message);
+      }
+      else
+      {
+        block.acquire();
+      }
     } 
     catch( InterruptedException e) 
     { 
@@ -525,6 +551,10 @@ public class ModelClient extends RobustSession
     else if ( message.isType( "dirty"))
     {
       handleDirty( message);
+    }
+    else if ( message.isType( "status"))
+    {
+      handleStatus( message);
     }
     else if ( message.isType( "ready"))
     {
@@ -625,6 +655,18 @@ public class ModelClient extends RobustSession
       // all remote external references are references locally
       if ( dirty) ((IExternalReference)object).clearCache();
     }
+  }
+  
+  /**
+   * Handle an asynchronous status message.
+   * @param message The message.
+   */
+  protected void handleStatus( IModelObject message)
+  {
+    List<IModelObject> roots = model.getRoots( "xaction-debug");
+    IModelObject root = (roots == null || roots.size() == 0)? new ModelObject( "xaction-debug"): roots.get( 0);
+    root.removeChildren();
+    root.addChild( message);
   }
   
   /**
@@ -744,7 +786,7 @@ public class ModelClient extends RobustSession
   
   private final IExpression errorsExpr = XPath.createExpression(
     "collection( 'errors')");
-
+  
   private IModel model;
   private Thread messageLoopThread;
   private NetIDCachingPolicy cachingPolicy;

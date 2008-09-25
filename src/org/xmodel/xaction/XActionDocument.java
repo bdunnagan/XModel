@@ -347,54 +347,52 @@ public class XActionDocument
     
     return expression;
   }
-    
+   
   /**
-   * Create a script from the first child of the specified type.
-   * @param childType The child element type.
-   * @return Returns the new script.
+   * Create a script from the children of the root of this document ignoring the specified element names.
+   * @param ignore The names of children to be ignored.
+   * @return Returns the script.
    */
-  public ScriptAction createScript( String childType)
+  public ScriptAction createScript( String... ignore)
   {
-    IModelObject child = root.getFirstChild( childType);
-    if ( child == null) return new ScriptAction();
-    return createScript( child);
-  }
-
-  /**
-   * Create a script from the elements returned by the specified expression.
-   * @param expression An expression evaluated relative to the root of the document.
-   * @return Returns null or the new script.
-   */
-  public ScriptAction createScript( IExpression expression)
-  {
-    if ( root == null) return null;
-    List<IModelObject> elements = expression.query( root, null);
-    return createScript( elements);
+    ScriptAction script = new ScriptAction();
+    script.ignore( ignore);
+    script.configure( this);
+    return script;
   }
   
   /**
-   * Create a script from the specified element.
-   * @param element The root of the script.
+   * Create a script from the first child of the specified type.
+   * @param childType The child element type.
+   * @param ignore Element names which will not become actions.
    * @return Returns the new script.
    */
-  public ScriptAction createScript( IModelObject element)
+  public ScriptAction createChildScript( String childType, String... ignore)
   {
-    if ( element == null) return null;
+    IModelObject child = root.getFirstChild( childType);
+    if ( child == null) return new ScriptAction();
+    
     ScriptAction script = new ScriptAction();
-    script.configure( getDocument( element));
+    script.ignore( ignore);
+    script.configure( getDocument( child));
     return script;
   }
 
   /**
-   * Create a script from the specified elements representing individual XActions.
-   * @param elements The elements representing the XActions of the script.
+   * Create a script from the specified element.
+   * @param root The root of the script.
+   * @param ignore Element names which will not become actions.
    * @return Returns the new script.
    */
-  public ScriptAction createScript( List<IModelObject> elements)
+  public ScriptAction createScript( IModelObject root, String... ignore)
   {
-    return new ScriptAction( this, elements);
+    if ( root == null) return null;
+    ScriptAction script = new ScriptAction();
+    script.ignore( ignore);
+    script.configure( getDocument( root));
+    return script;
   }
-  
+
   /**
    * Returns the action defined on the specified view-model object or null.  If the object argument
    * is null then null is returned.
@@ -484,6 +482,7 @@ public class XActionDocument
     {
       // create new action document
       XActionDocument document = getDocument( object);
+      object.setAttribute( "xaction", "true");
       
       // load class
       Class clss = loader.loadClass( className);
@@ -621,7 +620,7 @@ public class XActionDocument
     IModelObject object = path.queryFirst( getRoot());
     return (object != null)? getDocument( object): null;
   }
-
+  
   /**
    * Returns a clone of this document on the specified child object.
    * @param childType The type of child.

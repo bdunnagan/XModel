@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Set;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
@@ -28,6 +30,8 @@ import org.xmodel.net.robust.ServerHandler;
 import org.xmodel.net.robust.ServerSession;
 import org.xmodel.util.Fifo;
 import org.xmodel.util.Radix;
+import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.XAction;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -343,6 +347,38 @@ public class ModelServer extends Server
   }
   
   /**
+   * Send a debug status message to the client.
+   * @param context The stopped action context.
+   * @param action The stopped action.
+   */
+  public void sendDebugStatus( IContext context, IXAction action)
+  {
+    ModelObject message = new ModelObject( "status");
+    IModelObject child = message.getCreateChild( "context");
+    child.getCreateChild( "object").addChild( context.getObject().cloneTree());
+    
+    // create variable summary
+    String summary = context.getScope().toString();
+    child.getCreateChild( "variables").setValue( summary);
+    
+    // get root script
+    IModelObject locus = action.getDocument().getRoot();
+    IModelObject root = locus;
+    while( root != null && root.getAttribute( "xaction") != null)
+      root = root.getParent();
+    message.getCreateChild( "script").addChild( root.cloneTree());
+    
+    // get locus
+    IPath path = ModelAlgorithms.createRelativePath( root, locus);
+    message.getCreateChild( "path").setValue( path.toString());
+    message.getCreateChild( "locus").addChild( locus.cloneTree());
+    
+    // send status to the first session only (hack)
+    List<IServerSession> sessions = getSessions();
+    if ( sessions.size() > 0) send( sessions.get( 0), message);
+  }
+  
+  /**
    * Send a message to the server.
    * @param session The session.
    * @param message The message.
@@ -652,6 +688,33 @@ public class ModelServer extends Server
   }
   
   /**
+   * Handle an xaction debug request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleDebug( ISession session, IModelObject message)
+  {
+    String action = Xlate.get( message, "action", "go");
+    if ( action.equals( "go"))
+    {
+      XAction.shouldBreak = false;
+      releaseBreakLock();
+    }
+    else if ( action.equals( "step"))
+    {
+      if ( XAction.shouldBreak)
+      {
+        releaseBreakLock();
+      }
+      else
+      {
+        XAction.breakServer = this;
+        XAction.shouldBreak = true;
+      }
+    }
+  }
+  
+  /**
    * Iterate the elements in the specified query roots breadth-first and begin making stubs
    * out of elements after the limit of elements is reached.
    * @param session The session.
@@ -791,6 +854,15 @@ public class ModelServer extends Server
   }
   
   /**
+   * Release the XAction breakpoint lock.
+   */
+  private void releaseBreakLock()
+  {
+    XAction.breakLocked = false;
+    XAction.breakLock.release();
+  }
+  
+  /**
    * The session listener.
    */
   private final ISession.Listener listener = new ISession.Listener() {
@@ -837,13 +909,35 @@ public class ModelServer extends Server
         while( !state.exit)
         {
           IModelObject message = state.decompressor.decompress( stream);
-//System.out.println( "____________________________________");
-//System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());          
-          MessageRunnable runnable = new MessageRunnable();
-          runnable.session = session;
-          runnable.message = message;
-          model.dispatch( runnable);
+System.out.println( "____________________________________");
+System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());   
+          
+          // handle xaction debug messages
+          if ( message.isType( "debug"))
+          {
+            System.out.println( "    Handle debug locally...");
+            handleDebug( session, message);
+          }
+          else if ( XAction.breakLocked)
+          {
+            System.out.println( "    Handle other locally...");
+            // gui is waiting in xaction breakpoint, dispatch in this thread
+            handle( session, message);
+          }
+          else
+          {
+            System.out.println( "    Dispatch other...");
+            // gui is running, dispatch to gui thread
+            MessageRunnable runnable = new MessageRunnable();
+            runnable.session = session;
+            runnable.message = message;
+            model.dispatch( runnable);
+          }
         }
+
+        // cleanup xaction debugging
+        releaseBreakLock();
+        
         System.out.println( "Session closed: "+session.getSessionNumber());
       }
       catch( CompressorException e)
@@ -916,8 +1010,8 @@ public class ModelServer extends Server
     Set<IModelObject> listenees;
   }
   
-  private final static int maxQueryCount = 10000;
-  private final static int maxInsertCount = 10000;
+  private final static int maxQueryCount = 3000;
+  private final static int maxInsertCount = 3000;
   
   private IModel model;
   private IContext context;

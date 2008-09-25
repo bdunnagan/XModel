@@ -68,7 +68,7 @@ public class NullObject implements IModelObject
    */
   public IModelObject cloneObject()
   {
-    return new NullObject();
+    return new ModelObject( getType());
   }
 
   /* (non-Javadoc)

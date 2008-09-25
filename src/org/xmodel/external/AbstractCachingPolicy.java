@@ -545,8 +545,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
       traversed = true;
 
       // add class name
-      sb.append( indent); sb.append( getClass().getSimpleName()); sb.append( "\n");
-      sb.append( indent); sb.append( "{\n");
+      sb.append( indent); sb.append( getClass().getSimpleName());
+      if ( (dynamicStages != null && dynamicStages.size() > 0) || (staticStages != null && staticStages.size() > 0))
+        sb.append( "\n"); sb.append( indent); sb.append( "{\n");
   
       String nextIndent = indent + "  ";
       
@@ -582,7 +583,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
           sb.append( "\n");
         }
       
-      sb.append( indent); sb.append( "}\n");
+      if ( (dynamicStages != null && dynamicStages.size() > 0) || (staticStages != null && staticStages.size() > 0))
+        sb.append( indent); sb.append( "}\n");
+        
       return sb.toString();
     }
     finally
