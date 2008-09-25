@@ -38,10 +38,14 @@ public class CopyAction extends GuardedAction
     differ.setFactory( new ModelObjectFactory());
         
     // get expressions
-    sourceExpr = document.getExpression( "source", false);
-    targetExpr = document.getExpression( "target", false);
-    ignoreExpr = document.getExpression( "ignore", false);
-    orderedExpr = document.getExpression( "ordered", false);
+    sourceExpr = document.getExpression( "source", true);
+    targetExpr = document.getExpression( "target", true);
+    ignoreExpr = document.getExpression( "ignore", true);
+    orderedExpr = document.getExpression( "ordered", true);
+    
+    // get alternate source and target location
+    if ( sourceExpr == null) sourceExpr = document.getExpression();
+    if ( targetExpr == null) targetExpr = document.getExpression();
     
     // get operation (with backward compatability)
     String opName = Xlate.get( document.getRoot(), "op", "copy");
@@ -94,6 +98,7 @@ public class CopyAction extends GuardedAction
       // diff
       changeSet.clearChanges();
       differ.diff( target, source, changeSet);
+      System.out.println( changeSet);
       changeSet.applyChanges();
     }
   }
