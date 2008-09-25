@@ -88,9 +88,9 @@ public class Aggregator
    * Dispatch the runnable with the specified index.
    * @param index The index of the runnable.
    */
-  public void dispatch( int index)
+  public synchronized void dispatch( int index)
   {
-    entries.get( index).dispatch = true;
+    entries.get( index).dispatch1 = true;
   }
   
   private final Runnable dispatcher = new Runnable() {
@@ -98,12 +98,24 @@ public class Aggregator
     {
       while( !exit)
       {
+        synchronized( this)
+        {
+          for( Entry entry: entries)
+          {
+            if ( entry.dispatch1) 
+            {
+              entry.dispatch1 = false;
+              entry.dispatch2 = true;
+            }
+          }          
+        }
+        
         for( Entry entry: entries)
         {
           if ( exit) break;
-          if ( entry.dispatch)
+          if ( entry.dispatch2)
           {
-            entry.dispatch = false;
+            entry.dispatch2 = false;
             entry.dispatcher.execute( entry.runnable);
           }
         }
@@ -117,7 +129,8 @@ public class Aggregator
   {
     Runnable runnable;
     IDispatcher dispatcher;
-    boolean dispatch;
+    boolean dispatch1;
+    boolean dispatch2;
   }
 
   private boolean exit;
