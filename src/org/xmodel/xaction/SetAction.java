@@ -25,8 +25,13 @@ public class SetAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    sourceExpr = document.getExpression( "source", false);
-    targetExpr = document.getExpression( "target", false);
+    sourceExpr = document.getExpression( "source", true);
+    targetExpr = document.getExpression( "target", true);
+    
+    // alternate source or target location
+    if ( sourceExpr == null) sourceExpr = document.getExpression();
+    if ( targetExpr == null) targetExpr = document.getExpression();
+    
     factory = getFactory( document.getRoot());
   }
 

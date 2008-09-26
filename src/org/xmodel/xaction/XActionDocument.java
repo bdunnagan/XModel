@@ -370,7 +370,7 @@ public class XActionDocument
   public ScriptAction createChildScript( String childType, String... ignore)
   {
     IModelObject child = root.getFirstChild( childType);
-    if ( child == null) return new ScriptAction();
+    if ( child == null) return null;
     
     ScriptAction script = new ScriptAction();
     script.ignore( ignore);

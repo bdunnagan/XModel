@@ -6,7 +6,6 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 

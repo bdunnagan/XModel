@@ -87,11 +87,11 @@ public class TransformAction extends GuardedAction
     String direction = value.toString();
     if ( direction.equals( "fromLeft"))
     {
-      fromLeftScript.run( context);
+      if ( fromLeftScript != null) fromLeftScript.run( context);
     }
     else if ( direction.equals( "fromRight"))
     {
-      fromRightScript.run( context);
+      if ( fromRightScript != null) fromRightScript.run( context);
     }
     else
     {

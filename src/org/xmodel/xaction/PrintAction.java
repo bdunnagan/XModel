@@ -7,10 +7,12 @@ package org.xmodel.xaction;
 
 import java.util.List;
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 
 /**
@@ -25,6 +27,7 @@ public class PrintAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
+    variable = Xlate.get( document.getRoot(), "assign", (String)null);
     sourceExpr = document.getExpression( document.getRoot());
   }
 
@@ -35,26 +38,41 @@ public class PrintAction extends GuardedAction
   {
     XmlIO xmlIO = new XmlIO();
     xmlIO.setOutputStyle( Style.printable);
+    StringBuilder sb = new StringBuilder();
     switch( sourceExpr.getType( context))
     {
       case NODES:
         List<IModelObject> sources = sourceExpr.query( context, null);
-        for( IModelObject source: sources) System.out.println( xmlIO.write( source));
+        for( IModelObject source: sources) 
+        {
+          sb.append( xmlIO.write( source));
+          sb.append( "\n");
+        }
         break;
       
       case STRING:
-        System.out.println( sourceExpr.evaluateString( context));
+        sb.append( sourceExpr.evaluateString( context));
         break;
       
       case BOOLEAN:
-        System.out.println( sourceExpr.evaluateBoolean( context));
+        sb.append( sourceExpr.evaluateBoolean( context));
         break;
       
       case NUMBER:
-        System.out.println( sourceExpr.evaluateNumber( context));
+        sb.append( sourceExpr.evaluateNumber( context));
         break;
+    }
+    
+    if ( variable != null && context instanceof StatefulContext)
+    {
+      ((StatefulContext)context).set( variable, sb.toString());
+    }
+    else
+    {
+      System.out.println( sb.toString());
     }
   }
 
+  private String variable;
   private IExpression sourceExpr;
 }
