@@ -28,6 +28,7 @@ public class PrintAction extends GuardedAction
   {
     super.configure( document);
     variable = Xlate.get( document.getRoot(), "assign", (String)null);
+    style = Xlate.get( document.getRoot(), "style", "wellformed");
     sourceExpr = document.getExpression( document.getRoot());
   }
 
@@ -37,7 +38,7 @@ public class PrintAction extends GuardedAction
   protected void doAction( IContext context)
   {
     XmlIO xmlIO = new XmlIO();
-    xmlIO.setOutputStyle( Style.printable);
+    xmlIO.setOutputStyle( Style.valueOf( style));
     StringBuilder sb = new StringBuilder();
     switch( sourceExpr.getType( context))
     {
@@ -74,5 +75,6 @@ public class PrintAction extends GuardedAction
   }
 
   private String variable;
+  private String style;
   private IExpression sourceExpr;
 }

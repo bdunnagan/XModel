@@ -20,7 +20,7 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.SubContext;
+import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xsd.Schema;
 
@@ -132,7 +132,7 @@ public class CreateAction extends GuardedAction
     int count = elements.size();
     for( int i=0; i<count; i++)
     {
-      SubContext actionContext = new SubContext( context, elements.get( i), i+1, count);
+      StatefulContext actionContext = new StatefulContext( context, elements.get( i), i+1, count);
       script.run( actionContext);
     }
     

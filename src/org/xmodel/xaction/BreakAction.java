@@ -43,7 +43,7 @@ public class BreakAction extends GuardedAction
     
     xmlIO = new XmlIO();
     xmlIO.skipOutputPrefix( "break");
-    xmlIO.setOutputStyle( Style.debug);
+    xmlIO.setOutputStyle( Style.printable);
     
     if ( separator == null)
     {

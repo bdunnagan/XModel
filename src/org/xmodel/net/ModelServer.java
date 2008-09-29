@@ -35,6 +35,7 @@ import org.xmodel.xaction.XAction;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.variable.IVariableScope;
 
 
 /**
@@ -351,6 +352,7 @@ public class ModelServer extends Server
    * @param context The stopped action context.
    * @param action The stopped action.
    */
+  @SuppressWarnings("unchecked")
   public void sendDebugStatus( IContext context, IXAction action)
   {
     ModelObject message = new ModelObject( "status");
@@ -358,20 +360,43 @@ public class ModelServer extends Server
     child.getCreateChild( "object").addChild( context.getObject().cloneTree());
     
     // create variable summary
-    String summary = context.getScope().toString();
-    child.getCreateChild( "variables").setValue( summary);
+    IVariableScope scope = context.getScope();
+    IModelObject variables = child.getCreateChild( "variables");
+    for( String name: scope.getAll())
+    {
+      IModelObject variable = new ModelObject( "variable", name);
+      Object value = scope.get( name);
+      if ( value instanceof List)
+      {
+        for( IModelObject node: (List<IModelObject>)value)
+          variable.addChild( node.cloneTree());
+      }
+      else
+      {
+        variable.setValue( (value != null)? value.toString(): "");
+      }
+      variables.addChild( variable);
+    }
     
     // get root script
     IModelObject locus = action.getDocument().getRoot();
     IModelObject root = locus;
     while( root != null && root.getAttribute( "xaction") != null)
       root = root.getParent();
-    message.getCreateChild( "script").addChild( root.cloneTree());
+    IModelObject rootClone = root.cloneTree();
+    message.getCreateChild( "script").addChild( rootClone);
     
     // get locus
     IPath path = ModelAlgorithms.createRelativePath( root, locus);
-    message.getCreateChild( "path").setValue( path.toString());
-    message.getCreateChild( "locus").addChild( locus.cloneTree());
+    IModelObject locusClone = path.queryFirst( rootClone); 
+    IModelObject locusParent = locusClone.getParent();
+    if ( locusParent != null)
+    {
+      int index = locusParent.getChildren().indexOf( locusClone);
+      IModelObject breakpoint = new ModelObject( "BREAKPOINT");
+      breakpoint.addChild( locusClone);
+      locusParent.addChild( breakpoint, index);
+    }
     
     // send status to the first session only (hack)
     List<IServerSession> sessions = getSessions();
@@ -698,13 +723,15 @@ public class ModelServer extends Server
     if ( action.equals( "go"))
     {
       XAction.shouldBreak = false;
-      releaseBreakLock();
+      XAction.breakLocked = false;
+      XAction.breakLock.release();
     }
     else if ( action.equals( "step"))
     {
       if ( XAction.shouldBreak)
       {
-        releaseBreakLock();
+        XAction.breakLocked = false;
+        XAction.breakLock.release();
       }
       else
       {
@@ -747,37 +774,58 @@ public class ModelServer extends Server
     
     // set of objects to be bound with a listener
     List<IModelObject> bound = new ArrayList<IModelObject>();
-    
-    // perform breadth-first search
-    IModelObject clone = root.cloneObject();
-    root.getChildren(); // sync
-    
-    // clone tree stubbing as necessary
-    int count = 0;
-    Fifo<IModelObject> fifo = new Fifo<IModelObject>();
-    fifo.push( root);
-    fifo.push( clone);
-    while( !fifo.empty())
-    {
-      IModelObject source = fifo.pop();
-      IModelObject target = fifo.pop();
-      
-      String netID = getNetID( source);
-      target.setAttribute( "net:id", netID);
 
-      // elements that will get server listeners
-      if ( bind) { bound.add( source); target.setAttribute( "net:bound");}
+    try
+    {
+      // perform breadth-first search
+      IModelObject clone = root.cloneObject();
+      root.getChildren(); // sync
       
-//      // stub all external references except root, which the client wants to sync
-//      if ( source != root && source instanceof IExternalReference)
-      if ( source instanceof IExternalReference)
+      // clone tree stubbing as necessary
+      int count = 0;
+      Fifo<IModelObject> fifo = new Fifo<IModelObject>();
+      fifo.push( root);
+      fifo.push( clone);
+      while( !fifo.empty())
       {
-        target.setAttribute( "net:stub");
-        if ( !source.isDirty())
+        IModelObject source = fifo.pop();
+        IModelObject target = fifo.pop();
+        
+        String netID = getNetID( source);
+        target.setAttribute( "net:id", netID);
+  
+        // elements that will get server listeners
+        if ( bind) { bound.add( source); target.setAttribute( "net:bound");}
+        
+  //      // stub all external references except root, which the client wants to sync
+  //      if ( source != root && source instanceof IExternalReference)
+        if ( source instanceof IExternalReference)
         {
-          target.setAttribute( "net:dirty", false);
-          
-          // clone children and push on stack
+          target.setAttribute( "net:stub");
+          if ( !source.isDirty())
+          {
+            target.setAttribute( "net:dirty", false);
+            
+            // clone children and push on stack
+            for( IModelObject child: source.getChildren())
+            {
+              IModelObject childClone = cloneObject( session, child);
+              target.addChild( childClone);
+              fifo.push( child);
+              fifo.push( childClone);
+            }
+          }
+        }
+        
+        // stub other objects with children after exceeding limit
+        else if ( count++ >= limit && source.getNumberOfChildren() > 0)
+        {
+          target.setAttribute( "net:stub");
+        }
+  
+        // clone children of all others and push on stack
+        else
+        {
           for( IModelObject child: source.getChildren())
           {
             IModelObject childClone = cloneObject( session, child);
@@ -788,33 +836,21 @@ public class ModelServer extends Server
         }
       }
       
-      // stub other objects with children after exceeding limit
-      else if ( count++ >= limit && source.getNumberOfChildren() > 0)
+      // add listeners
+      for( IModelObject object: bound)
       {
-        target.setAttribute( "net:stub");
+        object.addModelListener( state.listener);
+        state.listenees.add( object);
       }
 
-      // clone children of all others and push on stack
-      else
-      {
-        for( IModelObject child: source.getChildren())
-        {
-          IModelObject childClone = cloneObject( session, child);
-          target.addChild( childClone);
-          fifo.push( child);
-          fifo.push( childClone);
-        }
-      }
+      return clone;
     }
-    
-    // add listeners
-    for( IModelObject object: bound)
+    catch( Exception e)
     {
-      object.addModelListener( state.listener);
-      state.listenees.add( object);
+      IModelObject object = new ModelObject( "null");
+      object.setValue( e.toString());
+      return object;
     }
-    
-    return clone;
   }
   
   /**
@@ -854,15 +890,6 @@ public class ModelServer extends Server
   }
   
   /**
-   * Release the XAction breakpoint lock.
-   */
-  private void releaseBreakLock()
-  {
-    XAction.breakLocked = false;
-    XAction.breakLock.release();
-  }
-  
-  /**
    * The session listener.
    */
   private final ISession.Listener listener = new ISession.Listener() {
@@ -885,6 +912,11 @@ public class ModelServer extends Server
     public void notifyDisconnect( ISession session)
     {
       System.out.println( "Session disconnected: "+session.getShortSessionID());
+      
+      // cleanup xaction debugging
+      XAction.shouldBreak = false;
+      XAction.breakLocked = false;
+      XAction.breakLock.release();
     }
   };
 
@@ -909,8 +941,8 @@ public class ModelServer extends Server
         while( !state.exit)
         {
           IModelObject message = state.decompressor.decompress( stream);
-System.out.println( "____________________________________");
-System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());   
+//System.out.println( "____________________________________");
+//System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());   
           
           // handle xaction debug messages
           if ( message.isType( "debug"))
@@ -918,15 +950,8 @@ System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());
             System.out.println( "    Handle debug locally...");
             handleDebug( session, message);
           }
-          else if ( XAction.breakLocked)
-          {
-            System.out.println( "    Handle other locally...");
-            // gui is waiting in xaction breakpoint, dispatch in this thread
-            handle( session, message);
-          }
           else
           {
-            System.out.println( "    Dispatch other...");
             // gui is running, dispatch to gui thread
             MessageRunnable runnable = new MessageRunnable();
             runnable.session = session;
@@ -935,9 +960,6 @@ System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());
           }
         }
 
-        // cleanup xaction debugging
-        releaseBreakLock();
-        
         System.out.println( "Session closed: "+session.getSessionNumber());
       }
       catch( CompressorException e)

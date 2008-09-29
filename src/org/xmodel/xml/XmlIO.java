@@ -5,21 +5,32 @@
  */
 package org.xmodel.xml;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xmodel.*;
+import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelObject;
+import org.xmodel.ModelObjectFactory;
+import org.xmodel.Xlate;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.TextNode;
 import org.xmodel.xpath.XPath;
@@ -34,6 +45,7 @@ public class XmlIO implements IXmlIO
     skipInputPrefixList = new ArrayList<String>( 3);
     skipOutputPrefixList = new ArrayList<String>( 3);
     cycleSet = new HashSet<IModelObject>();
+    lines = new ArrayList<IModelObject>();
     
     try
     {
@@ -57,15 +69,13 @@ public class XmlIO implements IXmlIO
   {
     this.factory = factory;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#read(java.lang.String)
    */
   public IModelObject read( String xml) throws XmlException
   {
-    root = null;
-    ByteArrayInputStream stream = new ByteArrayInputStream( xml.getBytes());
-    return read( stream);
+    return read( new StringReader( xml));
   }
 
   /* (non-Javadoc)
@@ -75,13 +85,14 @@ public class XmlIO implements IXmlIO
   {
     try
     {
-      root = null;
-      parser.parse( url.toURI().toString(), contentListener);
+      InputStream stream = url.openStream();
+      read( stream);
+      stream.close();
       return root;
     }
-    catch( Exception e)
+    catch( IOException e)
     {
-      throw new XmlException( "Unable to parse document: "+url, e);
+      throw new XmlException( "Unable to parse document from stream.", e);
     }
   }
 
@@ -100,6 +111,33 @@ public class XmlIO implements IXmlIO
     {
       throw new XmlException( "Unable to parse document from stream.", e);
     }
+  }
+
+  /**
+   * Parse the document with a Reader.
+   * @return Returns the parsed document root.
+   */
+  protected IModelObject read( Reader reader) throws XmlException
+  {
+    try
+    {
+      root = null;
+      InputSource source = new InputSource( reader);
+      parser.parse( source, contentListener);
+      return root;
+    }
+    catch( Exception e)
+    {
+      throw new XmlException( "Unable to parse document from stream.", e);
+    }
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.xml.IXmlIO#getLineInformation()
+   */
+  public List<IModelObject> getLineInformation()
+  {
+    return lines;
   }
 
   /* (non-Javadoc)
@@ -133,6 +171,7 @@ public class XmlIO implements IXmlIO
   {
     try
     {
+      line = 0; lines.clear();
       output( depth, root, stream);
     }
     catch( IOException e)
@@ -148,6 +187,7 @@ public class XmlIO implements IXmlIO
   {
     try
     {
+      line = 0; lines.clear();
       FileOutputStream stream = new FileOutputStream( file);
       output( depth, root, stream);
     }
@@ -166,6 +206,7 @@ public class XmlIO implements IXmlIO
     buffer.reset();
     try
     {
+      line = 0; lines.clear();
       write( depth, root, buffer);
       return buffer.toString(); 
     }
@@ -184,6 +225,10 @@ public class XmlIO implements IXmlIO
    */
   protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
   {
+    // annotate root if requested
+    for ( int i=lines.size(); i < line+1; i++) lines.add( null);
+    lines.set( line, root);
+    
     // check for AttributeNode or TextNode
     if ( root instanceof AttributeNode)
     {
@@ -223,7 +268,7 @@ public class XmlIO implements IXmlIO
       }
       stream.write( qmark);
       stream.write( greater);
-      if ( style != Style.compact) stream.write( cr);
+      if ( style != Style.compact) writeCR( stream);
       return;
     }
     
@@ -246,7 +291,7 @@ public class XmlIO implements IXmlIO
       stream.write( slash);
       stream.write( type.getBytes());
       stream.write( greater);
-      if ( style != Style.compact) stream.write( cr);
+      if ( style != Style.compact) writeCR( stream);
       return;
     }
     
@@ -277,7 +322,7 @@ public class XmlIO implements IXmlIO
         
         // value
         if ( value != null) stream.write( encodeEntityReferences( value, true).getBytes());
-        if ( style != Style.compact) stream.write( cr);
+        if ( style != Style.compact) writeCR( stream);
         
         // children
         for( IModelObject child: children) output( indent+2, child, stream);
@@ -288,7 +333,7 @@ public class XmlIO implements IXmlIO
         stream.write( slash);
         stream.write( type.getBytes());
         stream.write( greater);
-        if ( style != Style.compact) stream.write( cr);
+        if ( style != Style.compact) writeCR( stream);
       }
       else if ( value != null && value.length() > 0)
       {
@@ -309,7 +354,7 @@ public class XmlIO implements IXmlIO
         stream.write( slash);
         stream.write( type.getBytes());
         stream.write( greater);
-        if ( style != Style.compact) stream.write( cr);
+        if ( style != Style.compact) writeCR( stream);
       }
       else
       {
@@ -320,7 +365,7 @@ public class XmlIO implements IXmlIO
         writeAttributes( root, stream);
         stream.write( slash);
         stream.write( greater);
-        if ( style != Style.compact) stream.write( cr);
+        if ( style != Style.compact) writeCR( stream);
       }
     }
     finally
@@ -328,6 +373,17 @@ public class XmlIO implements IXmlIO
       // remove from cycle set if reference
       if ( root.getReferent() != root) cycleSet.remove( root);
     }
+  }
+  
+  /**
+   * Write a carriage return to the output stream and return the line number of the previous line.
+   * @param stream The output stream.
+   * @return Returns the current line number.
+   */
+  protected int writeCR( OutputStream stream) throws IOException
+  {
+    stream.write( cr);
+    return line++;
   }
   
   /**
@@ -441,9 +497,14 @@ public class XmlIO implements IXmlIO
     {
       root = null;
       parent = null;
+      lines.clear();
     }
     public void endDocument() throws SAXException
     {
+    }
+    public void setDocumentLocator( Locator locator)
+    {
+      XmlIO.this.locator = locator;
     }
     public void startElement( String uri, String localName, String qName, Attributes attributes) throws SAXException
     {
@@ -453,8 +514,16 @@ public class XmlIO implements IXmlIO
         String prefix = (index >= 0)? qName.substring( 0, index): "";
         if ( skipInputPrefixList.contains( prefix)) return; 
       }
-
+      
+      // create element
       child = factory.createObject( parent, attributes, qName);  
+      
+      // line tracking
+      int line = locator.getLineNumber()-1;
+      for( int i=lines.size(); i<line+1; i++) lines.add( null);
+      lines.set( line, child);
+      
+      // set id
       String id = attributes.getValue( "id");
       if ( id != null) child.setID( id);
       
@@ -472,6 +541,7 @@ public class XmlIO implements IXmlIO
         child.setAttribute( attrName, attrValue);
       }
 
+      // set document root or add to parent
       if ( parent != null) parent.addChild( child);
       parent = child;
     }
@@ -509,6 +579,13 @@ public class XmlIO implements IXmlIO
       if ( parent != null)
       {
         IModelObject pi = factory.createObject( parent, "?"+target);
+        
+        // line tracking
+        int line = locator.getLineNumber()-1;
+        for( int i=lines.size(); i<line+1; i++) lines.add( null);
+        lines.set( line, pi);
+        
+        // set pi data
         pi.setValue( data);
         parent.addChild( pi);
       }
@@ -538,29 +615,36 @@ public class XmlIO implements IXmlIO
   private List<String> skipOutputPrefixList;
   private Style style;
   private Set<IModelObject> cycleSet;
+  private int line;
+  private List<IModelObject> lines;
+  private Locator locator;
   
   public static void main( String[] args) throws Exception
   {
     String xml = 
-      "<root>" +
-      "  <x id='H938FX9' status='5'/>" +
-      "  <?xx Message('50')?>" +
-      "  <y>" +
-      "    <?xxx?>" +
-      "  </y>" +
-      "  <z><![CDATA[!@#%^&*()~?<>]]></z>" +
-      "</root>";
+      "<root>\n" +
+      "  <x id='H938FX9' status='5'/>\n" +
+      "  <?xx Message('50')?>\n" +
+      "  <y>\n" +
+      "    <?xxx?>\n" +
+      "  </y>\n" +
+      "  <z><![CDATA[!@#%^&*()~?<>]]></z>\n" +
+      "</root>\n";
     
     XmlIO xmlIO = new XmlIO();
     xmlIO.setOutputStyle( Style.printable);
     IModelObject o = xmlIO.read( xml);
+    
+    List<IModelObject> lines = xmlIO.getLineInformation();
+    for( int i=0; i < lines.size(); i++)
+      System.out.printf( "%-4d %s\n", i+1, lines.get( i));
+    
     System.out.println( xmlIO.write( o));
     
     System.out.println( "RESULT");
     IExpression e = XPath.createExpression( "//*");
     for( IModelObject r: e.query( o, null))
       System.out.println( r);
-    
     
     IModelObject r = new ModelObject( "root");
     r.setValue( "<><><>");

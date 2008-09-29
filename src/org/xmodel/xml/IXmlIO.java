@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
@@ -18,7 +19,7 @@ import org.xmodel.IModelObjectFactory;
  */
 public interface IXmlIO
 {
-  public enum Style { compact, printable, debug};
+  public enum Style { compact, printable};
   
   /**
    * Set the factory to use to create objects when parsing XML.
@@ -46,6 +47,15 @@ public interface IXmlIO
    * @return Returns the root of the model.
    */
   public IModelObject read( InputStream stream) throws XmlException;
+
+  /**
+   * Returns a list with one entry per line in the output document. Each entry contains the element whose
+   * textual representation in the output document occurs on the line number corresponding to the entry
+   * index.  Line numbers which do not have start-tags will be null.  Note that the actual line number
+   * is the list index plus one.
+   * @return Returns a list representing the element on each line of the output document.
+   */
+  public List<IModelObject> getLineInformation();
   
   /**
    * Write the subtree with the specified root to a string and return it.

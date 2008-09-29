@@ -722,7 +722,8 @@ public class ModelClient extends RobustSession
         {
           IModelObject message = decompressor.decompress( stream);
 //System.out.println( "____________________________________");
-//System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());          
+//System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());
+          
           if ( messageID != null && message.getID().equals( messageID))
           {
             // synchronous message
