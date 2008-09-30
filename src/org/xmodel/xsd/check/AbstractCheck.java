@@ -82,7 +82,7 @@ public abstract class AbstractCheck implements ICheck
   public String toString()
   {
     XmlIO xmlIO = new XmlIO();
-    xmlIO.setOutputStyle( Style.debug);
+    xmlIO.setOutputStyle( Style.printable);
     if ( errorLocus == null)
     {
       StringBuilder builder = new StringBuilder();
