@@ -288,14 +288,6 @@ public class NullObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#identityPath()
-   */
-  public IPath identityPath()
-  {
-    return ModelAlgorithms.createIdentityPath( this);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_setParent(org.xmodel.IModelObject)
    */
   public IModelObject internal_setParent( IModelObject parent)
@@ -349,14 +341,6 @@ public class NullObject implements IModelObject
   public boolean isType( String type)
   {
     return type == null || type.length() == 0;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#peerPath(org.xmodel.IModelObject)
-   */
-  public IPath peerPath( IModelObject peer)
-  {
-    return ModelAlgorithms.createRelativePath( this, peer);
   }
 
   /* (non-Javadoc)
@@ -461,13 +445,5 @@ public class NullObject implements IModelObject
   public Object setValue( Object value)
   {
     throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#typePath()
-   */
-  public IPath typePath()
-  {
-    return ModelAlgorithms.createTypePath( this);
   }
 }

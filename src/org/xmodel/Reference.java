@@ -377,30 +377,6 @@ public class Reference implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#identityPath()
-   */
-  public IPath identityPath()
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#typePath()
-   */
-  public IPath typePath()
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#peerPath(org.xmodel.IModelObject)
-   */
-  public IPath peerPath( IModelObject peer)
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addModelListener(org.xmodel.IModelListener)
    */
   public void addModelListener( IModelListener listener)

@@ -619,30 +619,6 @@ public class Element implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#identityPath()
-   */
-  public IPath identityPath()
-  {
-    return ModelAlgorithms.createIdentityPath( this);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#typePath()
-   */
-  public IPath typePath()
-  {
-    return ModelAlgorithms.createTypePath( this);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#peerPath(org.xmodel.IModelObject)
-   */
-  public IPath peerPath( IModelObject peer)
-  {
-    return ModelAlgorithms.createRelativePath( this, peer);
-  }
-  
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addListener(org.xmodel.IModelListener)
    */
   public void addModelListener( IModelListener listener)

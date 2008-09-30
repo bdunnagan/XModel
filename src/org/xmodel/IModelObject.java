@@ -346,33 +346,6 @@ public interface IModelObject
   public IModelObject getRoot();
 
   /**
-   * Returns the identity path for this object.  The identity path of an object is a path
-   * which uniquely identifies location in the path leading to the object.  It includes an
-   * IPathElement for each ancestor.
-   * @return Returns the identity path for this object.
-   * @deprecated This functionality is available through the ModelAlgorithms class.
-   */
-  public IPath identityPath();
-  
-  /**
-   * Returns the type path for this object.  The type path of an object is a path
-   * which identifies the type of each object in the path leading to the object.  It
-   * includes an IPathElement for each ancestor.
-   * @return Returns the type path for this object.
-   * @deprecated This functionality is available through the ModelAlgorithms class.
-   */
-  public IPath typePath();
-  
-  /**
-   * Returns a path which will navigate from this object to the given peer object 
-   * or null if such a path does not exist.
-   * @param peer An object that shares a common ancestor with this object.
-   * @return Returns the peer path.
-   * @deprecated This functionality is available through the ModelAlgorithms class.
-   */
-  public IPath peerPath( IModelObject peer);
-  
-  /**
    * Add a model listener to this object at the default priority of 100.
    * @param listener The model listener to be added.
    */

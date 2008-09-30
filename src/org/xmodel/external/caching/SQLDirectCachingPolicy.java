@@ -6,12 +6,14 @@
 package org.xmodel.external.caching;
 
 import java.sql.Blob;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
@@ -46,7 +48,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   public SQLDirectCachingPolicy( ICache cache)
   {
     super( cache);
-    setStaticAttributes( new String[] { "id", "meta:*"});
   }
   
   /* (non-Javadoc)
@@ -58,8 +59,28 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     factory = new ModelObjectFactory();
     
     // get parameters
-    key = Xlate.childGet( annotation, "key", (String)null);
-    child = Xlate.childGet( annotation, "child", (String)null);
+    otherKeys = new ArrayList<String>( 1);
+    for( IModelObject keyDecl: annotation.getChildren( "key"))
+    {
+      String keyName = Xlate.get( keyDecl, (String)null);
+      if ( Xlate.get( keyDecl, "primary", false))
+      {
+        primaryKey = keyName;
+      }
+      else
+      {
+        otherKeys.add( keyName);
+      }
+    }
+    
+    // set static attributes
+    List<String> staticAttributes = new ArrayList<String>();
+    staticAttributes.add( "id");
+    staticAttributes.addAll( otherKeys);
+    setStaticAttributes( staticAttributes.toArray( new String[ 0]));
+
+    // set element name for row elements
+    child = Xlate.childGet( annotation, "rows", (String)null);
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( child);
@@ -85,6 +106,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
         {
           IModelObject stub = factory.createObject( reference, child);
           stub.setID( result.getString( 1));
+          for( int i=0; i<otherKeys.size(); i++) 
+            stub.setAttribute( otherKeys.get( i), result.getString( i));
           parent.addChild( stub);
         }
         
@@ -113,11 +136,20 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
         {      
           for( int i=0; i<columns.length; i++)
           {
-            if ( columns[ i].equals( key)) continue;
-            IModelObject field = getFactory().createObject( object, columns[ i]);
-            Object value = transformValue( reference, field, result.getObject( i+1));
-            field.setValue( value);
-            object.addChild( field);
+            if ( columns[ i].equals( primaryKey)) continue;
+            
+            if ( otherKeys.contains( columns[ i]))
+            {
+              Object value = transformValue( reference, null, result.getObject( i+1));
+              object.setAttribute( columns[ i], value);
+            }
+            else
+            {
+              IModelObject field = getFactory().createObject( object, columns[ i]);
+              Object value = transformValue( reference, field, result.getObject( i+1));
+              field.setValue( value);
+              object.addChild( field);
+            }
           }        
         }
         
@@ -146,6 +178,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   {
     if ( value instanceof Blob)
     {
+      if ( columnElement == null) 
+        throw new CachingException(
+          "Blobs cannot be mapped to attributes.");
       try
       {
         PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
@@ -253,7 +288,16 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     String table = Xlate.get( reference, "table", (String)null);
     
     StringBuilder sb = new StringBuilder();
-    sb.append( "SELECT "); sb.append( key); sb.append( " FROM "); sb.append( table);
+    sb.append( "SELECT "); 
+    sb.append( primaryKey);
+    
+    for( String otherKey: otherKeys)
+    {
+      sb.append( ",");
+      sb.append( otherKey);
+    }
+    
+    sb.append( " FROM "); sb.append( table);
     
     SQLManager sqlManager = getSQLManager( reference);
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -272,7 +316,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT * "); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( key); sb.append( "=?");
+    sb.append(" WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( reference.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -293,7 +337,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); sb.append( columnElement.getType()); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( key); sb.append( "=?");
+    sb.append(" WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( rowElement.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -331,7 +375,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       statement.setString( 1, node.getID());
       for( int j=0; j<columns.length; j++)
       {
-        if ( columns.equals( key)) continue;
+        if ( columns.equals( primaryKey)) continue;
         IModelObject field = node.getFirstChild( columns[ j]);
         statement.setObject( j+1, field.getValue());
       }
@@ -357,14 +401,14 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
 
     for( int i=0; i<columns.length; i++)
     {
-      if ( columns.equals( key)) continue;
+      if ( columns.equals( primaryKey)) continue;
       if ( i>0) sb.append( ",");
       sb.append( columns[ i]);
       sb.append( "=?");
     }
     
     sb.append(" WHERE ");
-    sb.append( key);
+    sb.append( primaryKey);
     sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( reference);
@@ -375,9 +419,17 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       statement.setString( 1, node.getID());
       for( int j=0; j<columns.length; j++)
       {
-        if ( columns.equals( key)) continue;
-        IModelObject field = node.getFirstChild( columns[ j]);
-        statement.setObject( j+1, field.getValue());
+        if ( columns.equals( primaryKey)) continue;
+        
+        if ( otherKeys.contains( columns[ j]))
+        {
+          statement.setObject( j+1, node.getAttribute( columns[ j]));
+        }
+        else
+        {
+          IModelObject field = node.getFirstChild( columns[ j]);
+          statement.setObject( j+1, field.getValue());
+        }
       }
       statement.addBatch();
     }
@@ -397,7 +449,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     StringBuilder sb = new StringBuilder();
     sb.append( "DELETE FROM "); sb.append( table);
-    sb.append( " WHERE "); sb.append( key);
+    sb.append( " WHERE "); sb.append( primaryKey);
     sb.append( "=?");
 
     SQLManager sqlManager = getSQLManager( reference);
@@ -417,6 +469,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   
   private IModelObjectFactory factory;
   private String[] columns;
-  private String key;
-  private String child;  
+  private String primaryKey;
+  private List<String> otherKeys;
+  private String child;
 }

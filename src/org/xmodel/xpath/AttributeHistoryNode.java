@@ -323,14 +323,6 @@ public class AttributeHistoryNode implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#identityPath()
-   */
-  public IPath identityPath()
-  {
-    return null;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_setParent(org.xmodel.IModelObject)
    */
   public IModelObject internal_setParent( IModelObject parent)
@@ -388,14 +380,6 @@ public class AttributeHistoryNode implements IModelObject
   public boolean isType( String type)
   {
     return type.equals( attrName);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#peerPath(org.xmodel.IModelObject)
-   */
-  public IPath peerPath( IModelObject peer)
-  {
-    return null;
   }
 
   /* (non-Javadoc)
@@ -480,14 +464,6 @@ public class AttributeHistoryNode implements IModelObject
   public Object setValue( Object value)
   {
     return attrValue;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#typePath()
-   */
-  public IPath typePath()
-  {
-    return null;
   }
 
   /* (non-Javadoc)
