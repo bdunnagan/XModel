@@ -394,7 +394,6 @@ public class ModelServer extends Server
     {
       int index = locusParent.getChildren().indexOf( locusClone);
       IModelObject breakpoint = new ModelObject( "BREAKPOINT");
-      breakpoint.addChild( locusClone);
       locusParent.addChild( breakpoint, index);
     }
     

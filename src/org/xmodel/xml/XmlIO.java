@@ -249,7 +249,7 @@ public class XmlIO implements IXmlIO
     }
     
     // check for processing-instruction
-    if ( root.getType().charAt( 0) == '?')
+    if ( root.getType().length() > 0 && root.getType().charAt( 0) == '?')
     {
       if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
       stream.write( less);

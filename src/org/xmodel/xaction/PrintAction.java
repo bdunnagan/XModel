@@ -28,7 +28,7 @@ public class PrintAction extends GuardedAction
   {
     super.configure( document);
     variable = Xlate.get( document.getRoot(), "assign", (String)null);
-    style = Xlate.get( document.getRoot(), "style", "wellformed");
+    style = Xlate.get( document.getRoot(), "style", "printable");
     sourceExpr = document.getExpression( document.getRoot());
   }
 
