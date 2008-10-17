@@ -35,6 +35,7 @@ public class ForAction extends GuardedAction
     variable = Xlate.get( root, "assign", (String)null);    
     sourceExpr = document.getExpression( "source", true);
     
+    // reuse ScriptAction to handle for script (must temporarily remove condition if present)
     Object when = root.removeAttribute( "when");
     script = document.createScript( root, "source");
     if ( when != null) root.setAttribute( "when", when);
