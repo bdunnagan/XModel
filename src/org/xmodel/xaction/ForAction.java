@@ -34,7 +34,10 @@ public class ForAction extends GuardedAction
     IModelObject root = document.getRoot();
     variable = Xlate.get( root, "assign", (String)null);    
     sourceExpr = document.getExpression( "source", true);
+    
+    Object when = root.removeAttribute( "when");
     script = document.createScript( root, "source");
+    if ( when != null) root.setAttribute( "when", when);
   }
 
   /* (non-Javadoc)
