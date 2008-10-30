@@ -57,7 +57,7 @@ public class CreateAction extends GuardedAction
     factory = getFactory( root);
 
     // create the script
-    script = document.createScript( root, "parent", "name", "template", "attribute", "schema");
+    script = document.createScript( "parent", "name", "template", "attribute", "schema");
     
     // if annotated then preprocess template
     annotated = Xlate.get( root.getFirstChild( "template"), "annotated", false);

@@ -33,8 +33,12 @@ public class FileSaveAction extends GuardedAction
     super.configure( document);
     mode = Xlate.get( document.getRoot(), "mode", "printable");
     overwrite = Xlate.get( document.getRoot(), "overwrite", false);
-    sourceExpr = document.getExpression( "source", false);
-    fileExpr = document.getExpression( "file", false);
+    
+    sourceExpr = document.getExpression( "source", true);
+    if ( sourceExpr == null) sourceExpr = document.getExpression();
+    
+    fileExpr = document.getExpression( "file", true);
+    if ( fileExpr == null) document.getExpression();
   }
 
   /* (non-Javadoc)
@@ -76,6 +80,7 @@ public class FileSaveAction extends GuardedAction
       String xml = xmlIO.write( element);
       try
       {
+        file.createNewFile();
         FileOutputStream stream = new FileOutputStream( file);
         stream.write( xml.getBytes( "UTF-8"));
         stream.close();

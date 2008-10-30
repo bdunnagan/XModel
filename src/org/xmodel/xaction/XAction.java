@@ -5,7 +5,6 @@
  */
 package org.xmodel.xaction;
 
-import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -14,7 +13,7 @@ import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.IXmlMatcher;
-import org.xmodel.net.ModelServer;
+import org.xmodel.xaction.debug.IDebugger;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xpath.XPath;
@@ -38,6 +37,7 @@ public abstract class XAction implements IXAction
    */
   public void configure( XActionDocument document)
   {
+    this.document = document;
   }
 
   /* (non-Javadoc)
@@ -55,15 +55,15 @@ public abstract class XAction implements IXAction
    */
   public final void run( IContext context)
   {
-    if ( shouldBreak && getDocument() != null && getDocument().getRoot() != null)
+    if ( debugger != null) debugger.push( context, this);
+    try
     {
-      breakAction = this;
-      if ( breakServer != null) breakServer.sendDebugStatus( context, this);
-      breakLocked = true;
-      try { breakLock.acquire();} catch( Exception e) {}
+      doRun( context);
     }
-    
-    doRun( context);
+    finally
+    {
+      if ( debugger != null) debugger.pop();
+    }
   }
 
   /* (non-Javadoc)
@@ -188,12 +188,8 @@ public abstract class XAction implements IXAction
   
   private final static IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
-  
-  public static Semaphore breakLock = new Semaphore( 0);
-  public static boolean breakLocked;
-  public static ModelServer breakServer;
-  public static IXAction breakAction;
-  public static boolean shouldBreak;
+
+  public static IDebugger debugger;
   
   protected XActionDocument document;
 }

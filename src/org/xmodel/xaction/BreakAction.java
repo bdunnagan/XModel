@@ -76,7 +76,7 @@ public class BreakAction extends GuardedAction
     history = new ArrayList<String>( 1);
     reader = new BufferedReader( new InputStreamReader( System.in));
     
-    script = document.createScript( document.getRoot(), "skip", "lines", "watch");
+    script = document.createScript( "skip", "lines", "watch");
     
     watches = new ArrayList<IExpression>();
     for( IModelObject watchSpec: document.getRoot().getChildren( "watch")) 

@@ -28,6 +28,12 @@ public interface IXmlIO
   public void setFactory( IModelObjectFactory factory);
   
   /**
+   * Set the maximum number of lines to be written (0 for unlimited).
+   * @param count Zero or the maximum number of lines.
+   */
+  public void setMaxLines( int count);
+  
+  /**
    * Read the XML document in the specified string.
    * @param xml A string containing a well-formed XML document.
    * @return Returns the root of the model.

@@ -37,7 +37,7 @@ public class ForAction extends GuardedAction
     
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)
     Object when = root.removeAttribute( "when");
-    script = document.createScript( root, "source");
+    script = document.createScript( "source");
     if ( when != null) root.setAttribute( "when", when);
   }
 

@@ -100,11 +100,11 @@ public class ScriptAction extends GuardedAction
   @Override
   public void doAction( IContext context)
   {
-    if ( actions != null)
-      for( IXAction action: actions)
-        action.run( context);
+    if ( actions == null || actions.size() == 0) return;
+    for( IXAction action: actions)
+      action.run( context);
   }
-
+  
   private final static String[] defaultIgnore = {
     "condition",
     "factory",

@@ -377,6 +377,17 @@ public abstract class AbstractVariableScope implements IVariableScope
     if ( variable == null) return ResultType.UNDEFINED;
     
     Object value = variable.value;
+    return getType( value, context);
+  }
+
+  /**
+   * Returns the ResultType of the specified object.
+   * @param object The object.
+   * @param context An optional context for resolving expression variables.
+   * @return Returns the ResultType of the specified object.
+   */
+  public static ResultType getType( Object value, IContext context)
+  {
     if ( value instanceof List) return ResultType.NODES;
     if ( value instanceof Number) return ResultType.NUMBER;
     if ( value instanceof Boolean) return ResultType.BOOLEAN;

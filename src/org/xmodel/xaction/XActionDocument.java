@@ -631,7 +631,7 @@ public class XActionDocument
     IModelObject object = getRoot().getFirstChild( childType);
     return (object != null)? getDocument( object): null;
   }
-
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */

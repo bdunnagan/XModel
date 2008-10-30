@@ -180,7 +180,7 @@ public class RobustSession implements ISession
    */
   public int read( byte[] buffer, int offset, int length)
   {
-    if ( !connected) waitForConnection();
+    if ( !connected) exit = !waitForConnection();
 
     while( !exit)
     {
@@ -280,10 +280,10 @@ public class RobustSession implements ISession
     try
     {
       // wait for connection to go down
-      while( connected) try { Thread.sleep( 5000);} catch( Exception e) {}
+      while( connected) try { Thread.sleep( disconnectPoll);} catch( Exception e) {}
       
       // wait for connection to come back up
-      blocker.acquire();
+      blocker.tryAcquire( reconnectTimeout, TimeUnit.MILLISECONDS);
       return connected;
     }
     catch( InterruptedException e)
@@ -357,6 +357,9 @@ public class RobustSession implements ISession
       }
     }
   };
+  
+  public final static int disconnectPoll = 2000;
+  public final static int reconnectTimeout = 5000;
   
   protected ISession session;
   private Thread thread;

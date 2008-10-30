@@ -5,6 +5,7 @@
  */
 package org.xmodel.xaction;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
@@ -14,8 +15,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An XAction which executes zero or more XActions identified by an XPath expression. Each element
- * returned by the expression is compiled into an XAction and executed. This XAction will return
- * false and stop executing on the first XAction that fails.
+ * returned by the expression is compiled into an XAction and executed.
  */
 public class RunAction extends GuardedAction
 {
@@ -37,13 +37,17 @@ public class RunAction extends GuardedAction
   protected void doAction( IContext context)
   {
     StatefulContext docContext = new StatefulContext( context, document.getRoot());
-    
+
+    List<IXAction> actions = new ArrayList<IXAction>( 1);
     List<IModelObject> elements = actionExpr.query( docContext, null);
     for( IModelObject element: elements)
     {
       IXAction action = document.getAction( element);
-      if ( action != null) action.run( context);
+      if ( action != null) actions.add( action);
     }
+    
+    for( IXAction action: actions)
+      action.run( context);
   }
   
   private IExpression actionExpr;

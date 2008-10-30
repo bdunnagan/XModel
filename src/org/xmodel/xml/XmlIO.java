@@ -46,6 +46,7 @@ public class XmlIO implements IXmlIO
     skipOutputPrefixList = new ArrayList<String>( 3);
     cycleSet = new HashSet<IModelObject>();
     lines = new ArrayList<IModelObject>();
+    maxLines = 0;
     
     try
     {
@@ -70,6 +71,14 @@ public class XmlIO implements IXmlIO
     this.factory = factory;
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xml.IXmlIO#setMaxLines(int)
+   */
+  public void setMaxLines( int count)
+  {
+    maxLines = count;
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#read(java.lang.String)
    */
@@ -225,8 +234,15 @@ public class XmlIO implements IXmlIO
    */
   protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
   {
+    // observe line-count limit
+    if ( maxLines > 0 && lines.size() > maxLines)
+    {
+      stream.write( ellipsis);
+      return;
+    }
+    
     // annotate root if requested
-    for ( int i=lines.size(); i < line+1; i++) lines.add( null);
+    for ( int i = lines.size(); i < line+1; i++) lines.add( null);
     lines.set( line, root);
     
     // check for AttributeNode or TextNode
@@ -603,6 +619,7 @@ public class XmlIO implements IXmlIO
   public final static byte[] at = "@".getBytes();
   public final static byte[] qmark = "?".getBytes();
   public final static byte[] cr = "\n".getBytes();
+  public final static byte[] ellipsis = "...".getBytes();
   public final static byte[] unexpanded = "(unexpanded reference)".getBytes();
   
   private SAXParser parser;
@@ -615,6 +632,7 @@ public class XmlIO implements IXmlIO
   private List<String> skipOutputPrefixList;
   private Style style;
   private Set<IModelObject> cycleSet;
+  private int maxLines;
   private int line;
   private List<IModelObject> lines;
   private Locator locator;

@@ -27,7 +27,7 @@ public class TryAction extends GuardedAction
     super.configure( document);
     
     // try script
-    tryScript = document.createScript( document.getRoot(), "catch");
+    tryScript = document.createScript( "catch");
     
     // catch blocks
     List<IModelObject> catchElements = catchActionExpr.query( document.getRoot(), null);

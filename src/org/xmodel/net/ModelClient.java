@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -67,6 +68,7 @@ public class ModelClient extends RobustSession
     block = new Semaphore( 0);
     nextID = System.nanoTime();
     limit = 10000;
+    handlers = new Hashtable<String, List<IMessageHandler>>();
     
     addListener( listener);
   }
@@ -100,13 +102,40 @@ public class ModelClient extends RobustSession
   /* (non-Javadoc)
    * @see org.xmodel.net.robust.Client#close()
    */
-  @Override
-  public void close()
+//  @Override
+//  public void close()
+//  {
+//    sendClose( "Client closed.");
+//    super.close();
+//  }
+
+  /**
+   * Add a message handler for the specified type.
+   * @param type The message element name.
+   * @param handler The handler.
+   */
+  public void addMessageHandler( String type, IMessageHandler handler)
   {
-    sendClose( "Client closed.");
-    super.close();
+    List<IMessageHandler> list = handlers.get( type);
+    if ( list == null)
+    {
+      list = new ArrayList<IMessageHandler>( 3);
+      handlers.put( type, list);
+    }
+    list.add( handler);
   }
 
+  /**
+   * Removes a message handler for the specified type.
+   * @param type The message element name.
+   * @param handler The handler.
+   */
+  public void removeMessageHandler( String type, IMessageHandler handler)
+  {
+    List<IMessageHandler> list = handlers.get( type);
+    if ( list != null) list.remove( handler);
+  }
+  
   /**
    * Perform an arbitrary query and return the result.
    * @param query The query.
@@ -212,25 +241,103 @@ public class ModelClient extends RobustSession
   }
   
   /**
-   * Send an xaction debug go request.
+   * Send a debug request to get the current set of threads.
    */
-  public void sendGo()
+  public void sendDebugGetThreads()
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
-    message.setAttribute( "action", "go");
+    message.setAttribute( "action", "getThreads");
     send( message);
   }
   
   /**
-   * Send an xaction debug step request.
+   * Send a debug resume request.
+   * @param threadID The thread id or an empty string indicating all threads.
    */
-  public void sendStep()
+  public void sendDebugResume( String threadID)
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
-    message.setAttribute( "action", "step");
+    message.setAttribute( "action", "resume");
+    message.setAttribute( "thread", threadID);
+    send( message);
+  }
+  
+  /**
+   * Send a debug suspend request.
+   * @param threadID The thread id or an empty string indicating all threads.
+   */
+  public void sendDebugSuspend( String threadID)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "suspend");
+    message.setAttribute( "thread", threadID);
+    send( message);
+  }
+  
+  /**
+   * Send a create breakpoint request for the specified file and xpath expression.
+   * @param path The path of the file.
+   * @param expression The expression of the breakpoint within the file.
+   */
+  public void sendDebugCreateBreakpoint( String path, String expression)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "createBreakpoint");
+    Xlate.set( message, "path", path);
+    Xlate.set( message, "expression", expression);
+    send( message);
+  }
+  
+  /**
+   * Send a remove breakpoint request for the specified file and xpath expression.
+   * @param path The path of the file.
+   * @param expression The expression of the breakpoint within the file.
+   */
+  public void sendDebugRemoveBreakpoint( String path, String expression)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "removeBreakpoint");
+    Xlate.set( message, "path", path);
+    Xlate.set( message, "expression", expression);
+    send( message);
+  }
+  
+  /**
+   * Send a debug step-into request.
+   * @param threadID The thread id.
+   */
+  public void sendDebugStepInto( String threadID)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "stepInto");
+    message.setAttribute( "thread", threadID);
     send( message);
   }
 
+  /**
+   * Send a debug step over request.
+   * @param threadID The thread id.
+   */
+  public void sendDebugStepOver( String threadID)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "stepOver");
+    message.setAttribute( "thread", threadID);
+    send( message);
+  }
+  
+  /**
+   * Send a debug step return request.
+   * @param threadID The thread id.
+   */
+  public void sendDebugStepReturn( String threadID)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "stepReturn");
+    message.setAttribute( "thread", threadID);
+    send( message);
+  }
+  
   /**
    * Parse a message result and return the result with reference substitutions.
    * @param result The result elements.
@@ -471,8 +578,11 @@ public class ModelClient extends RobustSession
    */
   protected void send( IModelObject message)
   {
-//System.out.println( "____________________________________");
-//System.out.println( "CLIENT SENT: \n"+((ModelObject)message).toXml());          
+    if ( !message.isType( "beat"))
+    {
+      System.out.println( "____________________________________");
+      System.out.println( "CLIENT SENT: \n"+((ModelObject)message).toXml());
+    }
     
     byte[] compressed = compressor.compress( message);
     write( compressed);
@@ -526,7 +636,7 @@ public class ModelClient extends RobustSession
   {
     if ( message.isType( "beat"))
     {
-      deathTask.cancel();
+      if ( deathTask != null) deathTask.cancel();
     }
     else if ( message.isType( "insert"))
     {
@@ -551,10 +661,6 @@ public class ModelClient extends RobustSession
     else if ( message.isType( "dirty"))
     {
       handleDirty( message);
-    }
-    else if ( message.isType( "status"))
-    {
-      handleStatus( message);
     }
     else if ( message.isType( "ready"))
     {
@@ -658,18 +764,6 @@ public class ModelClient extends RobustSession
   }
   
   /**
-   * Handle an asynchronous status message.
-   * @param message The message.
-   */
-  protected void handleStatus( IModelObject message)
-  {
-    List<IModelObject> roots = model.getRoots( "xaction-debug");
-    IModelObject root = (roots == null || roots.size() == 0)? new ModelObject( "xaction-debug"): roots.get( 0);
-    root.removeChildren();
-    root.addChild( message);
-  }
-  
-  /**
    * Handle an asynchronous error message.
    * @param message The message.
    */
@@ -721,8 +815,11 @@ public class ModelClient extends RobustSession
         while( !exit)
         {
           IModelObject message = decompressor.decompress( stream);
-//System.out.println( "____________________________________");
-//System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());
+          if ( !message.isType( "beat"))
+          {
+            System.out.println( "____________________________________");
+            System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());
+          }
           
           if ( messageID != null && message.getID().equals( messageID))
           {
@@ -776,7 +873,14 @@ public class ModelClient extends RobustSession
      */
     public void run()
     {
+      // TODO: implement IMessageHandler for messages now handled in this class
       handle( message.cloneTree());
+      
+      // call appropriate message handlers
+      List<IMessageHandler> list = handlers.get( message.getType());
+      if ( list != null)
+        for( IMessageHandler handler: list) 
+          handler.notifyMessage( ModelClient.this, message);
     }
     
     public IModelObject message;
@@ -800,6 +904,7 @@ public class ModelClient extends RobustSession
   private Timer timer;
   private HeartbeatTask heartbeatTask;
   private DeathTask deathTask;
+  private Map<String, List<IMessageHandler>> handlers;
   private int limit;
   private int timeout;
   private long nextID;

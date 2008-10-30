@@ -26,7 +26,7 @@ public class ContextAction extends XAction
     super.configure( document);
 
     sourceExpr = document.getExpression( "source", false);
-    script = document.createScript( document.getRoot(), "source");
+    script = document.createScript( "source");
   }
 
   /* (non-Javadoc)
