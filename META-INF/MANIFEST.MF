@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: XModel Plug-in
 Bundle-SymbolicName: org.xmodel
-Bundle-Version: 1.0.0
+Bundle-Version: 1.0.1
 Bundle-Vendor: Bob Dunnagan
 Eclipse-LazyStart: true
 Require-Bundle: org.jdom,
