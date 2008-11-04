@@ -22,6 +22,7 @@ public class ScriptAction extends GuardedAction
   public ScriptAction()
   {
     ignore = new HashSet<String>();
+    ignore.add( "when");
   }
   
   /**
