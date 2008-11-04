@@ -3,6 +3,8 @@ package org.xmodel.net;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +36,6 @@ import org.xmodel.util.Radix;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.debug.GlobalDebugger;
 import org.xmodel.xaction.debug.IDebugger.Frame;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -380,12 +381,20 @@ public class ModelServer extends Server
         ModelObject frameNode = new ModelObject( "frame", Integer.toString( frame.action.hashCode()));
         stackNode.addChild( frameNode);
         
+        // frame context
+        {
+          ModelObject contextNode = new ModelObject( "variable", "context");
+          contextNode.setAttribute( "type", "nodes");
+          ModelObject result = new ModelObject( "result");
+          result.addChild( frame.context.getObject().cloneTree());
+          contextNode.addChild( result);
+          frameNode.addChild( contextNode);
+        }
+          
         // frame context variables
         for( String variable: frame.context.getScope().getAll())
         {
-          ModelObject variableNode = new ModelObject( "variable");
-          variableNode.setID( variable);
-          
+          ModelObject variableNode = new ModelObject( "variable", variable);
           Object value = frame.context.getScope().get( variable);
           if ( value == null)
           {
@@ -394,13 +403,11 @@ public class ModelServer extends Server
           else if ( value instanceof List)
           {
             variableNode.setAttribute( "type", "nodes");
-            XmlIO xmlIO = new XmlIO();
-            xmlIO.setMaxLines( Xlate.get( message, "maxLines", 1000));
             for( IModelObject node: (List<IModelObject>)value)
             {
-              String xml = xmlIO.write( node);
               ModelObject result = new ModelObject( "result");
-              result.setValue( xml);
+              node.getModel().setSyncLock( true);
+              try { result.addChild( node.cloneTree());} finally { node.getModel().setSyncLock( false);}
               variableNode.addChild( result);
             }
           }
@@ -438,23 +445,29 @@ public class ModelServer extends Server
         
         // frame action name (either element name or class)
         IModelObject actionRoot = frame.action.getDocument().getRoot();
+        String actionName = "";
         if ( actionRoot != null)
         {
-          frameNode.setAttribute( "name", actionRoot.getType());
+          actionName = actionRoot.getType();
+          if ( actionRoot.getID().length() > 0) actionName += " id="+actionRoot.getID();
+          String name = Xlate.get( actionRoot, "name", (String)null);
+          if ( name != null) actionName += " name="+name;
         }
         else
-        {
-          frameNode.setAttribute( "name", frame.action.getClass().getSimpleName());
+        { 
+          actionName = frame.action.getClass().getSimpleName();
         }
+        frameNode.setAttribute( "name", actionName);
         
         // frame action file path and action xpath relative to file root
         IModelObject element = frame.action.getDocument().getRoot();
         if ( element != null)
         {
-          IModelObject fileElement = sourcePathExpr.queryFirst( element);
-          if ( fileElement != null) 
+          IModelObject fileElement = fileElementExpr.queryFirst( element);
+          if ( fileElement != null)
           {
-            frameNode.setAttribute( "path", Xlate.get( fileElement, "path", ""));
+            String sourcePath = getURLPath( Xlate.get( fileElement, "url", ""));
+            frameNode.setAttribute( "path", sourcePath);
             IPath actionPath = ModelAlgorithms.createRelativePath( fileElement, element);
             frameNode.setAttribute( "locus", actionPath.toString());
           }
@@ -467,13 +480,31 @@ public class ModelServer extends Server
   }
   
   /**
+   * Returns null or the path portion of the specified url.
+   * @param spec The url specification.
+   * @return Returns null or the path portion of the specified url.
+   */
+  private String getURLPath( String spec)
+  {
+    try
+    {
+      URL url = new URL( spec);
+      return url.getPath();
+    }
+    catch( MalformedURLException e)
+    {
+      return null;
+    }
+  }
+  
+  /**
    * Send a message to the server.
    * @param session The session.
    * @param message The message.
    */
   protected void send( ISession session, IModelObject message)
   {
-    if ( !message.isType( "beat"))
+    if ( false && !message.isType( "beat"))
     {
       System.out.println( "____________________________________");
       System.out.println( "SERVER SENT: \n"+((ModelObject)message).toXml());
@@ -1105,7 +1136,7 @@ public class ModelServer extends Server
         while( !state.exit)
         {
           IModelObject message = state.decompressor.decompress( stream);
-          if ( !message.isType( "beat"))
+          if ( false && !message.isType( "beat"))
           {
             System.out.println( "____________________________________");
             System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());
@@ -1197,9 +1228,9 @@ public class ModelServer extends Server
     ServerModelListener listener;
     Set<IModelObject> listenees;
   }
-  
-  private final static IExpression sourcePathExpr = XPath.createExpression(
-    "ancestor-or-self::*[ @path]");
+
+  private IExpression fileElementExpr = XPath.createExpression(
+    "ancestor-or-self::*[ @url]");
   
   private final static int maxQueryCount = 3000;
   private final static int maxInsertCount = 3000;
