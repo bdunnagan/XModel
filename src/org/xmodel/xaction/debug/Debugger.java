@@ -1,8 +1,8 @@
 package org.xmodel.xaction.debug;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.Vector;
 import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -25,7 +25,7 @@ public class Debugger implements IDebugger
     this.server = server;
     this.lock = new Semaphore( 0);
     this.stack = new Stack<Frame>();
-    this.breakpoints = new ArrayList<Breakpoint>();
+    this.breakpoints = new Vector<Breakpoint>();
     this.step = Step.RESUME;
   }
 
@@ -207,8 +207,8 @@ public class Debugger implements IDebugger
     IModelObject ancestor = sourcePathExpr.queryFirst( root);
     if ( ancestor == null) return false;
     
-    String path = Xlate.get( ancestor, "path", "");
-    if ( path.equals( breakpoint.path))
+    String path = Xlate.get( ancestor, "url", "");
+    if ( path.endsWith( breakpoint.path))
     {
       IModelObject locus = breakpoint.expression.queryFirst( ancestor);
       return locus == root;
@@ -234,7 +234,7 @@ public class Debugger implements IDebugger
   }
 
   private final IExpression sourcePathExpr = XPath.createExpression(
-    "ancestor-or-self::*[ @path]");
+    "ancestor-or-self::*[ @url]");
   
   private enum Step { RESUME, SUSPEND, STEP_INTO, STEP_OVER, STEP_RETURN};
   

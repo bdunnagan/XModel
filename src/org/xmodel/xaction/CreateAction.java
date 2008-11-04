@@ -84,7 +84,7 @@ public class CreateAction extends GuardedAction
     List<IModelObject> elements = new ArrayList<IModelObject>( 1);
     
     // create element from name string
-    IExpression nameExpr = document.getExpression( "name", false);
+    IExpression nameExpr = document.getExpression( "name", true);
     if ( nameExpr != null)
     {
       String type = nameExpr.evaluateString( context);

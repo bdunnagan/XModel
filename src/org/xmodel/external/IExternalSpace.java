@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.List;
 import org.xmodel.IModelObject;
 
-
 /**
  * An interface for creating a data-model to represent a URI specification for a particular URI scheme.
  * This interface is used by the <code>fn:doc</code> function to resolve a URI.

@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.URI;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.xmodel.IModelObject;
@@ -158,6 +159,18 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     return null;
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public URI getURI( IExternalReference reference) throws CachingException
+  {
+    String path = Xlate.get( reference, "path", (String)null);
+    if ( path == null) throw new CachingException( "Path not defined for reference: "+reference);
+    File folder = new File( path);
+    return folder.toURI();
+  }
+
   static final IExpression folderPath = XPath.createExpression( "*[ @type='folder']");
   static final IExpression filePath = XPath.createExpression( "file/*");
     

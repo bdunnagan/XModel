@@ -856,6 +856,7 @@ public class ModelAlgorithms implements IAxis
           }
           else
           {
+            if ( element.type() == null) return;
             IModelObject newObject = factory.createObject( layerObject, element.type());
             layerObject.addChild( newObject);
             nextLayer.add( newObject);

@@ -7,6 +7,7 @@ package org.xmodel.external.caching;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -183,8 +184,16 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private final static IExpression defaultPathExpr = XPath.createExpression( 
-    "@path");
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public URI getURI( IExternalReference reference) throws CachingException
+  {
+    return buildPath( reference).toURI();
+  }
+
+  private final static IExpression defaultPathExpr = XPath.createExpression( "@path");
   
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();

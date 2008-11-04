@@ -12,7 +12,6 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.xml.XmlIO;
 
-
 /**
  * The default external space which uses URL.openStream() to parse the XML.
  */

@@ -7,6 +7,7 @@ package org.xmodel.external;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModel;
@@ -220,6 +221,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     while( iter.hasNext())
     {
       IModelObject element = iter.next();
+      element = ModelAlgorithms.dereference( element);
       if ( element.isDirty()) ((IExternalReference)element).setDirty( false);
     }
   }
@@ -450,6 +452,14 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     if ( reference.isDirty()) internal_sync( reference);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ICachingPolicy#getURI(org.xmodel.external.IExternalReference)
+   */
+  public URI getURI( IExternalReference reference) throws CachingException
+  {
+    return null;
+  }
+
   /**
    * Specify the names of attributes which should not cause synchronization. Two types of 
    * wildcards can be used. An asterisk by itself means <i>all attributes</i>. A prefix 

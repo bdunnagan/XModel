@@ -77,7 +77,7 @@ public class Schema
       String leafType = Xlate.get( leaf, "name", "");
       if ( !leafType.equals( element.getType())) break;
       leaf = leaf.getParent();
-      if ( leaf == null) leaf = leaf.getParent();
+      if ( leaf == null) break;
       count++;
     }
     return count;

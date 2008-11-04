@@ -3,7 +3,7 @@
  * Author: Bob Dunnagan
  * Copyright 2005. All rights reserved.
  */
-package org.xmodel.external.caching;
+package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

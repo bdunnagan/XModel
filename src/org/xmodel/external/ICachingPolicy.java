@@ -5,6 +5,7 @@
  */
 package org.xmodel.external;
 
+import java.net.URI;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.xpath.expression.IExpression;
@@ -191,6 +192,16 @@ public interface ICachingPolicy
    * @param reference The reference which was accessed.
    */
   public void writeChildrenAccess( IExternalReference reference);
+
+  /**
+   * Returns the URI of the data-source for the specified reference. The URI schema is implementation
+   * dependent and this contract does not guarantee that a method for resolving the URI exists. If the URI
+   * can be resolved then it resolves to an XML stream which can be loaded by the <code>XmlIO</code> class.  
+   * @param reference The reference.
+   * @return Returns null or the URI of the reference data-source.
+   * @throws CachingException When the implementation should return a non-null URI but cannot create it.
+   */
+  public URI getURI( IExternalReference reference) throws CachingException;
   
   /**
    * Create a string representation with the specified indentation.

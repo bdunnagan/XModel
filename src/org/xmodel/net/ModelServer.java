@@ -445,24 +445,28 @@ public class ModelServer extends Server
         
         // frame action name (either element name or class)
         IModelObject actionRoot = frame.action.getDocument().getRoot();
-        String actionName = "";
+        StringBuilder actionName = new StringBuilder();
         if ( actionRoot != null)
         {
-          actionName = actionRoot.getType();
-          if ( actionRoot.getID().length() > 0) actionName += " id="+actionRoot.getID();
+          actionName.append( '<'); actionName.append( actionRoot.getType()); actionName.append( '>');
+          if ( actionRoot.getID().length() > 0) { actionName.append( " id="); actionName.append( actionRoot.getID());}
           String name = Xlate.get( actionRoot, "name", (String)null);
-          if ( name != null) actionName += " name="+name;
+          if ( name != null) { actionName.append( " name="); actionName.append( name);}
         }
         else
         { 
-          actionName = frame.action.getClass().getSimpleName();
+          actionName.append( frame.action.getClass().getSimpleName());
         }
-        frameNode.setAttribute( "name", actionName);
+        frameNode.setAttribute( "name", actionName.toString());
         
         // frame action file path and action xpath relative to file root
         IModelObject element = frame.action.getDocument().getRoot();
         if ( element != null)
         {
+          // fully deference action element to find its original location
+          element = ModelAlgorithms.dereference( element);
+          
+          // create source path and locus
           IModelObject fileElement = fileElementExpr.queryFirst( element);
           if ( fileElement != null)
           {

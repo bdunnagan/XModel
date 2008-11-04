@@ -5,10 +5,15 @@
  */
 package org.xmodel.external.caching;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.external.*;
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ConfiguredCachingPolicy;
+import org.xmodel.external.ICache;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 
@@ -58,6 +63,24 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     catch( Exception e)
     {
       throw new CachingException( "Unable to sync url: "+url, e);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public URI getURI( IExternalReference reference) throws CachingException
+  {
+    try
+    {
+      String url = Xlate.get( reference, "url", (String)null);
+      if ( url == null) throw new CachingException( "External reference does not have a url attribute: "+reference); 
+      return new URI( url);
+    }
+    catch( URISyntaxException e)
+    {
+      throw new CachingException( "Unable to create URI for external reference: "+reference, e);
     }
   }
 }

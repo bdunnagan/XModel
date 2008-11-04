@@ -7,6 +7,8 @@ package org.xmodel.xaction;
 
 import java.util.List;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -27,6 +29,8 @@ public class MoveAction extends GuardedAction
 
     IModelObject viewRoot = document.getRoot();
     
+    factory = getFactory( viewRoot);
+    
     // get source and target expressions
     sourceExpr = document.getExpression( "source", true);
     targetExpr = document.getExpression( "target", true);
@@ -37,6 +41,7 @@ public class MoveAction extends GuardedAction
     if ( targetExpr == null) targetExpr = document.getExpression();
     
     // get flags
+    create = Xlate.get( viewRoot, "create", Xlate.childGet( viewRoot, "create", false));
     unique = Xlate.get( viewRoot, "unique", Xlate.childGet( viewRoot, "unique", false));
   }
 
@@ -45,6 +50,9 @@ public class MoveAction extends GuardedAction
    */
   protected void doAction( IContext context)
   {
+    // create target if requested
+    if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
+    
     // source
     List<IModelObject> sources = sourceExpr.query( context, null);
     if ( sources.size() == 0) return;
@@ -73,5 +81,7 @@ public class MoveAction extends GuardedAction
   private IExpression sourceExpr;
   private IExpression targetExpr;
   private IExpression indexExpr;
+  private IModelObjectFactory factory;
+  private boolean create;
   private boolean unique;
 }

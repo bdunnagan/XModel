@@ -5,7 +5,6 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -22,8 +21,13 @@ public class IfAction extends XAction
   {
     super.configure( document);
     
-    IModelObject root = document.getRoot();
-    whenExpr = document.getExpression( root.getAttributeNode( "when"));
+    condition = document.getExpression( "true", true);
+    if ( condition == null)
+    {
+      condition = document.getExpression( "false", true);
+      negate = true;
+    }
+    
     thenScript = document.createChildScript( "then");
     elseScript = document.createChildScript( "else");
   }
@@ -33,10 +37,14 @@ public class IfAction extends XAction
    */
   public void doRun( IContext context)
   {
-    if ( whenExpr.evaluateBoolean( context)) thenScript.run( context); else elseScript.run( context);
+    if ( negate ^ condition.evaluateBoolean( context)) 
+      thenScript.run( context); 
+    else 
+      elseScript.run( context);
   }
 
-  private IExpression whenExpr;
+  private IExpression condition;
   private ScriptAction thenScript;
   private ScriptAction elseScript;
+  private boolean negate;
 }

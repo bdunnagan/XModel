@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import org.xmodel.IModelObject;
-import org.xmodel.Reference;
 import org.xmodel.util.Fifo;
 
 
@@ -40,7 +39,6 @@ public class NonSyncingIterator implements Iterator<IModelObject>
   public IModelObject next()
   {
     IModelObject object = (IModelObject)fifo.pop();
-    if ( object instanceof Reference) object = Reference.getReferent( object);
     if ( !object.isDirty())
     {
       Iterator<IModelObject> iter = object.getChildren().iterator();

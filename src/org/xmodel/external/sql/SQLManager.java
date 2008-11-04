@@ -1,4 +1,4 @@
-package org.xmodel.external.caching;
+package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

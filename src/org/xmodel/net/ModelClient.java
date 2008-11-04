@@ -578,7 +578,7 @@ public class ModelClient extends RobustSession
    */
   protected void send( IModelObject message)
   {
-    if ( !message.isType( "beat"))
+    if ( false && !message.isType( "beat"))
     {
       System.out.println( "____________________________________");
       System.out.println( "CLIENT SENT: \n"+((ModelObject)message).toXml());
@@ -815,7 +815,7 @@ public class ModelClient extends RobustSession
         while( !exit)
         {
           IModelObject message = decompressor.decompress( stream);
-          if ( !message.isType( "beat"))
+          if ( false && !message.isType( "beat"))
           {
             System.out.println( "____________________________________");
             System.out.println( "CLIENT RECEIVED: \n"+((ModelObject)message).toXml());
