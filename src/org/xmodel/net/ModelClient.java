@@ -241,6 +241,19 @@ public class ModelClient extends RobustSession
   }
   
   /**
+   * Send various client-defined debugging parameters.
+   */
+  public void sendDebugParameters( String fileFilter, String rootFilter)
+  {
+    ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
+    message.setAttribute( "action", "setParameters");
+    
+    Xlate.childSet( message, "fileFilter", fileFilter);
+    Xlate.childSet( message, "rootFilter", rootFilter);
+    send( message);
+  }
+  
+  /**
    * Send a debug request to get the current set of threads.
    */
   public void sendDebugGetThreads()

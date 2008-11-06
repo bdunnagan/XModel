@@ -467,12 +467,13 @@ public class ModelServer extends Server
           element = ModelAlgorithms.dereference( element);
           
           // create source path and locus
-          IModelObject fileElement = fileElementExpr.queryFirst( element);
-          if ( fileElement != null)
+          IModelObject fileElement = fileFilter.queryFirst( element);
+          IModelObject scriptElement = scriptFilter.queryFirst( element);
+          if ( fileElement != null && scriptElement != null)
           {
-            String sourcePath = getURLPath( Xlate.get( fileElement, "url", ""));
+            String sourcePath = getURLPath( Xlate.get( fileElement, ""));
             frameNode.setAttribute( "path", sourcePath);
-            IPath actionPath = ModelAlgorithms.createRelativePath( fileElement, element);
+            IPath actionPath = ModelAlgorithms.createRelativePath( scriptElement, element);
             frameNode.setAttribute( "locus", actionPath.toString());
           }
         }
@@ -849,10 +850,25 @@ public class ModelServer extends Server
     {
       handleDebugRemoveBreakpoint( session, message);
     }
+    else if ( action.equals( "setParameters"))
+    {
+      handleDebugSetParameters( session, message);
+    }
     else if ( action.equals( "getThreads"))
     {
       handleDebugGetThreads( session, message);
     }
+  }
+  
+  /**
+   * Handle a debug set parameters request.
+   * @param session The session.
+   * @param message The message.
+   */
+  private void handleDebugSetParameters( ISession session, IModelObject message)
+  {
+    fileFilter = Xlate.childGet( message, "fileFilter", (IExpression)null);
+    scriptFilter = Xlate.childGet( message, "rootFilter", (IExpression)null);
   }
   
   /**
@@ -1233,9 +1249,6 @@ public class ModelServer extends Server
     Set<IModelObject> listenees;
   }
 
-  private IExpression fileElementExpr = XPath.createExpression(
-    "ancestor-or-self::*[ @url]");
-  
   private final static int maxQueryCount = 3000;
   private final static int maxInsertCount = 3000;
   
@@ -1244,4 +1257,6 @@ public class ModelServer extends Server
   private Map<Long, SessionState> states;
   private Map<String, IModelObject> netIDs;
   private GlobalDebugger debugger;
+  private IExpression fileFilter;
+  private IExpression scriptFilter;
 }
