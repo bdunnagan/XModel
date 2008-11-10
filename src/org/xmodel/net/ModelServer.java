@@ -20,7 +20,6 @@ import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
-import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
@@ -1179,7 +1178,7 @@ public class ModelServer extends Server
 
         System.out.println( "Session closed: "+session.getSessionNumber());
       }
-      catch( CompressorException e)
+      catch( Exception e)
       {
         session.close();
       }

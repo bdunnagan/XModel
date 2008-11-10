@@ -189,12 +189,7 @@ public class RobustSession implements ISession
       {
         return count;
       }
-      else if ( count == 0)
-      {
-        // precaution against possible busy wait
-        try { Thread.sleep( 100);} catch( Exception e2) {}
-      }
-      else if ( count == -1)
+      else
       {
         try { Thread.sleep( 3000);} catch( Exception e2) {}
         if ( !exit && !waitForConnection()) return -1;

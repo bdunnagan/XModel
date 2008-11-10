@@ -79,6 +79,7 @@ public abstract class AbstractSession implements ISession
     {
       int count =  input.read( buffer);
       //System.err.printf( "read %d\n", count);
+      if ( count < 1) notifyDisconnect();
       return count;
     }
     catch( IOException e)
@@ -101,6 +102,7 @@ public abstract class AbstractSession implements ISession
     {
       int count =  input.read( buffer, offset, length);
       //System.err.printf( "read %d\n", count);
+      if ( count < 1) notifyDisconnect();
       return count;
     }
     catch( IOException e)

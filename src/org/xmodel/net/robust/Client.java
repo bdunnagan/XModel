@@ -58,6 +58,7 @@ public class Client extends AbstractSession
   public void open()
   {
     if ( open) return;
+    open = true;
     notifyOpen();
     connect();
   }
@@ -73,8 +74,19 @@ public class Client extends AbstractSession
     try
     {
       exit = true;
-      if ( thread != null) { thread.interrupt(); thread.join(); }
-      if ( socket != null) socket.close();
+      
+      if ( thread != null) 
+      { 
+        thread.interrupt(); 
+        thread.join(); 
+      }
+      
+      if ( socket != null) 
+      {
+        socket.shutdownInput();
+        socket.shutdownOutput();
+        socket.close();
+      }
       
       // notify
       notifyClose();
@@ -176,7 +188,6 @@ public class Client extends AbstractSession
           stream.writeLong( sid);
           stream.flush();
           
-          open = true;
           notifyConnect();
           
           return;
