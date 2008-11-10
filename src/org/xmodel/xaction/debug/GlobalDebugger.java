@@ -68,6 +68,10 @@ public class GlobalDebugger implements IDebugger
    */
   public void resume()
   {
+    // set suspend flag for newly discovered threads
+    suspend = false;
+    
+    // resume already discovered threads
     for( IDebugger debugger: getTargetDebuggers())
       debugger.resume();
   }
@@ -77,6 +81,10 @@ public class GlobalDebugger implements IDebugger
    */
   public void suspend()
   {
+    // set suspend flag to suspend newly discovered threads
+    suspend = true;
+    
+    // suspend already discovered threads
     for( IDebugger debugger: getTargetDebuggers())
       debugger.suspend();
   }
@@ -156,6 +164,9 @@ public class GlobalDebugger implements IDebugger
     {
       debugger = new Debugger( threadID, thread.getName(), server);
       debuggers.put( threadID, debugger);
+      
+      // suspend newly discovered thread if globally suspended
+      if ( suspend) debugger.suspend();
     }
     return debugger;
   }
@@ -164,4 +175,5 @@ public class GlobalDebugger implements IDebugger
   
   private ModelServer server;
   private String threadID;
+  private boolean suspend;
 }
