@@ -83,6 +83,7 @@ public class Debugger implements IDebugger
    */
   protected void block( String action)
   {
+    blocked = true;
     server.sendDebugMessage( threadID, threadName, "suspended", action, stack);
     try { lock.acquire();} catch( InterruptedException e) {}
   }
@@ -108,9 +109,16 @@ public class Debugger implements IDebugger
    */
   public void resume()
   {
-    synchronized( this) { step = Step.RESUME;}
-    server.sendDebugMessage( threadID, threadName, "resumed", "request", null);
-    lock.release();
+    if ( blocked)
+    {
+      synchronized( this) { step = Step.RESUME;}
+    
+      // ignore exceptions during resume in case the socket has already been closed
+      try { server.sendDebugMessage( threadID, threadName, "resumed", "request", null);} catch( Exception e) {}
+    
+      lock.release();
+      blocked = false;
+    }
   }
   
   /* (non-Javadoc)
@@ -247,4 +255,5 @@ public class Debugger implements IDebugger
   private Step step;
   private boolean steppedOver;
   private int stepFrame;
+  private boolean blocked;
 }
