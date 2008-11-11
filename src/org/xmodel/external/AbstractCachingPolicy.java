@@ -5,8 +5,6 @@
  */
 package org.xmodel.external;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -543,64 +541,13 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     IModel model = ModelRegistry.getInstance().getModel();
     boolean syncLock = model.getSyncLock();
     model.setSyncLock( true);
+
     try
     {
-      StringBuilder sb = new StringBuilder();
-      
-      if ( traversed)
-      {
-        sb.append( indent); sb.append( getClass().getSimpleName()); sb.append( "\n");
-        return sb.toString();
-      }
-      traversed = true;
-
-      // add class name
-      sb.append( indent); sb.append( getClass().getSimpleName());
-      if ( (dynamicStages != null && dynamicStages.size() > 0) || (staticStages != null && staticStages.size() > 0))
-        sb.append( "\n"); sb.append( indent); sb.append( "{\n");
-  
-      String nextIndent = indent + "  ";
-      
-      // add stages
-      if ( dynamicStages != null)
-        for( NextStage stage: dynamicStages)
-        {
-          sb.append( nextIndent); sb.append( stage.dirty); sb.append( ", "); sb.append( stage.path); sb.append( "\n");
-          if ( stage.cachingPolicy != null) sb.append( stage.cachingPolicy.toString( nextIndent));
-        }
-      
-      // add static stages
-      XmlIO xmlIO = new XmlIO() {
-        protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
-        {
-          super.output( indent, root, stream);
-          
-          StringBuilder sb = new StringBuilder();
-          for( int i=0; i<indent; i++) sb.append( ' ');
-          sb.append( "# ");
-          if ( root instanceof IExternalReference)
-          {
-            ICachingPolicy cachingPolicy = ((IExternalReference)root).getCachingPolicy();
-            stream.write( cachingPolicy.toString( sb.toString()).getBytes());
-          }
-        }
-      };
-      
-      if ( staticStages != null)
-        for( IModelObject stage: staticStages)
-        {
-          sb.append( xmlIO.write( indent.length()+2, stage));
-          sb.append( "\n");
-        }
-      
-      if ( (dynamicStages != null && dynamicStages.size() > 0) || (staticStages != null && staticStages.size() > 0))
-        sb.append( indent); sb.append( "}\n");
-        
-      return sb.toString();
+      return getClass().getSimpleName();
     }
     finally
     {
-      traversed = false;
       model.setSyncLock( syncLock);
     }
   }
@@ -631,5 +578,4 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   private List<NextStage> dynamicStages;
   private List<IModelObject> staticStages;
   private IModelObjectFactory factory;
-  private boolean traversed; // debug
 }

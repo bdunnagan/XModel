@@ -5,12 +5,12 @@ import java.util.Stack;
 import java.util.Vector;
 import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
+import org.xmodel.IPath;
+import org.xmodel.Reference;
 import org.xmodel.net.ModelServer;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -176,24 +176,22 @@ public class Debugger implements IDebugger
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String, java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String)
    */
-  public void createBreakpoint( String path, String expression)
+  public void createBreakpoint( String path)
   {
     Breakpoint breakpoint = new Breakpoint();
-    breakpoint.path = path;
-    breakpoint.expression = XPath.createExpression( expression);
+    breakpoint.path = XPath.createPath( path);
     breakpoints.add( breakpoint);    
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String, java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String)
    */
-  public void removeBreakpoint( String path, String expression)
+  public void removeBreakpoint( String path)
   {
     Breakpoint breakpoint = new Breakpoint();
-    breakpoint.path = path;
-    breakpoint.expression = XPath.createExpression( expression);
+    breakpoint.path = XPath.createPath( path);
     breakpoints.remove( breakpoint);    
   }
   
@@ -216,20 +214,18 @@ public class Debugger implements IDebugger
    */
   protected boolean isBreakpoint( Breakpoint breakpoint, IXAction action)
   {
-    IModelObject root = action.getDocument().getRoot();
-    if ( root == null) return false;
+    IModelObject element = action.getDocument().getRoot();
+    if ( element == null) return false;
+
+    // assume that the breakpoint path is absolute, so we should xpath from the root tag
+    IModelObject ancestor = element;
+    for( int i=1; i<breakpoint.path.length(); i++)
+      ancestor = ancestor.getParent();
     
-    IModelObject ancestor = sourcePathExpr.queryFirst( root);
-    if ( ancestor == null) return false;
-    
-    String path = Xlate.get( ancestor, "url", "");
-    if ( path.endsWith( breakpoint.path))
-    {
-      IModelObject locus = breakpoint.expression.queryFirst( ancestor);
-      return locus == root;
-    }
-    
-    return false;
+    // create reference to isolate ancestor subtree for xpathing
+    Reference root = new Reference( ancestor);
+    IModelObject leaf = breakpoint.path.queryFirst( root);
+    return leaf == element;
   }
   
   private class Breakpoint
@@ -241,16 +237,12 @@ public class Debugger implements IDebugger
     public boolean equals( Object object)
     {
       Breakpoint other = (Breakpoint)object;
-      return other.path.equals( path) && other.expression.toString().equals( expression.toString());
+      return other.path.toString().equals( path.toString());
     }
     
-    String path;
-    IExpression expression;
+    IPath path;
   }
 
-  private final IExpression sourcePathExpr = XPath.createExpression(
-    "ancestor-or-self::*[ @url]");
-  
   private enum Step { RESUME, SUSPEND, STEP_INTO, STEP_OVER, STEP_RETURN};
   
   private String threadID;

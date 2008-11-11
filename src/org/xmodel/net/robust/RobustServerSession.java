@@ -56,7 +56,23 @@ public class RobustServerSession extends RobustSession implements IServerSession
     ((ServerSession)getDelegate()).initialize( newSocket);
   }
   
-  private final ISession.Listener handler = new ISession.Listener() {
+  /* (non-Javadoc)
+   * @see org.xmodel.net.robust.IServerSession#setReconnected(boolean)
+   */
+  public void setReconnected( boolean reconnected)
+  {
+    ((ServerSession)getDelegate()).setReconnected( true);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.robust.ISession#isReconnected()
+   */
+  public boolean isReconnected()
+  {
+    return ((ServerSession)getDelegate()).isReconnected();
+  }
+
+  private final ISession.IListener handler = new ISession.IListener() {
     public void notifyOpen( ISession session)
     {
     }

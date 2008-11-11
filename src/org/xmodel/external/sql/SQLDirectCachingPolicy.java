@@ -241,7 +241,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       
       try
       {
-        Class clss = SQLDirectCachingPolicy.class.getClassLoader().loadClass( "org.xmodel.external.caching."+className);
+        Class clss = SQLDirectCachingPolicy.class.getClassLoader().loadClass( className);
         sqlManager = (SQLManager)clss.newInstance();
         sqlManager.configure( sqlManagerNode);
         sqlManagerNode.setAttribute( "instance", sqlManager);

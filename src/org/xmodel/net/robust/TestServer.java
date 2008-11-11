@@ -17,7 +17,7 @@ public class TestServer
   {
     Server server = new Server();
 
-    final ISession.Listener handler = new ISession.Listener() {
+    final ISession.IListener handler = new ISession.IListener() {
       public void notifyOpen( ISession session)
       {
         System.out.printf( "OPENED: %X\n", session.getSessionNumber());

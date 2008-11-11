@@ -179,7 +179,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     throw new CachingException( "Flush operation is not supported.");
   }
   
-  private final ISession.Listener listener = new ISession.Listener() {
+  private final ISession.IListener listener = new ISession.IListener() {
     public void notifyOpen( ISession session)
     {
       AsyncRunnable runnable = new AsyncRunnable();

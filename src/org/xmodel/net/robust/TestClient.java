@@ -15,7 +15,7 @@ public class TestClient
     ISession session = new Client( "127.0.0.1", 10000);
     session = new RobustSession( session, 1);
     
-    session.addListener( new ISession.Listener() {
+    session.addListener( new ISession.IListener() {
       public void notifyOpen( ISession session)
       {
         System.out.printf( "OPENED: %X\n", session.getSessionNumber());

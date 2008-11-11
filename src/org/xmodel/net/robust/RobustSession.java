@@ -105,9 +105,17 @@ public class RobustSession implements ISession
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.net.robust.ISession#isReconnected()
+   */
+  public boolean isReconnected()
+  {
+    return session.isReconnected();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.ISession#addHandler(org.xmodel.net.ISession.Handler)
    */
-  public void addListener( Listener listener)
+  public void addListener( IListener listener)
   {
     session.addListener( listener);
   }
@@ -115,7 +123,7 @@ public class RobustSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#removeHandler(org.xmodel.net.ISession.Handler)
    */
-  public void removeListener( Listener listener)
+  public void removeListener( IListener listener)
   {
     session.removeListener( listener);
   }
@@ -123,7 +131,7 @@ public class RobustSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#getHandlers()
    */
-  public List<Listener> getHandlers()
+  public List<IListener> getHandlers()
   {
     return session.getHandlers();
   }
@@ -181,7 +189,6 @@ public class RobustSession implements ISession
   public int read( byte[] buffer, int offset, int length)
   {
     if ( !connected) exit = !waitForConnection();
-
     while( !exit)
     {
       int count = session.read( buffer, offset, length);
@@ -305,7 +312,7 @@ public class RobustSession implements ISession
     }
   };
   
-  private final ISession.Listener handler = new ISession.Listener() {
+  private final ISession.IListener handler = new ISession.IListener() {
     public void notifyOpen( ISession session)
     {
       exit = false;

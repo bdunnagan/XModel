@@ -29,4 +29,10 @@ public interface IServerSession extends ISession
    * @param newSocket The new socket.
    */
   public void initialize( Socket newSocket) throws IOException;
+  
+  /**
+   * Set the reconnected flag.
+   * @param reconnected True if the session has been reconnected.
+   */
+  public void setReconnected( boolean reconnected);
 }

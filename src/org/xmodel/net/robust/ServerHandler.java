@@ -17,7 +17,7 @@ public abstract class ServerHandler implements Server.Listener
    * Create a ServerHandler which will install the specified session handler on all sessions.
    * @param sessionListener The session handler.
    */
-  public ServerHandler( ISession.Listener sessionListener)
+  public ServerHandler( ISession.IListener sessionListener)
   {
     this.sessionListener = sessionListener;
   }
@@ -60,5 +60,5 @@ public abstract class ServerHandler implements Server.Listener
   }
   
   private Thread thread;
-  private ISession.Listener sessionListener;
+  private ISession.IListener sessionListener;
 }

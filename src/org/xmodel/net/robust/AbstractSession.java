@@ -20,7 +20,7 @@ public abstract class AbstractSession implements ISession
 {
   protected AbstractSession()
   {
-    handlers = new ArrayList<Listener>();
+    handlers = new ArrayList<IListener>();
   }
   
   /* (non-Javadoc)
@@ -46,7 +46,7 @@ public abstract class AbstractSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#addHandler(org.xmodel.net.ISession.Handler)
    */
-  public void addListener( Listener listener)
+  public void addListener( IListener listener)
   {
     if ( !handlers.contains( listener)) handlers.add( listener);
   }
@@ -54,7 +54,7 @@ public abstract class AbstractSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#removeHandler(org.xmodel.net.ISession.Handler)
    */
-  public void removeListener( Listener listener)
+  public void removeListener( IListener listener)
   {
     handlers.remove( listener);
   }
@@ -62,7 +62,7 @@ public abstract class AbstractSession implements ISession
   /* (non-Javadoc)
    * @see org.xmodel.net.ISession#getHandlers()
    */
-  public List<Listener> getHandlers()
+  public List<IListener> getHandlers()
   {
     return handlers;
   }
@@ -210,8 +210,8 @@ public abstract class AbstractSession implements ISession
    */
   protected void notifyOpen()
   {
-    Listener[] handlers = this.handlers.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.handlers.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -229,8 +229,8 @@ public abstract class AbstractSession implements ISession
    */
   protected void notifyClose()
   {
-    Listener[] handlers = this.handlers.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.handlers.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -248,8 +248,8 @@ public abstract class AbstractSession implements ISession
    */
   protected void notifyConnect()
   {
-    Listener[] handlers = this.handlers.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.handlers.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -267,8 +267,8 @@ public abstract class AbstractSession implements ISession
    */
   protected void notifyDisconnect()
   {
-    Listener[] handlers = this.handlers.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.handlers.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -281,7 +281,7 @@ public abstract class AbstractSession implements ISession
     }
   }
   
-  private List<Listener> handlers;
+  private List<IListener> handlers;
   private StreamFactory factory;
   private InputStream sessionIn;
   private OutputStream sessionOut;

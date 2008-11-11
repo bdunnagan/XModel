@@ -22,7 +22,7 @@ public class ServerSession extends AbstractSession implements IServerSession
     this.server = server;
     this.address = address;
     this.sid = sid;
-    this.timeout = 30000;
+    this.timeout = 10000;
 
     // set default socket flags
     settings = new SocketSettings();
@@ -98,6 +98,22 @@ public class ServerSession extends AbstractSession implements IServerSession
   public boolean isOpen()
   {
     return open;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.robust.ISession#isReconnected()
+   */
+  public boolean isReconnected()
+  {
+    return reconnected;
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.net.robust.IServerSession#setReconnected(boolean)
+   */
+  public void setReconnected( boolean reconnected)
+  {
+    this.reconnected = reconnected;
   }
 
   /* (non-Javadoc)
@@ -203,6 +219,7 @@ public class ServerSession extends AbstractSession implements IServerSession
   private InputStream input;
   private OutputStream output;
   private boolean open;
+  private boolean reconnected;
   private TimeoutTask task;
   private int timeout;
 }

@@ -160,6 +160,10 @@ public class Server
       sessions.put( id, session);
       session.open();
     }
+    else
+    {
+      session.setReconnected( true);
+    }
     return session;
   }
   
@@ -239,7 +243,10 @@ public class Server
           IServerSession session = getCreateSession( new InetSocketAddress( address, port), sid);
           notifySession( session);
           
-          // establish session
+          // send reconnected flag
+          socket.getOutputStream().write( session.isReconnected()? 1: 0);
+          
+          // establish session (notify connection)
           session.initialize( socket);
         }
         catch( SocketException e)

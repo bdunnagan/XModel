@@ -125,21 +125,21 @@ public class GlobalDebugger implements IDebugger
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String, java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String)
    */
-  public void createBreakpoint( String path, String expression)
+  public void createBreakpoint( String path)
   {
     for( IDebugger debugger: getTargetDebuggers())
-      debugger.createBreakpoint( path, expression);
+      debugger.createBreakpoint( path);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String, java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String)
    */
-  public void removeBreakpoint( String path, String expression)
+  public void removeBreakpoint( String path)
   {
     for( IDebugger debugger: getTargetDebuggers())
-      debugger.removeBreakpoint( path, expression);
+      debugger.removeBreakpoint( path);
   }
   
   /**

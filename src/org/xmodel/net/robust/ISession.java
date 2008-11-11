@@ -36,19 +36,19 @@ public interface ISession
    * Add a handler.
    * @param listener The handler.
    */
-  public void addListener( Listener listener);
+  public void addListener( IListener listener);
   
   /**
    * Remove a handler.
    * @param listener The handler.
    */
-  public void removeListener( Listener listener);
+  public void removeListener( IListener listener);
   
   /**
    * Returns the handler list.
    * @return Returns the handler list.
    */
-  public List<Listener> getHandlers();
+  public List<IListener> getHandlers();
 
   /**
    * Returns the remote address.
@@ -71,6 +71,12 @@ public interface ISession
    * @return Returns true if the session is open.
    */
   public boolean isOpen();
+  
+  /**
+   * Returns true if this session has been successfully reconnected.
+   * @return Returns true if this session has been successfully reconnected.
+   */
+  public boolean isReconnected();
   
   /**
    * Close the underlying socket and force the session to reestablish. This method
@@ -154,7 +160,7 @@ public interface ISession
   /**
    * An interface for handling messages from the remote peer.
    */
-  public static interface Listener
+  public static interface IListener
   {
     /**
      * Called when the session is opened.

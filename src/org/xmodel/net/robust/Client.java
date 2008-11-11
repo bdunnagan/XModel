@@ -110,6 +110,14 @@ public class Client extends AbstractSession
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.net.robust.ISession#isReconnected()
+   */
+  public boolean isReconnected()
+  {
+    return reconnected;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.ISession#blink()
    */
   public void bounce()
@@ -184,9 +192,13 @@ public class Client extends AbstractSession
           }
 
           // send session number
-          DataOutputStream stream = new DataOutputStream( output);
-          stream.writeLong( sid);
-          stream.flush();
+          DataOutputStream dataOut = new DataOutputStream( output);
+          dataOut.writeLong( sid);
+          dataOut.flush();
+          
+          // read reconnection flag
+          int flag = input.read();
+          reconnected = (flag > 0);
           
           notifyConnect();
           
@@ -215,4 +227,5 @@ public class Client extends AbstractSession
   private Thread thread;
   private boolean open;
   private boolean exit;
+  private boolean reconnected;
 }

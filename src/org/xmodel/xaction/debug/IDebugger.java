@@ -56,18 +56,16 @@ public interface IDebugger
   public void stepReturn();
   
   /**
-   * Create a breakpoint on the specified file at the specified document locus.
-   * @param path The fully-qualified path of the file.
-   * @param expression The expression giving the document locus.
+   * Create a breakpoint on the specified action path.
+   * @param path The identity path of the action.
    */
-  public void createBreakpoint( String path, String expression);
+  public void createBreakpoint( String path);
   
   /**
-   * Clear the breakpoint on the specified file at the specified document locus.
-   * @param path The fully-qualified path of the file.
-   * @param expression The expression giving the document locus.
+   * Clear the breakpoint on the specified action path.
+   * @param path The identity path of the action.
    */
-  public void removeBreakpoint( String path, String expression);
+  public void removeBreakpoint( String path);
   
   /**
    * Returns the value of the variable in the specified stack frame.

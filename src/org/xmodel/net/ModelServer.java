@@ -944,8 +944,7 @@ public class ModelServer extends Server
   private void handleDebugCreateBreakpoint( ISession session, IModelObject message)
   {
     String path = Xlate.get( message, "path", (String)null);
-    String expression = Xlate.get( message, "expression", (String)null);
-    debugger.createBreakpoint( path, expression);
+    debugger.createBreakpoint( path);
   }
   
   /**
@@ -956,8 +955,7 @@ public class ModelServer extends Server
   private void handleDebugRemoveBreakpoint( ISession session, IModelObject message)
   {
     String path = Xlate.get( message, "path", (String)null);
-    String expression = Xlate.get( message, "expression", (String)null);
-    debugger.removeBreakpoint( path, expression);
+    debugger.removeBreakpoint( path);
   }
     
   /**
@@ -1111,7 +1109,7 @@ public class ModelServer extends Server
   /**
    * The session listener.
    */
-  private final ISession.Listener listener = new ISession.Listener() {
+  private final ISession.IListener listener = new ISession.IListener() {
     public void notifyOpen( ISession session)
     {
     }
@@ -1131,6 +1129,9 @@ public class ModelServer extends Server
     public void notifyDisconnect( ISession session)
     {
       System.out.println( "Session disconnected: "+session.getShortSessionID());
+      
+      // resume debugger
+      debugger.resume();
     }
   };
 

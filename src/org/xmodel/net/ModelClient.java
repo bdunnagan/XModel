@@ -288,30 +288,26 @@ public class ModelClient extends RobustSession
   }
   
   /**
-   * Send a create breakpoint request for the specified file and xpath expression.
-   * @param path The path of the file.
-   * @param expression The expression of the breakpoint within the file.
+   * Send a create breakpoint request for the specified action path.
+   * @param path The path of the action.
    */
-  public void sendDebugCreateBreakpoint( String path, String expression)
+  public void sendDebugCreateBreakpoint( String path)
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
     message.setAttribute( "action", "createBreakpoint");
     Xlate.set( message, "path", path);
-    Xlate.set( message, "expression", expression);
     send( message);
   }
   
   /**
-   * Send a remove breakpoint request for the specified file and xpath expression.
-   * @param path The path of the file.
-   * @param expression The expression of the breakpoint within the file.
+   * Send a remove breakpoint request for the specified action path.
+   * @param path The path of the action.
    */
-  public void sendDebugRemoveBreakpoint( String path, String expression)
+  public void sendDebugRemoveBreakpoint( String path)
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
     message.setAttribute( "action", "removeBreakpoint");
     Xlate.set( message, "path", path);
-    Xlate.set( message, "expression", expression);
     send( message);
   }
   
@@ -789,7 +785,7 @@ public class ModelClient extends RobustSession
   /**
    * Client session listener.
    */
-  private final Listener listener = new ISession.Listener() {
+  private final IListener listener = new ISession.IListener() {
     public void notifyOpen( ISession session)
     {
     }
