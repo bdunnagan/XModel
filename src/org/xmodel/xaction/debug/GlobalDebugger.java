@@ -3,9 +3,13 @@ package org.xmodel.xaction.debug;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Vector;
+import org.xmodel.IPath;
 import org.xmodel.net.ModelServer;
 import org.xmodel.util.Radix;
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -18,6 +22,7 @@ public class GlobalDebugger implements IDebugger
   public GlobalDebugger( ModelServer server)
   {
     this.server = server;
+    this.breakpoints = new Vector<Breakpoint>();    
   }
   
   /* (non-Javadoc)
@@ -130,8 +135,10 @@ public class GlobalDebugger implements IDebugger
    */
   public void createBreakpoint( String file, String path)
   {
-    for( IDebugger debugger: getTargetDebuggers())
-      debugger.createBreakpoint( file, path);
+    Breakpoint breakpoint = new Breakpoint();
+    breakpoint.file = file;
+    breakpoint.path = XPath.createPath( path);
+    breakpoints.add( breakpoint);    
   }
 
   /* (non-Javadoc)
@@ -139,8 +146,10 @@ public class GlobalDebugger implements IDebugger
    */
   public void removeBreakpoint( String file, String path)
   {
-    for( IDebugger debugger: getTargetDebuggers())
-      debugger.removeBreakpoint( file, path);
+    Breakpoint breakpoint = new Breakpoint();
+    breakpoint.file = file;
+    breakpoint.path = XPath.createPath( path);
+    breakpoints.remove( breakpoint);    
   }
 
   /* (non-Javadoc)
@@ -168,6 +177,15 @@ public class GlobalDebugger implements IDebugger
   public IExpression getScriptFilter()
   {
     return scriptFilter;
+  }
+  
+  /**
+   * Returns the list of breakpoints.
+   * @return Returns the list of breakpoints.
+   */
+  public List<Breakpoint> getBreakpoints()
+  {
+    return breakpoints;
   }
   
   /**
@@ -207,11 +225,28 @@ public class GlobalDebugger implements IDebugger
     return debugger;
   }
   
+  public class Breakpoint
+  {
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals( Object object)
+    {
+      Breakpoint other = (Breakpoint)object;
+      return other.file.equals( file) && other.path.toString().equals( path.toString());
+    }
+    
+    String file;
+    IPath path;
+  }
+
   private static Hashtable<String, IDebugger> debuggers = new Hashtable<String, IDebugger>();
   
   private ModelServer server;
   private String threadID;
   private boolean suspend;
+  private List<Breakpoint> breakpoints;
   private IExpression fileFilter;
   private IExpression scriptFilter;
 }
