@@ -1,5 +1,6 @@
 package org.xmodel.xaction.debug;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -138,7 +139,7 @@ public class GlobalDebugger implements IDebugger
     Breakpoint breakpoint = new Breakpoint();
     breakpoint.file = file;
     breakpoint.path = XPath.createPath( path);
-    breakpoints.add( breakpoint);    
+    synchronized( breakpoints) { breakpoints.add( breakpoint);}
   }
 
   /* (non-Javadoc)
@@ -149,7 +150,7 @@ public class GlobalDebugger implements IDebugger
     Breakpoint breakpoint = new Breakpoint();
     breakpoint.file = file;
     breakpoint.path = XPath.createPath( path);
-    breakpoints.remove( breakpoint);    
+    synchronized( breakpoints) { breakpoints.remove( breakpoint);}
   }
 
   /* (non-Javadoc)
@@ -185,7 +186,7 @@ public class GlobalDebugger implements IDebugger
    */
   public List<Breakpoint> getBreakpoints()
   {
-    return breakpoints;
+    synchronized( breakpoints) { return new ArrayList<Breakpoint>( breakpoints); }
   }
   
   /**
