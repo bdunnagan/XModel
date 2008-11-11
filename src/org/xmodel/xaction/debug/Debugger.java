@@ -109,6 +109,11 @@ public class Debugger implements IDebugger
   {
     pending = stack.peek();
     server.sendDebugMessage( threadID, threadName, "suspended", action, stack);
+    
+    // drain permits after sending status to insure synchronization
+    lock.drainPermits();
+    
+    // block
     try { lock.acquire();} catch( InterruptedException e) {}
   }
   
