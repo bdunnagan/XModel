@@ -233,31 +233,31 @@ public class Debugger implements IDebugger
    */
   protected boolean isBreakpoint( Breakpoint breakpoint, IXAction action)
   {
-    IModelObject element = action.getDocument().getRoot();
-    if ( element == null) return false;
-
-    String spec = fileFilter.evaluateString( new Context( element));
-    if ( spec.length() == 0) return false;
-    
-    IModelObject root = scriptFilter.queryFirst( element);
-    if ( root == null) return false;
-    
-    // verify file name
     try
     {
+      IModelObject element = action.getDocument().getRoot();
+      if ( element == null) return false;
+  
+      String spec = fileFilter.evaluateString( new Context( element));
+      if ( spec.length() == 0) return false;
+      
+      IModelObject root = scriptFilter.queryFirst( element);
+      if ( root == null) return false;
+    
+      // verify file name
       URL url = new URL( spec);
       File filePath = new File( url.getPath());
       String fileName = filePath.getName();
       if ( !breakpoint.file.equals( fileName)) return false;
+    
+      // verify locus
+      IModelObject leaf = breakpoint.path.queryFirst( root);
+      return leaf == element;
     }
     catch( Exception e)
     {
       return false;
     }
-    
-    // verify locus
-    IModelObject leaf = breakpoint.path.queryFirst( root);
-    return leaf == element;
   }
   
   private class Breakpoint
