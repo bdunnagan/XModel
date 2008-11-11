@@ -13,7 +13,7 @@ import org.xmodel.util.Radix;
 /**
  * A Client which uses a compressed XML message schema.
  */
-public class XmlClient extends Client
+public abstract class XmlClient extends Client
 {
   public XmlClient( String host, int port)
   {
@@ -45,9 +45,7 @@ public class XmlClient extends Client
   }
 
   /**
-   * Add a receiver to the host. The receiver will began receiving messages at the next 
-   * available opportunity. Only one receiver may be registered for each type. This method
-   * cannot be called after the client is connected.
+   * Register a receiver for a specific message type.
    * @param type The element name of the message root element.
    * @param receiver The receiver that will handle messages received by the host.
    */
@@ -84,7 +82,7 @@ public class XmlClient extends Client
    * @param timeout The timeout (0 means forever).
    * @return Returns the response.
    */
-  protected IModelObject sendAndWait( IModelObject message, int timeout) throws TimeoutException, InterruptedException
+  public IModelObject sendAndWait( IModelObject message, int timeout) throws TimeoutException, InterruptedException
   {
     waitingID = Radix.convert( mid++, 36);
     message.setID( waitingID);
@@ -127,13 +125,13 @@ public class XmlClient extends Client
   }
 
   /**
-   * A MessageLoop for the client.
+   * A client session message loop.
    */
   public class ClientMessageLoop extends MessageLoop
   {
     public ClientMessageLoop()
     {
-      super( "Client Message Loop", XmlClient.this);
+      super( "Message Loop ("+Radix.convert( getSessionNumber(), 36)+")", XmlClient.this);
     }
     
     /* (non-Javadoc)

@@ -18,14 +18,14 @@ public class Server
   public Server()
   {
     sessions = Collections.synchronizedMap( new HashMap<String, IServerSession>());
-    listeners = new ArrayList<Listener>();
+    listeners = new ArrayList<IListener>();
   }
 
   /**
    * Add a handler for server notifications.
    * @param handler The handler.
    */
-  public void addHandler( Listener handler)
+  public void addHandler( IListener handler)
   {
     if ( !listeners.contains( handler)) listeners.add( handler);
   }
@@ -34,7 +34,7 @@ public class Server
    * Remove a handler.
    * @param handler The handler.
    */
-  public void removeHandler( Listener handler)
+  public void removeHandler( IListener handler)
   {
     listeners.remove( handler);
   }
@@ -192,8 +192,8 @@ public class Server
    */
   private void notifySession( IServerSession session)
   {
-    Listener[] handlers = this.listeners.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.listeners.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -211,8 +211,8 @@ public class Server
    */
   private void notifyIdle()
   {
-    Listener[] handlers = this.listeners.toArray( new Listener[ 0]);
-    for( Listener handler: handlers)
+    IListener[] handlers = this.listeners.toArray( new IListener[ 0]);
+    for( IListener handler: handlers)
     {
       try
       {
@@ -275,7 +275,7 @@ public class Server
     public IServerSession createSession( Server server, InetSocketAddress address, long sid);
   }
   
-  public static interface Listener
+  public static interface IListener
   {
     /**
      * Called when a new session is accepted.
@@ -291,7 +291,7 @@ public class Server
   
   private Thread serverThread;
   private ServerSocket serverSocket;
-  private List<Listener> listeners;
+  private List<IListener> listeners;
   private SessionFactory sessionFactory;
   private StreamFactory streamFactory;
   private Map<String, IServerSession> sessions;

@@ -11,8 +11,13 @@ package org.xmodel.net.robust;
  * and calls the <code>run</code> method which can perform an infinite loop handling session
  * requests.  
  */
-public abstract class ServerHandler implements Server.Listener
+public abstract class ServerHandler implements Server.IListener
 {
+  public ServerHandler()
+  {
+    this( null);
+  }
+  
   /**
    * Create a ServerHandler which will install the specified session handler on all sessions.
    * @param sessionListener The session handler.

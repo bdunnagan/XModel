@@ -161,7 +161,7 @@ public class Radix
   private final static char[] radixChars = createRadixChars();
   
   public static void main( String[] args) throws Exception
-  {
+  {    
     BufferedReader in = new BufferedReader( new InputStreamReader( System.in));
     while( true)
     {
