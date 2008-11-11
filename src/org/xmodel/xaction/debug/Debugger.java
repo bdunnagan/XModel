@@ -220,7 +220,10 @@ public class Debugger implements IDebugger
     // assume that the breakpoint path is absolute, so we should xpath from the root tag
     IModelObject ancestor = element;
     for( int i=1; i<breakpoint.path.length(); i++)
+    {
       ancestor = ancestor.getParent();
+      if ( ancestor == null) return false;
+    }
     
     // create reference to isolate ancestor subtree for xpathing
     Reference root = new Reference( ancestor);
