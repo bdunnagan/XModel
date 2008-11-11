@@ -19,6 +19,13 @@ public interface IDebugger
   public Frame pop();
 
   /**
+   * Called by a script to force the debugger to insert an extra step after
+   * the next call to <code>pop</code>.  This method gives the client an 
+   * opportunity to examine state after the last action in a script runs.
+   */
+  public void scriptEnding();
+  
+  /**
    * Send a debug report message (used to obtain the list of running threads).
    */
   public void report();
@@ -72,6 +79,7 @@ public interface IDebugger
   
   public class Frame
   {
+    public Frame parent;
     public IContext context;
     public IXAction action;
   }

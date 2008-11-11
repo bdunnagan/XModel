@@ -34,8 +34,11 @@ public class Debugger implements IDebugger
    */
   public void push( IContext context, IXAction action)
   {
+    Frame parent = stack.isEmpty()? null: stack.peek();
+    
     // update stack
     Frame frame = new Frame();
+    frame.parent = parent;
     frame.context = context;
     frame.action = action;
     stack.push( frame);
@@ -44,9 +47,22 @@ public class Debugger implements IDebugger
     Step step = null;
     synchronized( this) { step = this.step;}
     
-    if ( step == Step.SUSPEND) block( "request");
-    if ( step == Step.STEP_INTO) block( "stepEnd");
-    if ( steppedOver && step == Step.STEP_OVER) block( "stepEnd");
+    if ( step == Step.SUSPEND) 
+    {
+      block( "request");
+    }
+    else if ( step == Step.STEP_INTO) 
+    {
+      block( "stepEnd");
+    }
+    else if ( step == Step.STEP_OVER && pending != null && parent == pending.parent) 
+    {
+      block( "stepEnd");
+    }
+    else if ( step == Step.STEP_RETURN && pending != null && pending.parent != null && parent == pending.parent.parent)
+    {
+      block( "stepEnd");
+    }
     
     // check breakpoints
     for( Breakpoint breakpoint: breakpoints)
@@ -59,31 +75,36 @@ public class Debugger implements IDebugger
    */
   public Frame pop()
   {
-    int stackSize = stack.size();
-    if ( stackSize == 0) return null;
-    
+    if ( stack.isEmpty()) return null;
+
     Step step = null;
     synchronized( this) { step = this.step;}
-
-    // compare current stack depth to saved stack depth and set flag to suspend next push
-    if ( stepFrame == stackSize) steppedOver = true;
     
-    // compare current stack depth to saved stack depth and complete step-return 
-    if ( stepFrame == stackSize && step == Step.STEP_RETURN) block( "stepEnd");
+    // check for script ending
+    if ( (step == Step.STEP_INTO || step == Step.STEP_OVER || step == Step.STEP_RETURN) && scriptEnding)
+    {
+      scriptEnding = false;
+      block( "scriptEnd");
+    }
     
-    // update stack
-    Frame frame = stack.pop();
-
-    return frame;
+    return stack.pop();
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.debug.IDebugger#scriptEnding()
+   */
+  public void scriptEnding()
+  {
+    if ( pending != null) scriptEnding = true;
+  }
+
   /**
    * Block and send debug status to server.
    * @param action The action causing the block.
    */
   protected void block( String action)
   {
-    blocked = true;
+    pending = stack.peek();
     server.sendDebugMessage( threadID, threadName, "suspended", action, stack);
     try { lock.acquire();} catch( InterruptedException e) {}
   }
@@ -109,7 +130,7 @@ public class Debugger implements IDebugger
    */
   public void resume()
   {
-    if ( blocked)
+    if ( pending != null)
     {
       synchronized( this) { step = Step.RESUME;}
     
@@ -117,7 +138,7 @@ public class Debugger implements IDebugger
       try { server.sendDebugMessage( threadID, threadName, "resumed", "request", null);} catch( Exception e) {}
     
       lock.release();
-      blocked = false;
+      pending = null;
     }
   }
   
@@ -126,8 +147,7 @@ public class Debugger implements IDebugger
    */
   public void stepInto()
   {
-    if ( stack.size() == 0) return;
-    
+    if ( stack.isEmpty()) return;
     synchronized( this) { step = Step.STEP_INTO;}
     server.sendDebugMessage( threadID, threadName, "resumed", "stepInto", null);
     lock.release();
@@ -138,15 +158,8 @@ public class Debugger implements IDebugger
    */
   public void stepOver()
   {
-    if ( stack.size() == 0) return;
-    
-    synchronized( this) 
-    { 
-      step = Step.STEP_OVER;
-      stepFrame = stack.size();
-      steppedOver = false;
-    }
-    
+    if ( stack.isEmpty()) return;
+    synchronized( this) { step = Step.STEP_OVER;}
     server.sendDebugMessage( threadID, threadName, "resumed", "stepOver", null);
     lock.release();
   }
@@ -156,14 +169,8 @@ public class Debugger implements IDebugger
    */
   public void stepReturn()
   {
-    if ( stack.size() == 0) return;
-    
-    synchronized( this) 
-    { 
-      step = Step.STEP_RETURN;
-      stepFrame = stack.size() - 1;
-    }
-    
+    if ( stack.isEmpty()) return;
+    synchronized( this) { step = Step.STEP_RETURN;}
     server.sendDebugMessage( threadID, threadName, "resumed", "stepReturn", null);
     lock.release();
   }
@@ -253,7 +260,6 @@ public class Debugger implements IDebugger
   private Stack<Frame> stack;
   private List<Breakpoint> breakpoints;
   private Step step;
-  private boolean steppedOver;
-  private int stepFrame;
-  private boolean blocked;
+  private Frame pending;
+  private boolean scriptEnding;
 }
