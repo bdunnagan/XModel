@@ -71,7 +71,7 @@ public abstract class XmlClient extends Client
    */
   public void send( IModelObject message)
   {
-    message.setID( Radix.convert( mid++, 36));
+    message.setID( getNextMessageID()); mid++;
     byte[] compressed = compressor.compress( message);
     write( compressed);
   }
@@ -109,6 +109,15 @@ public abstract class XmlClient extends Client
     IModelObject object = (response != null)? response.cloneTree(): null;
     response = null;
     return object;
+  }
+  
+  /**
+   * Returns the message id for the next outgoing message. 
+   * @return Returns the message id for the next outgoing message.
+   */
+  public String getNextMessageID()
+  {
+    return Radix.convert( mid, 36);
   }
     
   /**

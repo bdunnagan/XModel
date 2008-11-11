@@ -33,7 +33,7 @@ public abstract class MessageLoop implements Runnable
     this.session = session;
     this.compressor = compressor;
   }
- 
+
   /**
    * Called when a message is received in the message loop.
    * @param message The message.
