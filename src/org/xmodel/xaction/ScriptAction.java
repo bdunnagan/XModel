@@ -104,8 +104,6 @@ public class ScriptAction extends GuardedAction
     if ( actions == null || actions.size() == 0) return;
     for( IXAction action: actions)
       action.run( context);
-    
-    if ( debugger != null) debugger.scriptEnding();
   }
   
   private final static String[] defaultIgnore = {
