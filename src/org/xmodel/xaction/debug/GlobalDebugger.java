@@ -148,10 +148,28 @@ public class GlobalDebugger implements IDebugger
    */
   public void setFilters( IExpression fileFilter, IExpression scriptFilter)
   {
-    for( IDebugger debugger: getTargetDebuggers())
-      debugger.setFilters( fileFilter, scriptFilter);
+    this.fileFilter = fileFilter;
+    this.scriptFilter = scriptFilter;
   }
 
+  /**
+   * Returns the configured file filter.
+   * @return Returns the configured file filter.
+   */
+  public IExpression getFileFilter()
+  {
+    return fileFilter;
+  }
+  
+  /**
+   * Returns the configured script filter.
+   * @return Returns the configured script filter.
+   */
+  public IExpression getScriptFilter()
+  {
+    return scriptFilter;
+  }
+  
   /**
    * Returns the target debuggers corresponding to the selected thread id.
    * @return Returns the target debuggers corresponding to the selected thread id.
@@ -180,9 +198,9 @@ public class GlobalDebugger implements IDebugger
     IDebugger debugger = debuggers.get( threadID);
     if ( debugger == null)
     {
-      debugger = new Debugger( threadID, thread.getName(), server);
+      debugger = new Debugger( this, threadID, thread.getName(), server);
       debuggers.put( threadID, debugger);
-      
+   
       // suspend newly discovered thread if globally suspended
       if ( suspend) debugger.suspend();
     }
@@ -194,4 +212,6 @@ public class GlobalDebugger implements IDebugger
   private ModelServer server;
   private String threadID;
   private boolean suspend;
+  private IExpression fileFilter;
+  private IExpression scriptFilter;
 }

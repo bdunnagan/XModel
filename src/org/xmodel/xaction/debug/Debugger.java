@@ -21,8 +21,9 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public class Debugger implements IDebugger
 {
-  public Debugger( String threadID, String threadName, ModelServer server)
+  public Debugger( GlobalDebugger global, String threadID, String threadName, ModelServer server)
   {
+    this.global = global;
     this.threadID = threadID;
     this.threadName = threadName;
     this.server = server;
@@ -221,8 +222,6 @@ public class Debugger implements IDebugger
    */
   public void setFilters( IExpression fileFilter, IExpression scriptFilter)
   {
-    this.fileFilter = fileFilter;
-    this.scriptFilter = scriptFilter;
   }
 
   /**
@@ -233,11 +232,17 @@ public class Debugger implements IDebugger
    */
   protected boolean isBreakpoint( Breakpoint breakpoint, IXAction action)
   {
+    IExpression fileFilter = global.getFileFilter();
+    if ( fileFilter == null) return false;
+    
+    IExpression scriptFilter = global.getScriptFilter();
+    if ( scriptFilter == null) return false;
+    
     try
     {
       IModelObject element = action.getDocument().getRoot();
       if ( element == null) return false;
-  
+      
       String spec = fileFilter.evaluateString( new Context( element));
       if ( spec.length() == 0) return false;
       
@@ -277,7 +282,8 @@ public class Debugger implements IDebugger
   }
 
   private enum Step { RESUME, SUSPEND, STEP_INTO, STEP_OVER, STEP_RETURN};
-  
+
+  private GlobalDebugger global;
   private String threadID;
   private String threadName;
   private ModelServer server;
@@ -285,8 +291,6 @@ public class Debugger implements IDebugger
   private Stack<Frame> stack;
   private List<Breakpoint> breakpoints;
   private Step step;
-  private IExpression fileFilter;
-  private IExpression scriptFilter;
   private Frame pending;
   private boolean scriptEnding;
 }
