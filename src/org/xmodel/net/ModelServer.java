@@ -868,6 +868,7 @@ public class ModelServer extends Server
   {
     fileFilter = Xlate.childGet( message, "fileFilter", (IExpression)null);
     scriptFilter = Xlate.childGet( message, "rootFilter", (IExpression)null);
+    debugger.setFilters( fileFilter, scriptFilter);
   }
   
   /**
@@ -943,8 +944,9 @@ public class ModelServer extends Server
    */
   private void handleDebugCreateBreakpoint( ISession session, IModelObject message)
   {
+    String file = Xlate.get( message, "file", (String)null);
     String path = Xlate.get( message, "path", (String)null);
-    debugger.createBreakpoint( path);
+    debugger.createBreakpoint( file, path);
   }
   
   /**
@@ -954,8 +956,9 @@ public class ModelServer extends Server
    */
   private void handleDebugRemoveBreakpoint( ISession session, IModelObject message)
   {
+    String file = Xlate.get( message, "file", (String)null);
     String path = Xlate.get( message, "path", (String)null);
-    debugger.removeBreakpoint( path);
+    debugger.removeBreakpoint( file, path);
   }
     
   /**

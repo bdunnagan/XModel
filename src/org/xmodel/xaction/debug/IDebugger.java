@@ -2,6 +2,7 @@ package org.xmodel.xaction.debug;
 
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 
 public interface IDebugger
 {
@@ -57,15 +58,17 @@ public interface IDebugger
   
   /**
    * Create a breakpoint on the specified action path.
+   * @param file The name of the file.
    * @param path The identity path of the action.
    */
-  public void createBreakpoint( String path);
+  public void createBreakpoint( String file, String path);
   
   /**
    * Clear the breakpoint on the specified action path.
+   * @param file The name of the file.
    * @param path The identity path of the action.
    */
-  public void removeBreakpoint( String path);
+  public void removeBreakpoint( String file, String path);
   
   /**
    * Returns the value of the variable in the specified stack frame.
@@ -74,6 +77,16 @@ public interface IDebugger
    * @return Returns the value of the variable.
    */
   public Object getVariableValue( int stackFrameIndex, String variable);
+  
+  /**
+   * Set the file and script filters defined by the client. The file filter expression
+   * returns the url of the file containing the action. The script filter expression
+   * returns the root of the script containing the action.  Both expression are
+   * evaluated with the action element.
+   * @param fileFilter The file filter.
+   * @param scriptFilter The script filter.
+   */
+  public void setFilters( IExpression fileFilter, IExpression scriptFilter);
   
   public class Frame
   {

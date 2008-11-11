@@ -289,24 +289,28 @@ public class ModelClient extends RobustSession
   
   /**
    * Send a create breakpoint request for the specified action path.
+   * @param file The name of the file containing the action.
    * @param path The path of the action.
    */
-  public void sendDebugCreateBreakpoint( String path)
+  public void sendDebugCreateBreakpoint( String file, String path)
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
     message.setAttribute( "action", "createBreakpoint");
+    Xlate.set( message, "file", file);
     Xlate.set( message, "path", path);
     send( message);
   }
   
   /**
    * Send a remove breakpoint request for the specified action path.
+   * @param file The name of the file containing the action.
    * @param path The path of the action.
    */
-  public void sendDebugRemoveBreakpoint( String path)
+  public void sendDebugRemoveBreakpoint( String file, String path)
   {
     ModelObject message = new ModelObject( "debug", Radix.convert( nextID++, 36));
     message.setAttribute( "action", "removeBreakpoint");
+    Xlate.set( message, "file", file);
     Xlate.set( message, "path", path);
     send( message);
   }

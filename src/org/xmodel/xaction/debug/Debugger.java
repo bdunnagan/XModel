@@ -1,16 +1,19 @@
 package org.xmodel.xaction.debug;
 
+import java.io.File;
+import java.net.URL;
 import java.util.List;
 import java.util.Stack;
 import java.util.Vector;
 import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
-import org.xmodel.Reference;
 import org.xmodel.net.ModelServer;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -176,21 +179,23 @@ public class Debugger implements IDebugger
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String, java.lang.String)
    */
-  public void createBreakpoint( String path)
+  public void createBreakpoint( String file, String path)
   {
     Breakpoint breakpoint = new Breakpoint();
+    breakpoint.file = file;
     breakpoint.path = XPath.createPath( path);
     breakpoints.add( breakpoint);    
   }
-  
+
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String, java.lang.String)
    */
-  public void removeBreakpoint( String path)
+  public void removeBreakpoint( String file, String path)
   {
     Breakpoint breakpoint = new Breakpoint();
+    breakpoint.file = file;
     breakpoint.path = XPath.createPath( path);
     breakpoints.remove( breakpoint);    
   }
@@ -206,6 +211,15 @@ public class Debugger implements IDebugger
     return scope.get( variable);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.debug.IDebugger#setFilters(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IExpression)
+   */
+  public void setFilters( IExpression fileFilter, IExpression scriptFilter)
+  {
+    this.fileFilter = fileFilter;
+    this.scriptFilter = scriptFilter;
+  }
+
   /**
    * Returns true if the specified action matches the breakpoint location.
    * @param breakpoint The breakpoint.
@@ -217,16 +231,26 @@ public class Debugger implements IDebugger
     IModelObject element = action.getDocument().getRoot();
     if ( element == null) return false;
 
-    // assume that the breakpoint path is absolute, so we should xpath from the root tag
-    IModelObject ancestor = element;
-    for( int i=1; i<breakpoint.path.length(); i++)
+    String spec = fileFilter.evaluateString( new Context( element));
+    if ( spec.length() == 0) return false;
+    
+    IModelObject root = scriptFilter.queryFirst( element);
+    if ( root == null) return false;
+    
+    // verify file name
+    try
     {
-      ancestor = ancestor.getParent();
-      if ( ancestor == null) return false;
+      URL url = new URL( spec);
+      File filePath = new File( url.getPath());
+      String fileName = filePath.getName();
+      if ( !breakpoint.file.equals( fileName)) return false;
+    }
+    catch( Exception e)
+    {
+      return false;
     }
     
-    // create reference to isolate ancestor subtree for xpathing
-    Reference root = new Reference( ancestor);
+    // verify locus
     IModelObject leaf = breakpoint.path.queryFirst( root);
     return leaf == element;
   }
@@ -240,9 +264,10 @@ public class Debugger implements IDebugger
     public boolean equals( Object object)
     {
       Breakpoint other = (Breakpoint)object;
-      return other.path.toString().equals( path.toString());
+      return other.file.equals( file) && other.path.toString().equals( path.toString());
     }
     
+    String file;
     IPath path;
   }
 
@@ -255,6 +280,8 @@ public class Debugger implements IDebugger
   private Stack<Frame> stack;
   private List<Breakpoint> breakpoints;
   private Step step;
+  private IExpression fileFilter;
+  private IExpression scriptFilter;
   private Frame pending;
   private boolean scriptEnding;
 }

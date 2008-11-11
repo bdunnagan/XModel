@@ -7,6 +7,7 @@ import org.xmodel.net.ModelServer;
 import org.xmodel.util.Radix;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 
 /**
  * An implementation of IDebugger which handles notifications from all threads and sends
@@ -125,23 +126,32 @@ public class GlobalDebugger implements IDebugger
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#createBreakpoint(java.lang.String, java.lang.String)
    */
-  public void createBreakpoint( String path)
+  public void createBreakpoint( String file, String path)
   {
     for( IDebugger debugger: getTargetDebuggers())
-      debugger.createBreakpoint( path);
+      debugger.createBreakpoint( file, path);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String)
+   * @see org.xmodel.xaction.debug.IDebugger#removeBreakpoint(java.lang.String, java.lang.String)
    */
-  public void removeBreakpoint( String path)
+  public void removeBreakpoint( String file, String path)
   {
     for( IDebugger debugger: getTargetDebuggers())
-      debugger.removeBreakpoint( path);
+      debugger.removeBreakpoint( file, path);
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.debug.IDebugger#setFilters(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IExpression)
+   */
+  public void setFilters( IExpression fileFilter, IExpression scriptFilter)
+  {
+    for( IDebugger debugger: getTargetDebuggers())
+      debugger.setFilters( fileFilter, scriptFilter);
+  }
+
   /**
    * Returns the target debuggers corresponding to the selected thread id.
    * @return Returns the target debuggers corresponding to the selected thread id.
