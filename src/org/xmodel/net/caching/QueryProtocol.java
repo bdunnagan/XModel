@@ -42,7 +42,7 @@ public class QueryProtocol implements IReceiver
   {
     public String id;
     public String xpath;
-    public boolean listen;
+    public boolean deep;
   }
 
   /**
@@ -100,7 +100,8 @@ public class QueryProtocol implements IReceiver
     {
       IModelObject message = XmlMessage.createSimple( "query", query.xpath);
       IModelObject response = client.sendAndWait( message, timeout);
-      Xlate.set( message, "action", query.listen? "listen": "bind");
+      Xlate.set( message, "action", "bind");
+      Xlate.set( message, "deep", query.deep);
       query.id = generateQueryID();
       Xlate.set( response, "qid", query.id);
       return parseResponse( response);
@@ -288,11 +289,7 @@ public class QueryProtocol implements IReceiver
     }
     else if ( action.equals( "bind"))
     {
-      handleBind( server, session, message);
-    }
-    else if ( action.equals( "listen"))
-    {
-      handleListen( server, session, message);
+      handleBind( server, session, message, Xlate.get( message, "deep", false));
     }
     else if ( action.equals( "cancel"))
     {
@@ -320,7 +317,7 @@ public class QueryProtocol implements IReceiver
    * @param session The server session that received the request.
    * @param message The request.
    */
-  private void handleBind( XmlServer server, IServerSession session, IModelObject message)
+  private void handleBind( XmlServer server, IServerSession session, IModelObject message, boolean deep)
   {
     IModelObject response = new ModelObject( "queryResponse");
     response.setID( message.getID());
@@ -332,8 +329,8 @@ public class QueryProtocol implements IReceiver
     query.id = Xlate.get( message, "qid", "-");
     query.xpath = Xlate.get( message, "-");
     query.session = (XmlServerSession)session;
-    query.listener = new ShallowQueryListener( this, query);
-    query.listen = false;
+    query.listener = deep? new DeepQueryListener( this, query): new ShallowQueryListener( this, query);
+    query.deep = deep;
     queries.put( query.id, query);
     
     // bind result
@@ -343,20 +340,6 @@ public class QueryProtocol implements IReceiver
       query.expression = expression;
       expression.addListener( context, query.listener);
     }
-  }
-  
-  /**
-   * Handle a query listen request.
-   * @param server The server.
-   * @param session The server session that received the request.
-   * @param message The request.
-   */
-  private void handleListen( XmlServer server, IServerSession session, IModelObject message)
-  {
-    IModelObject response = new ModelObject( "queryResponse");
-    response.setID( message.getID());
-    populateQueryResult( message, response);
-    ((XmlServerSession)session).send( response);
   }
   
   /**
