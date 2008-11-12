@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.ModelObjectFactory;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
@@ -162,10 +165,8 @@ public class QueryProtocol implements IReceiver
     Xlate.set( message, "qid", query.id);
     for( IModelObject node: nodes)
     {
-      int hashCode = (node instanceof Reference)? ((Reference)node).nativeHashCode(): node.hashCode();
-      ModelObject result = new ModelObject( "node", Integer.toString( hashCode));
-      result.addChild( node.cloneTree());
-      message.addChild( result);
+      IModelObject clone = ModelAlgorithms.cloneTree( node, fullCloneFactory);
+      message.addChild( clone);
     }
     query.session.send( message);
   }
@@ -181,9 +182,8 @@ public class QueryProtocol implements IReceiver
     Xlate.set( message, "qid", query.id);
     for( IModelObject node: nodes)
     {
-      int hashCode = (node instanceof Reference)? ((Reference)node).nativeHashCode(): node.hashCode();
-      ModelObject result = new ModelObject( "node", Integer.toString( hashCode));
-      message.addChild( result);
+      IModelObject clone = keyCloneFactory.createClone( node);
+      message.addChild( clone);
     }
     query.session.send( message);
   }
@@ -237,6 +237,72 @@ public class QueryProtocol implements IReceiver
     IModelObject message = new ModelObject( "valueUpdate");
     Xlate.set( message, "qid", query.id);
     message.setValue( newValue);
+    query.session.send( message);
+  }
+  
+  /**
+   * Send an asynchronous notification message to the client for the specified query.
+   * @param query The query.
+   * @param parent The parent to which a child was added.
+   * @param child The child that was added.
+   * @param index The index of the child.
+   */
+  protected void sendObjectAddUpdate( ServerQuery query, IModelObject parent, IModelObject child, int index)
+  {
+    IModelObject message = new ModelObject( "objectAddUpdate");
+    Xlate.set( message, "qid", query.id);
+    message.addChild( keyCloneFactory.createClone( parent));
+    message.addChild( ModelAlgorithms.cloneTree( child, fullCloneFactory));
+    Xlate.set( message, "index", index);
+    query.session.send( message);
+  }
+  
+  /**
+   * Send an asynchronous notification message to the client for the specified query.
+   * @param query The query.
+   * @param parent The parent to which a child was added.
+   * @param child The child that was added.
+   * @param index The index of the child.
+   */
+  protected void sendObjectRemoveUpdate( ServerQuery query, IModelObject parent, IModelObject child, int index)
+  {
+    IModelObject message = new ModelObject( "objectRemoveUpdate");
+    Xlate.set( message, "qid", query.id);
+    message.addChild( keyCloneFactory.createClone( parent));
+    message.addChild( keyCloneFactory.createClone( child));
+    Xlate.set( message, "index", index);
+    query.session.send( message);
+  }
+  
+  /**
+   * Send an asynchronous notification message to the client for the specified query.
+   * @param query The query.
+   * @param object The object whose attribute was changed.
+   * @param attrName The name of the attribute.
+   * @param newValue The new value of the attribute.
+   */
+  protected void sendAttributeChangeUpdate( ServerQuery query, IModelObject object, String attrName, String newValue)
+  {
+    IModelObject message = new ModelObject( "attributeChangeUpdate");
+    Xlate.set( message, "qid", query.id);
+    message.addChild( keyCloneFactory.createClone( object));
+    Xlate.set( message, "attrName", attrName);
+    Xlate.set( message, "newValue", newValue);
+    query.session.send( message);
+  }
+  
+  /**
+   * Send an asynchronous notification message to the client for the specified query.
+   * @param query The query.
+   * @param object The object whose attribute was changed.
+   * @param attrName The name of the attribute.
+   */
+  protected void sendAttributeClearUpdate( ServerQuery query, IModelObject object, String attrName)
+  {
+    IModelObject message = new ModelObject( "attributeClearUpdate");
+    Xlate.set( message, "qid", query.id);
+    message.addChild( keyCloneFactory.createClone( object));
+    Xlate.set( message, "attrName", attrName);
     query.session.send( message);
   }
   
@@ -329,7 +395,7 @@ public class QueryProtocol implements IReceiver
     query.id = Xlate.get( message, "qid", "-");
     query.xpath = Xlate.get( message, "-");
     query.session = (XmlServerSession)session;
-    query.listener = deep? new DeepQueryListener( this, query): new ShallowQueryListener( this, query);
+    query.listener = new QueryListener( this, query, deep);
     query.deep = deep;
     queries.put( query.id, query);
     
@@ -412,7 +478,10 @@ public class QueryProtocol implements IReceiver
   {
     Xlate.set( response, "type", "nodes");
     for( IModelObject node: nodes)
-      response.addChild( node.cloneTree());
+    {
+      IModelObject clone = ModelAlgorithms.cloneTree( node, fullCloneFactory);
+      response.addChild( clone);
+    }
     return response;
   }
   
@@ -467,7 +536,28 @@ public class QueryProtocol implements IReceiver
     response.setValue( e.getMessage());
     return response;
   }
-    
+
+  private final IModelObjectFactory keyCloneFactory = new ModelObjectFactory() {
+    public IModelObject createClone( IModelObject object)
+    {
+      ModelObject clone = new ModelObject( object.getType());
+      int hashCode = (object instanceof Reference)? ((Reference)object).nativeHashCode(): object.hashCode();
+      clone.setAttribute( "net:id", hashCode);
+      return clone;
+    }
+  };
+  
+  private final IModelObjectFactory fullCloneFactory = new ModelObjectFactory() {
+    public IModelObject createClone( IModelObject object)
+    {
+      ModelObject clone = new ModelObject( object.getType());
+      ModelAlgorithms.copyAttributes( object, clone);
+      int hashCode = (object instanceof Reference)? ((Reference)object).nativeHashCode(): object.hashCode();
+      clone.setAttribute( "net:id", hashCode);
+      return clone;
+    }
+  };
+  
   private Context context;
   private Map<String, ServerQuery> queries;
 }

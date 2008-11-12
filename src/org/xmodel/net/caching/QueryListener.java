@@ -9,14 +9,14 @@ import org.xmodel.xpath.expression.IExpression;
 
 /**
  * An expression listener which reports to an instance of QueryProtocol whenever an event is received.
- * This listener installs listeners throughout the trees of any nodes that it finds.
  */
-public class DeepQueryListener extends ExpressionListener
+public class QueryListener extends ExpressionListener
 {
-  public DeepQueryListener( QueryProtocol protocol, ServerQuery query)
+  public QueryListener( QueryProtocol protocol, ServerQuery query, boolean deep)
   {
     this.protocol = protocol;
     this.query = query;
+    if ( deep) deepListener = new DeepListener( protocol, query);
   }
   
   /* (non-Javadoc)
@@ -26,7 +26,13 @@ public class DeepQueryListener extends ExpressionListener
   @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    protocol.sendAddUpdate( query, nodes); 
+    protocol.sendAddUpdate( query, nodes);
+    
+    if ( deepListener != null)
+    {
+      for( IModelObject node: nodes)
+        deepListener.install( node);
+    }
   }
 
   /* (non-Javadoc)
@@ -37,6 +43,12 @@ public class DeepQueryListener extends ExpressionListener
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
     protocol.sendRemoveUpdate( query, nodes); 
+
+    if ( deepListener != null)
+    {
+      for( IModelObject node: nodes)
+        deepListener.uninstall( node);
+    }
   }
   
   /* (non-Javadoc)
@@ -85,9 +97,10 @@ public class DeepQueryListener extends ExpressionListener
   @Override
   public boolean requiresValueNotification()
   {
-    // TODO Auto-generated method stub
-    return super.requiresValueNotification();
+    return true;
   }
+  
   private QueryProtocol protocol;
   private ServerQuery query;
+  private DeepListener deepListener;
 }
