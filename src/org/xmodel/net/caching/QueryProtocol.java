@@ -1,6 +1,9 @@
 package org.xmodel.net.caching;
 
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
@@ -13,10 +16,12 @@ import org.xmodel.net.robust.XmlMessage;
 import org.xmodel.net.robust.XmlServer;
 import org.xmodel.net.robust.XmlServerSession;
 import org.xmodel.net.robust.XmlServer.IReceiver;
+import org.xmodel.util.Radix;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.IExpressionListener;
 
 /**
  * A class which implements the XML client/server query protocol. 
@@ -27,13 +32,27 @@ public class QueryProtocol implements IReceiver
   public QueryProtocol( Context context)
   {
     this.context = context;
+    this.queries = new Hashtable<String, ServerQuery>();
   }
 
+  /**
+   * Client-side query handle.
+   */
   public static class Query
   {
     public String id;
     public String xpath;
     public boolean listen;
+  }
+
+  /**
+   * Server-side query handle.
+   */
+  public static class ServerQuery extends Query
+  {
+    public XmlServerSession session;
+    public IExpression expression;
+    public IExpressionListener listener;
   }
 
   /**
@@ -82,7 +101,8 @@ public class QueryProtocol implements IReceiver
       IModelObject message = XmlMessage.createSimple( "query", query.xpath);
       IModelObject response = client.sendAndWait( message, timeout);
       Xlate.set( message, "action", query.listen? "listen": "bind");
-      query.id = Xlate.get( response, "qid", "");
+      query.id = generateQueryID();
+      Xlate.set( response, "qid", query.id);
       return parseResponse( response);
     }
     catch( TimeoutException e)
@@ -120,13 +140,22 @@ public class QueryProtocol implements IReceiver
       throw new QueryException( "Query cancel interrupted: "+query.xpath, e);
     }
   }
+  
+  /**
+   * Generate a unique ID for a new query.
+   * @return Returns the unique ID.
+   */
+  private static String generateQueryID()
+  {
+    return Radix.convert( (new Random()).nextLong());
+  }
 
   /**
    * Send an asynchronous notification message to the client for the specified query.
    * @param query The query.
    * @param nodes The nodes that were added.
    */
-  protected void sendAddUpdate( Query query, List<IModelObject> nodes)
+  protected void sendAddUpdate( ServerQuery query, List<IModelObject> nodes)
   {
     IModelObject message = new ModelObject( "addUpdate");
     Xlate.set( message, "qid", query.id);
@@ -137,6 +166,7 @@ public class QueryProtocol implements IReceiver
       result.addChild( node.cloneTree());
       message.addChild( result);
     }
+    query.session.send( message);
   }
   
   /**
@@ -144,7 +174,7 @@ public class QueryProtocol implements IReceiver
    * @param query The query.
    * @param nodes The nodes that were removed.
    */
-  protected void sendRemoveUpdate( Query query, List<IModelObject> nodes)
+  protected void sendRemoveUpdate( ServerQuery query, List<IModelObject> nodes)
   {
     IModelObject message = new ModelObject( "removeUpdate");
     Xlate.set( message, "qid", query.id);
@@ -154,6 +184,7 @@ public class QueryProtocol implements IReceiver
       ModelObject result = new ModelObject( "node", Integer.toString( hashCode));
       message.addChild( result);
     }
+    query.session.send( message);
   }
   
   /**
@@ -161,11 +192,12 @@ public class QueryProtocol implements IReceiver
    * @param query The query.
    * @param newValue The new value.
    */
-  protected void sendChangeUpdate( Query query, String newValue)
+  protected void sendChangeUpdate( ServerQuery query, String newValue)
   {
     IModelObject message = new ModelObject( "changeUpdate");
     Xlate.set( message, "qid", query.id);
     message.setValue( newValue);
+    query.session.send( message);
   }
   
   /**
@@ -173,11 +205,12 @@ public class QueryProtocol implements IReceiver
    * @param query The query.
    * @param newValue The new value.
    */
-  protected void sendChangeUpdate( Query query, double newValue)
+  protected void sendChangeUpdate( ServerQuery query, double newValue)
   {
     IModelObject message = new ModelObject( "changeUpdate");
     Xlate.set( message, "qid", query.id);
     message.setValue( newValue);
+    query.session.send( message);
   }
   
   /**
@@ -185,11 +218,12 @@ public class QueryProtocol implements IReceiver
    * @param query The query.
    * @param newValue The new value.
    */
-  protected void sendChangeUpdate( Query query, boolean newValue)
+  protected void sendChangeUpdate( ServerQuery query, boolean newValue)
   {
     IModelObject message = new ModelObject( "changeUpdate");
     Xlate.set( message, "qid", query.id);
     message.setValue( newValue);
+    query.session.send( message);
   }
   
   /**
@@ -197,11 +231,12 @@ public class QueryProtocol implements IReceiver
    * @param query The query.
    * @param newValue The new value.
    */
-  protected void sendValueUpdate( Query query, String newValue)
+  protected void sendValueUpdate( ServerQuery query, String newValue)
   {
     IModelObject message = new ModelObject( "valueUpdate");
     Xlate.set( message, "qid", query.id);
     message.setValue( newValue);
+    query.session.send( message);
   }
   
   /**
@@ -246,10 +281,6 @@ public class QueryProtocol implements IReceiver
    */
   public void handle( XmlServer server, IServerSession session, IModelObject message)
   {
-    // squirrel away server for sending async messages
-    if ( this.server == null) this.server = server;
-    
-    // switch on action
     String action = Xlate.get( message, "action", "");
     if ( action.equals( "query"))
     {
@@ -296,8 +327,22 @@ public class QueryProtocol implements IReceiver
     populateQueryResult( message, response);
     ((XmlServerSession)session).send( response);
     
-    // bind result
+    // create server-side query
+    ServerQuery query = new ServerQuery();
+    query.id = Xlate.get( message, "qid", "-");
+    query.xpath = Xlate.get( message, "-");
+    query.session = (XmlServerSession)session;
+    query.listener = new ShallowQueryListener( this, query);
+    query.listen = false;
+    queries.put( query.id, query);
     
+    // bind result
+    IExpression expression = XPath.createExpression( query.xpath);
+    if ( expression != null) 
+    {
+      query.expression = expression;
+      expression.addListener( context, query.listener);
+    }
   }
   
   /**
@@ -325,6 +370,15 @@ public class QueryProtocol implements IReceiver
     IModelObject response = new ModelObject( "queryResponse");
     response.setID( message.getID());
     ((XmlServerSession)session).send( response);
+    
+    // unbind
+    String qid = Xlate.get( message, "qid", "-");
+    ServerQuery query = queries.get( qid);
+    if ( query != null)
+    {
+      if ( query.expression != null)
+        query.expression.removeListener( context, query.listener);
+    }
   }
   
   /**
@@ -432,5 +486,5 @@ public class QueryProtocol implements IReceiver
   }
     
   private Context context;
-  private XmlServer server;
+  private Map<String, ServerQuery> queries;
 }

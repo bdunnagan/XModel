@@ -2,7 +2,7 @@ package org.xmodel.net.caching;
 
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.net.caching.QueryProtocol.Query;
+import org.xmodel.net.caching.QueryProtocol.ServerQuery;
 import org.xmodel.xpath.expression.ExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -12,7 +12,7 @@ import org.xmodel.xpath.expression.IExpression;
  */
 public class ShallowQueryListener extends ExpressionListener
 {
-  public ShallowQueryListener( QueryProtocol protocol, Query query)
+  public ShallowQueryListener( QueryProtocol protocol, ServerQuery query)
   {
     this.protocol = protocol;
     this.query = query;
@@ -88,5 +88,5 @@ public class ShallowQueryListener extends ExpressionListener
     return super.requiresValueNotification();
   }
   private QueryProtocol protocol;
-  private Query query;
+  private ServerQuery query;
 }
