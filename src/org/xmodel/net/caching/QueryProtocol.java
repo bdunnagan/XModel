@@ -13,6 +13,7 @@ import org.xmodel.ModelObjectFactory;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.net.robust.IServerSession;
 import org.xmodel.net.robust.TimeoutException;
 import org.xmodel.net.robust.XmlClient;
@@ -399,7 +400,7 @@ public class QueryProtocol implements IReceiver
         case NODES:   
         {
           List<IModelObject> nodes = expression.evaluateNodes( context);
-          for( IModelObject node: nodes) response.addChild( createPartialClone( node));
+          for( IModelObject node: nodes) response.addChild( createStubbedClone( node));
         }
         
         case STRING:  createResponse( response, expression.evaluateString( context)); break;
@@ -444,7 +445,7 @@ public class QueryProtocol implements IReceiver
    * @param node The node to be cloned.
    * @return Returns the partial clone.
    */
-  private IModelObject createPartialClone( IModelObject node)
+  private IModelObject createStubbedClone( IModelObject node)
   {
     IModel model = node.getModel();
     try
@@ -465,6 +466,14 @@ public class QueryProtocol implements IReceiver
     {
       model.setSyncLock( false);
     }
+  }
+  
+  /**
+   * Parse a stubbed query result and create external references with NetworkCachingPolicy.
+   * @return
+   */
+  public static List<IExternalReference> parseStubbedResult( IModelObject message)
+  {
   }
   
   /**
