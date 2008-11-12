@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -386,7 +387,36 @@ public class QueryProtocol implements IReceiver
   {
     IModelObject response = new ModelObject( "queryResponse");
     response.setID( message.getID());
-    populateQueryResult( message, response);
+    
+    // populate query results
+    IExpression expression = null;
+    String[] params = XmlMessage.parseSimple( message);
+    try
+    {
+      expression = XPath.compileExpression( params[ 0]);
+      switch( expression.getType( context))
+      {
+        case NODES:   
+        {
+          List<IModelObject> nodes = expression.evaluateNodes( context);
+          for( IModelObject node: nodes) response.addChild( createPartialClone( node));
+        }
+        
+        case STRING:  createResponse( response, expression.evaluateString( context)); break;
+        case NUMBER:  createResponse( response, expression.evaluateNumber( context)); break;
+        case BOOLEAN: createResponse( response, expression.evaluateBoolean( context)); break;
+      }
+    }
+    catch( PathSyntaxException e)
+    {
+      createResponse( response, e); 
+    }
+    catch( ExpressionException e)
+    {
+      createResponse( response, e);
+    }
+    
+    // send message
     ((XmlServerSession)session).send( response);
     
     // create server-side query
@@ -399,13 +429,41 @@ public class QueryProtocol implements IReceiver
     queries.put( query.id, query);
     
     // bind result
-    IExpression expression = XPath.createExpression( query.xpath);
     if ( expression != null) 
     {
       query.expression = expression;
       query.listener.setSilent( true);
       expression.addNotifyListener( context, query.listener);
       query.listener.setSilent( false);
+    }
+  }
+  
+  /**
+   * Create a partial clone of the subtree of the specified node. Nodes which are incomplete
+   * are labeled with the <i>net:stub</i> attribute.
+   * @param node The node to be cloned.
+   * @return Returns the partial clone.
+   */
+  private IModelObject createPartialClone( IModelObject node)
+  {
+    IModel model = node.getModel();
+    try
+    {
+      IModelObject clone = fullCloneFactory.createClone( node);
+
+      model.setSyncLock( true);
+      for( IModelObject child: node.getChildren())
+      {
+        IModelObject childClone = fullCloneFactory.createClone( child);
+        Xlate.set( childClone, "net:stub", true);
+        clone.addChild( childClone);
+      }
+      
+      return clone;
+    }
+    finally
+    {
+      model.setSyncLock( false);
     }
   }
   
