@@ -19,6 +19,15 @@ public class QueryListener extends ExpressionListener
     if ( deep) deepListener = new DeepListener( protocol, query);
   }
   
+  /**
+   * Specify whether the listener should generate messages.
+   * @param silent True if listener should not generate messages.
+   */
+  public void setSilent( boolean silent)
+  {
+    this.silent = silent;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.ExpressionListener#notifyAdd(org.xmodel.xpath.expression.IExpression, 
    * org.xmodel.xpath.expression.IContext, java.util.List)
@@ -26,7 +35,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    protocol.sendAddUpdate( query, nodes);
+    if ( !silent) protocol.sendAddUpdate( query, nodes);
     
     if ( deepListener != null)
     {
@@ -42,7 +51,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    protocol.sendRemoveUpdate( query, nodes); 
+    if ( !silent) protocol.sendRemoveUpdate( query, nodes); 
 
     if ( deepListener != null)
     {
@@ -58,7 +67,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
-    protocol.sendChangeUpdate( query, newValue);
+    if ( !silent) protocol.sendChangeUpdate( query, newValue);
   }
 
   /* (non-Javadoc)
@@ -68,7 +77,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
   {
-    protocol.sendChangeUpdate( query, newValue);
+    if ( !silent) protocol.sendChangeUpdate( query, newValue);
   }
 
   /* (non-Javadoc)
@@ -78,7 +87,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
   {
-    protocol.sendChangeUpdate( query, newValue);
+    if ( !silent) protocol.sendChangeUpdate( query, newValue);
   }
 
   /* (non-Javadoc)
@@ -88,7 +97,7 @@ public class QueryListener extends ExpressionListener
   @Override
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
-    protocol.sendValueUpdate( query, (newValue == null)? null: newValue.toString());
+    if ( !silent) protocol.sendValueUpdate( query, (newValue == null)? null: newValue.toString());
   }
 
   /* (non-Javadoc)
@@ -103,4 +112,5 @@ public class QueryListener extends ExpressionListener
   private QueryProtocol protocol;
   private ServerQuery query;
   private DeepListener deepListener;
+  private boolean silent;
 }

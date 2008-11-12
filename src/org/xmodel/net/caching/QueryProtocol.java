@@ -24,7 +24,6 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.IExpressionListener;
 
 /**
  * A class which implements the XML client/server query protocol. 
@@ -55,7 +54,7 @@ public class QueryProtocol implements IReceiver
   {
     public XmlServerSession session;
     public IExpression expression;
-    public IExpressionListener listener;
+    public QueryListener listener;
   }
 
   /**
@@ -404,7 +403,9 @@ public class QueryProtocol implements IReceiver
     if ( expression != null) 
     {
       query.expression = expression;
-      expression.addListener( context, query.listener);
+      query.listener.setSilent( true);
+      expression.addNotifyListener( context, query.listener);
+      query.listener.setSilent( false);
     }
   }
   
@@ -423,10 +424,11 @@ public class QueryProtocol implements IReceiver
     // unbind
     String qid = Xlate.get( message, "qid", "-");
     ServerQuery query = queries.get( qid);
-    if ( query != null)
+    if ( query != null && query.expression != null)
     {
-      if ( query.expression != null)
-        query.expression.removeListener( context, query.listener);
+      query.listener.setSilent( true);
+      query.expression.removeNotifyListener( context, query.listener);
+      query.listener.setSilent( false);
     }
   }
   
