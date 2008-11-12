@@ -19,12 +19,23 @@ public class XmlMessage
   public static IModelObject createSimple( String type, String... values)
   {
     ModelObject message = new ModelObject( type);
-    IModelObject params = message.getCreateChild( "params");
-    for( String value: values)
+    if ( values.length > 1)
     {
-      ModelObject param = new ModelObject( "param");
-      param.setValue( value);
-      params.addChild( param);
+      IModelObject params = message.getCreateChild( "params");
+      for( String value: values)
+      {
+        ModelObject param = new ModelObject( "param");
+        param.setValue( value);
+        params.addChild( param);
+      }
+    }
+    else if ( values.length > 0)
+    {
+      message.setValue( values[ 0]);
+    }
+    else
+    {
+      Xlate.set( message, "empty", true);
     }
     return message;
   }
@@ -36,14 +47,21 @@ public class XmlMessage
    */
   public static String[] parseSimple( IModelObject message)
   {
-    IModelObject params = message.getFirstChild( "params");
-    if ( params != null)
+    if ( !Xlate.get( message, "empty", false))
     {
-      List<IModelObject> children = params.getChildren( "param");
-      String[] values = new String[ children.size()];
-      for( int i=0; i<values.length; i++) 
-        values[ i] = Xlate.get( children.get( i), "");
-      return values;
+      IModelObject params = message.getFirstChild( "params");
+      if ( params == null) 
+      {
+        return new String[] { Xlate.get( message, "")};
+      }
+      else
+      {
+        List<IModelObject> children = params.getChildren( "param");
+        String[] values = new String[ children.size()];
+        for( int i=0; i<values.length; i++) 
+          values[ i] = Xlate.get( children.get( i), "");
+        return values;
+      }
     }
     return new String[ 0];
   }
