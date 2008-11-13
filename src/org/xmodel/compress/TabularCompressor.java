@@ -68,15 +68,6 @@ public class TabularCompressor extends AbstractCompressor
   }
 
   /**
-   * Set the factory used during decompression.
-   * @param factory The factory.
-   */
-  public void setFactory( IModelObjectFactory factory)
-  {
-    this.factory = factory;
-  }
-  
-  /**
    * Predefine the tag table. If the compressor does not encounter tags which are not defined
    * in the table then the table will not be written to the output. This is useful when all
    * the tags are known in advance.
@@ -548,5 +539,4 @@ public class TabularCompressor extends AbstractCompressor
   private int hashIndex;
   private boolean predefined;
   private PostCompression post;
-  private IModelObjectFactory factory;
 }

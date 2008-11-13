@@ -8,6 +8,7 @@ package org.xmodel.compress;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 
 
 /**
@@ -15,6 +16,12 @@ import org.xmodel.IModelObject;
  */
 public interface ICompressor
 {
+  /**
+   * Set the factory used to create decompressed objects.
+   * @param factory The factory.
+   */
+  public void setFactory( IModelObjectFactory factory);
+  
   /**
    * Compress the specified tree into a byte sequence.
    * @param element The root of the tree to be compressed.

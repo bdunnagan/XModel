@@ -8,6 +8,7 @@ package org.xmodel.compress;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 
 
 /**
@@ -15,6 +16,14 @@ import org.xmodel.IModelObject;
  */
 public abstract class AbstractCompressor implements ICompressor
 {
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#setFactory(org.xmodel.IModelObjectFactory)
+   */
+  public void setFactory( IModelObjectFactory factory)
+  {
+    this.factory = factory;
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
    */
@@ -35,4 +44,6 @@ public abstract class AbstractCompressor implements ICompressor
     IModelObject result = decompress( stream);
     return result;
   }
+  
+  protected IModelObjectFactory factory;
 }

@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import org.apache.tools.bzip2.CBZip2InputStream;
 import org.apache.tools.bzip2.CBZip2OutputStream;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 
@@ -29,6 +30,16 @@ public class BZip2Compressor extends AbstractCompressor
     buffer = new byte[ 1024];
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.AbstractCompressor#setFactory(org.xmodel.IModelObjectFactory)
+   */
+  @Override
+  public void setFactory( IModelObjectFactory factory)
+  {
+    super.setFactory( factory);
+    xmlIO.setFactory( factory);
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
    */
