@@ -43,25 +43,16 @@ public class Debugger implements IDebugger
     frame.action = action;
     stack.push( frame);
     
-    // suspend if necessary
-    Step step = null;
-    synchronized( this) { step = this.step;}
-    
-    if ( step == Step.SUSPEND) 
+    switch( step)
     {
-      block( "request");
-    }
-    else if ( step == Step.STEP_INTO) 
-    {
-      block( "stepEnd");
-    }
-    else if ( step == Step.STEP_OVER && pending != null && parent == pending.parent) 
-    {
-      block( "stepEnd");
-    }
-    else if ( step == Step.STEP_RETURN && pending != null && pending.parent != null && parent == pending.parent.parent)
-    {
-      block( "stepEnd");
+      case SUSPEND:     block( "request"); break;
+      case STEP_INTO:   block( "stepEnd"); break;
+      
+      case STEP_OVER:   
+        if ( poppedFrame == stepFromFrame) block( "stepEnd"); 
+        break;
+      
+      default:
     }
     
     // check breakpoints
@@ -75,8 +66,39 @@ public class Debugger implements IDebugger
    */
   public Frame pop()
   {
-    if ( stack.isEmpty()) return null;
-    return stack.pop();
+    // script already executing when debugger was connected
+    if ( stack.isEmpty())
+    {
+      step = Step.RESUME;
+      return null;
+    }
+    
+    // pop
+    poppedFrame = stack.pop();
+    
+    // complete pending step operation at end of script
+    if ( stack.isEmpty())
+    {
+      switch( step)
+      {
+        case STEP_INTO:
+        case STEP_OVER:
+        case STEP_RETURN:
+          block( "stepEnd");
+          break;
+          
+        default:
+      }
+    }
+    
+    // step return
+    else if ( stepFromFrame != null && poppedFrame == stepFromFrame.parent) 
+    {
+      block( "stepEnd");
+    }
+      
+    // return popped frame
+    return poppedFrame;
   }
   
   /**
@@ -85,13 +107,14 @@ public class Debugger implements IDebugger
    */
   protected void block( String action)
   {
-    pending = stack.peek();
+    stepFromFrame = stack.peek();
     server.sendDebugMessage( threadID, threadName, "suspended", action, stack);
     
     // drain permits after sending status to insure synchronization
     lock.drainPermits();
     
-    // block
+    // clear step insruction and block
+    step = Step.RESUME;
     try { lock.acquire();} catch( InterruptedException e) {}
   }
   
@@ -116,7 +139,7 @@ public class Debugger implements IDebugger
    */
   public void resume()
   {
-    if ( pending != null)
+    if ( stepFromFrame != null)
     {
       synchronized( this) { step = Step.RESUME;}
     
@@ -124,7 +147,7 @@ public class Debugger implements IDebugger
       try { server.sendDebugMessage( threadID, threadName, "resumed", "request", null);} catch( Exception e) {}
     
       lock.release();
-      pending = null;
+      stepFromFrame = null;
     }
   }
   
@@ -234,8 +257,6 @@ public class Debugger implements IDebugger
     }
   }
   
-  private enum Step { RESUME, SUSPEND, STEP_INTO, STEP_OVER, STEP_RETURN};
-
   private GlobalDebugger global;
   private String threadID;
   private String threadName;
@@ -243,5 +264,6 @@ public class Debugger implements IDebugger
   private Semaphore lock;
   private Stack<Frame> stack;
   private Step step;
-  private Frame pending;
+  private Frame stepFromFrame;
+  private Frame poppedFrame;
 }

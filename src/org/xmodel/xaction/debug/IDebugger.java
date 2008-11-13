@@ -81,6 +81,8 @@ public interface IDebugger
    */
   public void setFilters( IExpression fileFilter, IExpression scriptFilter);
   
+  public enum Step { RESUME, SUSPEND, STEP_INTO, STEP_OVER, STEP_RETURN};
+
   public class Frame
   {
     public Frame parent;
