@@ -76,26 +76,9 @@ public class Debugger implements IDebugger
     // pop
     poppedFrame = stack.pop();
     
-    // complete pending step operation at end of script
-    if ( stack.isEmpty())
-    {
-      switch( step)
-      {
-        case STEP_INTO:
-        case STEP_OVER:
-        case STEP_RETURN:
-          block( "stepEnd");
-          break;
-          
-        default:
-      }
-    }
-    
     // step return
-    else if ( stepFromFrame != null && poppedFrame == stepFromFrame.parent) 
-    {
+    if ( step == Step.STEP_RETURN && stepFromFrame != null && poppedFrame == stepFromFrame.parent) 
       block( "stepEnd");
-    }
       
     // return popped frame
     return poppedFrame;
@@ -112,9 +95,6 @@ public class Debugger implements IDebugger
     
     // drain permits after sending status to insure synchronization
     lock.drainPermits();
-    
-    // clear step insruction and block
-    step = Step.RESUME;
     try { lock.acquire();} catch( InterruptedException e) {}
   }
   
