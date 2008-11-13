@@ -76,28 +76,9 @@ public class Debugger implements IDebugger
   public Frame pop()
   {
     if ( stack.isEmpty()) return null;
-
-    Step step = null;
-    synchronized( this) { step = this.step;}
-    
-    // check for script ending
-    if ( (step == Step.STEP_INTO || step == Step.STEP_OVER || step == Step.STEP_RETURN) && scriptEnding)
-    {
-      scriptEnding = false;
-      block( "scriptEnd");
-    }
-    
     return stack.pop();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#scriptEnding()
-   */
-  public void scriptEnding()
-  {
-    if ( pending != null) scriptEnding = true;
-  }
-
   /**
    * Block and send debug status to server.
    * @param action The action causing the block.
@@ -263,5 +244,4 @@ public class Debugger implements IDebugger
   private Stack<Frame> stack;
   private Step step;
   private Frame pending;
-  private boolean scriptEnding;
 }

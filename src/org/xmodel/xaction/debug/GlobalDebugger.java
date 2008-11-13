@@ -42,14 +42,6 @@ public class GlobalDebugger implements IDebugger
     return getDebugger().pop();
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.xaction.debug.IDebugger#scriptEnding()
-   */
-  public void scriptEnding()
-  {
-    getDebugger().scriptEnding();
-  }
-
   /**
    * Set the target thread for debug requests: null indicates all threads.
    * @param id The thread id or null.
