@@ -304,10 +304,10 @@ public class Context implements IContext
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( "( "); sb.append( position);
+    sb.append( "[ "); sb.append( position);
     sb.append( ", "); sb.append( size);
     sb.append( ", "); sb.append( object);
-    sb.append( ")");
+    sb.append( "]");
     return sb.toString();
   }
   

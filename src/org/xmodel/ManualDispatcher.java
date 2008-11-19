@@ -3,11 +3,10 @@
  * Author: Bob Dunnagan
  * Copyright 2005. All rights reserved.
  */
-package org.xmodel.net;
+package org.xmodel;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.xmodel.IDispatcher;
 
 
 /**

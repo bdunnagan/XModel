@@ -13,7 +13,6 @@ import org.xmodel.ModelObjectFactory;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
-import org.xmodel.external.IExternalReference;
 import org.xmodel.net.robust.IServerSession;
 import org.xmodel.net.robust.TimeoutException;
 import org.xmodel.net.robust.XmlClient;
@@ -466,14 +465,6 @@ public class QueryProtocol implements IReceiver
     {
       model.setSyncLock( false);
     }
-  }
-  
-  /**
-   * Parse a stubbed query result and create external references with NetworkCachingPolicy.
-   * @return
-   */
-  public static List<IExternalReference> parseStubbedResult( IModelObject message)
-  {
   }
   
   /**

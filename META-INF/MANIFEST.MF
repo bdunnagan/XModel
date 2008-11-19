@@ -6,7 +6,8 @@ Bundle-Version: 1.0.1
 Bundle-Vendor: Bob Dunnagan
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.jdom,
- org.junit
+ org.junit,
+ org.apache.log4j;bundle-version="1.2.13"
 Export-Package: org.apache.tools.bzip2,
  org.xmodel,
  org.xmodel.compress,
@@ -18,12 +19,14 @@ Export-Package: org.apache.tools.bzip2,
  org.xmodel.listeners,
  org.xmodel.memento,
  org.xmodel.net,
+ org.xmodel.net.caching,
  org.xmodel.net.robust,
  org.xmodel.path,
  org.xmodel.record,
  org.xmodel.util,
  org.xmodel.xaction,
  org.xmodel.xaction.debug,
+ org.xmodel.xaction.trigger,
  org.xmodel.xml,
  org.xmodel.xpath,
  org.xmodel.xpath.expression,
