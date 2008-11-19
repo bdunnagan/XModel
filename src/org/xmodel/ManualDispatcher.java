@@ -18,7 +18,7 @@ public class ManualDispatcher implements IDispatcher
   {
     queue = new ConcurrentLinkedQueue<Runnable>();
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.IDispatcher#execute(java.lang.Runnable)
    */
