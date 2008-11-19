@@ -1,7 +1,7 @@
 /*
- * XModel
- * Author: Bob Dunnagan
- * Copyright 2005. All rights reserved.
+ * XModel (XML Application Data Modeling Framework)
+ * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
+ * Copyright Bob Dunnagan 2009. All rights reserved.
  */
 package org.xmodel.external.caching;
 

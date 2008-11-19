@@ -1,7 +1,7 @@
 /*
- * XModel
- * Author: Bob Dunnagan
- * Copyright 2005. All rights reserved.
+ * XModel (XML Application Data Modeling Framework)
+ * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
+ * Copyright Bob Dunnagan 2009. All rights reserved.
  */
 package org.xmodel.util;
 
@@ -21,13 +21,13 @@ public class ChangeFileComment
 {
   public static void main( String[] args)
   {
-    File path = new File( "C:/accurev/ws1/cornerstone/client/XModel/src/dunnagan/bob/xmodel");
+    File path = new File( "/Applications/eclipse341/svn/trunk/client/XModel/src/org/xmodel");
     //File path = new File( "/opt/homes/bdunnagan/accurev/checkpoint/cornerstone/client/XModel/src/dunnagan/bob/xmodel");
     String comment = 
       "/*\n"+
-      " * XModel\n"+
-      " * Author: Bob Dunnagan\n"+
-      " * Copyright 2005. All rights reserved.\n"+
+      " * XModel (XML Application Data Modeling Framework)\n"+
+      " * Author: Bob Dunnagan (bdunnagan@nc.rr.com)\n" +
+      " * Copyright Bob Dunnagan 2009. All rights reserved.\n"+
       " */\n";
     new ChangeFileComment( path, comment);
   }

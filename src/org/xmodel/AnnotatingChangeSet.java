@@ -1,11 +1,7 @@
 /*
- * Stonewall Networks, Inc.
- *
- *   Project: XModel
- *   Author:  bdunnagan
- *   Date:    Mar 19, 2008
- *
- * Copyright 2008.  Stonewall Networks, Inc.
+ * XModel (XML Application Data Modeling Framework)
+ * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
+ * Copyright Bob Dunnagan 2009. All rights reserved.
  */
 package org.xmodel;
 
