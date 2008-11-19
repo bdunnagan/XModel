@@ -99,7 +99,6 @@ public class Debugger implements IDebugger
     server.sendDebugMessage( threadID, threadName, "suspended", action, stack);
     
     // drain permits after sending status to insure synchronization
-    lock.drainPermits();
     try { lock.acquire();} catch( InterruptedException e) {}
   }
   
