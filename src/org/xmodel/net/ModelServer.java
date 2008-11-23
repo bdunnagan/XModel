@@ -41,6 +41,7 @@ import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.debug.GlobalDebugger;
 import org.xmodel.xaction.debug.IDebugger.Frame;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -471,11 +472,11 @@ public class ModelServer extends Server
           element = ModelAlgorithms.dereference( element);
           
           // create source path and locus
-          IModelObject fileElement = fileFilter.queryFirst( element);
+          String spec = fileFilter.evaluateString( new Context( element));
           IModelObject scriptElement = scriptFilter.queryFirst( element);
-          if ( fileElement != null && scriptElement != null)
+          if ( scriptElement != null)
           {
-            String sourcePath = getURLPath( Xlate.get( fileElement, ""));
+            String sourcePath = getURLPath( spec);
             frameNode.setAttribute( "path", sourcePath);
             IPath actionPath = ModelAlgorithms.createRelativePath( scriptElement, element);
             frameNode.setAttribute( "locus", actionPath.toString());

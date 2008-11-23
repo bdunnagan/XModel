@@ -28,7 +28,8 @@ public class BlobAccess
   public Blob getBlob() throws SQLException
   {
     ResultSet result = statement.executeQuery();
-    return result.getBlob( 0);
+    result.first();
+    return result.getBlob( 1);
   }
   
   private PreparedStatement statement;

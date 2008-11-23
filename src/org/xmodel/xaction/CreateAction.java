@@ -21,6 +21,7 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xsd.Schema;
 
@@ -192,7 +193,7 @@ public class CreateAction extends GuardedAction
       for( String attrName: element.getAttributeNames())
       {
         String rawText = Xlate.get( element, attrName, "");
-        String newText = replaceTemplateExpressions( context, rawText);
+        Object newText = replaceTemplateExpressions( context, rawText);
         element.setAttribute( attrName, newText);
       }
     }
@@ -204,8 +205,12 @@ public class CreateAction extends GuardedAction
    * @param input The attribute value or element text.
    * @return Returns the replacement string.
    */
-  private String replaceTemplateExpressions( IContext context, String input)
+  private Object replaceTemplateExpressions( IContext context, String input)
   {
+    // return single object replacements taken from the value of a node-set
+    Object single = null; 
+
+    // parse
     StringBuilder result = new StringBuilder();
     Matcher matcher = expressionPattern.matcher( input);
     int index = 0;
@@ -214,6 +219,13 @@ public class CreateAction extends GuardedAction
       int start = matcher.start();
       int end = matcher.end();
 
+      // clear single object replacement since it does not appear alone
+      if ( single != null)
+      {
+        single = null;
+        result.append( single);
+      }
+      
       // check for non-escaped expression token
       if ( start > 0 && input.charAt( start-1) == '\\')
       {
@@ -231,8 +243,9 @@ public class CreateAction extends GuardedAction
         // append replacement for expression
         try
         {
-          String replacement = XPath.createExpression( matcher.group( 1)).evaluateString( context);
-          result.append( replacement);
+          // get single object replacement candidate
+          Object replacement = getExpressionResult( context, matcher.group( 1));
+          if ( result.length() == 0) single = replacement; else result.append( replacement);
         }
         catch( ExpressionException e)
         {
@@ -248,7 +261,29 @@ public class CreateAction extends GuardedAction
     result.append( input, index, input.length());
     
     // return result
-    return result.toString();
+    return (single != null)? single: result.toString();
+  }
+  
+  /**
+   * Returns the expression result. If the expression returns an node-set, then the Object
+   * value of the first node is returned.  Otherwise, the string result of the expression
+   * is returned.
+   * @param context The context.
+   * @param spec The expression specification.
+   * @return Returns the expression result.
+   */
+  private Object getExpressionResult( IContext context, String spec)
+  {
+    IExpression expression = XPath.createExpression( spec);
+    if ( expression.getType( context) == ResultType.NODES)
+    {
+      IModelObject node = expression.queryFirst( context);
+      return (node != null)? node.getValue(): null;
+    }
+    else
+    {
+      return expression.evaluateString( context);
+    }
   }
   
   private final static Pattern expressionPattern = Pattern.compile(

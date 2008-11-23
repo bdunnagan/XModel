@@ -5,20 +5,24 @@
  */
 package org.xmodel.external.sql;
 
-import java.sql.Blob;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -28,12 +32,10 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
  * A caching policy for accessing information from an SQL database. This caching policy is used to load both rows
  * and columns of a table.
  */
-@SuppressWarnings("unused")
 public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
 {
   public SQLDirectCachingPolicy()
@@ -48,6 +50,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   public SQLDirectCachingPolicy( ICache cache)
   {
     super( cache);
+    rowCachingPolicy = new SQLRowCachingPolicy( cache);
   }
   
   /* (non-Javadoc)
@@ -84,7 +87,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( child);
-    defineNextStage( stageExpr, this, true);
+    defineNextStage( stageExpr, rowCachingPolicy, true);
   }
 
   /* (non-Javadoc)
@@ -93,108 +96,117 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    String table = Xlate.get( reference, "table", (String)null);
-    if ( table != null)
+    syncTable( reference);
+  }
+  
+  /**
+   * Sync a table reference.
+   * @param reference The table reference.
+   */
+  protected void syncTable( IExternalReference reference) throws CachingException
+  {
+    try
     {
-      try
-      {
-        PreparedStatement statement = createTableSelectStatement( reference);
-        ResultSet result = statement.executeQuery();
+      // get schema
+      columns = getColumns( reference);
+      
+      // get row stubs
+      PreparedStatement statement = createTableSelectStatement( reference);
+      ResultSet result = statement.executeQuery();
 
-        IModelObject parent = reference.cloneObject();
-        while( result.next())
-        {
-          IModelObject stub = factory.createObject( reference, child);
-          stub.setID( result.getString( 1));
-          for( int i=0; i<otherKeys.size(); i++) 
-            stub.setAttribute( otherKeys.get( i), result.getString( i));
-          parent.addChild( stub);
-        }
-        
-        // update reference
-        update( reference, parent);
-        
-        // cleanup
-        result.close();
-        statement.close();
-      }
-      catch( SQLException e)
+      IModelObject parent = reference.cloneObject();
+      while( result.next())
       {
-        throw new CachingException( "Unable to cache reference: "+reference, e);
+        IModelObject stub = factory.createObject( reference, child);
+        stub.setID( result.getString( 1));
+        for( int i=0; i<otherKeys.size(); i++) 
+          stub.setAttribute( otherKeys.get( i), result.getString( i+2));
+        parent.addChild( stub);
       }
+      
+      // update reference
+      update( reference, parent);
+      
+      // cleanup
+      result.close();
+      statement.close();
     }
-    else
+    catch( SQLException e)
     {
-      try
-      {
-        IModelObject object = factory.createObject( reference.getParent(), child);
-
-        PreparedStatement statement = createRowSelectStatement( reference);
-        ResultSet result = statement.executeQuery();
-        String[] columns = getColumns( statement);        
-        if ( result.next())
-        {      
-          for( int i=0; i<columns.length; i++)
-          {
-            if ( columns[ i].equals( primaryKey)) continue;
-            
-            if ( otherKeys.contains( columns[ i]))
-            {
-              Object value = transformValue( reference, null, result.getObject( i+1));
-              object.setAttribute( columns[ i], value);
-            }
-            else
-            {
-              IModelObject field = getFactory().createObject( object, columns[ i]);
-              Object value = transformValue( reference, field, result.getObject( i+1));
-              field.setValue( value);
-              object.addChild( field);
-            }
-          }        
-        }
-        
-        // update reference
-        update( reference, object);
-        
-        // cleanup
-        result.close();
-        statement.close();
-      }
-      catch( SQLException e)
-      {
-        throw new CachingException( "Unable to cache reference: "+reference, e);
-      }
+      throw new CachingException( "Unable to cache reference: "+reference, e);
     }
   }
   
   /**
+   * Create the row element corresponding to the specified unsynced referenced.
+   * @param reference The reference which is in the process of being synced.
+   * @return Returns the prototype row element.
+   */
+  protected IModelObject createRowPrototype( IExternalReference reference) throws CachingException
+  {
+    try
+    {
+      IModelObject object = factory.createObject( reference.getParent(), child);
+      ModelAlgorithms.copyAttributes( reference, object);
+
+      PreparedStatement statement = createRowSelectStatement( reference);
+      ResultSet result = statement.executeQuery();
+      if ( result.next())
+      {      
+        for( int i=0; i<columns.length; i++)
+        {
+          if ( columns[ i].name.equals( primaryKey)) continue;
+          
+          if ( otherKeys.contains( columns[ i].name))
+          {
+            Object value = transformValue( reference, null, result, i);
+            object.setAttribute( columns[ i].name, value);
+          }
+          else
+          {
+            IModelObject field = getFactory().createObject( object, columns[ i].name);
+            Object value = transformValue( reference, field, result, i);
+            field.setValue( value);
+            object.addChild( field);
+          }
+        }        
+      }
+      
+      result.close();
+      statement.close();
+      
+      return object;
+    }
+    catch( SQLException e)
+    {
+      throw new CachingException( "Unable to cache reference: "+reference, e);
+    }
+  }
+    
+  /**
    * Transform the value of a table row column into the value to be stored in the fragment.
+   * TODO: This method is a work-in-progress.
    * @param rowElement The table row element.
    * @param columnElement The column element.
    * @param value The value of the column from the ResultSet.
    * @return Returns the value to be stored in the element.
    */
-  private Object transformValue( IModelObject rowElement, IModelObject columnElement, Object value) throws CachingException
+  private Object transformValue( IModelObject rowElement, IModelObject columnElement, ResultSet result, int column) throws SQLException
   {
-    if ( value instanceof Blob)
+    if ( columns[ column].type == Types.LONGVARBINARY)
     {
       if ( columnElement == null) 
         throw new CachingException(
           "Blobs cannot be mapped to attributes.");
-      try
-      {
-        PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
-        BlobAccess access = new BlobAccess( statement);
-        return access;
-      }
-      catch( SQLException e)
-      {
-        throw new CachingException( "Unable to create blob access for column: "+columnElement, e);
-      }
+      
+      // create new statement to access blob later (current blob will be out-of-scope)
+      PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
+      BlobAccess access = new BlobAccess( statement);
+      return access;
     }
     else
     {
-      return value;
+      return result.getObject( column+1);
     }
   }
 
@@ -212,6 +224,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
   {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -220,6 +233,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   public void remove( IExternalReference parent, IModelObject object) throws CachingException
   {
+    throw new UnsupportedOperationException();
   }
   
   /**
@@ -254,29 +268,36 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     return sqlManager;
   }
-    
+   
   /**
-   * Returns the names of the columns.
-   * @param statement The PreparedStatement from which the ResultMetaData will be obtained.
-   * @return Returns the names of the columns.
+   * Returns the names of the columns in the specified database table.
+   * @param table The table reference.
+   * @return Returns the names of the columns in the specified database table.
    */
-  public String[] getColumns( PreparedStatement statement) throws CachingException
+  public Column[] getColumns( IExternalReference table) throws CachingException
   {
-    if ( columns != null) return columns;
-
     try
     {
-      ResultSetMetaData meta = statement.getMetaData();
-      columns = new String[ meta.getColumnCount()];
-      for( int i=0; i<columns.length; i++) columns[ i] = meta.getColumnName( i+1);
-      return columns;
+      Connection connection = getSQLManager( table).getConnection();
+      DatabaseMetaData meta = connection.getMetaData();
+      ResultSet result = meta.getColumns( null, null, Xlate.get( table, "table", ""), null);
+      List<Column> columns = new ArrayList<Column>();
+      while( result.next()) 
+      {
+        Column column = new Column();
+        column.name = result.getString( "COLUMN_NAME");
+        column.type = result.getInt( "DATA_TYPE");
+        columns.add( column);
+      }
+      connection.close();
+      return columns.toArray( new Column[ 0]);
     }
     catch( SQLException e)
     {
-      throw new CachingException( "Unable to get column names from metadata.", e);
+      throw new CachingException( "Unable to get column names for table: "+table, e);
     }
   }
-
+  
   /**
    * Returns a prepared statement which will select stubs for all rows of a table.
    * @param reference The reference representing a table.
@@ -347,14 +368,64 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
-   * Returns a prepared statement which will insert one or more rows.
+   * Set a field of a prepared statement given the row element.
+   * TODO: This method is a work-in-progress.
+   * @param statement The statement.
+   * @param row The row element.
+   * @param index The field index (0 based).
+   */
+  protected void setField( PreparedStatement statement, int index, IModelObject row) throws CachingException, SQLException
+  {
+    String columnName = columns[ index].name;
+    Object value = otherKeys.contains( columns[ index].name)?
+      row.getAttribute( columnName):
+      row.getFirstChild( columnName).getValue();
+
+    if ( value == null)
+    {
+      statement.setNull( index+1, columns[ index].type);
+    }
+    else if ( value instanceof File)
+    {
+      try
+      {
+        File file = (File)value;
+        FileInputStream stream = new FileInputStream( file);
+        statement.setBinaryStream( index+1, stream, (int)file.length());
+      }
+      catch( IOException e)
+      {
+        throw new CachingException( "Unable to open file in table row: "+row+", file="+value, e);
+      }
+    }
+    else if ( columns[ index].type == Types.DATE)
+    {
+      statement.setDate( index+1, new Date( Long.parseLong( value.toString())));
+    }
+    else if ( columns[ index].type == Types.TIMESTAMP)
+    {
+      statement.setDate( index+1, new Date( Long.parseLong( value.toString())));
+    }
+    else
+    {
+      statement.setObject( index+1, value);
+    }
+  }
+  
+  /**
+   * Returns a prepared statement which will insert one or more rows. If a field of a row is a BLOB
+   * then the field may contain an InputStream.  In this case, the field must also have the <i>length</i>
+   * attribute set to the length of the stream (because JDBC requires it for some reason).
    * @param reference The reference representing a table.
    * @param nodes The rows to be inserted in the table.
    * @return Returns a prepared statement which will insert one or more nodes.
    */
-  private PreparedStatement createInsertStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  public PreparedStatement createInsertStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
     String table = Xlate.get( reference, "table", (String)null);
+    
+    // get columns if not already
+    if ( columns == null) columns = getColumns( reference);
     
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( table);
@@ -375,9 +446,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       statement.setString( 1, node.getID());
       for( int j=0; j<columns.length; j++)
       {
-        if ( columns.equals( primaryKey)) continue;
-        IModelObject field = node.getFirstChild( columns[ j]);
-        statement.setObject( j+1, field.getValue());
+        if ( columns[ j].name.equals( primaryKey)) continue;
+        setField( statement, j, node);
       }
       statement.addBatch();
     }
@@ -391,7 +461,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The rows to be updated in the table.
    * @return Returns a prepared statement which will update one or more rows.
    */
-  private PreparedStatement createUpdateStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  public PreparedStatement createUpdateStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
     String table = Xlate.get( reference, "table", (String)null);
     
@@ -401,9 +471,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
 
     for( int i=0; i<columns.length; i++)
     {
-      if ( columns.equals( primaryKey)) continue;
+      if ( columns[ i].name.equals( primaryKey)) continue;
       if ( i>0) sb.append( ",");
-      sb.append( columns[ i]);
+      sb.append( columns[ i].name);
       sb.append( "=?");
     }
     
@@ -419,17 +489,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       statement.setString( 1, node.getID());
       for( int j=0; j<columns.length; j++)
       {
-        if ( columns.equals( primaryKey)) continue;
-        
-        if ( otherKeys.contains( columns[ j]))
-        {
-          statement.setObject( j+1, node.getAttribute( columns[ j]));
-        }
-        else
-        {
-          IModelObject field = node.getFirstChild( columns[ j]);
-          statement.setObject( j+1, field.getValue());
-        }
+        if ( columns[ j].name.equals( primaryKey)) continue;
+        setField( statement, j, node);
       }
       statement.addBatch();
     }
@@ -443,7 +504,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The rows to be updated in the table.
    * @return Returns a prepared statement which will delete one or more rows.
    */
-  private PreparedStatement createDeleteStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  public PreparedStatement createDeleteStatement( IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
     String table = Xlate.get( reference, "table", (String)null);
     
@@ -463,13 +524,69 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     return statement;
   }
+
+  private class Column
+  {
+    String name;
+    int type;
+    
+    public String toString()
+    {
+      return name+":"+type;
+    }
+  }
+  
+  private class SQLRowCachingPolicy extends AbstractCachingPolicy
+  {
+    protected SQLRowCachingPolicy( ICache cache)
+    {
+      super( cache);
+    }
+    
+    /* (non-Javadoc)
+     * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)
+     */
+    public void sync( IExternalReference reference) throws CachingException
+    {
+      IModelObject object = createRowPrototype( reference);
+      update( reference, object);
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
+     */
+    public void flush( IExternalReference reference) throws CachingException
+    {
+      throw new UnsupportedOperationException();
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
+     * org.xmodel.IModelObject, boolean)
+     */
+    public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+    {
+      throw new UnsupportedOperationException();
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
+     * org.xmodel.IModelObject)
+     */
+    public void remove( IExternalReference parent, IModelObject object) throws CachingException
+    {
+      throw new UnsupportedOperationException();
+    }
+  } 
   
   private static IExpression sqlManagerExpr = XPath.createExpression( 
     "ancestor-or-self::*/meta:sqlmanager");
   
   private IModelObjectFactory factory;
-  private String[] columns;
+  private SQLRowCachingPolicy rowCachingPolicy;
+  private Column[] columns;
   private String primaryKey;
   private List<String> otherKeys;
   private String child;
 }
+

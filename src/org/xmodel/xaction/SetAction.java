@@ -11,6 +11,7 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.IExpression.ResultType;
 
 
 /**
@@ -42,13 +43,21 @@ public class SetAction extends GuardedAction
   {
     List<IModelObject> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
-    
-    String value = sourceExpr.evaluateString( context);
-    if ( value != null)
+
+    // handle java.lang.Object transfer correctly
+    Object value = null;
+    if ( sourceExpr.getType( context) == ResultType.NODES)
     {
-      targets = targetExpr.query( context, null);
-      for( IModelObject target: targets) target.setValue( value);
+      IModelObject node = sourceExpr.queryFirst( context);
+      value = node.getValue();
     }
+    else
+    {
+      value = sourceExpr.evaluateString( context);
+    }
+    
+    targets = targetExpr.query( context, null);
+    for( IModelObject target: targets) target.setValue( value);
   }
   
   private IModelObjectFactory factory;

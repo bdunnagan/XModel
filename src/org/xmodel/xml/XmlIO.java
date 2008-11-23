@@ -351,7 +351,8 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         if ( style != Style.compact) writeCR( stream);
       }
-      else if ( value != null && value.length() > 0)
+      // safari and firefox html parsers do not like start+end tag
+      else if ( (value != null && value.length() > 0) || style == Style.html)
       {
         // start tag
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
@@ -364,7 +365,7 @@ public class XmlIO implements IXmlIO
         if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
         
         // end tag
-        if ( value != null && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 
+        if ( value != null && value.length() > 0 && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 
           for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
         stream.write( slash);

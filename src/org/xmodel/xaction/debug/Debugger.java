@@ -54,7 +54,7 @@ public class Debugger implements IDebugger
       case STEP_INTO:   block( "stepEnd"); break;
       
       case STEP_OVER:   
-        if ( poppedFrame == stepFromFrame) block( "stepEnd"); 
+        if ( poppedFrame == stepFromFrame || poppedFrame == stepFromFrame.parent) block( "stepEnd"); 
         break;
       
       default:
@@ -88,7 +88,7 @@ public class Debugger implements IDebugger
     // return popped frame
     return poppedFrame;
   }
-  
+    
   /**
    * Block and send debug status to server.
    * @param action The action causing the block.

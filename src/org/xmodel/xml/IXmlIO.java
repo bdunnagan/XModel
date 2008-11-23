@@ -19,7 +19,7 @@ import org.xmodel.IModelObjectFactory;
  */
 public interface IXmlIO
 {
-  public enum Style { compact, printable};
+  public enum Style { compact, printable, html};
   
   /**
    * Set the factory to use to create objects when parsing XML.
