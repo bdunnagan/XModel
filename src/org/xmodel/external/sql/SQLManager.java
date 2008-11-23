@@ -7,7 +7,6 @@ package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 
@@ -37,4 +36,15 @@ public interface SQLManager
    * @return Returns a PreparedStatement built from the specified SQL.
    */
   public PreparedStatement prepareStatement( String sql) throws CachingException; 
+
+  /**
+   * Returns a PreparedStatement built from the specified SQL. This method is provided to allow
+   * the implementation to optionally cache PreparedStatement instances.
+   * @param sql The SQL statement.
+   * @param type The result set type.
+   * @param concurrency The result set concurrency.
+   * @param holdability The result set holdability.
+   * @return Returns a PreparedStatement built from the specified SQL.
+   */
+  public PreparedStatement prepareStatement( String sql, int type, int concurrency, int holdability) throws CachingException; 
 }

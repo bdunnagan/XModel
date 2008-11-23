@@ -336,8 +336,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     String table = Xlate.get( reference.getParent(), "table", (String)null);
     
     StringBuilder sb = new StringBuilder();
-    sb.append( "SELECT * "); sb.append( " FROM "); sb.append( table);
-    sb.append(" WHERE "); sb.append( primaryKey); sb.append( "=?");
+    sb.append( "SELECT * "); sb.append( "FROM "); sb.append( table);
+    sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     SQLManager sqlManager = getSQLManager( reference.getParent());
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());

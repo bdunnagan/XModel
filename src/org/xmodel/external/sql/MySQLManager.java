@@ -74,6 +74,22 @@ public class MySQLManager implements SQLManager
     }
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.external.sql.SQLManager#prepareStatement(java.lang.String, int, int, int)
+   */
+  public PreparedStatement prepareStatement( String sql, int type, int concurrency, int holdability) throws CachingException
+  {
+    try
+    {
+      Connection connection = getConnection();
+      return connection.prepareStatement( sql, type, concurrency, holdability);
+    }
+    catch( Exception e)
+    {
+      throw new CachingException( "Unable to create prepared statement for sql: "+sql, e);
+    }
+  }
+
   private final static String urlPrefix = "jdbc:mysql://127.0.0.1/";
   private final static String driverClassName = "com.mysql.jdbc.Driver";
   
