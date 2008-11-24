@@ -14,6 +14,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,7 +121,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
         IModelObject stub = factory.createObject( reference, child);
         stub.setID( result.getString( 1));
         for( int i=0; i<otherKeys.size(); i++) 
-          stub.setAttribute( otherKeys.get( i), result.getString( i+2));
+          stub.setAttribute( otherKeys.get( i), result.getObject( i+2));
         parent.addChild( stub);
       }
       
@@ -224,7 +225,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
   {
-    throw new UnsupportedOperationException();
+    IExternalReference reference = rowCachingPolicy.createExternalTree( object, true, parent);
+    parent.addChild( reference);
   }
 
   /* (non-Javadoc)
@@ -233,7 +235,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   public void remove( IExternalReference parent, IModelObject object) throws CachingException
   {
-    throw new UnsupportedOperationException();
+    if ( object.getParent() == parent) object.removeFromParent();
   }
   
   /**
@@ -404,7 +406,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     }
     else if ( columns[ index].type == Types.TIMESTAMP)
     {
-      statement.setDate( index+1, new Date( Long.parseLong( value.toString())));
+      statement.setTimestamp( index+1, new Timestamp( Long.parseLong( value.toString())));
     }
     else
     {
