@@ -23,7 +23,7 @@ import org.xmodel.xpath.variable.IVariableSource;
  * An IXAction which sets a variable in the context scope. If the context does not have a scope
  * then the variable is not set and the action exists with false return code.
  */
-public class AssignAction extends XAction
+public class AssignAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.XActionDocument)
@@ -57,9 +57,10 @@ public class AssignAction extends XAction
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
+  @Override
+  protected void doAction( IContext context)
   {
     if ( name.length() == 0)
       throw new IllegalArgumentException(

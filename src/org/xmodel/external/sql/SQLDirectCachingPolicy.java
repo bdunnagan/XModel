@@ -129,7 +129,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       update( reference, parent);
       
       // cleanup
-      result.close();
+      statement.getConnection().close();
       statement.close();
     }
     catch( SQLException e)
@@ -172,8 +172,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
           }
         }        
       }
-      
-      result.close();
+
+      // cleanup
+      statement.getConnection().close();
       statement.close();
       
       return object;

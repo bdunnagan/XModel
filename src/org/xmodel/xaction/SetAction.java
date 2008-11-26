@@ -49,7 +49,7 @@ public class SetAction extends GuardedAction
     if ( sourceExpr.getType( context) == ResultType.NODES)
     {
       IModelObject node = sourceExpr.queryFirst( context);
-      value = node.getValue();
+      if ( node != null) value = node.getValue();
     }
     else
     {

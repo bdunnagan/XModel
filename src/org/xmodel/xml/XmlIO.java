@@ -234,6 +234,9 @@ public class XmlIO implements IXmlIO
    */
   protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
   {
+    // write header if requested
+    if ( outputHeader) { stream.write( header); stream.write( cr);}
+    
     // observe line-count limit
     if ( maxLines > 0 && lines.size() > maxLines)
     {
@@ -637,6 +640,7 @@ public class XmlIO implements IXmlIO
   private int line;
   private List<IModelObject> lines;
   private Locator locator;
+  private boolean outputHeader;
   
   public static void main( String[] args) throws Exception
   {

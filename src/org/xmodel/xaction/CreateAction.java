@@ -48,7 +48,7 @@ public class CreateAction extends GuardedAction
     collection = Xlate.get( document.getRoot(), "collection", (String)null);
     
     // get optional parent
-    parentExpr = document.getExpression( "parent", false);
+    parentExpr = document.getExpression( "parent", true);
     
     // treat the value of root as an expression prototype
     if ( root.getNumberOfChildren() == 0)

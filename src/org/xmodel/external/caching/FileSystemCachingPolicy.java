@@ -125,7 +125,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
       {
         String extension = name.substring( index);
         IFileAssociation association = associations.get( extension);
-        association.apply( reference, path);
+        if ( association != null) association.apply( reference, path);
       }
     }
   }
@@ -135,7 +135,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    * @param element The file system element.
    * @return Returns the absolute path.
    */
-  private File buildPath( IModelObject element) throws CachingException
+  public File buildPath( IModelObject element) throws CachingException
   {
     // get levels
     List<String> levels = new ArrayList<String>();
