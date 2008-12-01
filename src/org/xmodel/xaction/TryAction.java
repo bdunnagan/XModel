@@ -109,7 +109,7 @@ public class TryAction extends GuardedAction
     ScriptAction script;
   }
   
-  private final static IExpression catchActionExpr = XPath.createExpression(
+  private final IExpression catchActionExpr = XPath.createExpression(
     "*[ name() = 'catch']");
   
   private ScriptAction tryScript;

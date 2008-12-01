@@ -180,13 +180,13 @@ public abstract class XAction implements IXAction
     return "(no document)";
   }
 
-  private final static IExpression factoryExpr = XPath.createExpression(
+  private final IExpression factoryExpr = XPath.createExpression(
     "ancestor-or-self::*/factory");
   
-  private final static IExpression matcherExpr = XPath.createExpression(
+  private final IExpression matcherExpr = XPath.createExpression(
     "ancestor-or-self::*/matcher");
   
-  private final static IExpression loaderExpr = XPath.createExpression(
+  private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
   public static IDebugger debugger;

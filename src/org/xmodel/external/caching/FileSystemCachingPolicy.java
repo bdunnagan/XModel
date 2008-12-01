@@ -193,7 +193,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     return buildPath( reference).toURI();
   }
 
-  private final static IExpression defaultPathExpr = XPath.createExpression( "@path");
+  private final IExpression defaultPathExpr = XPath.createExpression( "@path");
   
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();

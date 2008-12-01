@@ -212,7 +212,7 @@ public class SchemaTrace
    * @param elementSchema The element schema.
    * @return Returns true if the element schema is optional.
    */
-  public static boolean isOptional( IModelObject elementSchema)
+  public boolean isOptional( IModelObject elementSchema)
   {
     return isOptionalExpr.evaluateBoolean( new Context( elementSchema));
   }
@@ -242,7 +242,7 @@ public class SchemaTrace
   private IPath childConstraintFinder = XPath.createPath(
     "constraint//child[ . = $name]");
   
-  private static IExpression isOptionalExpr = XPath.createExpression(
+  private IExpression isOptionalExpr = XPath.createExpression(
     "let $name := @name;" +
     "let $constraint := ../../constraint//child[ . = $name];" +
     "let $element := ../../children/element[ @name = $name];" +

@@ -148,7 +148,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     return file.toURI();
   }
 
-  private final static IExpression defaultPathExpr = XPath.createExpression( "@path");
+  private final IExpression defaultPathExpr = XPath.createExpression( "@path");
   
   private IContext parentContext;
   private IExpression pathExpr = defaultPathExpr;

@@ -240,7 +240,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private static IExpression sqlManagerExpr = XPath.createExpression( 
+  private IExpression sqlManagerExpr = XPath.createExpression( 
     "ancestor::*/meta:sqlmanager");    
   
   private IModelObject defaultManager;

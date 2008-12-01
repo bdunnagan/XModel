@@ -246,7 +246,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * @return Returns the SQLManager for the specified reference.
    */
   @SuppressWarnings("unchecked")
-  public static SQLManager getSQLManager( IModelObject locus) throws CachingException
+  public SQLManager getSQLManager( IModelObject locus) throws CachingException
   {
     IModelObject sqlManagerNode = sqlManagerExpr.queryFirst( locus);
     if ( sqlManagerNode == null) return null;
@@ -593,7 +593,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     }
   } 
   
-  private static IExpression sqlManagerExpr = XPath.createExpression( 
+  private IExpression sqlManagerExpr = XPath.createExpression( 
     "ancestor-or-self::*/meta:sqlmanager");
   
   private IModelObjectFactory factory;

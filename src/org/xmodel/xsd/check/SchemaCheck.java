@@ -41,6 +41,6 @@ public class SchemaCheck extends AbstractCheck
     return true;
   }
   
-  private static IPath globalElementFinder = XPath.createPath(
+  private IPath globalElementFinder = XPath.createPath(
     "element[ @global = 'true' and @name = $name]");
 }

@@ -171,8 +171,8 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     return folder.toURI();
   }
 
-  static final IExpression folderPath = XPath.createExpression( "*[ @type='folder']");
-  static final IExpression filePath = XPath.createExpression( "file/*");
+  final IExpression folderPath = XPath.createExpression( "*[ @type='folder']");
+  final IExpression filePath = XPath.createExpression( "file/*");
     
   private FilenameFilter filter;
   private FileCachingPolicy fileCachingPolicy;

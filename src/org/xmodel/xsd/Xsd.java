@@ -243,7 +243,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the type of the element.
    */
-  static public String getElementType( IModelObject schema)
+  public String getElementType( IModelObject schema)
   {
     return elementTypeStringExpr.evaluateString( new Context( schema), "");
   }
@@ -253,7 +253,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the type declaration for the specified element schema or null.
    */
-  static public IModelObject getTypeDeclaration( IModelObject schema)
+  public IModelObject getTypeDeclaration( IModelObject schema)
   {
     return typeDeclarationExpr.queryFirst( schema);
   }
@@ -263,7 +263,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the simple type of the specified element schema.
    */
-  static public IModelObject getSimpleType( IModelObject schema)
+  public IModelObject getSimpleType( IModelObject schema)
   {
     return simpleTypeExpr.queryFirst( schema);
   }
@@ -273,7 +273,7 @@ public class Xsd
    * @param schema An element schema.
    * @return Returns the enumerations restriction element for the specified element schema.
    */
-  static public IModelObject getEnumerations( IModelObject schema)
+  public IModelObject getEnumerations( IModelObject schema)
   {
     return enumRestrictionExpr.queryFirst( schema);
   }
@@ -283,7 +283,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the minimum number of occurences of the specified element.
    */
-  static public int minOccurences( IModelObject schema)
+  public int minOccurences( IModelObject schema)
   {
     return Xlate.get( schema, "minOccurs", 1);
   }
@@ -366,7 +366,7 @@ public class Xsd
    * @param element The element.
    * @return Returns the schema element of for the parent of the specified element or null.
    */
-  static public IModelObject getElementParentSchema( IModelObject schema, IModelObject element)
+  public IModelObject getElementParentSchema( IModelObject schema, IModelObject element)
   {
     IModelObject parent = element.getParent();
     if ( parent == null) return null;
@@ -586,7 +586,7 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the schema node which was violated.
    */
-  static public IModelObject validate( IModelObject schema, String value)
+  public IModelObject validate( IModelObject schema, String value)
   {
     IModelObject typeNode = getSimpleType( schema);
     String type = Xlate.get( typeNode, "");
@@ -766,7 +766,7 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated enumeration restriction.
    */
-  static public IModelObject validateEnumeration( IModelObject schema, String value)
+  public IModelObject validateEnumeration( IModelObject schema, String value)
   {
     IModelObject restriction = getEnumerations( schema);
     if ( restriction == null) return null;
@@ -792,7 +792,7 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated numeric restriction.
    */
-  static public IModelObject validateNumericRange( IModelObject schema, String value)
+  public IModelObject validateNumericRange( IModelObject schema, String value)
   {
     try
     {
@@ -831,7 +831,7 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated constraint.
    */
-  static public IModelObject validateStringLength( IModelObject schema, String value)
+  public IModelObject validateStringLength( IModelObject schema, String value)
   {
     IModelObject restriction = restrictionExpr.queryFirst( schema);
     if ( restriction == null) return null;
@@ -856,7 +856,7 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated pattern restriction.
    */
-  static public IModelObject validateRegex( IModelObject schema, String value)
+  public IModelObject validateRegex( IModelObject schema, String value)
   {
     Pattern compiled = (Pattern)schema.getAttribute( "xm:pattern");
     if ( compiled == null)
@@ -886,36 +886,36 @@ public class Xsd
     return null;
   }
   
-  final static IExpression elementTypeStringExpr = XPath.createExpression(
+  final IExpression elementTypeStringExpr = XPath.createExpression(
     "@type | */*/*/@base | */*/@base");
   
-  final static IExpression namespacePrefixExpr = XPath.createExpression(
+  final IExpression namespacePrefixExpr = XPath.createExpression(
     "replace( name( ancestor-or-self::xs:schema/@*[ name() != 'targetNamespace' and . = $url]), '(^[^:=]+):?', '')");
 
-  final static IExpression elementSchemaFinder = XPath.createExpression(
+  final IExpression elementSchemaFinder = XPath.createExpression(
     "ancestor-or-self::xs:schema//xs:element[ @name = $name] | "+
     "ancestor-or-self::xs:schema//xs:attribute[ @name = $name]");
 
-  final static IExpression rootElementSchemaFinder = XPath.createExpression(
+  final IExpression rootElementSchemaFinder = XPath.createExpression(
     "ancestor-or-self::xs:schema/xs:element[ @name = $name]");
   
-  final static IExpression parentSchemaExpr = XPath.createExpression(
+  final IExpression parentSchemaExpr = XPath.createExpression(
     "ancestor::xs:element[ @name = $name]/self::*[ 1] | "+
     "(for $c in ancestor::xs:complexType[ 1]/@name return "+
     "  ancestor-or-self::xs:schema//xs:element[ @name = $name]/self::*[ @type = $c or */*/*[ @base = $c]])");
 
-  final static IExpression typeDeclarationExpr = XPath.createExpression(
+  final IExpression typeDeclarationExpr = XPath.createExpression(
     "for $n in (@type | */*/*/@base | */*/@base) "+
     "return ancestor-or-self::xs:schema/*[ matches( name(), 'xs:simpleType|xs:complexType') and @name = $n]");
   
-  final static IExpression simpleTypeExpr = XPath.createExpression(
+  final IExpression simpleTypeExpr = XPath.createExpression(
     "(for $s in (@type | */xs:simpleContent/*/@base | xs:simpleType/*/@base) "+
     "return "+
     "  for $t in ancestor-or-self::xs:schema/*[ matches( name(), 'xs:simpleType|xs:complexType') and @name = $s] "+
     "  return ($t/@type | $t//@base))"+
     "| @type | */xs:simpleContent/*/@base | xs:simpleType/*/@base");
   
-  final static IExpression enumRestrictionExpr = XPath.createExpression(
+  final IExpression enumRestrictionExpr = XPath.createExpression(
     "for $s in . "+
     "return "+
     "  if ( boolean( $s/xs:simpleType/*[ xs:enumeration])) then "+
@@ -923,7 +923,7 @@ public class Xsd
     "  else "+
     "    ancestor-or-self::xs:schema/xs:simpleType[ @name = ($s/@type | $s/*/*/*/@base)]/*[ xs:enumeration]");
 
-  final static IExpression patternRestrictionExpr = XPath.createExpression(
+  final IExpression patternRestrictionExpr = XPath.createExpression(
     "for $s in . "+
     "  return "+
     "    if ( boolean( $s/xs:simpleType/*[ xs:pattern])) then "+
@@ -931,7 +931,7 @@ public class Xsd
     "    else "+
     "      ancestor-or-self::xs:schema/xs:simpleType[ @name = ($s/@type | $s/*/*/*/@base)]/*[ xs:pattern]");
   
-  final static IExpression restrictionExpr = XPath.createExpression(
+  final IExpression restrictionExpr = XPath.createExpression(
     "for $s in . "+
     "return "+
     "  if ( boolean( $s/xs:simpleType/xs:restriction)) then "+
@@ -939,7 +939,7 @@ public class Xsd
     "  else "+
     "    ancestor-or-self::xs:schema/xs:simpleType[ @name = ($s/@type | $s/*/*/*/@base)]/xs:restriction");
 
-  final static IExpression requiredAttributeExpr = XPath.createExpression(
+  final IExpression requiredAttributeExpr = XPath.createExpression(
     "descendant::xs:attribute[ @use = 'required'] |" +
     "(for $n in (@type | */*/*/@base | */*/@base) return " +
     "  ancestor-or-self::xs:schema/*[ matches( name(), 'xs:simpleType|xs:complexType') and @name = $n]//xs:attribute[ @use = 'required'])");

@@ -286,7 +286,7 @@ public class CreateAction extends GuardedAction
     }
   }
   
-  private final static Pattern expressionPattern = Pattern.compile(
+  private final Pattern expressionPattern = Pattern.compile(
     "[{]([^}]+)[}]");
   
   private IModelObjectFactory factory;

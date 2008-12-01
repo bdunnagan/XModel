@@ -644,7 +644,7 @@ public class XActionDocument
   private final IPath functionFinder = XPath.createPath( 
     "ancestor-or-self::*/functions/function[ @name = $name]");
 
-  private static final String cachedExpressionAttribute = 
+  private final String cachedExpressionAttribute = 
     "xm:compiled";
   
   private final IExpression packagePath = XPath.createExpression( 

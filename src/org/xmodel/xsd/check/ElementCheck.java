@@ -117,7 +117,7 @@ public class ElementCheck extends AbstractCheck
         errors.add( new SchemaError( Type.illegalAttribute, getSchemaLocus(), illegalAttribute));
   }
   
-  private static IPath schemaAttributePath = XPath.createPath(
+  private IPath schemaAttributePath = XPath.createPath(
     "attributes/attribute");
 
   private IPath childSchemaPath = XPath.createPath(
