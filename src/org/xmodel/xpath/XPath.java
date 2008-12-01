@@ -6,9 +6,16 @@
 package org.xmodel.xpath;
 
 import java.io.StringReader;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
-import org.xmodel.*;
+import java.util.Map;
+import org.xmodel.AbstractPath;
+import org.xmodel.IAxis;
+import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.IPathElement;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.PathSyntaxException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -92,19 +99,20 @@ public class XPath extends AbstractPath implements IAxis
    * Convenience method for creating XPath objects without having to handle the PathSyntaxException.
    * If the path has a syntax problem, this method merely returns null. This method caches xpath
    * expression for faster access.
-   * @param pathString The xpath expression to compile.
+   * @param spec The xpath expression to compile.
    * @return Returns null or the XPath object.
    */
-  public static IPath createPath( String pathString)
+  public static IPath createPath( String spec)
   {
     try
     {
-      if ( pathCache == null) pathCache = new Hashtable<String, XPath>( 100);
-      XPath path = pathCache.get( pathString);
-      if ( path != null) return path;
-        
-      path = new XPath( pathString);
-      pathCache.put( pathString, path);
+      Map<String, IPath> cache = getPathCache();
+      IPath path = cache.get( spec);
+      if ( path == null)
+      {
+        path = new XPath( spec);
+        cache.put( spec, path);
+      }
       return path;
     }
     catch( PathSyntaxException e)
@@ -117,14 +125,30 @@ public class XPath extends AbstractPath implements IAxis
   /**
    * Create an arbitrary expression using the X-Path 1.0 parser. This method caches xpath
    * expressions for faster access.
-   * @param expressionString The x-path expression to compile.
+   * @param spec The x-path expression to compile.
    * @return Returns the root of the expression tree.
    */
-  public static IExpression createExpression( String expressionString)
+  public static IExpression createExpression( String spec)
   {
     try
     {
-      return compileExpression( expressionString);
+      Map<String, IExpression> cache = getExprCache();
+      IExpression expression = cache.get( spec);
+      if ( expression == null)
+      {
+        try
+        {
+          XPathParser parser = new XPathParser( new StringReader( spec));
+          parser.setSpec( spec);
+          expression = parser.ParseExpression();
+          cache.put( spec, expression);
+        }
+        catch( ParseException e)
+        {
+          throw new PathSyntaxException( "Syntax error in expression: "+expression, e);
+        }
+      }
+      return expression;
     }
     catch( PathSyntaxException e)
     {
@@ -195,15 +219,37 @@ public class XPath extends AbstractPath implements IAxis
     PathExpression expression = new PathExpression( path);
     return new RootExpression( expression);
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IPath#getRootExpression()
-   */
-  public RootExpression getRootExpression()
-  {
-    return null;
-  }
 
+  /**
+   * Returns the expression cache for this thread.
+   * @return Returns the expression cache for this thread.
+   */
+  private static Map<String, IPath> getPathCache()
+  {
+    Map<String, IPath> cache = threadPathCaches.get();
+    if ( cache == null)
+    {
+      cache = new HashMap<String, IPath>();
+      threadPathCaches.set( cache);
+    }
+    return cache;
+  }
+  
+  /**
+   * Returns the expression cache for this thread.
+   * @return Returns the expression cache for this thread.
+   */
+  private static Map<String, IExpression> getExprCache()
+  {
+    Map<String, IExpression> cache = threadExprCaches.get();
+    if ( cache == null)
+    {
+      cache = new HashMap<String, IExpression>();
+      threadExprCaches.set( cache);
+    }
+    return cache;
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */
@@ -236,17 +282,9 @@ public class XPath extends AbstractPath implements IAxis
     }
     return builder.toString();
   }
-
-  /**
-   * Set the size of the path and expression caches.
-   * @param size The size of the hashtable.
-   */
-  public static void setCacheSize( int size)
-  {
-    pathCache = new Hashtable<String, XPath>( size);
-  }
-
-  static Hashtable<String, XPath> pathCache;
+  
+  private static ThreadLocal<Map<String, IPath>> threadPathCaches = new ThreadLocal<Map<String, IPath>>();
+  private static ThreadLocal<Map<String, IExpression>> threadExprCaches = new ThreadLocal<Map<String, IExpression>>();
   
   public static void main( String[] args) throws Exception
   {
