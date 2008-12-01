@@ -81,7 +81,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     List<String> staticAttributes = new ArrayList<String>();
     staticAttributes.add( "id");
     staticAttributes.addAll( otherKeys);
-    setStaticAttributes( staticAttributes.toArray( new String[ 0]));
+    rowCachingPolicy.setStaticAttributes( staticAttributes.toArray( new String[ 0]));
 
     // set element name for row elements
     child = Xlate.childGet( annotation, "rows", (String)null);
@@ -97,6 +97,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
+    System.err.println( "sync: "+reference);
     syncTable( reference);
   }
   
@@ -375,18 +376,19 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * TODO: This method is a work-in-progress.
    * @param statement The statement.
    * @param row The row element.
-   * @param index The field index (0 based).
+   * @param i The column index.
+   * @param j The statement parameter index.
    */
-  protected void setField( PreparedStatement statement, int index, IModelObject row) throws CachingException, SQLException
+  protected void setField( PreparedStatement statement, int i, int j, IModelObject row) throws CachingException, SQLException
   {
-    String columnName = columns[ index].name;
-    Object value = otherKeys.contains( columns[ index].name)?
+    String columnName = columns[ i].name;
+    Object value = otherKeys.contains( columns[ i].name)?
       row.getAttribute( columnName):
       row.getFirstChild( columnName).getValue();
 
     if ( value == null)
     {
-      statement.setNull( index+1, columns[ index].type);
+      statement.setNull( j, columns[ i].type);
     }
     else if ( value instanceof File)
     {
@@ -394,24 +396,24 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       {
         File file = (File)value;
         FileInputStream stream = new FileInputStream( file);
-        statement.setBinaryStream( index+1, stream, (int)file.length());
+        statement.setBinaryStream( j, stream, (int)file.length());
       }
       catch( IOException e)
       {
         throw new CachingException( "Unable to open file in table row: "+row+", file="+value, e);
       }
     }
-    else if ( columns[ index].type == Types.DATE)
+    else if ( columns[ i].type == Types.DATE)
     {
-      statement.setDate( index+1, new Date( Long.parseLong( value.toString())));
+      statement.setDate( j, new Date( Long.parseLong( value.toString())));
     }
-    else if ( columns[ index].type == Types.TIMESTAMP)
+    else if ( columns[ i].type == Types.TIMESTAMP)
     {
-      statement.setTimestamp( index+1, new Timestamp( Long.parseLong( value.toString())));
+      statement.setTimestamp( j, new Timestamp( Long.parseLong( value.toString())));
     }
     else
     {
-      statement.setObject( index+1, value);
+      statement.setObject( j, value);
     }
   }
   
@@ -433,13 +435,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( table);
     sb.append( " VALUES");
-    for( int i=0; i<nodes.size(); i++)
-    {
-      if ( i > 0) sb.append( ",");
-      sb.append( "(?");
-      for( int j=1; j<columns.length; j++) sb.append( ",?");
-      sb.append( ")");
-    }
+    sb.append( "(?");
+    for( int j=1; j<columns.length; j++) sb.append( ",?");
+    sb.append( ")");
 
     SQLManager sqlManager = getSQLManager( reference);
     PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
@@ -450,7 +448,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       for( int j=0; j<columns.length; j++)
       {
         if ( columns[ j].name.equals( primaryKey)) continue;
-        setField( statement, j, node);
+        setField( statement, j, j+1, node);
       }
       statement.addBatch();
     }
@@ -472,12 +470,14 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     sb.append( "UPDATE "); sb.append( table);
     sb.append( " SET ");
 
+    boolean first = true;
     for( int i=0; i<columns.length; i++)
     {
       if ( columns[ i].name.equals( primaryKey)) continue;
-      if ( i>0) sb.append( ",");
+      if ( !first) sb.append( ",");
       sb.append( columns[ i].name);
       sb.append( "=?");
+      first = false;
     }
     
     sb.append(" WHERE ");
@@ -489,12 +489,13 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, node.getID());
+      int k=1;
       for( int j=0; j<columns.length; j++)
       {
         if ( columns[ j].name.equals( primaryKey)) continue;
-        setField( statement, j, node);
+        setField( statement, j, k++, node);
       }
+      statement.setString( k, node.getID());
       statement.addBatch();
     }
     
@@ -547,10 +548,20 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     }
     
     /* (non-Javadoc)
+     * @see org.xmodel.external.AbstractCachingPolicy#setStaticAttributes(java.lang.String[])
+     */
+    @Override
+    public void setStaticAttributes( String[] staticAttributes)
+    {
+      super.setStaticAttributes( staticAttributes);
+    }
+
+    /* (non-Javadoc)
      * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)
      */
     public void sync( IExternalReference reference) throws CachingException
     {
+      System.err.println( "sync: "+reference);
       IModelObject object = createRowPrototype( reference);
       update( reference, object);
     }

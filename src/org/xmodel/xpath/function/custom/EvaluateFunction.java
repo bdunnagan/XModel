@@ -54,7 +54,8 @@ public class EvaluateFunction extends Function
   {
     String spec = getArgument( 1).evaluateString( context);
     IExpression expr = XPath.createExpression( spec);
-    return expr.getType( context);
+    if ( expr != null) return expr.getType( context);
+    return ResultType.UNDEFINED;
   }
 
   /* (non-Javadoc)
