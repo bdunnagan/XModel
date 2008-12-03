@@ -554,7 +554,7 @@ public class ModelObject implements IModelObject
     IModelObject child = getFirstChild( type);
     if ( child == null)
     {
-      child = new ModelObject( type);
+      child = createObject( type);
       addChild( child);
     }
     return child;
@@ -568,7 +568,7 @@ public class ModelObject implements IModelObject
     IModelObject child = getChild( type, name);
     if ( child == null) 
     {
-      child = new ModelObject( type);
+      child = createObject( type);
       child.setID( name);
       addChild( child);
     }
@@ -814,7 +814,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject cloneObject()
   {
-    IModelObject clone = new ModelObject( getType());
+    IModelObject clone = createObject( getType());
     ModelAlgorithms.copyAttributes( this, clone);
     return clone;
   }

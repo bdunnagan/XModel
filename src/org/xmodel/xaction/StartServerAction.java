@@ -8,6 +8,7 @@ package org.xmodel.xaction;
 import java.io.IOException;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -29,6 +30,8 @@ public class StartServerAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
+    
+    factory = getFactory( document.getRoot());
     
     // get assign
     assign = Xlate.get( document.getRoot(), "assign", (String)null);
@@ -59,7 +62,7 @@ public class StartServerAction extends GuardedAction
       server.start( port);
       
       StatefulContext stateful = (StatefulContext)context;
-      IModelObject object = new ModelObject( "server");
+      IModelObject object = factory.createObject( null, "server");
       object.setValue( server);
       stateful.set( assign, object);
     }
@@ -82,6 +85,7 @@ public class StartServerAction extends GuardedAction
     }
   }
   
+  private IModelObjectFactory factory;
   private ModelServer server;
   private String assign;
   private int port;

@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
  * which are managed within the context of a single thread. The XModel is not thread-safe. However,

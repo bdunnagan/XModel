@@ -9,7 +9,6 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.diff.IXmlMatcher;
@@ -90,7 +89,7 @@ public class AddAction extends GuardedAction
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
           {
-            IModelObject object = new ModelObject( source.getType());
+            IModelObject object = factory.createObject( target, source.getType());
             object.setValue( source.getID());
             target.addChild( object, start);
           }
@@ -99,7 +98,7 @@ public class AddAction extends GuardedAction
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
           {
-            IModelObject object = new ModelObject( source.getType());
+            IModelObject object = factory.createObject( target, source.getType());
             object.setID( source.getID());
             target.addChild( object, start);
           }

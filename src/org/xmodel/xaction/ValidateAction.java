@@ -8,7 +8,7 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -29,6 +29,7 @@ public class ValidateAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
+    factory = getFactory( document.getRoot());
     variable = Xlate.get( document.getRoot(), "assign", (String)null);
     sourceExpr = document.getExpression( "source", false);
     schemaRootExpr = document.getExpression( "schema", false);
@@ -52,7 +53,7 @@ public class ValidateAction extends GuardedAction
       if ( errors != null)
         for( SchemaError error: errors)
         {
-          IModelObject element = new ModelObject( "error");
+          IModelObject element = factory.createObject( null, "error");
           element.setValue( error.toString());
         }
     }
@@ -65,6 +66,7 @@ public class ValidateAction extends GuardedAction
     scope.set( variable, result);
   }
   
+  private IModelObjectFactory factory;
   private String variable;
   private IExpression sourceExpr;
   private IExpression schemaRootExpr;

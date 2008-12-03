@@ -10,7 +10,6 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
@@ -107,7 +106,7 @@ public class AssignAction extends GuardedAction
             List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
             for( IModelObject source: sources)
             {
-              IModelObject fk = (factory != null)? factory.createObject( null, source.getType()): new ModelObject( source.getType());
+              IModelObject fk = factory.createObject( null, source.getType());
               fk.setValue( source.getID());
               fks.add( fk);
             }
@@ -118,7 +117,7 @@ public class AssignAction extends GuardedAction
             List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
             for( IModelObject source: sources)
             {
-              IModelObject fk = (factory != null)? factory.createObject( null, source.getType()): new ModelObject( source.getType());
+              IModelObject fk = factory.createObject( null, source.getType());
               fk.setID( source.getID());
               fks.add( fk);
             }
