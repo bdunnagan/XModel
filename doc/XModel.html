@@ -1,0 +1,237 @@
+<html>
+  
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <meta http-equiv="Content-Style-Type" content="text/css"/>
+  <title>XModel Reference Manual</title>
+  <style type="text/css">
+    p {margin-left: 0.5in; margin-right: 0.5in; font: 14.0px Times; width: 8.5in}
+    p.toc1 {margin: 6.0px 0.0px 6.0px 0.25in; font: 14.0px Times Bold; text-decoration: none}
+    p.toc2 {margin: 4.0px 0.0px 4.0px 0.50in; font: 12.0px Times Bold; text-decoration: none}
+    p.toc3 {margin: 3.0px 0.0px 3.0px 0.75in; font: 10.0px Times Bold; text-decoration: none}
+    p.body {margin: 3.0px 0.0px 3.0px 0.0px; font: 14.0px Times; width: 7.5in}
+    p.code {margin: 10.0px 0.0px 10.0px 0.25in; font: 12.0px Courier New; color: #308030}
+    pre {margin: 10.0px 0.0px 10.0px 0.25in; font: 12.0px Courier New; color: #308030}
+    table.t1 {width: 8in; border-style: solid; border-width: 1.0px 1.0px 1.0px 1.0px; border-color: #808080 #808080 #808080 #808080}
+    td.td1 {width: 2in; background-color: #b6d5ce; border-style: solid; border-width: 1.0px 1.0px 1.0px 1.0px; border-color: #648480 #648480
+    div.footnote {margin: 6.0px 0.0px 6.0px 0.0px; font: 8px Times; width: 7.5in}</style>
+</head>
+
+<body>
+<h2>XModel Reference Manual</h2>
+<p>Author: Bob Dunnagan (bdunnagan@nc.rr.com)</p>
+
+<h3>Contents</h3>
+<p class="toc1"><a style="text-decoration: none" href="#Introduction">Introduction</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#XPath Listeners">XPath Listeners</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#XML Comparison">XML Comparison</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#Caching Policies">Caching Policies</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#Performance">Performance</a></p>
+<p class="toc1"><a style="text-decoration: none" href="#Interfaces">Interfaces</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#IModelObject"><i>IModelObject</i></a></p>
+<p class="toc2"><a style="text-decoration: none" href="#IExpressionListener"><i>IExpressionListener</i></a></p>
+<p class="toc1"><a style="text-decoration: none" href="#Tutorial">Tutorial</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#Example 1">Example 1</a></p>
+<p class="toc2"><a style="text-decoration: none" href="#Example 2">Example 2</a></p>
+
+<h3><a name="Introduction">Introduction</a></h3>
+<p>The XModel is a hierarchical data modeling framework written in Java with storage semantics similar
+   to those described in the XML 1.0 specification. It differs from other XML data modelling frameworks
+   in that it provides XPath-based data binding. The base of the implementation is XPath 1.0 compliant, 
+   but several useful XPath 2.0 and XQuery 1.0 features have been implemented including <i>for/return</i>,
+   <i>if/then/else</i> statements and <i>let</i> clauses. The data binding framework exports a single
+   listener interface which clients can implement and register with arbitrary XPath expressions. 
+   Listeners are notified when the data-model is changed in any way which would cause the result of
+   the XPath expression to change. Two interface callback methods tell the client when nodes are added
+   to or removed from XPath expressions whose result type is a node-set.  There are also interface
+   callback methods which notify the client when the value of a string, numeric or boolean XPath
+   expression changes.
+
+<p>The XModel provides a unique and powerful solution for Model/View/Controller architectures. It provides
+   the glue which connects user-interface components (widgets) to the data-model utilizing the XPath language
+   to perform transformations.
+
+<h4><a name="XPath Listeners">XPath Listeners</a></h4>
+<p>Intended for data-binding applications, the most important feature of the framework is the ability to add 
+   listeners to an arbitrary XPath expressions. Consider the following expression:</p>
+
+<p class="code">collection('employees')/employee[ contains( title, 'Engineer')]/name</p>
+
+<p>After this expession is bound to a listener, the listener will be notified of all employees whose title includes
+   the word, "Engineer". If an engineering employee is added or removed from the document, or if an engineer becomes
+   a manager, listeners will receive notification. The listener mechanism decouples the code which updates the model 
+   from code which is interested in the content of the model.</p>
+
+<p>Here is another example:</p>
+
+<p class="code">
+   for $title in collection('store')/catalog/cd[ author = 'Yes']/title<br/>
+   return collection('store')/inventory/product[ title = $title]</p>
+  
+<p>Listeners bound to this expression will receive notification when a change to the data-model would cause the
+   expression's return value to change. For example, if a new album by <i>Yes</i> is added to the catalog, 
+   listeners will be notified when the album is in stock. Listeners are constantly updated with the current set 
+   of matching products. Clients may choose to receive <i>ordered</i> or <i>unordered</i> notification by choosing 
+   the correct listener base class. Ordered notifications provide information about the location of new elements 
+   in the node-set.</p>
+
+<p>The notification algorithm is designed to incur the majority of performance costs during binding and unbinding
+   and is capable of providing timely notifications during mouse movement events or typing. For example, reasonably
+   complex validation logic can be performed as the user types without a noticeable latency.
+
+<h4><a name="XML Comparison">XML Comparison</a></h4>
+<p>The framework provides a differencing engine which makes it easy for an implementation to create a high-quality, 
+   problem-domain-specific XML document comparison. The engine supports both ordered and unordered comparisons within 
+   the same document. The result of a comparison can be either a boolean or a change-set which contains records that, 
+   when applied, transform the left-hand-side of the comparison so that a subsequent comparison would yield zero 
+   records. Most caching policies use the differencing engine to update the model when the information in the external 
+   storage element changes.
+
+<p>The differencing framework defines a default set of semantics for differencing documents. Comparisons of documents 
+   which adhere to these semantics will require little or no customization of the framework. These semantics are
+   described in detail later. Most of the semantics involve the behavior of the differencing engine when <i>id</i>
+   attributes are present or absent on elements. By following simple guidelines for the use of <i>id</i> 
+   attributes, additional programming can be avoided. However, in situations where the semantics are not 
+   dictated by the programming, implementations of one or two customization interfaces will provide a robust
+   solution.
+
+<h4><a name="Caching Policies">Caching Policies</a></h4>
+<p>An application data-model contains transient, run-time information and persistent or remote 
+  information. The persistent information is held in memory for some period of time according to 
+  some policy depending on performance, reliability or other requirements. For example, an 
+  application might have a requirement that persistent user-preferences be saved when the 
+  application exits. Or, an application might have the requirement that certain data be loaded into 
+  memory during application initialization. The XModel provides a framework for defining the policies
+  which govern remote data access.
+
+<h4><a name="Performance">Performance</a></h4>
+<p>The XModel framework was designed from the beginning with performance as a 
+  high-priority. The choice of data-structures has been evaluated for key mechanisms. Space is 
+  generally traded for speed but it is possible to customize the framework to optimize for space.
+
+<p>There is overhead when listeners are bound to XPath expressions. However, in many 
+  cases this overhead is minimal even for large datamodels. Consider a model consisting of a 
+  library of millions of books and the following expression:</p>
+
+<p class="code">collection('library')/book</p>
+
+<p>When this expression is bound, the listener will receive notification consisting of a Java <i>List</i> 
+   object with an entry for each book, which is practical. However, if a predicate is added to the expression:
+
+<p class="code">collection('library')/book[ title = 'The Two Towers']
+
+<p>then binding a listener could become very expensive since the listener should be 
+  updated if the title of any book in the library is changed to 'The Two Towers'. This is not the 
+  behavior that we want. The XModel framework defines a custom xpath function, <i>static()</i>, 
+  which tells the framework that part of an expression never changes. The <i>static()</i> function 
+  takes a single argument and returns the result of that argument. The query above could be written 
+  efficiently as follows:</p>
+
+<p class="code">collection('library')/book[ static( title = 'The Two Towers')]
+
+<p>When bound this expression will notify the listener whenever a book entitled, 'The 
+  Two Towers', is added or removed from the library. The expression will not, however, notify the 
+  listener if the title of a book becomes (or ceases to be) 'The Two Towers', which is the desired 
+  behavior.
+
+<h3><a name="Interfaces"><i>Interfaces</i></a></h3>
+<h4><a name="IModelObject"><i>IModelObject</i></a></h4>
+<p>The <i>IModelObject</i> interface defines the operations on a node of the hierarchical 
+  data-model. It supports one parent, zero or more children and zero or more attributes. The 
+  attributes of an IModelObject form an unordered set of mappings between a string key (the 
+  attribute name) and a java Object (the attribute value). The parent and children of an 
+  IModelObject are instances of IModelObject, and the children are ordered. For legacy reasons, the 
+  element "name" as defined by the XML 1.0 specification is obtained by calling the 
+  <i>IModelObject.getType()</i> method, and <i>type</i> will be used throughout this document. The 
+  XPath 1.0 <i>name()</i> function returns the type.
+
+<p>There are two attributes which are treated specially by IModelObject implementations: the 
+  <i>id</i> attribute and the empty attribute. The attribute whose name is the empty string is the 
+  value of the object (text node). In DOM, attributes and text nodes are always objects. The 
+  <i>ModelObject</i> reference implementation of the <i>IModelObject</i> interface treats 
+  attributes as key/value mappings and delegates the storage semantics to the implementation. 
+  However, every implementation must be able to render an attribute as an <i>AttributeNode</i>. An 
+  <i>AttributeNode</i> is an <i>IModelObject</i> whose type is the attribute key and whose value is 
+  the attribute value. Clients generally never need to access <i>AttributeNodes</i> and there use 
+  is discouraged. <i>AttributeNodes</i> are used internally by the listener framework.
+
+<p>The value of an attribute is always a Java <i>Object</i> which allows arbitrary information to 
+  be associated with data in the model. If a Java <i>Object</i> which is the value of an attribute 
+  implements the <i>toString()</i> method, then that part of the model can be rendered to XML. Keep 
+  in mind that the framework does not provide an automated mechanism for deserializing associations 
+  when a model is being constructed from an XML document.
+
+<p>The <i>Xlate</i> class provides a collection of static convenience methods for 
+  getting and setting attributes to and from Java primitive types like <i>double</i>. The 
+  following code uses the <i>Xlate</i> class to get the number of pages of a book element:
+  
+<p class="code">Xlate.childGet( book, "pageCount", 0)
+
+<p>The zero argument is the default value if the <i>pageCount</i> element does not 
+  exist and also serves to choose among the overloaded <i>Xlate.chileGet</i> methods. The default 
+  value is used if the first argument is null.
+
+<p>The parent of an <i>IModelObject</i> is either an <i>IModelObject</i> or null. The 
+  root of the model is an <i>IModelObject</i> whose parent is null. The framework supports the 
+  XPath 2.0 <i>collection</i> method which provides access to the named collections of 
+  root-nodes. All of the root nodes in a collection must have the same type.
+
+<p>The children of an <i>IModelObject</i> are ordered and are accessed as 
+  <i>List&lt;IModelObject&gt;</i>. The descendants of an <i>IModelObject</i> can be traversed using 
+  the <i>BreadthFirstIterator</i>, <i>DepthFirstIterator</i>, or <i>NonSyncingIterator</i>.
+
+<p>The <i>IModelObject</i> interface provides methods for adding and removing 
+  listeners. <i>IModelObject</i> implementations are required to perform notification to all 
+  registered listeners whenever the parent, children or attributes of the object are modified. All 
+  of the XModel listener mechanisms are implemented by adding and removing listeners on 
+  <i>IModelObject</i> instances.
+
+<h3><a name="IExpressionListener"><i>IExpressionListener</i></a></h3>
+<p>ADD SOMETHING HERE!
+
+<h3><a name="Tutorial">Tutorial</a></h3>
+<h4><a name="Example 1"></a>Example 1</h4>
+<p>The following code loads an XML file, creates a collection to hold the root element
+  and then transforms the file back into xml:</p>
+
+<pre>
+public static void main( String[] args) throws Exception
+{
+  if ( args.length &lt; 1)
+  {
+    System.err.println( "usage: java Tutorial xml_file_name");
+    System.exit( 1);
+  }
+  
+  // create a model from an xml file
+  XmlIO xmlIO = new XmlIO();
+  IModelObject root = xmlIO.read( new FileInputStream( args[ 0]));
+  ModelRegistry.getInstance().addRoot( "MyCollection", root);
+  
+  // accessing a collection
+  IExpression accessCollectionExpr = XPath.createExpression( "collection( 'MyCollection')");
+  List&lt;IModelObject&gt; result = accessCollectionExpr.evaluateNodes( NullContext.getInstance());
+  IModelObject collectionRoot = (result.size() > 0)? result.get( 0): null;
+  
+  // transforming model to xml
+  xmlIO.setOutputStyle( XmlIO.Style.printable);
+  String xml = xmlIO.write( collectionRoot);
+  System.out.println( xml);
+}  
+</pre>
+
+<h4><a name="Example 2">Example 2</a></h4>
+<p>The following code demonstrates complex querying with an XPath expression. XPath provides a succinct way to code 
+   transformation logic which, if hand-coded in Java, would require considerably more code. In my experience, moving 
+   complexity to an XPath expression often yields more readable code.</p>
+  
+<pre>
+ADD SOMETHING HERE!
+</pre>
+
+<p>Since the data-model does not contain information about the original xml text formatting, the xml 
+  generated by <i>XmlIO.write</i> method will be different from the original xml. For example, tags
+  which are embedded in the text of their parents will be moved so that all the text appears together.</p>
+
+</body>
+</html>
