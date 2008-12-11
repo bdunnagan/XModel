@@ -1,4 +1,4 @@
-package org.xmodel.logging;
+package org.xmodel.log;
 
 import org.apache.log4j.Logger;
 
