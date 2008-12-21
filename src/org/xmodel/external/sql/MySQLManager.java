@@ -8,6 +8,8 @@ package org.xmodel.external.sql;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.util.HashMap;
+import java.util.Map;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -17,6 +19,11 @@ import org.xmodel.external.CachingException;
  */
 public class MySQLManager implements SQLManager
 {
+  public MySQLManager()
+  {
+    drivers = new HashMap<String, JDCConnectionDriver>();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.SQLCachingPolicy.SQLManager#configure(org.xmodel.IModelObject)
    */
@@ -47,8 +54,20 @@ public class MySQLManager implements SQLManager
       {
         init = true;
         Class.forName( driverClassName);    
+        
       }
     
+      JDCConnectionDriver driver = null;
+      synchronized( drivers)
+      {
+        driver = drivers.get( url);
+        if ( driver == null)
+        {
+          driver = new JDCConnectionDriver( driverClassName, url, login, password);
+          drivers.put( url, driver);
+        }
+      }
+      
       // return connection
       return DriverManager.getConnection( url, login, password);    
     }
@@ -92,6 +111,8 @@ public class MySQLManager implements SQLManager
 
   private final static String urlPrefix = "jdbc:mysql://127.0.0.1/";
   private final static String driverClassName = "com.mysql.jdbc.Driver";
+  
+  private static Map<String, JDCConnectionDriver> drivers;
   
   private boolean init;
   private String url;
