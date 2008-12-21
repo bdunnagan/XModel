@@ -561,7 +561,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
      */
     public void sync( IExternalReference reference) throws CachingException
     {
-      System.err.println( "sync: "+reference);
       IModelObject object = createRowPrototype( reference);
       update( reference, object);
     }
