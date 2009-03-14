@@ -426,7 +426,11 @@ public class PathElement implements IPathElement, IAxis
       List<IModelObject> children = parent.getChildren();
       int start = children.indexOf( object);
       for( int i = start-1; i >= 0; i--)
-        result.add( children.get( i));
+      {
+        IModelObject child = children.get( i);
+        if ( performNodeTest( child, type))
+          result.add( child);
+      }
     }
     
     return result;
