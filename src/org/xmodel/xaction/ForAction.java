@@ -37,9 +37,9 @@ public class ForAction extends GuardedAction
     sourceExpr = document.getExpression( "source", true);
 
     // OR numeric iteration
-    fromValue = Xlate.get( root, "from", 0d);
-    toValue = Xlate.get( root, "to", 0d);
-    byValue = Xlate.get( root, "by", 0d);
+    fromExpr = document.getExpression( "from", true);
+    toExpr = document.getExpression( "to", true);
+    byExpr = document.getExpression( "by", true);
         
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)
     Object when = root.removeAttribute( "when");
@@ -75,9 +75,9 @@ public class ForAction extends GuardedAction
     }
     
     // numeric iteration
-    if ( variable != null && byValue != 0)
+    if ( variable != null && fromExpr != null && toExpr != null && byExpr != null)
     {
-      for( double i = fromValue; i < toValue; i += byValue)
+      for( double i = fromExpr.evaluateNumber( context); i < toExpr.evaluateNumber( context); i += byExpr.evaluateNumber( context))
       {
         scope.set( variable, i);
         script.run( context);
@@ -87,8 +87,8 @@ public class ForAction extends GuardedAction
 
   private String variable;
   private IExpression sourceExpr;
-  private double fromValue;
-  private double toValue;
-  private double byValue;
+  private IExpression fromExpr;
+  private IExpression toExpr;
+  private IExpression byExpr;
   private ScriptAction script;
 }
