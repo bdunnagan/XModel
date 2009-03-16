@@ -31,10 +31,16 @@ public class ForAction extends GuardedAction
   {
     super.configure( document);
     
+    // node-set iteration
     IModelObject root = document.getRoot();
     variable = Xlate.get( root, "assign", (String)null);    
     sourceExpr = document.getExpression( "source", true);
-    
+
+    // OR numeric iteration
+    fromValue = Xlate.get( root, "from", 0d);
+    toValue = Xlate.get( root, "to", 0d);
+    byValue = Xlate.get( root, "by", 0d);
+        
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)
     Object when = root.removeAttribute( "when");
     script = document.createScript( "source");
@@ -47,31 +53,42 @@ public class ForAction extends GuardedAction
   protected void doAction( IContext context)
   {
     IVariableScope scope = null;
-    List<IModelObject> nodes = sourceExpr.evaluateNodes( context);
-    for( int i=0; i<nodes.size(); i++)
+    if ( scope == null)
     {
-      // store the current element in either a variable or the context
-      if ( variable != null)
+      scope = context.getScope();
+      if ( scope == null)
+        throw new IllegalArgumentException( 
+          "ForAction context does not have a variable scope: "+this);
+    }
+    
+    // node-set iteration 
+    if ( sourceExpr != null)
+    {
+      List<IModelObject> nodes = sourceExpr.evaluateNodes( context);
+      for( int i=0; i<nodes.size(); i++)
       {
-        if ( scope == null)
-        {
-          scope = context.getScope();
-          if ( scope == null)
-            throw new IllegalArgumentException( 
-              "ForAction context does not have a variable scope: "+this);
-        }
-        scope.set( variable, nodes.get( i));
+        // store the current element in either a variable or the context
+        if ( variable != null) scope.set( variable, nodes.get( i));
+        else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
+        script.run( context);
       }
-      else
+    }
+    
+    // numeric iteration
+    if ( variable != null && byValue != 0)
+    {
+      for( double i = fromValue; i < toValue; i += byValue)
       {
-        context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
+        scope.set( variable, i);
+        script.run( context);
       }
-
-      script.run( context);
     }
   }
 
   private String variable;
   private IExpression sourceExpr;
+  private double fromValue;
+  private double toValue;
+  private double byValue;
   private ScriptAction script;
 }
