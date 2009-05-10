@@ -38,18 +38,19 @@
 <p>The XModel is a hierarchical data modeling framework written in Java with storage semantics similar
    to those described in the XML 1.0 specification. It differs from other XML data modelling frameworks
    in that it provides XPath-based data binding. The base of the implementation is XPath 1.0 compliant, 
-   but several useful XPath 2.0 and XQuery 1.0 features have been implemented including <i>for/return</i>,
-   <i>if/then/else</i> statements and <i>let</i> clauses. The data binding framework exports a single
-   listener interface which clients can implement and register with arbitrary XPath expressions. 
-   Listeners are notified when the data-model is changed in any way which would cause the result of
+   but several useful XPath 2.0 and XQuery 1.0 features have been implemented including <i>for/return</i>
+   statements, <i>if/then/else</i> statements and <i>let</i> clauses. The data binding framework exports 
+   a single listener interface that clients can implement and register with arbitrary XPath expressions. 
+   Listeners are notified when the data-model is changed in any way that would cause the result of
    the XPath expression to change. Two interface callback methods tell the client when nodes are added
    to or removed from XPath expressions whose result type is a node-set.  There are also interface
-   callback methods which notify the client when the value of a string, numeric or boolean XPath
+   callback methods that notify the client when the value of a string, numeric or boolean XPath
    expression changes.
 
 <p>The XModel provides a unique and powerful solution for Model/View/Controller architectures. It provides
-   the glue which connects user-interface components (widgets) to the data-model utilizing the XPath language
-   to perform transformations.
+   the glue that connects user-interface components (widgets) to the data-model utilizing the XPath language
+   to perform transformations. (REWRITE THIS PARAGRAPH AND ELABORATE ON MVC GLUE, AS WELL AS DISCUSSING THE
+   DIFFERENCE BETWEEN BUSINESS LOGIC AND TRANSFORMATION LOGIC).
 
 <h4><a name="XPath Listeners">XPath Listeners</a></h4>
 <p>Intended for data-binding applications, the most important feature of the framework is the ability to add 
