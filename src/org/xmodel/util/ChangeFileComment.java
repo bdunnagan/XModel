@@ -15,8 +15,7 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- */
+@SuppressWarnings("unused")
 public class ChangeFileComment
 {
   public static void main( String[] args) throws Exception
