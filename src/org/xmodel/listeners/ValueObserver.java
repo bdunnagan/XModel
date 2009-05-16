@@ -12,7 +12,6 @@ import org.xmodel.IPathListener;
 import org.xmodel.ModelListener;
 import org.xmodel.xpath.expression.IContext;
 
-
 /**
  * When this listener is installed on a path, it provides notification for the value of each 
  * node in the node-set returned by the path. It also installs listeners on each node and 

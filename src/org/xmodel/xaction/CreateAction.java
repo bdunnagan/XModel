@@ -25,9 +25,12 @@ import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xsd.Schema;
 
-
 /**
- * An XAction which creates an element.
+ * An XAction which creates an element using a variety of mechanisms.  The element can be
+ * created by a template, by element name or from a schema.  The created element can be
+ * assigned to a collection or a variable, or added to a parent element.  Templates can
+ * include annotations that describe the caching policy to be used according to the rules
+ * defined in the AnnotationTransform class.
  */
 public class CreateAction extends GuardedAction
 {

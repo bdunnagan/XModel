@@ -23,11 +23,10 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
  * A caching policy which will populate its external reference with references to all of the XML
- * files in a specified folder. The XML files are identified by the ".xml" extension. This 
- * implementation does not support locking.
+ * files in a specified folder. The XML files are identified by the ".xml" extension.  The folder
+ * location is defined in the <i>path</i> attribute. This implementation does not support locking.
  */
 public class FolderCachingPolicy extends ConfiguredCachingPolicy
 {
