@@ -10,7 +10,6 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ManualDispatcher;
-import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.net.ModelServer;
 import org.xmodel.xpath.expression.IContext;
