@@ -88,10 +88,10 @@ public class CreateAction extends GuardedAction
     List<IModelObject> elements = new ArrayList<IModelObject>( 1);
     
     // create element from name string
-    IExpression nameExpr = document.getExpression( "name", true);
-    if ( nameExpr != null)
+    IExpression elementNameExpr = document.getExpression( "name", true);
+    if ( elementNameExpr != null)
     {
-      String type = nameExpr.evaluateString( context);
+      String type = elementNameExpr.evaluateString( context);
       if ( type.length() == 0)
         throw new IllegalArgumentException(
           "Element type name is empty: "+this);
@@ -125,11 +125,11 @@ public class CreateAction extends GuardedAction
     List<IModelObject> attributes = document.getRoot().getChildren( "attribute");
     for( IModelObject attribute: attributes)
     {
-      String name = Xlate.get( attribute, "name", (String)null);
+      IExpression nameExpr = Xlate.get( attribute, "name", (IExpression)null);
+      String name = nameExpr.evaluateString( context);
       IExpression valueExpr = document.getExpression( attribute);
       String value = valueExpr.evaluateString( context);
-      for( IModelObject element: elements)
-        element.setAttribute( name, value);
+      for( IModelObject element: elements) element.setAttribute( name, value);
     }
     
     // process actions
