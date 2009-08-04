@@ -492,8 +492,18 @@ public class XActionDocument
 
       return action;
     }
-    catch( Exception e)
+    catch( ClassNotFoundException e)
     {
+      return null;
+    }
+    catch( IllegalAccessException e)
+    {
+      e.printStackTrace( System.err);
+      return null;
+    }
+    catch( InstantiationException e)
+    {
+      e.printStackTrace( System.err);
       return null;
     }
   }

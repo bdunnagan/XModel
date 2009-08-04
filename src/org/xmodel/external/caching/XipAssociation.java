@@ -12,7 +12,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
 
-
 /**
  * An IFileAssociation for the XModel <i>.xip</i> extension associated with the TabularCompressor.
  */

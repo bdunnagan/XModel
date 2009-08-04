@@ -5,10 +5,12 @@
  */
 package org.xmodel.external.caching;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
-
 
 /**
  * An IFileAssociation for various text file associations including <i>.txt</i> and associations for various 
@@ -31,7 +33,15 @@ public class TxtAssociation implements IFileAssociation
   {
     try
     {
-      
+      char[] buffer = new char[ 1 << 16];
+      StringBuilder content = new StringBuilder();
+      BufferedReader reader = new BufferedReader( new InputStreamReader( new FileInputStream( file)));
+      while( reader.ready())
+      {
+        int count = reader.read( buffer);
+        if ( count > 0) content.append( content, 0, count);
+      }
+      parent.setValue( content.toString());
     }
     catch( Exception e)
     {

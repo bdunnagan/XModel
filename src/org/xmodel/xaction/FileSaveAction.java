@@ -18,7 +18,6 @@ import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
  * An XAction which saves an element to a file in compressed or uncompressed form.
  */

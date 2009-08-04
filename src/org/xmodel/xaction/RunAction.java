@@ -12,7 +12,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
-
 /**
  * An XAction which executes zero or more XActions identified by an XPath expression. Each element
  * returned by the expression is compiled into an XAction and executed.

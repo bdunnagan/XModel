@@ -35,8 +35,8 @@ public class FileLoadAction extends GuardedAction
   {
     super.configure( document);
     variable = Xlate.get( document.getRoot(), "assign", (String)null);
-    targetExpr = document.getExpression( "target", false);
-    fileExpr = document.getExpression( "file", false);
+    targetExpr = document.getExpression( "target", true);
+    fileExpr = document.getExpression( "file", true);
     if ( fileExpr == null) fileExpr = document.getExpression();
   }
 

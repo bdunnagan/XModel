@@ -11,7 +11,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 
-
 /**
  * An implementation of AbstractListDiffer which creates records in an IChangeSet.
  */

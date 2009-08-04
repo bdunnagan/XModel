@@ -22,7 +22,7 @@ public class LoopAction extends GuardedAction
     super.configure( document);
     whileExpr = document.getExpression( "while", true);
     countExpr = document.getExpression( "count", true);
-    script = document.createScript( "while");
+    script = document.createScript( "while", "count");
   }
 
   /* (non-Javadoc)

@@ -490,7 +490,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
           String prefix = staticAttribute.substring( 0, staticAttribute.length()-2);
           if ( attribute.startsWith( prefix)) return true;
         }
-        else if ( staticAttribute.equals( "*") || attribute.equals( staticAttribute))
+        else if ( (staticAttribute.equals( "*") && attribute.length() > 0) || attribute.equals( staticAttribute))
         {
           return true;
         }

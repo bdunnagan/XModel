@@ -77,10 +77,24 @@ public class ForAction extends GuardedAction
     // numeric iteration
     if ( variable != null && fromExpr != null && toExpr != null && byExpr != null)
     {
-      for( double i = fromExpr.evaluateNumber( context); i < toExpr.evaluateNumber( context); i += byExpr.evaluateNumber( context))
+      double from = fromExpr.evaluateNumber( context);
+      double to = toExpr.evaluateNumber( context);
+      double by = byExpr.evaluateNumber( context);
+      if ( by >= 0)
       {
-        scope.set( variable, i);
-        script.run( context);
+        for( double i = from; i <= to; i += by)
+        {
+          scope.set( variable, i);
+          script.run( context);
+        }
+      }
+      else
+      {
+        for( double i = from; i >= to; i += by)
+        {
+          scope.set( variable, i);
+          script.run( context);
+        }
       }
     }
   }

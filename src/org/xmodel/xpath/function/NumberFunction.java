@@ -11,9 +11,9 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
  * An implementation of the X-Path number() function.
+ * TODO: Number function does not support zero argument version.
  */
 public class NumberFunction extends Function
 {

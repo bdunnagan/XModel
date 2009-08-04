@@ -12,7 +12,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 import org.xmodel.xml.XmlIO;
 
-
 /**
  * An IFileAssociation for xml, xsd, dtd and other well-formed xml extensions.
  */

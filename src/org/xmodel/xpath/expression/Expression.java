@@ -364,7 +364,6 @@ public abstract class Expression implements IExpression
     }
     catch( ExpressionException e)
     {
-      e.printStackTrace( System.err);
       return defaultResult;
     }
   }
@@ -381,7 +380,6 @@ public abstract class Expression implements IExpression
     }
     catch( ExpressionException e)
     {
-      e.printStackTrace( System.err);
       return defaultResult;
     }
   }
@@ -398,7 +396,6 @@ public abstract class Expression implements IExpression
     }
     catch( ExpressionException e)
     {
-      e.printStackTrace( System.err);
       return defaultResult;
     }
   }
@@ -414,8 +411,7 @@ public abstract class Expression implements IExpression
       return evaluateBoolean( context);
     }
     catch( ExpressionException e)
-    {
-      e.printStackTrace( System.err);
+    {      e.printStackTrace( System.err);
       return defaultResult;
     }
   }
