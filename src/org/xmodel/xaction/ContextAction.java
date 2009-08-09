@@ -32,7 +32,7 @@ public class ContextAction extends XAction
   /* (non-Javadoc)
    * @see com.stonewall.cornerstone.cpmi.xaction.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
+  public Object[] doRun( IContext context)
   {
     if ( sourceExpr != null)
     {
@@ -40,7 +40,7 @@ public class ContextAction extends XAction
       if ( source != null)
       {
         StatefulContext nested = new StatefulContext( context, source);
-        script.run( nested);
+        return script.run( nested);
       }
     }
     else
@@ -51,8 +51,10 @@ public class ContextAction extends XAction
         context.getPosition(),
         context.getSize());
       
-      script.run( nested);
+      return script.run( nested);
     }
+    
+    return null;
   }
 
   private IExpression sourceExpr;

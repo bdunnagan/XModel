@@ -42,17 +42,18 @@ public abstract class GuardedAction extends XAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public final void doRun( IContext context)
+  public final Object[] doRun( IContext context)
   {
-    if ( condition == null || condition.evaluateBoolean( context))
-      doAction( context);
+    if ( condition == null || condition.evaluateBoolean( context)) return doAction( context);
+    return null;
   }
 
   /**
    * Called if the condition evaluates true.
    * @param context The context.
+   * @return Returns null or the return value (see IXAction).
    */
-  abstract protected void doAction( IContext context);
+  abstract protected Object[] doAction( IContext context);
 
   private IExpression condition;
 }

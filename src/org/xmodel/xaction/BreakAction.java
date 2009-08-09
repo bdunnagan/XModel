@@ -89,7 +89,7 @@ public class BreakAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     try
     {
@@ -109,7 +109,8 @@ public class BreakAction extends GuardedAction
       {
         showElement( prefix, getDocument().getRoot(), maxLines);
         System.out.println( prefix);
-        script.run( context);
+        Object[] result = script.run( context);
+        if ( result != null) return result;
         prompt( context, null);
       }
       else
@@ -133,6 +134,8 @@ public class BreakAction extends GuardedAction
       // pop this breakpoint off the stack
       popThreadBreak();
     }
+    
+    return null;
   }
   
   /**

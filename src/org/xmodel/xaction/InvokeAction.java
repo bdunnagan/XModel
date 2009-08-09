@@ -1,4 +1,4 @@
-/*
+  /*
  * XModel (XML Application Data Modeling Framework)
  * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
  * Copyright Bob Dunnagan 2009. All rights reserved.
@@ -11,7 +11,7 @@ import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
-import org.xmodel.xpath.expression.IExpression.ResultType;
+import org.xmodel.xpath.variable.IVariableScope;
 
 /**
  * An XAction that provides improved semantics for invoking scripts.
@@ -25,43 +25,59 @@ public class InvokeAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    
-    IModelObject node = document.getRoot().getAttributeNode( "script");
-    if ( node == null) node = document.getRoot().getFirstChild( "script");
-    script = document.createScript( node);
-    
-    List<IModelObject> argNodes = document.getRoot().getChildren( "arg");
-    argExprs = new IExpression[ argNodes.size()];
-    for( int i=0; i<argExprs.length; i++)
-    {
-      argExprs[ i] = Xlate.get( argNodes.get( i), (IExpression)null);
-    }
+
+    variable = Xlate.get( document.getRoot(), "assign", "result");
+    contextExpr = document.getExpression( "context", true);
+    scriptExpr = document.getExpression();
+    isStatic = Xlate.get( document.getRoot(), "static", false);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
+  @SuppressWarnings("unchecked")
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
-    StatefulContext local = new StatefulContext( context, context.getObject());
+    Object[] results = null;
     
-    // evaluate args
-    for( int i=0; i<argExprs.length; i++)
+    if ( script == null || !isStatic)
     {
-      ResultType type = argExprs[ i].getType( context);
-      switch( type)
+      IModelObject node = scriptExpr.queryFirst( context);
+      if ( node != scriptNode)
       {
-        case NODES: local.set( "arg"+i, argExprs[ i].evaluateNodes( context)); break;
-        case NUMBER: local.set( "arg"+i, argExprs[ i].evaluateNumber( context)); break;
-        case STRING: local.set( "arg"+i, argExprs[ i].evaluateString( context)); break;
-        case BOOLEAN: local.set( "arg"+i, argExprs[ i].evaluateBoolean( context)); break;
+        scriptNode = node;
+        script = document.createScript( scriptNode, "context");
       }
     }
     
-    script.run( local);
+    if ( contextExpr != null)
+    {
+      StatefulContext local = new StatefulContext( context, contextExpr.queryFirst( context));
+      results = script.run( local);
+    }
+    else
+    {
+      results = script.run( context);
+    }
+    
+    if ( results != null && results.length > 0)
+    {
+      Object result = results[ 0];
+      IVariableScope scope = context.getScope();
+      if ( result instanceof List) scope.set( variable, (List<IModelObject>)result);
+      else if ( result instanceof String) scope.set( variable, result.toString());
+      else if ( result instanceof Number) scope.set( variable, (Number)result);
+      else if ( result instanceof Boolean) scope.set( variable, (Boolean)result);
+    }
+    
+    return null;
   }
   
+  private String variable;
+  private IExpression contextExpr;
+  private IExpression scriptExpr;
+  private boolean isStatic;
+  private IModelObject scriptNode;
   private ScriptAction script;
-  private IExpression[] argExprs;
 }

@@ -29,25 +29,36 @@ public class LoopAction extends GuardedAction
    * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     if ( countExpr == null)
     {
       while( whileExpr == null || whileExpr.evaluateBoolean( context))
-        script.run( context);
+      {
+        Object[] result = script.run( context);
+        if ( result != null) return result;
+      }
     }
     else if ( whileExpr == null)
     {
       int count = (int)countExpr.evaluateNumber( context);
       for( int i=0; i<count; i++)
-        script.run( context);
+      {
+        Object[] result = script.run( context);
+        if ( result != null) return result;
+      }
     }
     else
     {
       int count = (int)countExpr.evaluateNumber( context);
       for( int i=0; i<count && whileExpr.evaluateBoolean( context); i++)
-        script.run( context);
+      {
+        Object[] result = script.run( context);
+        if ( result != null) return result;
+      }
     }
+    
+    return null;
   }
   
   private IExpression whileExpr;

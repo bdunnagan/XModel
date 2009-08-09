@@ -59,14 +59,14 @@ public class AssignAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     if ( name.length() == 0)
       throw new IllegalArgumentException(
         "Variable name has zero length in AssignAction: "+this);
     
     IVariableScope scope = findScope( name, context, replace);
-    if ( scope == null) return;
+    if ( scope == null) return null;
 
     if ( sourceExpr == null)
     {
@@ -132,6 +132,8 @@ public class AssignAction extends GuardedAction
         case UNDEFINED: throw new XActionException( "Expression type is undefined: "+sourceExpr);
       }
     }
+    
+    return null;
   }
   
   /**

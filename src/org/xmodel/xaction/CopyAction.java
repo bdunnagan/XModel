@@ -58,10 +58,10 @@ public class CopyAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IModelObject source = sourceExpr.queryFirst( context);
-    if ( source == null) return;
+    if ( source == null) return null;
     
     List<IModelObject> ignoreList = new ArrayList<IModelObject>();
     List<IModelObject> orderedList = new ArrayList<IModelObject>();
@@ -101,6 +101,8 @@ public class CopyAction extends GuardedAction
       System.out.println( changeSet);
       changeSet.applyChanges();
     }
+    
+    return null;
   }
   
   private XmlDiffer differ = new XmlDiffer();

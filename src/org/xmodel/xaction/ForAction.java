@@ -50,7 +50,7 @@ public class ForAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IVariableScope scope = null;
     if ( scope == null)
@@ -70,7 +70,9 @@ public class ForAction extends GuardedAction
         // store the current element in either a variable or the context
         if ( variable != null) scope.set( variable, nodes.get( i));
         else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
-        script.run( context);
+        
+        Object[] result = script.run( context);
+        if ( result != null) return result;
       }
     }
     
@@ -85,7 +87,8 @@ public class ForAction extends GuardedAction
         for( double i = from; i <= to; i += by)
         {
           scope.set( variable, i);
-          script.run( context);
+          Object[] result = script.run( context);
+          if ( result != null) return result;
         }
       }
       else
@@ -93,10 +96,13 @@ public class ForAction extends GuardedAction
         for( double i = from; i >= to; i += by)
         {
           scope.set( variable, i);
-          script.run( context);
+          Object[] result = script.run( context);
+          if ( result != null) return result;
         }
       }
     }
+    
+    return null;
   }
 
   private String variable;

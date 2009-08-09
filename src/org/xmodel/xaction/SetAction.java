@@ -39,7 +39,7 @@ public class SetAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     List<IModelObject> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
@@ -58,6 +58,8 @@ public class SetAction extends GuardedAction
     
     targets = targetExpr.query( context, null);
     for( IModelObject target: targets) target.setValue( value);
+    
+    return null;
   }
   
   private IModelObjectFactory factory;

@@ -41,7 +41,7 @@ public class IdAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     if ( targetExpr != null)
     {
@@ -57,6 +57,8 @@ public class IdAction extends GuardedAction
     {
       context.getObject().setValue( generate( length));
     }
+    
+    return null;
   }
   
   /**

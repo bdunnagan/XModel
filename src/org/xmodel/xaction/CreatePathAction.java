@@ -32,9 +32,11 @@ public class CreatePathAction extends GuardedAction
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     ModelAlgorithms.createPathSubtree( context, sourceExpr, factory, null);
+    
+    return null;
   }
   
   private IModelObjectFactory factory;

@@ -69,7 +69,7 @@ public class TransformAction extends GuardedAction
    * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IVariableScope scope = context.getScope();        
     Object value = scope.get( "transform_direction");
@@ -81,17 +81,20 @@ public class TransformAction extends GuardedAction
 
     // run pre-script
     for( IXAction action: preActions)
-      action.run( context);
+    {
+      Object[] result = action.run( context);
+      if ( result != null) return result;
+    }
 
     // transform
     String direction = value.toString();
     if ( direction.equals( "fromLeft"))
     {
-      if ( fromLeftScript != null) fromLeftScript.run( context);
+      if ( fromLeftScript != null) return fromLeftScript.run( context);
     }
     else if ( direction.equals( "fromRight"))
     {
-      if ( fromRightScript != null) fromRightScript.run( context);
+      if ( fromRightScript != null) return fromRightScript.run( context);
     }
     else
     {
@@ -101,7 +104,12 @@ public class TransformAction extends GuardedAction
 
     // run post script
     for( IXAction action: postActions)
-      action.run( context);
+    {
+      Object[] result = action.run( context);
+      if ( result != null) return result;
+    }
+    
+    return null;
   }
   
   private ScriptAction fromLeftScript;

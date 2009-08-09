@@ -48,18 +48,18 @@ public class MoveAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     // create target if requested
     if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
     
     // source
     List<IModelObject> sources = sourceExpr.query( context, null);
-    if ( sources.size() == 0) return;
+    if ( sources.size() == 0) return null;
     
     // fail if target is null
     List<IModelObject> targets = targetExpr.query( context, null);
-    if ( targets.size() == 0) return; 
+    if ( targets.size() == 0) return null; 
     
     // index
     int index = -1;
@@ -76,6 +76,8 @@ public class MoveAction extends GuardedAction
         start++;
       }
     }
+    
+    return null;
   }
 
   private IExpression sourceExpr;

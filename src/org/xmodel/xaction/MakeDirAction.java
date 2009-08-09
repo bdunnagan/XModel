@@ -31,7 +31,7 @@ public class MakeDirAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     File file = new File( pathExpr.evaluateString( context));
     if ( !file.exists()) 
@@ -45,6 +45,8 @@ public class MakeDirAction extends GuardedAction
         file.mkdirs();
       }
     }
+    
+    return null;
   }
 
   private IExpression pathExpr;

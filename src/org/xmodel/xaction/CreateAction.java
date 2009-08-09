@@ -70,7 +70,7 @@ public class CreateAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  public void doAction( IContext context)
+  public Object[] doAction( IContext context)
   {
     XActionDocument document = getDocument();
     
@@ -78,7 +78,7 @@ public class CreateAction extends GuardedAction
     if ( createExpr != null)
     {
       ModelAlgorithms.createPathSubtree( context, createExpr, factory, null);
-      return;
+      return null;
     }
     
     // get parent
@@ -132,12 +132,16 @@ public class CreateAction extends GuardedAction
       for( IModelObject element: elements) element.setAttribute( name, value);
     }
     
+    // return value
+    Object[] result = null;
+    
     // process actions
     int count = elements.size();
     for( int i=0; i<count; i++)
     {
       StatefulContext actionContext = new StatefulContext( context, elements.get( i), i+1, count);
-      script.run( actionContext);
+      result = script.run( actionContext);
+      if ( result != null) break;
     }
     
     // process annotations
@@ -180,6 +184,8 @@ public class CreateAction extends GuardedAction
       for( IModelObject element: elements)
         model.addRoot( collection, element);
     }
+    
+    return result;
   }
   
   /**

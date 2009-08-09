@@ -38,7 +38,7 @@ public class BuildReferencesAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     AnnotationTransform transform = new AnnotationTransform();
     transform.setFactory( factory);
@@ -54,6 +54,8 @@ public class BuildReferencesAction extends GuardedAction
     
     IVariableScope scope = context.getScope();
     if ( scope != null) scope.set( variable, result);
+    
+    return null;
   }
   
   private String variable;

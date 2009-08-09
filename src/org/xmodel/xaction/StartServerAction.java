@@ -49,7 +49,7 @@ public class StartServerAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     // get context
     IModelObject source = (sourceExpr != null)? sourceExpr.queryFirst( context): null;
@@ -82,6 +82,8 @@ public class StartServerAction extends GuardedAction
         try { Thread.sleep( 10);} catch( Exception e) { break;}
       }
     }
+    
+    return null;
   }
   
   private IModelObjectFactory factory;

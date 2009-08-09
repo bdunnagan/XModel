@@ -44,10 +44,10 @@ public class FileSaveAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IModelObject element = sourceExpr.queryFirst( context);
-    if ( element == null) return;
+    if ( element == null) return null;
     
     File file = new File( fileExpr.evaluateString( context));
     if ( !overwrite && file.exists())
@@ -89,6 +89,8 @@ public class FileSaveAction extends GuardedAction
         throw new IllegalArgumentException( "Unable write file: "+this, e);
       }
     }
+    
+    return null;
   }
 
   private XmlIO xmlIO;

@@ -30,7 +30,7 @@ public class MarkDirtyAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     for( IModelObject target: targetExpr.query( context, null))
     {
@@ -38,6 +38,8 @@ public class MarkDirtyAction extends GuardedAction
       if ( target instanceof IExternalReference)
         ((IExternalReference)target).clearCache();
     }
+    
+    return null;
   }
 
   private IExpression targetExpr;

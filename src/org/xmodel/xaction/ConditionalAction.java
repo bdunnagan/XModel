@@ -30,16 +30,18 @@ public class ConditionalAction extends XAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
+  public Object[] doRun( IContext context)
   {
     if ( ifExpr.evaluateBoolean( context))
     {
-      thenAction.run( context);
+      return thenAction.run( context);
     }
     else if ( elseAction != null)
     {
-      elseAction.run( context);
+      return elseAction.run( context);
     }
+    
+    return null;
   }
   
   IExpression ifExpr;

@@ -39,12 +39,14 @@ public class CreateAttributeAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     String name = nameExpr.evaluateString( context);
     String value = valueExpr.evaluateString( context);
     for( IModelObject target: targetExpr.query( context, null))
       target.setAttribute( name, value);
+    
+    return null;
   }
 
   private IExpression nameExpr;

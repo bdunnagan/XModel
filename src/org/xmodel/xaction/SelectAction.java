@@ -44,18 +44,20 @@ public class SelectAction extends XAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
+  public Object[] doRun( IContext context)
   {
     String selection = sourceExpr.evaluateString( context);
     ScriptAction action = caseScripts.get( selection);
     if ( action != null) 
     {
-      action.run( context);
+      return action.run( context);
     }
     else if ( defaultScript != null) 
     {
-      defaultScript.run( context);
+      return defaultScript.run( context);
     }
+    
+    return null;
   }
 
   private IExpression sourceExpr;

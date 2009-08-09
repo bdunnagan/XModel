@@ -53,12 +53,12 @@ public abstract class XAction implements IXAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public final void run( IContext context)
+  public final Object[] run( IContext context)
   {
     if ( debugger != null) debugger.push( context, this);
     try
     {
-      doRun( context);
+      return doRun( context);
     }
     finally
     {
@@ -69,7 +69,7 @@ public abstract class XAction implements IXAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public abstract void doRun( IContext context);
+  public abstract Object[] doRun( IContext context);
   
   /* (non-Javadoc)
    * @see org.xmodel.xaction.IXAction#setDocument(org.xmodel.xaction.XActionDocument)

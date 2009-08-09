@@ -39,7 +39,7 @@ public class RandomAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     double min = 0;
     double max = 0;
@@ -74,6 +74,8 @@ public class RandomAction extends GuardedAction
           target.setValue( number);
       }
     }
+    
+    return null;
   }
 
   /**

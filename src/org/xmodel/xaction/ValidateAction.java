@@ -39,7 +39,7 @@ public class ValidateAction extends GuardedAction
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IModelObject schemaRoot = schemaRootExpr.queryFirst( context);
     if ( schemaRoot == null)
@@ -64,6 +64,8 @@ public class ValidateAction extends GuardedAction
         "Action executed in scope which does not support variable assignment: "+this);
     
     scope.set( variable, result);
+    
+    return null;
   }
   
   private IModelObjectFactory factory;

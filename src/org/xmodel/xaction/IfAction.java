@@ -35,12 +35,10 @@ public class IfAction extends XAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
    */
-  public void doRun( IContext context)
+  public Object[] doRun( IContext context)
   {
-    if ( negate ^ condition.evaluateBoolean( context)) 
-      thenScript.run( context); 
-    else 
-      elseScript.run( context);
+    if ( negate ^ condition.evaluateBoolean( context)) return thenScript.run( context); 
+    else return elseScript.run( context);
   }
 
   private IExpression condition;

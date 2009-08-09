@@ -5,9 +5,6 @@
  */
 package org.xmodel.xaction;
 
-import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -25,35 +22,25 @@ public class ReturnAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    
-    List<IModelObject> resultNodes = document.getRoot().getChildren( "result");
-    resultExprs = new IExpression[ resultNodes.size()];
-    for( int i=0; i<resultExprs.length; i++)
-    {
-      resultExprs[ i] = Xlate.get( resultNodes.get( i), (IExpression)null);
-    }
+    resultExpr = document.getExpression();
   }
   
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
-    // evaluate args
-    for( int i=0; i<argExprs.length; i++)
+    ResultType type = resultExpr.getType( context);
+    switch( type)
     {
-      ResultType type = argExprs[ i].getType( context);
-      switch( type)
-      {
-        case NODES: local.set( "arg"+i, argExprs[ i].evaluateNodes( context)); break;
-        case NUMBER: local.set( "arg"+i, argExprs[ i].evaluateNumber( context)); break;
-        case STRING: local.set( "arg"+i, argExprs[ i].evaluateString( context)); break;
-        case BOOLEAN: local.set( "arg"+i, argExprs[ i].evaluateBoolean( context)); break;
-      }
+      case NODES: return new Object[] { resultExpr.evaluateNodes( context)};
+      case NUMBER: return new Object[] { resultExpr.evaluateNumber( context)};
+      case STRING: return new Object[] { resultExpr.evaluateString( context)};
+      case BOOLEAN: return new Object[] { resultExpr.evaluateBoolean( context)};
     }
-    
+    return new Object[ 0];
   }
   
-  private IExpression[] resultExprs;
+  private IExpression resultExpr;
 }

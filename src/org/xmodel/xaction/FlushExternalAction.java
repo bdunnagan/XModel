@@ -30,7 +30,7 @@ public class FlushExternalAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     for( IModelObject source: sourceExpr.query( context, null))
     {
@@ -47,6 +47,8 @@ public class FlushExternalAction extends GuardedAction
         }
       }
     }
+    
+    return null;
   }
 
   private IExpression sourceExpr;

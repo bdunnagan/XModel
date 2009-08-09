@@ -35,11 +35,11 @@ public class ProfileAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     long t0 = System.nanoTime();
     
-    script.run( context);
+    Object[] result = script.run( context);
     
     long t1 = System.nanoTime();
     int elapsed = (int)(t1 - t0);
@@ -55,6 +55,8 @@ public class ProfileAction extends GuardedAction
     }
     
     scope.set( variable, elapsed);
+    
+    return result;
   }
 
   private String variable;

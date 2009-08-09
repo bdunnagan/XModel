@@ -50,11 +50,13 @@ public class CreateTriggerAction extends XAction
    * @see org.xmodel.xaction.XAction#doRun(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public void doRun( IContext context)
+  public Object[] doRun( IContext context)
   {
     IVariableScope scope = context.getScope();
     if ( scope != null) scope.setPojo( variable, trigger, null);
     trigger.activate( context);
+    
+    return null;
   }
 
   private String variable;

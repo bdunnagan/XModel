@@ -32,7 +32,11 @@ public class TryAction extends GuardedAction
     super.configure( document);
     
     // try script
-    tryScript = document.createScript( "catch");
+    tryScript = document.createScript( "catch", "finally");
+    
+    // finally script
+    IModelObject finallyNode = document.getRoot().getFirstChild( "finally");
+    if ( finallyNode != null) finallyScript = document.createScript( finallyNode);
     
     // catch blocks
     List<IModelObject> catchElements = catchActionExpr.query( document.getRoot(), null);
@@ -62,44 +66,67 @@ public class TryAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
+    Object[] result = null;
+    
     try
     {
-      tryScript.run( context);
+      return tryScript.run( context);
     }
     catch( XActionException e)
     {
       Throwable t = e.getCause();
-      for( CatchBlock catchBlock: catchBlocks)
+      CatchBlock catchBlock = findCatchBlock( t);
+      if ( catchBlock != null)
       {
-        if ( catchBlock.thrownClass.isAssignableFrom( t.getClass()))
-        {
-          IVariableScope scope = context.getScope();
-          if ( scope != null)
-          {
-            IModelObject exception = XActionException.createExceptionFragment( t, null);
-            scope.set( "exception", exception);
-          }
-          catchBlock.script.run( context);
-        }
+        setExceptionVariable( context, t);
+        return catchBlock.script.run( context);
       }
     }
     catch( Throwable t)
     {
-      for( CatchBlock catchBlock: catchBlocks)
+      CatchBlock catchBlock = findCatchBlock( t);
+      if ( catchBlock != null)
       {
-        if ( catchBlock.thrownClass.isAssignableFrom( t.getClass()))
-        {
-          IVariableScope scope = context.getScope();
-          if ( scope != null)
-          {
-            IModelObject exception = XActionException.createExceptionFragment( t, null);
-            scope.set( "exception", exception);
-          }
-          catchBlock.script.run( context);
-        }
+        setExceptionVariable( context, t);
+        return catchBlock.script.run( context);
       }
+    }
+    finally
+    {
+      result = finallyScript.run( context);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Find the matching CatchBlock for the specified throwable.
+   * @param t The object that was thrown.
+   * @return Returns null or the matching CatchBlock.
+   */
+  private CatchBlock findCatchBlock( Throwable t)
+  {
+    for( CatchBlock catchBlock: catchBlocks)
+      if ( catchBlock.thrownClass.isAssignableFrom( t.getClass()))
+        return catchBlock;
+    
+    return null;
+  }
+  
+  /**
+   * Set the exception variable in the specified context scope.
+   * @param context The context.
+   * @param t The object that was thrown.
+   */
+  private void setExceptionVariable( IContext context, Throwable t)
+  {
+    IVariableScope scope = context.getScope();
+    if ( scope != null)
+    {
+      IModelObject exception = XActionException.createExceptionFragment( t, null);
+      scope.set( "exception", exception);
     }
   }
 
@@ -114,4 +141,5 @@ public class TryAction extends GuardedAction
   
   private ScriptAction tryScript;
   private List<CatchBlock> catchBlocks;
+  private ScriptAction finallyScript;
 }

@@ -99,11 +99,17 @@ public class ScriptAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public void doAction( IContext context)
+  public Object[] doAction( IContext context)
   {
-    if ( actions == null || actions.size() == 0) return;
+    if ( actions == null || actions.size() == 0) return null;
+    
     for( IXAction action: actions)
-      action.run( context);
+    {
+      Object[] result = action.run( context);
+      if ( result != null) return result;
+    }
+    
+    return null;
   }
   
   private final static String[] defaultIgnore = {

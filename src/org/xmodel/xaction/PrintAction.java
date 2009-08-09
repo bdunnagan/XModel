@@ -35,7 +35,7 @@ public class PrintAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     XmlIO xmlIO = new XmlIO();
     xmlIO.setOutputStyle( Style.valueOf( style));
@@ -72,6 +72,8 @@ public class PrintAction extends GuardedAction
     {
       System.out.println( sb.toString());
     }
+    
+    return null;
   }
 
   private String variable;

@@ -44,7 +44,7 @@ public class FileLoadAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IModelObject parent = (targetExpr != null)? targetExpr.queryFirst( context): null;
     IModelObject element = null;
@@ -56,7 +56,7 @@ public class FileLoadAction extends GuardedAction
     // get file
     File file = new File( fileExpr.evaluateString( context));
     long length = file.length();
-    if ( length == 0) return;
+    if ( length == 0) return null;
     
     // read file into memory
     byte[] content = new byte[ (int)length];
@@ -104,6 +104,8 @@ public class FileLoadAction extends GuardedAction
     
     // add to parent
     if ( parent != null) parent.addChild( element);
+    
+    return null;
   }
 
   private XmlIO xmlIO;

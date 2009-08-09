@@ -30,11 +30,12 @@ public class StopServerAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     IModelObject object = serverExpr.queryFirst( context);
     ModelServer server = (ModelServer)object.getValue();
     server.stop();
+    return null;
   }
 
   private IExpression serverExpr;

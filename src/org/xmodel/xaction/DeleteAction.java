@@ -27,10 +27,11 @@ public class DeleteAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     List<IModelObject> targets = targetExpr.evaluateNodes( context);
     for( IModelObject target: targets) target.removeFromParent();
+    return null;
   }
   
   IExpression targetExpr;

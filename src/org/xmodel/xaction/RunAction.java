@@ -33,7 +33,7 @@ public class RunAction extends GuardedAction
    * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     StatefulContext docContext = new StatefulContext( context, document.getRoot());
 
@@ -46,7 +46,12 @@ public class RunAction extends GuardedAction
     }
     
     for( IXAction action: actions)
-      action.run( context);
+    {
+      Object[] result = action.run( context);
+      if ( result != null) return result;
+    }
+    
+    return null;
   }
   
   private IExpression actionExpr;

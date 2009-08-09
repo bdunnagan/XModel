@@ -31,13 +31,15 @@ public class CancelTriggerAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected void doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     for( IModelObject holder: instanceExpr.query( context, null))
     {
       ITrigger trigger = (ITrigger)holder.getValue();
       if ( trigger != null) trigger.deactivate( context);
     }
+    
+    return null;
   }
 
   private IExpression instanceExpr;
