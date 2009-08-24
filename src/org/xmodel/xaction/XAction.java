@@ -11,6 +11,7 @@ import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.diff.ConfiguredXmlMatcher;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.xaction.debug.IDebugger;
@@ -133,7 +134,7 @@ public abstract class XAction implements IXAction
   protected IXmlMatcher getMatcher( IModelObject locus)
   {
     IModelObject matcherElement = matcherExpr.queryFirst( locus);
-    if ( matcherElement == null) return new DefaultXmlMatcher();
+    if ( matcherElement == null) return new ConfiguredXmlMatcher();
     
     String className = Xlate.get( matcherElement, (String)null);
     if ( className == null) 

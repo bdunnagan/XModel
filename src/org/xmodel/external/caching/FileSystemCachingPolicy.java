@@ -82,11 +82,10 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
-    parentContext = context;
-    pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
-
     // Currently, associations are not configurable because there is no ClassLoader available here.
     // Create a sub-class which extends the associations instead.
+    parentContext = context;
+    pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
   }
   
   /* (non-Javadoc)

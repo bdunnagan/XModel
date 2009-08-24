@@ -47,6 +47,15 @@ public class DefaultXmlMatcher implements IXmlMatcher
   }
   
   /**
+   * Specify whether the children of all elements should be treated as an ordered list.
+   * @param order True if children should be treated as ordered list.
+   */
+  public void setOrderAll( boolean order)
+  {
+    this.order = order;
+  }
+  
+  /**
    * Add the specified attribute to the list of attributes that should be ignored.
    * @param name The name of the attribute.
    */

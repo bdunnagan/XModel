@@ -5,7 +5,10 @@
  */
 package org.xmodel.xaction.trigger;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.util.Aggregator;
@@ -23,6 +26,11 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class EntityTrigger extends AbstractTrigger
 {
+  public EntityTrigger()
+  {
+    touched = new HashSet<IModelObject>();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.trigger.AbstractTrigger#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -80,19 +88,23 @@ public class EntityTrigger extends AbstractTrigger
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
+      touched.add( parent);
       aggregator.dispatch( dispatchIndex);
     }
     public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
+      touched.add( parent);
       aggregator.dispatch( dispatchIndex);
     }
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
+      touched.add( object);
       aggregator.dispatch( dispatchIndex);
     }
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
+      touched.add( object);
       aggregator.dispatch( dispatchIndex);
     }
   };
@@ -102,7 +114,9 @@ public class EntityTrigger extends AbstractTrigger
     public void run()
     {
       log.info( "Trigger notifyUpdate(): "+EntityTrigger.this.toString());
+      context.set( "changes", new ArrayList<IModelObject>( touched));
       script.run( context);
+      touched.clear();
     }
   };
   
@@ -111,4 +125,5 @@ public class EntityTrigger extends AbstractTrigger
   private int dispatchIndex;
   private ScriptAction script;
   private StatefulContext context;
+  private Set<IModelObject> touched;
 }

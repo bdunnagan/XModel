@@ -9,7 +9,7 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
-
+import org.xmodel.xpath.expression.IExpression;
 
 /**
  * An implementation of the XPath 2.0 index-of function. This function requires both arguments
@@ -51,20 +51,20 @@ public class IndexOfFunction extends Function
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#bind(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void bind( IContext context)
+  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    throw new UnsupportedOperationException();
+    getParent().notifyChange( this, context);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#unbind(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void unbind( IContext context)
+  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    throw new UnsupportedOperationException();
+    getParent().notifyChange( this, context);
   }
 }

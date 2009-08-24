@@ -29,6 +29,7 @@ public class FunctionFactory implements IFunctionFactory
       ContainsFunction.class,
       CountFunction.class,
       CreatePathFunction.class,
+      DeepEqualFunction.class,
       DereferenceFunction.class,
       DistinctValuesFunction.class,
       DocFunction.class,

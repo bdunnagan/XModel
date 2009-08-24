@@ -29,7 +29,6 @@ public class InvokeAction extends GuardedAction
     variable = Xlate.get( document.getRoot(), "assign", "result");
     contextExpr = document.getExpression( "context", true);
     scriptExpr = document.getExpression();
-    isStatic = Xlate.get( document.getRoot(), "static", false);
   }
 
   /* (non-Javadoc)
@@ -40,16 +39,19 @@ public class InvokeAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     Object[] results = null;
+
+    CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+    ScriptAction script = (attribute != null)? attribute.script: null;
     
-    if ( script == null || !isStatic)
+    IModelObject node = scriptExpr.queryFirst( context);
+    if ( node != null && (script == null || scriptNode != node))
     {
-      IModelObject node = scriptExpr.queryFirst( context);
-      if ( node != scriptNode)
-      {
-        scriptNode = node;
-        script = document.createScript( scriptNode, "context");
-      }
+      script = document.createScript( node);
+      scriptNode = node;
+      scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
     }
+        
+    if ( script == null) return null;
     
     if ( contextExpr != null)
     {
@@ -74,10 +76,18 @@ public class InvokeAction extends GuardedAction
     return null;
   }
   
+  private final static class CompiledAttribute
+  {
+    public CompiledAttribute( ScriptAction script)
+    {
+      this.script = script;
+    }
+    
+    public ScriptAction script;
+  }
+
   private String variable;
   private IExpression contextExpr;
   private IExpression scriptExpr;
-  private boolean isStatic;
   private IModelObject scriptNode;
-  private ScriptAction script;
 }

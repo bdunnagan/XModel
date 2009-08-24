@@ -13,18 +13,15 @@ import org.xmodel.record.ChangeAttributeBoundRecord;
 import org.xmodel.record.ClearAttributeBoundRecord;
 import org.xmodel.record.RemoveChildBoundRecord;
 
-
 /**
  * A base implementation of IChangeSet which maintains a list of IChangeRecord entries, creates
- * appropriate entries for each method and provides an implementation of the normalize method. This
- * class also implements IModelListener so that it can automatically track changes to the
- * IModelObjects where it is installed.
+ * appropriate entries for each method and provides an implementation of the normalize method.
  * <p>
  * By default, this implementation ignores the difference between null text and empty text. This
  * is equivalent to assuming that every element has a text node. This behavior can be disabled
  * by calling the <code>regardNullText</code> method.
  */
-public class ChangeSet implements IChangeSet, IModelListener
+public class ChangeSet implements IChangeSet
 {
   /* (non-Javadoc)
    * @see org.xmodel.IChangeSet#applyChanges()
@@ -195,86 +192,6 @@ public class ChangeSet implements IChangeSet, IModelListener
     return (records != null)? records.size(): 0;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.IChangeSet#createUndoSet()
-   */
-  public IChangeSet createUndoSet()
-  {
-    ChangeSet undoSet = new ChangeSet();
-    if ( records != null)
-    {
-      for( IBoundChangeRecord record: records)
-        undoSet.addRecord( record.createUndoRecord());
-    }
-    return undoSet;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyAdd(org.xmodel.IModelObject, 
-   * org.xmodel.IModelObject, int)
-   */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
-  {
-    addChild( parent, child, index);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyChange(org.xmodel.IModelObject, 
-   * java.lang.String, java.lang.Object, java.lang.Object)
-   */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
-  {
-    // need to perform this test here because setAttribute doesn't have oldValue
-    if ( !regardNullText && attrName.length() == 0)
-    {
-      if ( newValue == null && oldValue != null && oldValue.toString().length() == 0) return;
-      if ( oldValue == null && newValue != null && newValue.toString().length() == 0) return;
-    }
-    
-    setAttribute( object, attrName, newValue);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyClear(org.xmodel.IModelObject, 
-   * java.lang.String, java.lang.Object)
-   */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
-  {
-    // need to perform this test here because removeAttribute doesn't have oldValue
-    if ( !regardNullText && attrName.length() == 0)
-    {
-      if ( oldValue != null && oldValue.toString().length() == 0) return;
-    }
-    
-    removeAttribute( object, attrName);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, 
-   * org.xmodel.IModelObject, org.xmodel.IModelObject)
-   */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
-  {
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyRemove(org.xmodel.IModelObject, 
-   * org.xmodel.IModelObject)
-   */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
-  {
-    removeChild( parent, child);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
-   */
-  public void notifyDirty( IModelObject object, boolean dirty)
-  {
-    // resync
-    if ( dirty) object.getChildren();
-  }
-
   /* (non-Javadoc)
    * @see java.lang.Runnable#run()
    */

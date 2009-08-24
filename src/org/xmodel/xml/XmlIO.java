@@ -22,9 +22,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
@@ -77,6 +79,15 @@ public class XmlIO implements IXmlIO
   public void setMaxLines( int count)
   {
     maxLines = count;
+  }
+  
+  /**
+   * Set the sax parser error handler.
+   * @param handler The error handler.
+   */
+  public void setErrorHandler( ErrorHandler handler)
+  {
+    errorHandler = handler;
   }
 
   /* (non-Javadoc)
@@ -365,7 +376,7 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, true).getBytes());
         
         // end tag
         if ( value != null && value.length() > 0 && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 
@@ -428,10 +439,10 @@ public class XmlIO implements IXmlIO
       if ( attrValue != null)
       {
         stream.write( space);
-        stream.write( encodeEntityReferences( attrName, false).getBytes());
+        stream.write( attrName.getBytes());
         stream.write( equals);
         stream.write( quote);
-        stream.write( encodeEntityReferences( attrValue, false).getBytes());
+        stream.write( encodeEntityReferences( attrValue, true).getBytes());
         stream.write( quote);
       }
     }
@@ -464,7 +475,7 @@ public class XmlIO implements IXmlIO
   /**
    * Encode (special) entity references.
    * @param s A string containing references.
-   * @param limited Limit the encoding to (&lt;) and (&gt;)
+   * @param limited Limit the encoding to (&lt;), (&gt;), and (&quot;).
    * @return A string with references encoded.
    */
   public static String encodeEntityReferences( String s, boolean limited)
@@ -490,7 +501,7 @@ public class XmlIO implements IXmlIO
           sb.append( limited? "'": "&apos;");
         break;
         case '"':
-          sb.append( limited? "\"": "&quot;");
+          sb.append( "&quot;");
         break;
         default:
           sb.append( c);
@@ -610,8 +621,23 @@ public class XmlIO implements IXmlIO
         parent.addChild( pi);
       }
     }
+    public void warning( SAXParseException e) throws SAXException
+    {
+      errorHandler.warning( e);
+      super.warning( e);
+    }
+    public void error( SAXParseException e) throws SAXException
+    {
+      errorHandler.error( e);
+      super.error( e);
+    }
+    public void fatalError( SAXParseException e) throws SAXException
+    {
+      errorHandler.fatalError( e);
+      super.fatalError( e);
+    }
   };
-
+  
   public final static byte[] header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes();
   public final static byte[] space = " ".getBytes();
   public final static byte[] less = "<".getBytes();
@@ -627,6 +653,7 @@ public class XmlIO implements IXmlIO
   public final static byte[] unexpanded = "(unexpanded reference)".getBytes();
   
   private SAXParser parser;
+  private ErrorHandler errorHandler;
   private IModelObjectFactory factory;
   private IModelObject root;
   private IModelObject parent;

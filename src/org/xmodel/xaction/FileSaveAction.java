@@ -37,7 +37,7 @@ public class FileSaveAction extends GuardedAction
     if ( sourceExpr == null) sourceExpr = document.getExpression();
     
     fileExpr = document.getExpression( "file", true);
-    if ( fileExpr == null) document.getExpression();
+    if ( fileExpr == null) fileExpr = document.getExpression();
   }
 
   /* (non-Javadoc)
@@ -86,7 +86,7 @@ public class FileSaveAction extends GuardedAction
       }
       catch( IOException e)
       {
-        throw new IllegalArgumentException( "Unable write file: "+this, e);
+        throw new XActionException( "Unable write file: "+this, e);
       }
     }
     

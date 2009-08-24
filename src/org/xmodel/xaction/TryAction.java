@@ -95,7 +95,8 @@ public class TryAction extends GuardedAction
     }
     finally
     {
-      result = finallyScript.run( context);
+      if ( finallyScript != null) 
+        result = finallyScript.run( context);
     }
     
     return result;

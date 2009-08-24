@@ -118,6 +118,7 @@ public class AnnotationTransform
   public IModelObject transform( IModelObject element, IModelObject annotation)
   {
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
+    if ( cachingPolicy == null) throw new IllegalArgumentException( "");
     
     IExternalReference reference = factory.createExternalObject( null, element.getType());
     ModelAlgorithms.copyAttributes( element, reference);
@@ -272,6 +273,7 @@ public class AnnotationTransform
     }
     catch( Exception e)
     {
+      e.printStackTrace( System.err);
       return null;
     }
   }

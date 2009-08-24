@@ -13,6 +13,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * An XAction which calls the <code>flush</code> method of the ICachingPolicy associated
  * with each element identified by the source expression.
+ * @deprecated Use FlushAction instead.
  */
 public class FlushExternalAction extends GuardedAction
 {

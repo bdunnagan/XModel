@@ -32,8 +32,8 @@ public class CopyAction extends GuardedAction
   {
     super.configure( document);
 
-    IModelObject viewRoot = document.getRoot();
-    matcher = getMatcher( viewRoot);
+    IModelObject root = document.getRoot();
+    matcher = getMatcher( root);
     differ.setMatcher( matcher);
     differ.setFactory( new ModelObjectFactory());
         
@@ -42,6 +42,8 @@ public class CopyAction extends GuardedAction
     targetExpr = document.getExpression( "target", true);
     ignoreExpr = document.getExpression( "ignore", true);
     orderedExpr = document.getExpression( "ordered", true);
+    
+    orderAll = Xlate.get( root, "orderAll", false);
     
     // get alternate source and target location
     if ( sourceExpr == null) sourceExpr = document.getExpression();
@@ -71,9 +73,10 @@ public class CopyAction extends GuardedAction
     {
       // if matcher class wasn't specified then use configurable matcher
       // TODO: need a more flexible configuration here
-      if ( matcher == null)
+      if ( matcher instanceof ConfiguredXmlMatcher)
       {
-        ConfiguredXmlMatcher matcher = new ConfiguredXmlMatcher();
+        ConfiguredXmlMatcher matcher = (ConfiguredXmlMatcher)this.matcher;
+        matcher.setOrderAll( orderAll);
         differ.setMatcher( matcher);
       
         IContext sourceContext = new StatefulContext( context, source);
@@ -98,7 +101,6 @@ public class CopyAction extends GuardedAction
       // diff
       changeSet.clearChanges();
       differ.diff( target, source, changeSet);
-      System.out.println( changeSet);
       changeSet.applyChanges();
     }
     
@@ -112,4 +114,5 @@ public class CopyAction extends GuardedAction
   private IExpression ignoreExpr;
   private IExpression orderedExpr;
   private IChangeSet changeSet;
+  private boolean orderAll;
 }

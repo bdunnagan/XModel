@@ -31,13 +31,16 @@ public class ReturnAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    ResultType type = resultExpr.getType( context);
-    switch( type)
+    if ( resultExpr != null)
     {
-      case NODES: return new Object[] { resultExpr.evaluateNodes( context)};
-      case NUMBER: return new Object[] { resultExpr.evaluateNumber( context)};
-      case STRING: return new Object[] { resultExpr.evaluateString( context)};
-      case BOOLEAN: return new Object[] { resultExpr.evaluateBoolean( context)};
+      ResultType type = resultExpr.getType( context);
+      switch( type)
+      {
+        case NODES: return new Object[] { resultExpr.evaluateNodes( context)};
+        case NUMBER: return new Object[] { resultExpr.evaluateNumber( context)};
+        case STRING: return new Object[] { resultExpr.evaluateString( context)};
+        case BOOLEAN: return new Object[] { resultExpr.evaluateBoolean( context)};
+      }
     }
     return new Object[ 0];
   }
