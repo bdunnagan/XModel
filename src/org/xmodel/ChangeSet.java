@@ -67,10 +67,16 @@ public class ChangeSet implements IChangeSet
     }
     
     IBoundChangeRecord record = null;
-    if ( attrValue.equals( ""))
-      record = new ChangeAttributeBoundRecord( object, attrName);
+    if ( attrValue != null)
+    {
+      if ( attrValue.equals( "")) record = new ChangeAttributeBoundRecord( object, attrName);
+      else record = new ChangeAttributeBoundRecord( object, attrName, attrValue);
+    }
     else
-      record = new ChangeAttributeBoundRecord( object, attrName, attrValue);
+    {
+      record = new ClearAttributeBoundRecord( object, attrName);
+    }
+    
     addRecord( record);
   }
 

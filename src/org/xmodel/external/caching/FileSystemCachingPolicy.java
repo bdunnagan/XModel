@@ -6,7 +6,6 @@
 package org.xmodel.external.caching;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,12 +109,13 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
         child.setCachingPolicy( this);
         child.setDirty( true);
         reference.addChild( child);
+        child.setAttribute( "path", buildPath( child));
       }
     }
     else if ( path.exists() && path.canRead())
     {
       // populate path on leaf
-      try { reference.setAttribute( "path", path.getCanonicalPath());} catch( IOException e) {}
+      //try { reference.setAttribute( "path", path.getCanonicalPath());} catch( IOException e) {}
       
       // sync
       String name = path.getName();

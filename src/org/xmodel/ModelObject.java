@@ -297,11 +297,13 @@ public class ModelObject implements IModelObject
       {
         // create mementos
         int oldIndex = getChildren().indexOf( child);
+        
         Update update = model.startUpdate();
         update.moveChild( this, child, oldIndex, index);
 
         // reposition child
-        if ( removeChildImpl( oldIndex) != null && oldIndex < index) index--;
+        if ( oldIndex < index) index--;
+        removeChildImpl( oldIndex);
         addChildImpl( child, index);
         
         // lock state and notify
@@ -872,6 +874,12 @@ public class ModelObject implements IModelObject
       if ( children == null) children = new ArrayList<IModelObject>( 1);
       children.add( memento.index, memento.child);
     }
+    else if ( iMemento instanceof MoveChildMemento)
+    {
+      MoveChildMemento memento = (MoveChildMemento)iMemento;
+      children.remove( (memento.newIndex > memento.oldIndex)? (memento.newIndex - 1): memento.newIndex);
+      children.add( memento.oldIndex, memento.child);
+    }
     else
     {
       RemoveAttributeMemento memento = (RemoveAttributeMemento)iMemento;
@@ -903,6 +911,12 @@ public class ModelObject implements IModelObject
     {
       RemoveChildMemento memento = (RemoveChildMemento)iMemento;
       children.remove( memento.index);
+    }
+    else if ( iMemento instanceof MoveChildMemento)
+    {
+      MoveChildMemento memento = (MoveChildMemento)iMemento;
+      children.remove( memento.oldIndex);
+      children.add( (memento.newIndex > memento.oldIndex)? (memento.newIndex - 1): memento.newIndex, memento.child);
     }
     else
     {

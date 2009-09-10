@@ -26,7 +26,7 @@ public class InvokeAction extends GuardedAction
   {
     super.configure( document);
 
-    variable = Xlate.get( document.getRoot(), "assign", "result");
+    variable = Xlate.get( document.getRoot(), "assign", (String)null);
     contextExpr = document.getExpression( "context", true);
     scriptExpr = document.getExpression();
   }
@@ -63,7 +63,7 @@ public class InvokeAction extends GuardedAction
       results = script.run( context);
     }
     
-    if ( results != null && results.length > 0)
+    if ( variable != null && results != null && results.length > 0)
     {
       Object result = results[ 0];
       IVariableScope scope = context.getScope();

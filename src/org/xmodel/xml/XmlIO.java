@@ -351,7 +351,7 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, true).getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
         if ( style != Style.compact) writeCR( stream);
         
         // children
@@ -376,7 +376,7 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, true).getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
         
         // end tag
         if ( value != null && value.length() > 0 && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 

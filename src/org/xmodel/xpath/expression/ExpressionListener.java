@@ -6,12 +6,11 @@
 package org.xmodel.xpath.expression;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-
+import org.xmodel.diff.ListDiffer;
+import org.xmodel.diff.ListDiffer.Change;
 
 /**
  * An implementation of IExpressionListener with empty method stubs except for the indeterminate
@@ -38,7 +37,7 @@ public class ExpressionListener implements IExpressionListener
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpressionListener#notifyChange(
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
@@ -81,23 +80,40 @@ public class ExpressionListener implements IExpressionListener
         {
           // revert and reevaluate
           model.revert();
-          Collection<IModelObject> oldNodes = expression.evaluateNodes( context);
-          if ( oldNodes.size() > 3) oldNodes = new LinkedHashSet<IModelObject>( oldNodes);
+          List<IModelObject> oldNodes = expression.evaluateNodes( context);
   
           // restore and reevaluate
           model.restore();
-          Collection<IModelObject> newNodes = expression.evaluateNodes( context);
-          if ( newNodes.size() > 3) newNodes = new LinkedHashSet<IModelObject>( newNodes);
-  
+          List<IModelObject> newNodes = expression.evaluateNodes( context);
+
+          // diff
+          List<IModelObject> inserts = null;
+          List<IModelObject> deletes = null;
+          
+          ListDiffer differ = new ListDiffer();
+          differ.diff( oldNodes, newNodes);
+          List<Change> changes = differ.getChanges();
+          for( Change change: changes)
+          {
+            if ( change.rIndex >= 0)
+            {
+              if ( inserts == null) inserts = new ArrayList<IModelObject>(); else inserts.clear();
+              for( int i=0; i<change.count; i++)
+                inserts.add( newNodes.get( change.rIndex + i));
+            }
+            else
+            {
+              if ( deletes == null) deletes = new ArrayList<IModelObject>(); else deletes.clear();
+              for( int i=0; i<change.count; i++)
+                deletes.add( oldNodes.get( change.lIndex + i));
+            }
+          }
+          
           // notify nodes removed
-          List<IModelObject> removedSet = new ArrayList<IModelObject>( newNodes.size());
-          for( IModelObject node: oldNodes) if ( !newNodes.contains( node)) removedSet.add( node);
-          if ( removedSet.size() > 0) notifyRemove( expression, context, removedSet);
+          if ( deletes != null) notifyRemove( expression, context, deletes);
           
           // notify nodes added
-          List<IModelObject> addedSet = new ArrayList<IModelObject>( newNodes.size());
-          for( IModelObject node: newNodes) if ( !oldNodes.contains( node)) addedSet.add( node);
-          if ( addedSet.size() > 0) notifyAdd( expression, context, addedSet);
+          if ( inserts != null) notifyAdd( expression, context, inserts);
         }
         break;
         

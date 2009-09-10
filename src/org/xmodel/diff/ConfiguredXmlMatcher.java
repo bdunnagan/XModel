@@ -102,7 +102,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
   @Override
   public boolean isList( IModelObject parent)
   {
-    if ( orderedSet != null) return orderedSet.contains( parent);
+    if ( orderedSet != null && orderedSet.contains( parent)) return true;
     return super.isList( parent);
   }
   

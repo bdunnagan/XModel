@@ -19,7 +19,6 @@ import org.xmodel.xpath.expression.RootExpression;
 import org.xmodel.xpath.function.Function;
 import org.xmodel.xpath.variable.IVariableSource;
 
-
 /**
  * A custom xpath function which encapsulates an xpath expression.  This makes it simple 
  * to create custom xpath functions for common queries.  The delegate function passes its
@@ -33,7 +32,7 @@ public class DelegateFunction extends Function
    * @param name The name of the function.
    * @param spec The xpath specification.
    */
-  protected DelegateFunction( String name, String spec)
+  public DelegateFunction( String name, String spec)
   {
     this.name = name;
     this.spec = spec;

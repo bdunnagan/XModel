@@ -26,6 +26,7 @@ public final class Update
     removeAttributeMemento = new RemoveAttributeMemento();
     addChildMemento = new AddChildMemento();
     removeChildMemento = new RemoveChildMemento();
+    moveChildMemento = new MoveChildMemento();
     setParentMemento = new SetParentMemento();
     reverted = false;
   }
@@ -126,15 +127,11 @@ public final class Update
    */
   public void moveChild( IModelObject parent, IModelObject child, int oldIndex, int newIndex)
   {
-    removeChildMemento.parent = parent;
-    removeChildMemento.child = child;
-    removeChildMemento.index = oldIndex;
-    mementos.add( removeChildMemento);
-    
-    addChildMemento.parent = parent;
-    addChildMemento.child = child;
-    addChildMemento.index = newIndex;
-    mementos.add( addChildMemento);
+    moveChildMemento.parent = parent;
+    moveChildMemento.child = child;
+    moveChildMemento.oldIndex = oldIndex;
+    moveChildMemento.newIndex = newIndex;
+    mementos.add( moveChildMemento);
   }
   
   /**
@@ -273,6 +270,7 @@ public final class Update
   private RemoveAttributeMemento removeAttributeMemento;
   private AddChildMemento addChildMemento;
   private RemoveChildMemento removeChildMemento;
+  private MoveChildMemento moveChildMemento;
   private SetParentMemento setParentMemento;
   private boolean reverted;
   private IChangeSet deferred;
