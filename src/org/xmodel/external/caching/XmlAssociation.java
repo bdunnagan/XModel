@@ -38,9 +38,13 @@ public class XmlAssociation implements IFileAssociation
     }
     catch( Exception e)
     {
+      // see if file is empty
+      if ( file.canRead() && file.length() == 0) return;
+      
+      // this is an xml parsing error
       throw new CachingException( "Unable to parse xml in file: "+file, e);
     }
   }
-  
+
   private final static String[] extensions = { ".xml", ".xsd", ".dtd"};
 }

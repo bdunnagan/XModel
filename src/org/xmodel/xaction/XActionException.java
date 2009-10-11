@@ -70,7 +70,9 @@ public class XActionException extends RuntimeException
       stream.flush();
 
       IModelObject root = factory.createObject( null, "exception");
-      Xlate.childSet( root, "message", throwable.getMessage());
+      String message = throwable.getMessage();
+      if ( message == null || message.length() == 0) message = throwable.getClass().getCanonicalName();
+      Xlate.childSet( root, "message", message);
       Xlate.childSet( root, "stack", stream.toString());
 
       IModelObject causeElement = root.getCreateChild( "cause");

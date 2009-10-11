@@ -10,7 +10,6 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * An implementation of IContext for nested contexts within an expression. Nested contexts share
  * the same variable scope as their root context.
@@ -142,6 +141,14 @@ public class SubContext implements IContext
     IVariableScope scope = getScope();
     if ( scope != null) return scope.set( name, value);
     return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#get(java.lang.String)
+   */
+  public Object get( String name)
+  {
+    return getParent().get( name);
   }
 
   /* (non-Javadoc)

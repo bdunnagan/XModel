@@ -117,6 +117,8 @@ public interface IContext
    */
   public List<IModelObject> set( String name, IModelObject value);
 
+  public Object get( String name);
+  
   /**
    * Called by the specified expression when the context is bound.
    * @param expression The expression to which the context was bound.

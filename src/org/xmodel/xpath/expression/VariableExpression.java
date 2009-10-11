@@ -5,6 +5,7 @@
  */
 package org.xmodel.xpath.expression;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IChangeSet;
@@ -117,8 +118,10 @@ public class VariableExpression extends Expression
     try
     {
       source.addScope( context.getScope());
-      if ( type == ResultType.NODES) 
-        return (List<IModelObject>)source.getVariable( variable, context);
+      if ( type == ResultType.NODES)
+      {
+        return new ArrayList<IModelObject>( (List<IModelObject>)source.getVariable( variable, context));
+      }
       return super.evaluateNodes( context);
     }
     finally

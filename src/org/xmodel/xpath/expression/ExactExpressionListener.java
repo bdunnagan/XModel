@@ -29,6 +29,7 @@ import org.xmodel.xpath.expression.IExpression.ResultType;
  * The <code>notifyChange( IExpression, IContext)</code> method does not need to be overridden. The
  * implementation will provide notification to one of the other notification methods.
  * FIXME: ExactExpressionListener has state which can be corrupted by nested listener notification.
+ * @deprecated This class is tries to do its work in the ListDiffer. 
  */
 public abstract class ExactExpressionListener extends ExpressionListener
 {

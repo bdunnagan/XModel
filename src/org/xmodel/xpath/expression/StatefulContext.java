@@ -149,6 +149,28 @@ public class StatefulContext implements IContext
     return scope.set( name, value);
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#get(java.lang.String)
+   */
+  public Object get( String name)
+  {
+    IVariableScope scope = this.scope;
+    while( scope != null)
+    {
+      if ( scope instanceof ContextScope)
+      {
+        Object object = scope.get( name);
+        if ( object != null) return object;
+        scope = ((ContextScope)scope).getParent();
+      }
+      else
+      {
+        return scope.get( name);
+      }
+    }
+    return null;
+  }
+
   /**
    * Define the specified variable with the specified expression. This method may only be called
    * once for a given variable. The definition is permanent.

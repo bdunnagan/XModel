@@ -53,6 +53,10 @@ public class CreateAction extends GuardedAction
     // get optional parent
     parentExpr = document.getExpression( "parent", true);
     
+    // name and value expressions
+    nameExpr = document.getExpression( "name", true);
+    valueExpr = document.getExpression( "value", true);
+    
     // treat the value of root as an expression prototype
     if ( root.getNumberOfChildren() == 0)
       createExpr = document.getExpression( root);
@@ -61,7 +65,7 @@ public class CreateAction extends GuardedAction
     factory = getFactory( root);
 
     // create the script
-    script = document.createScript( "parent", "name", "template", "attribute", "schema");
+    script = document.createScript( "parent", "name", "template", "attribute", "schema", "value");
     
     // if annotated then preprocess template
     annotated = Xlate.get( root.getFirstChild( "template"), "annotated", false);
@@ -88,17 +92,13 @@ public class CreateAction extends GuardedAction
     List<IModelObject> elements = new ArrayList<IModelObject>( 1);
     
     // create element from name string
-    IExpression elementNameExpr = document.getExpression( "name", true);
-    if ( elementNameExpr != null)
+    if ( nameExpr != null)
     {
-      String type = elementNameExpr.evaluateString( context);
-      if ( type.length() == 0)
-        throw new IllegalArgumentException(
-          "Element type name is empty: "+this);
-      
+      String type = nameExpr.evaluateString( context);
+      if ( type.length() == 0) throw new IllegalArgumentException( "Element type name is empty: "+this);
       elements.add( factory.createObject( parent, type));
     }
-
+    
     // create element from schema
     IExpression schemaExpr = document.getExpression( "schema", false);
     if ( schemaExpr != null)
@@ -132,6 +132,13 @@ public class CreateAction extends GuardedAction
       for( IModelObject element: elements) element.setAttribute( name, value);
     }
     
+    // populate the values 
+    if ( valueExpr != null)
+    {
+      String value = valueExpr.evaluateString( context);
+      for( IModelObject element: elements) element.setValue( value);
+    }
+
     // return value
     Object[] result = null;
     
@@ -216,10 +223,6 @@ public class CreateAction extends GuardedAction
    */
   private Object replaceTemplateExpressions( IContext context, String input)
   {
-    // return single object replacements taken from the value of a node-set
-    Object single = null; 
-
-    // parse
     StringBuilder result = new StringBuilder();
     Matcher matcher = expressionPattern.matcher( input);
     int index = 0;
@@ -228,13 +231,6 @@ public class CreateAction extends GuardedAction
       int start = matcher.start();
       int end = matcher.end();
 
-      // clear single object replacement since it does not appear alone
-      if ( single != null)
-      {
-        single = null;
-        result.append( single);
-      }
-      
       // check for non-escaped expression token
       if ( start > 0 && input.charAt( start-1) == '\\')
       {
@@ -254,7 +250,7 @@ public class CreateAction extends GuardedAction
         {
           // get single object replacement candidate
           Object replacement = getExpressionResult( context, matcher.group( 1));
-          if ( result.length() == 0) single = replacement; else result.append( replacement);
+          result.append( replacement);
         }
         catch( ExpressionException e)
         {
@@ -270,7 +266,7 @@ public class CreateAction extends GuardedAction
     result.append( input, index, input.length());
     
     // return result
-    return (single != null)? single: result.toString();
+    return result.toString();
   }
   
   /**
@@ -303,6 +299,8 @@ public class CreateAction extends GuardedAction
   private String collection;
   private IExpression createExpr;
   private IExpression parentExpr;
+  private IExpression nameExpr;
+  private IExpression valueExpr;
   private ScriptAction script;
   private boolean annotated;
 }

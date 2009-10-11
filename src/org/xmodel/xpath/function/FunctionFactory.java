@@ -33,6 +33,7 @@ public class FunctionFactory implements IFunctionFactory
       DereferenceFunction.class,
       DistinctValuesFunction.class,
       DocFunction.class,
+      EmptyFunction.class,
       EvaluateFunction.class,
       FalseFunction.class,
       FloorFunction.class,
@@ -111,6 +112,10 @@ public class FunctionFactory implements IFunctionFactory
   @SuppressWarnings("unchecked")
   public IExpression createFunction( String functionName)
   {
+    // trim default namespace
+    if ( functionName.startsWith( "fn:"))
+      functionName = functionName.substring( 3);
+    
     try
     {
       // create from registered class

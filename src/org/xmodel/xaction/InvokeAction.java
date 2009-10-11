@@ -41,12 +41,12 @@ public class InvokeAction extends GuardedAction
     Object[] results = null;
 
     CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
-    ScriptAction script = (attribute != null)? attribute.script: null;
+    IXAction script = (attribute != null)? attribute.script: null;
     
     IModelObject node = scriptExpr.queryFirst( context);
     if ( node != null && (script == null || scriptNode != node))
     {
-      script = document.createScript( node);
+      script = document.getAction( node);
       scriptNode = node;
       scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
     }
@@ -78,12 +78,12 @@ public class InvokeAction extends GuardedAction
   
   private final static class CompiledAttribute
   {
-    public CompiledAttribute( ScriptAction script)
+    public CompiledAttribute( IXAction script)
     {
       this.script = script;
     }
     
-    public ScriptAction script;
+    public IXAction script;
   }
 
   private String variable;

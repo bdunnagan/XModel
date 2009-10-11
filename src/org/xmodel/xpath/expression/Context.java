@@ -13,7 +13,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
 
-
 /**
  * An implementation of IContext for top-level contexts. When binding (adding a listener to) a context 
  * of this class it is not necessary to pass the same instance to the unbind since the <code>equals</code>
@@ -204,6 +203,15 @@ public class Context implements IContext
   public String set( String name, String value)
   {
     if ( scope != null) return scope.set( name, value);
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#get(java.lang.String)
+   */
+  public Object get( String name)
+  {
+    if ( scope != null) return scope.get( name);
     return null;
   }
 

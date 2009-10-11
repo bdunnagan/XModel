@@ -5,7 +5,12 @@
  */
 package org.xmodel.xpath.expression;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -13,7 +18,11 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.VariableMemento;
 import org.xmodel.xpath.expression.IExpression.ResultType;
-import org.xmodel.xpath.variable.*;
+import org.xmodel.xpath.variable.IVariableListener;
+import org.xmodel.xpath.variable.IVariableScope;
+import org.xmodel.xpath.variable.IVariableSource;
+import org.xmodel.xpath.variable.Precedences;
+import org.xmodel.xpath.variable.VariableScope;
 
 
 /**
@@ -369,6 +378,15 @@ class ReturnContext extends Context
   public IContext getParent()
   {
     return parent;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Context#get(java.lang.String)
+   */
+  @Override
+  public Object get( String name)
+  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)

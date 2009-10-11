@@ -46,13 +46,24 @@ public class FileSaveAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject element = sourceExpr.queryFirst( context);
-    if ( element == null) return null;
-    
     File file = new File( fileExpr.evaluateString( context));
-    if ( !overwrite && file.exists())
-      throw new IllegalArgumentException(
-        "File already exists: "+this);
+    if ( !overwrite && file.exists()) throw new IllegalArgumentException( "File already exists: "+this);
+    
+    IModelObject element = sourceExpr.queryFirst( context);
+    if ( element == null)
+    {
+      try
+      {
+        // go ahead and create empty file
+        file.createNewFile();
+      }
+      catch( IOException e)
+      {
+        throw new XActionException( "Unable to write file: "+file, e);
+      }
+      
+      return null;
+    }
     
     if ( mode.equals( "compressed"))
     {
@@ -69,7 +80,7 @@ public class FileSaveAction extends GuardedAction
       }
       catch( IOException e)
       {
-        e.printStackTrace( System.err);
+        throw new XActionException( "Unable to write file: "+file, e);
       }
     }
     else
@@ -86,7 +97,7 @@ public class FileSaveAction extends GuardedAction
       }
       catch( IOException e)
       {
-        throw new XActionException( "Unable write file: "+this, e);
+        throw new XActionException( "Unable to write file: "+file, e);
       }
     }
     

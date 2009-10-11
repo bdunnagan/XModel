@@ -7,9 +7,7 @@ package org.xmodel.external.caching;
 
 import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -21,10 +19,6 @@ import org.xmodel.external.UnboundedCache;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.Context;
-import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
-
 
 /**
  * A ConfiguredCachingPolicy which creates a datamodel for a file or folder of the file system.
@@ -49,6 +43,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     super( cache);
     
     setStaticAttributes( new String[] { "*"});
+    defineNextStage( XPath.createExpression( "*"), this, true);
     
     associations = new HashMap<String, IFileAssociation>();
     addAssociation( txtAssociation);
@@ -76,31 +71,23 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.IModelObject)
-   */
-  @Override
-  public void configure( IContext context, IModelObject annotation) throws CachingException
-  {
-    // Currently, associations are not configurable because there is no ClassLoader available here.
-    // Create a sub-class which extends the associations instead.
-    parentContext = context;
-    pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
-  }
-  
-  /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     // save root
-    if ( fileSystemRoot == null) fileSystemRoot = reference;
+    if ( fileSystemRoot == null) 
+    {
+      fileSystemRoot = reference;
+      replaceTilde( fileSystemRoot);
+    }
    
     // just in case
     reference.removeChildren();
     
     // sync
-    File path = buildPath( reference);
+    File path = new File( Xlate.get( reference, "path", ""));
     if ( path.isDirectory())
     {
       for( String member: path.list())
@@ -109,15 +96,11 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
         child.setCachingPolicy( this);
         child.setDirty( true);
         reference.addChild( child);
-        child.setAttribute( "path", buildPath( child));
+        child.setAttribute( "path", buildChildPath( child));
       }
     }
     else if ( path.exists() && path.canRead())
     {
-      // populate path on leaf
-      //try { reference.setAttribute( "path", path.getCanonicalPath());} catch( IOException e) {}
-      
-      // sync
       String name = path.getName();
       int index = name.lastIndexOf( '.');
       if ( index >= 0)
@@ -130,37 +113,28 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
+   * Replace the tilde at the beginning of the path of the specified element.
+   * @param element The element.
+   */
+  private static void replaceTilde( IModelObject element)
+  {
+    String path = Xlate.get( element, "path", "");
+    if ( path.length() > 0 && path.charAt( 0) == '~')
+    {
+      String userDir = System.getProperty( "user.dir");
+      Xlate.set( element, "path", userDir + path.substring( 1));
+    }
+  }
+  
+  /**
    * Build the path for the specified file system element.
    * @param element The file system element.
    * @return Returns the absolute path.
    */
-  public File buildPath( IModelObject element) throws CachingException
+  private File buildChildPath( IModelObject element) throws CachingException
   {
-    // get levels
-    List<String> levels = new ArrayList<String>();
-    while( element != fileSystemRoot)
-    {
-      levels.add( element.getType());
-      element = element.getParent();
-    }
-    levels.add( fileSystemRoot.getType());
-      
-    // get base path
-    String userDir = System.getProperty( "user.dir");
-    String basePath = pathExpr.evaluateString( new Context( parentContext, fileSystemRoot));
-    basePath = basePath.replaceFirst( "\\~", userDir.replaceAll( "\\\\", "\\\\\\\\"));
-    
-    // build path
-    StringBuilder path = new StringBuilder();
-    path.append( basePath);
-    
-    for( int i=levels.size()-1; i>=0; i--)
-    {
-      path.append( File.separatorChar);
-      path.append( levels.get( i));
-    }
-    
-    return new File( path.toString());
+    String basePath = Xlate.get( element.getParent(), "path", "");
+    return new File( basePath, element.getType());
   }
   
   /* (non-Javadoc)
@@ -168,7 +142,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    */
   public void flush( IExternalReference reference) throws CachingException
   {
-    File path = buildPath( reference);
+    File path = new File( Xlate.get( reference, "path", ""));
     if ( path.isDirectory())
       throw new CachingException( 
         "Directory cannot be flushed: "+reference);
@@ -189,17 +163,14 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public URI getURI( IExternalReference reference) throws CachingException
   {
-    return buildPath( reference).toURI();
+    File path = new File( Xlate.get( reference, "path", ""));
+    return path.toURI();
   }
 
-  private final IExpression defaultPathExpr = XPath.createExpression( "@path");
-  
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();
   private final static IFileAssociation xmlAssociation = new XmlAssociation();
-  
-  private IContext parentContext;
-  private IExpression pathExpr;
+
   private IExternalReference fileSystemRoot;
   private Map<String, IFileAssociation> associations;
 }

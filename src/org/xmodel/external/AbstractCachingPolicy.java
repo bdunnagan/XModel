@@ -118,8 +118,16 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     {
       // copy static attributes to reference which will become dirty
       for( String attrName: getStaticAttributes())
+      {
         if ( !attrName.contains( "*"))
+        {
           external.setAttribute( attrName, local.getAttribute( attrName));
+        }
+        else
+        {
+          ModelAlgorithms.copyAttributes( local, external);
+        }
+      }
     }
     else
     {

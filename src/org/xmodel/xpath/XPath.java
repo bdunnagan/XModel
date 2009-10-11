@@ -26,7 +26,7 @@ import org.xmodel.xpath.parser.generated.XPathParser;
 
 
 /**
- * An implementation of IPath which supports the X-Path 1.0 specification with the
+ * An implementation of IPath which supports the XPath 1.0 specification with the
  * following exceptions:
  * <ul>
  * <li>Qualified names are never expanded with the namespace URI.
@@ -36,6 +36,7 @@ import org.xmodel.xpath.parser.generated.XPathParser;
  * </ul>
  * <p>
  * This class is used to create both IPath instances and IExpression instances.
+ * TODO: This class needs some sanitizing. It stinks.
  */
 public class XPath extends AbstractPath implements IAxis
 {
@@ -123,9 +124,8 @@ public class XPath extends AbstractPath implements IAxis
   }
   
   /**
-   * Create an arbitrary expression using the X-Path 1.0 parser. This method caches xpath
-   * expressions for faster access.
-   * @param spec The x-path expression to compile.
+   * Create an arbitrary expression using the XPath 1.0 parser and add the expression to the XPath cache.
+   * @param spec The xpath expression to compile.
    * @return Returns the root of the expression tree.
    */
   public static IExpression createExpression( String spec)
@@ -145,7 +145,7 @@ public class XPath extends AbstractPath implements IAxis
         }
         catch( ParseException e)
         {
-          throw new PathSyntaxException( "Syntax error in expression: "+expression, e);
+          throw new PathSyntaxException( "Syntax Error: "+expression, e);
         }
       }
       return expression;
@@ -154,6 +154,34 @@ public class XPath extends AbstractPath implements IAxis
     {
       e.printStackTrace( System.err);
       return null;
+    }
+  }
+  
+  /**
+   * Create an arbitrary expression using the XPath 1.0 parser and optionally add the expression to the XPath cache.
+   * @param spec The xpath expression to compile.
+   * @return Returns the root of the expression tree.
+   */
+  public static IExpression createExpression( String spec, boolean cache)
+  {
+    if ( cache)
+    {
+      return createExpression( spec);
+    }
+    else
+    {
+      try
+      {
+        XPathParser parser = new XPathParser( new StringReader( spec));
+        parser.setSpec( spec);
+        IExpression result = parser.ParseExpression();
+        return result;
+      }
+      catch( ParseException e)
+      {
+        e.printStackTrace( System.err);
+        return null;
+      }
     }
   }
   
@@ -171,12 +199,12 @@ public class XPath extends AbstractPath implements IAxis
     }
     catch( ParseException e)
     {
-      throw new PathSyntaxException( "Syntax error in path: "+pathString, e);
+      throw new PathSyntaxException( "Syntax Error: "+pathString, e);
     }
   }
   
   /**
-   * Compile the specified X-Path 1.0 expression.
+   * Compile the specified XPath 1.0 expression.
    * @param expression The expression string to compile.
    */
   public static IExpression compileExpression( String expression) throws PathSyntaxException
@@ -190,7 +218,7 @@ public class XPath extends AbstractPath implements IAxis
     }
     catch( ParseException e)
     {
-      throw new PathSyntaxException( "Syntax error in expression: "+expression, e);
+      throw new PathSyntaxException( "Syntax Error: "+expression, e);
     }
   }
   

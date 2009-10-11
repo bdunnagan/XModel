@@ -24,15 +24,8 @@ public class CreateAttributeAction extends GuardedAction
     
     nameExpr = document.getExpression( "name", true);
     valueExpr = document.getExpression( "value", true);
-    
-    if ( document.getRoot().getNumberOfChildren() == 0)
-    {
-      targetExpr = document.getExpression();
-    }
-    else
-    {
-      targetExpr = document.getExpression( "target", true);
-    }
+    targetExpr = document.getExpression( "target", true);
+    if ( targetExpr == null) targetExpr = document.getExpression();
   }
 
   /* (non-Javadoc)

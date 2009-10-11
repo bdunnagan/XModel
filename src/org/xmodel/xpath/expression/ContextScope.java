@@ -57,6 +57,15 @@ public class ContextScope extends AbstractVariableScope
     return "context";
   }
 
+  /**
+   * Returns the parent scope.
+   * @return Returns null or the parent scope.
+   */
+  public IVariableScope getParent()
+  {
+    return parent;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.AbstractVariableScope#get(java.lang.String, 
    * org.xmodel.xpath.expression.IContext)

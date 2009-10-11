@@ -266,9 +266,9 @@ public class XmlIO implements IXmlIO
       String attribute = root.getType();
       stream.write( at); stream.write( attribute.getBytes()); stream.write( equals);
       Object value = root.getValue();
-      stream.write( quote);
+      stream.write( doubleQuote);
       if ( value != null) stream.write( value.toString().getBytes()); 
-      stream.write( quote);
+      stream.write( doubleQuote);
       return;
     }
     
@@ -351,7 +351,7 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes());
         if ( style != Style.compact) writeCR( stream);
         
         // children
@@ -376,7 +376,7 @@ public class XmlIO implements IXmlIO
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, false).getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes());
         
         // end tag
         if ( value != null && value.length() > 0 && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 
@@ -405,6 +405,35 @@ public class XmlIO implements IXmlIO
       if ( root.getReferent() != root) cycleSet.remove( root);
     }
   }
+  
+  /**
+   * Write the specified value surrounded by either single or double quotes, as necessary.
+   * @param stream The stream.
+   * @param value The value.
+   */
+  private void writeInQuotes( OutputStream stream, String value) throws IOException
+  {
+    int index = 0;
+    for( ; index < value.length(); index++)
+    {
+      char c = value.charAt( index);
+      if ( c == '\'')
+      {
+        break;
+      }
+      else if ( c == '\"')
+      {
+        stream.write( singleQuote);
+        stream.write( encodeEntityReferences( value, "\'\"").getBytes());
+        stream.write( singleQuote);
+        return;
+      }
+    }
+    
+    stream.write( doubleQuote);
+    stream.write( encodeEntityReferences( value, "\'\"").getBytes());
+    stream.write( doubleQuote);
+  }    
   
   /**
    * Write a carriage return to the output stream and return the line number of the previous line.
@@ -441,9 +470,7 @@ public class XmlIO implements IXmlIO
         stream.write( space);
         stream.write( attrName.getBytes());
         stream.write( equals);
-        stream.write( quote);
-        stream.write( encodeEntityReferences( attrValue, true).getBytes());
-        stream.write( quote);
+        writeInQuotes( stream, attrValue);
       }
     }
   }
@@ -475,10 +502,10 @@ public class XmlIO implements IXmlIO
   /**
    * Encode (special) entity references.
    * @param s A string containing references.
-   * @param limited Limit the encoding to (&lt;), (&gt;), and (&quot;).
+   * @param ignore Characters that should not be encoded.
    * @return A string with references encoded.
    */
-  public static String encodeEntityReferences( String s, boolean limited)
+  public static String encodeEntityReferences( String s, String ignore)
   {
     if ( s == null) return s;
     int len = s.length();
@@ -486,25 +513,21 @@ public class XmlIO implements IXmlIO
     for ( int i = 0; i < len; i++)
     {
       char c = s.charAt( i);
-      switch ( c)
+      if ( ignore == null || ignore.indexOf( c) == -1)
       {
-        case '<':
-          sb.append( "&lt;");
-        break;
-        case '>':
-          sb.append( "&gt;");
-        break;
-        case '&':
-          sb.append( limited? "&": "&amp;");
-        break;
-        case '\'':
-          sb.append( limited? "'": "&apos;");
-        break;
-        case '"':
-          sb.append( "&quot;");
-        break;
-        default:
-          sb.append( c);
+        switch ( c)
+        {
+          case '<': sb.append( "&lt;"); break;
+          case '>': sb.append( "&gt;"); break;
+          case '&': sb.append( "&amp;"); break;
+          case '\'': sb.append( "&apos;"); break;
+          case '"': sb.append( "&quot;"); break;
+          default: sb.append( c);
+        }
+      }
+      else
+      {
+        sb.append( c);
       }
     }
 
@@ -623,17 +646,17 @@ public class XmlIO implements IXmlIO
     }
     public void warning( SAXParseException e) throws SAXException
     {
-      errorHandler.warning( e);
+      if ( errorHandler != null) errorHandler.warning( e);
       super.warning( e);
     }
     public void error( SAXParseException e) throws SAXException
     {
-      errorHandler.error( e);
+      if ( errorHandler != null) errorHandler.error( e);
       super.error( e);
     }
     public void fatalError( SAXParseException e) throws SAXException
     {
-      errorHandler.fatalError( e);
+      if ( errorHandler != null) errorHandler.fatalError( e);
       super.fatalError( e);
     }
   };
@@ -642,7 +665,8 @@ public class XmlIO implements IXmlIO
   public final static byte[] space = " ".getBytes();
   public final static byte[] less = "<".getBytes();
   public final static byte[] greater = ">".getBytes();
-  public final static byte[] quote = "\"".getBytes();
+  public final static byte[] singleQuote = "\'".getBytes();
+  public final static byte[] doubleQuote = "\"".getBytes();
   public final static byte[] equals = "=".getBytes();
   public final static byte[] slash = "/".getBytes();
   public final static byte[] text= "text()".getBytes();
