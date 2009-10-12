@@ -5,9 +5,8 @@
  */
 package org.xmodel.external.caching;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
+
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 import org.xmodel.xml.XmlIO;
@@ -28,21 +27,23 @@ public class XmlAssociation implements IFileAssociation
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.io.File)
    */
-  public void apply( IModelObject parent, File file) throws CachingException
+  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
   {
+    int count = 0;
     try
     {
+      count = stream.available();
       XmlIO xmlIO = new XmlIO();
-      IModelObject content = xmlIO.read( new BufferedInputStream( new FileInputStream( file)));
+      IModelObject content = xmlIO.read( stream);
       parent.addChild( content);
     }
     catch( Exception e)
     {
       // see if file is empty
-      if ( file.canRead() && file.length() == 0) return;
+      if ( count == 0) return;
       
       // this is an xml parsing error
-      throw new CachingException( "Unable to parse xml in file: "+file, e);
+      throw new CachingException( "Unable to parse xml in file: "+name, e);
     }
   }
 

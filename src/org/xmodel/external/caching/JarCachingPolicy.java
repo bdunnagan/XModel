@@ -8,6 +8,8 @@ package org.xmodel.external.caching;
 import java.io.File;
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -24,8 +26,6 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -44,19 +44,42 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
     
     setStaticAttributes( new String[] { "path", "jar"});
     defineNextStage( XPath.createExpression( ".//*[ @entry]"), new JarEntryCachingPolicy(), true);
-    filterExpr = XPath.createExpression( "matches( $path, '.*[.]xml')");
+    
+    associations = new HashMap<String, IFileAssociation>();
+    addAssociation( txtAssociation);
+    addAssociation( xipAssociation);
+    addAssociation( xmlAssociation);
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
+  /**
+   * Add the specified file association.
+   * @param association The association.
    */
-  @Override
-  public void configure( IContext context, IModelObject annotation) throws CachingException
+  public void addAssociation( IFileAssociation association)
   {
-    super.configure( context, annotation);
-    filterExpr = Xlate.get( annotation, "filter", (IExpression)null);
+    for( String extension: association.getExtensions())
+      associations.put( extension, association);
   }
-
+  
+  /**
+   * Remove the specified file extension association.
+   * @param extension The file extension (including the dot).
+   */
+  public void removeAssociation( String extension)
+  {
+    associations.remove( extension);
+  }
+  
+  /**
+   * Returns the IFileAssociation for the specified extension.
+   * @param extension The extension.
+   * @return Returns null or the IFileAssociation for the specified extension.
+   */
+  public IFileAssociation getAssociation( String extension)
+  {
+    return associations.get( extension);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
@@ -123,7 +146,17 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
           // populate entire directory tree
           StatefulContext context = new StatefulContext( reference);
           context.set( "path", path);
-          if ( filterExpr == null || filterExpr.evaluateBoolean( context))
+
+          // only include files that have an extension with an association
+          boolean include = false;
+          int index = path.lastIndexOf( '.');
+          if ( index >= 0)
+          {
+            String extension = path.substring( index);
+            include = associations.get( extension) != null;
+          }
+          
+          if ( include)
           {
             if ( separator != null)
             {
@@ -174,7 +207,11 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
     return null;
   }
   
-  private IExpression filterExpr;
+  private final static IFileAssociation txtAssociation = new TxtAssociation();
+  private final static IFileAssociation xipAssociation = new XipAssociation();
+  private final static IFileAssociation xmlAssociation = new XmlAssociation();
+
+  private Map<String, IFileAssociation> associations;
   
   public static void main( String[] args) throws Exception
   {

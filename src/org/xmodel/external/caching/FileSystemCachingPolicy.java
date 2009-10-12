@@ -6,9 +6,12 @@
 package org.xmodel.external.caching;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -107,7 +110,19 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
       {
         String extension = name.substring( index);
         IFileAssociation association = associations.get( extension);
-        if ( association != null) association.apply( reference, path);
+        if ( association != null) 
+        {
+          try
+          {
+            FileInputStream stream = new FileInputStream( path);
+            association.apply( reference, path.getPath(), stream);
+            stream.close();
+          }
+          catch( IOException e)
+          {
+            throw new CachingException( "Unable to read file: "+path, e);
+          }
+        }
       }
     }
   }

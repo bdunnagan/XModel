@@ -14,7 +14,6 @@ import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
-import org.xmodel.xml.XmlIO;
 
 /**
  * A caching policy for loading a jar file entry.
@@ -41,31 +40,28 @@ public class JarEntryCachingPolicy extends ConfiguredCachingPolicy
     JarEntry thisEntry = (JarEntry)reference.getAttribute( "entry");
     if ( thisEntry == null) return;
     
-    JarFile jarFile = getJarFile( reference);
+    IExternalReference jarReference = getJarReference( reference);
+    JarFile jarFile = (JarFile)jarReference.getAttribute( "jar");
+    
     try
     {
       reference.removeChildren();
       InputStream stream = jarFile.getInputStream( thisEntry);
-      XmlIO xmlIO = new XmlIO();
-      IModelObject element = xmlIO.read( stream);
-      reference.addChild( element);
+      
+      int index = thisEntry.getName().lastIndexOf( ".");
+      String extension = thisEntry.getName().substring( index);
+      System.out.println( "ext="+extension);
+      
+      JarCachingPolicy cachingPolicy = (JarCachingPolicy)jarReference.getCachingPolicy();
+      IFileAssociation association = cachingPolicy.getAssociation( extension);
+      association.apply( reference, thisEntry.getName(), stream);
+      
       stream.close();
     }
     catch( Exception e)
     {
       throw new CachingException( "Unable to load jar entry: "+thisEntry, e);
     }
-  }
-  
-  /**
-   * Returns the JarFile stored on the root reference.
-   * @param reference The reference being synced.
-   * @return Returns the JarFile stored on the root reference.
-   */
-  private JarFile getJarFile( IExternalReference reference)
-  {
-    reference = getJarReference( reference);
-    return (JarFile)reference.getAttribute( "jar");
   }
   
   /**

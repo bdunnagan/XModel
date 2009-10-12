@@ -5,7 +5,8 @@
  */
 package org.xmodel.external.caching;
 
-import java.io.File;
+import java.io.InputStream;
+
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 
@@ -26,7 +27,8 @@ public interface IFileAssociation
   /**
    * Read the specified file content and apply it to the specified parent file element.
    * @param parent The parent file element (as defined by FileSystemCachingPolicy).
-   * @param file The file whose content will be read.
+   * @param name The name of the image.
+   * @param stream The input stream.
    */
-  public void apply( IModelObject parent, File file) throws CachingException;
+  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException;
 }

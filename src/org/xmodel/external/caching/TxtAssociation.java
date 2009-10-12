@@ -6,9 +6,9 @@
 package org.xmodel.external.caching;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 
@@ -27,15 +27,15 @@ public class TxtAssociation implements IFileAssociation
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.io.File)
+   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
-  public void apply( IModelObject parent, File file) throws CachingException
+  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
   {
     try
     {
       char[] buffer = new char[ 1 << 16];
       StringBuilder content = new StringBuilder();
-      BufferedReader reader = new BufferedReader( new InputStreamReader( new FileInputStream( file)));
+      BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
       while( reader.ready())
       {
         int count = reader.read( buffer);
@@ -45,7 +45,7 @@ public class TxtAssociation implements IFileAssociation
     }
     catch( Exception e)
     {
-      throw new CachingException( "Unable read text file: "+file, e);
+      throw new CachingException( "Unable read text file: "+name, e);
     }
   }
   
