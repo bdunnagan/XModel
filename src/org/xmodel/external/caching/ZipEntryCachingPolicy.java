@@ -6,8 +6,8 @@
 package org.xmodel.external.caching;
 
 import java.io.InputStream;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
@@ -16,16 +16,16 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 
 /**
- * A caching policy for loading a jar file entry.
+ * A caching policy for loading a zip file entry.
  */
-public class JarEntryCachingPolicy extends ConfiguredCachingPolicy
+public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
 {
-  public JarEntryCachingPolicy()
+  public ZipEntryCachingPolicy()
   {
     this( new UnboundedCache());
   }
   
-  public JarEntryCachingPolicy( ICache cache)
+  public ZipEntryCachingPolicy( ICache cache)
   {
     super( cache);
     setStaticAttributes( new String[] { "entry"});
@@ -37,22 +37,22 @@ public class JarEntryCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    JarEntry thisEntry = (JarEntry)reference.getAttribute( "entry");
+    ZipEntry thisEntry = (ZipEntry)reference.getAttribute( "entry");
     if ( thisEntry == null) return;
     
-    IExternalReference jarReference = getJarReference( reference);
-    JarFile jarFile = (JarFile)jarReference.getAttribute( "jar");
+    IExternalReference zipReference = getZipReference( reference);
+    ZipFile zipFile = (ZipFile)zipReference.getAttribute( "zipFile");
     
     try
     {
       reference.removeChildren();
-      InputStream stream = jarFile.getInputStream( thisEntry);
+      InputStream stream = zipFile.getInputStream( thisEntry);
       
       int index = thisEntry.getName().lastIndexOf( ".");
       String extension = thisEntry.getName().substring( index);
       System.out.println( "ext="+extension);
       
-      JarCachingPolicy cachingPolicy = (JarCachingPolicy)jarReference.getCachingPolicy();
+      ZipCachingPolicy cachingPolicy = (ZipCachingPolicy)zipReference.getCachingPolicy();
       IFileAssociation association = cachingPolicy.getAssociation( extension);
       association.apply( reference, thisEntry.getName(), stream);
       
@@ -60,16 +60,16 @@ public class JarEntryCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( Exception e)
     {
-      throw new CachingException( "Unable to load jar entry: "+thisEntry, e);
+      throw new CachingException( "Unable to load zip entry: "+thisEntry, e);
     }
   }
   
   /**
-   * Returns the ancestor of the specified reference that has the JarCachingPolicy.
+   * Returns the ancestor of the specified reference that has the ZipCachingPolicy.
    * @param reference The starting point of the search.
-   * @return Returns the ancestor of the specified reference that has the JarCachingPolicy.
+   * @return Returns the ancestor of the specified reference that has the ZipCachingPolicy.
    */
-  private IExternalReference getJarReference( IExternalReference reference)
+  private IExternalReference getZipReference( IExternalReference reference)
   {
     IModelObject ancestor = reference;
     while( ancestor != null)
@@ -77,7 +77,7 @@ public class JarEntryCachingPolicy extends ConfiguredCachingPolicy
       if ( ancestor instanceof IExternalReference)
       {
         reference = (IExternalReference)ancestor;
-        if ( reference.getCachingPolicy() instanceof JarCachingPolicy)
+        if ( reference.getCachingPolicy() instanceof ZipCachingPolicy)
           return reference;
       }
       ancestor = ancestor.getParent();

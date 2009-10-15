@@ -11,10 +11,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.jar.Attributes;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -29,21 +27,21 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * A caching policy for jar files. This caching policy loads the contents of the jar file in stages.
+ * A caching policy for zip files. This caching policy loads the contents of the zip file in stages.
  */
-public class JarCachingPolicy extends ConfiguredCachingPolicy
+public class ZipCachingPolicy extends ConfiguredCachingPolicy
 {
-  public JarCachingPolicy()
+  public ZipCachingPolicy()
   {
     this( new UnboundedCache());
   }
   
-  public JarCachingPolicy( ICache cache)
+  public ZipCachingPolicy( ICache cache)
   {
     super( cache);
     
-    setStaticAttributes( new String[] { "path", "jar"});
-    defineNextStage( XPath.createExpression( ".//*[ @entry]"), new JarEntryCachingPolicy(), true);
+    setStaticAttributes( new String[] { "path", "zipFile"});
+    defineNextStage( XPath.createExpression( ".//*[ @entry]"), new ZipEntryCachingPolicy(), true);
     
     associations = new HashMap<String, IFileAssociation>();
     addAssociation( txtAssociation);
@@ -91,49 +89,17 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
     {
       try
       {
-        JarFile jarFile = new JarFile( file);
-        reference.setAttribute( "jar", jarFile);
+        ZipFile zipFile = new ZipFile( file);
+        reference.setAttribute( "zipFile", zipFile);
         
         IModelObject clone = reference.cloneObject();
-        
-        // convert manifest to xml
-        Manifest manifest = jarFile.getManifest();
-        IModelObject manifestElement = new ModelObject( "manifest");
-        IModelObject mainRoot = new ModelObject( "attributes");
-        mainRoot.setAttribute( "name", "main");
-        Attributes mainAttributes = manifest.getMainAttributes();
-        for( Object attribute: mainAttributes.keySet())
-        {
-          IModelObject mainChild = new ModelObject( attribute.toString());
-          Object value = mainAttributes.get( attribute);
-          mainChild.setValue( value);
-          mainRoot.addChild( mainChild);
-        }
-        manifestElement.addChild( mainRoot);
-        
-        for( String name: manifest.getEntries().keySet())
-        {
-          IModelObject root = new ModelObject( "attributes");
-          root.setAttribute( "name", name);
-          Attributes attributes = manifest.getAttributes( name);
-          for( Object attribute: attributes.keySet())
-          {
-            IModelObject child = new ModelObject( attribute.toString());
-            Object value = attributes.get( attribute);
-            child.setValue( value);
-            root.addChild( child);
-          }
-          manifestElement.addChild( root);
-        }
-        
-        clone.addChild( manifestElement);
-        
+                
         // create elements for root entries
         String separator = null;
-        Enumeration<JarEntry> iter = jarFile.entries();
+        Enumeration<? extends ZipEntry> iter = zipFile.entries();
         while( iter.hasMoreElements())
         {
-          JarEntry entry = iter.nextElement();
+          ZipEntry entry = iter.nextElement();
           if ( entry.isDirectory()) continue;
           
           String path = entry.getName();
@@ -185,7 +151,7 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
       }
       catch( IOException e)
       {
-        throw new CachingException( "Unable to load jar file: "+file, e);
+        throw new CachingException( "Unable to load zip file: "+file, e);
       }
     }
   }
@@ -219,8 +185,8 @@ public class JarCachingPolicy extends ConfiguredCachingPolicy
     if ( tokener.hasMoreTokens()) System.out.println( tokener.nextToken());
     System.exit( 1);
     
-    IExternalReference reference = new ExternalReference( "jar");
-    reference.setCachingPolicy( new JarCachingPolicy());
+    IExternalReference reference = new ExternalReference( "zip");
+    reference.setCachingPolicy( new ZipCachingPolicy());
     reference.setAttribute( "path", "/Users/bdunnagan/xmodel.jar");
     reference.setDirty( true);
     
