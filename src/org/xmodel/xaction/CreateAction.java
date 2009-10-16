@@ -283,7 +283,7 @@ public class CreateAction extends GuardedAction
     if ( expression.getType( context) == ResultType.NODES)
     {
       IModelObject node = expression.queryFirst( context);
-      return (node != null)? node.getValue(): null;
+      return (node != null)? node.getValue(): "";
     }
     else
     {
