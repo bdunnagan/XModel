@@ -38,8 +38,8 @@ public class TxtAssociation implements IFileAssociation
       BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
       while( reader.ready())
       {
-        int count = reader.read( buffer);
-        if ( count > 0) content.append( content, 0, count);
+        int count = reader.read( buffer, 0, buffer.length);
+        if ( count > 0) content.append( buffer, 0, count);
       }
       parent.setValue( content.toString());
     }
