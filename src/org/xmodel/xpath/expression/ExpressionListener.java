@@ -97,13 +97,13 @@ public class ExpressionListener implements IExpressionListener
           {
             if ( change.rIndex >= 0)
             {
-              if ( inserts == null) inserts = new ArrayList<IModelObject>(); else inserts.clear();
+              if ( inserts == null) inserts = new ArrayList<IModelObject>();
               for( int i=0; i<change.count; i++)
                 inserts.add( newNodes.get( change.rIndex + i));
             }
             else
             {
-              if ( deletes == null) deletes = new ArrayList<IModelObject>(); else deletes.clear();
+              if ( deletes == null) deletes = new ArrayList<IModelObject>();
               for( int i=0; i<change.count; i++)
                 deletes.add( oldNodes.get( change.lIndex + i));
             }
