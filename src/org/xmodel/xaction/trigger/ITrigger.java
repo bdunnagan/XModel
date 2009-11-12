@@ -19,8 +19,6 @@
  */
 package org.xmodel.xaction.trigger;
 
-import org.apache.log4j.Logger;
-import org.xmodel.logging.Log;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
 
@@ -53,9 +51,4 @@ public interface ITrigger
    * @param context The context.
    */
   public void deactivate( IContext context);
-  
-  /**
-   * Logging for the trigger package.
-   */
-  public static Logger log = Log.getLog( "org.xmodel.xaction.trigger");
 }

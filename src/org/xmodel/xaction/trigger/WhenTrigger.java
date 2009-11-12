@@ -130,7 +130,7 @@ public class WhenTrigger extends AbstractTrigger
   {
     public void run()
     {
-      log.info( "Trigger notifyChange( "+newValue+"): "+WhenTrigger.this.toString());
+      System.out.println( "Trigger notifyChange( "+newValue+"): "+WhenTrigger.this.toString());
       script.run( context);
     }
 

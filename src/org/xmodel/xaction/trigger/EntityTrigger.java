@@ -127,7 +127,7 @@ public class EntityTrigger extends AbstractTrigger
   private final Runnable updateRunnable = new Runnable() {
     public void run()
     {
-      log.info( "Trigger notifyUpdate(): "+EntityTrigger.this.toString());
+      System.out.println( "Trigger notifyUpdate(): "+EntityTrigger.this.toString());
       context.set( "changes", new ArrayList<IModelObject>( touched));
       script.run( context);
       touched.clear();
