@@ -5,33 +5,30 @@
  */
 package org.xmodel.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@SuppressWarnings("unused")
 public class ChangeFileComment
 {
   public static void main( String[] args) throws Exception
   {
-    File path = new File( "/Applications/eclipse341/svn/trunk/client/XMPlugin/src/dunnagan");
-    //File path = new File( "/opt/homes/bdunnagan/accurev/checkpoint/cornerstone/client/XModel/src/dunnagan/bob/xmodel");
-    String comment = 
-      "/*\n"+
-      " * XModel (XML Application Data Modeling Framework)\n"+
-      " * Author: Bob Dunnagan (bdunnagan@nc.rr.com)\n" +
-      " * Copyright Bob Dunnagan 2009. All rights reserved.\n"+
-      " */\n";
+    File path = new File( "/Applications/eclipse342/workspace/XModel/src");
+    String header = getHeader(); 
     
     ChangeFileComment cfc = new ChangeFileComment( path);
-    //cfc.substitute( comment);
+    cfc.substitute( header);
     
+    // dump line count
     int count = 0;
     for( File file: cfc.getAllFiles())
     {
@@ -40,6 +37,7 @@ public class ChangeFileComment
       for( int i=0; i<lines.length; i++)
       {
         lines[ i] = lines[ i].trim();
+        if ( lines[ i].length() == 0) continue;
         if ( lines[ i].length() > 2 && lines[ i].charAt( 0) == '/' && lines[ i].charAt( 1) == '/') continue;
         count++;
       }
@@ -54,11 +52,9 @@ public class ChangeFileComment
     this.path = path;
   }
   
-  private void substitute( String comment)
+  private void substitute( String header)
   {
-    int mask = Pattern.MULTILINE | Pattern.DOTALL;
-//    Pattern pattern = Pattern.compile( "\\A(/\\*[^/]+\\*/\\s*).*\\Z", mask);
-    Pattern pattern = Pattern.compile( "\\A(/\\*.+?\\*/\\s*).*\\Z", mask);
+    Pattern pattern = Pattern.compile( "\\A(/\\*.+?\\*/\\s*).*\\Z", Pattern.MULTILINE | Pattern.DOTALL);
     List<File> files = getAllFiles();
     for ( int i=0; i<files.size(); i++)
     {
@@ -66,6 +62,7 @@ public class ChangeFileComment
       String content = loadFile( file);
       if ( content != null)
       {
+        String comment = substituteFileName( header, file.getName());
         Matcher matcher = pattern.matcher( content);
         if ( matcher.matches())
         {
@@ -141,5 +138,42 @@ public class ChangeFileComment
     return result;
   }
 
+  /**
+   * Loads and returns the header.
+   * @return Returns the header.
+   */
+  private static String getHeader() throws Exception
+  {
+    InputStream stream = ChangeFileComment.class.getResourceAsStream( "header.txt");
+    BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
+    
+    StringBuilder sb = new StringBuilder();
+    sb.append( "/*"); sb.append( "\n");
+    while( reader.ready())
+    {
+      String line = reader.readLine();
+      sb.append( " * ");
+      sb.append( line);
+      sb.append( "\n");
+    }
+    sb.append( " */"); sb.append( "\n");
+    
+    reader.close();
+    stream.close();
+    
+    return sb.toString();
+  }
+  
+  /**
+   * Substitute the name of the specified file into the header.
+   * @param header The header.
+   * @param file The file.
+   * @return Returns the tailored header.
+   */
+  private static String substituteFileName( String header, String file)
+  {
+    return header.replaceFirst( "[$]FILE", file);
+  }
+  
   File path;
 }
