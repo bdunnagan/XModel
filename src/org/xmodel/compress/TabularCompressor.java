@@ -1,7 +1,21 @@
 /*
- * XModel (XML Application Data Modeling Framework)
- * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
- * Copyright Bob Dunnagan 2009. All rights reserved.
+ * JAHM - Java Advanced Hierarchical Model 
+ * 
+ * TabularCompressor.java
+ * 
+ * Copyright 2009 Robert Arvin Dunnagan
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.xmodel.compress;
 
@@ -10,8 +24,6 @@ import java.util.*;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import org.apache.tools.bzip2.CBZip2InputStream;
-import org.apache.tools.bzip2.CBZip2OutputStream;
 import org.xmodel.*;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
@@ -160,7 +172,6 @@ public class TabularCompressor extends AbstractCompressor
       // optionally compress everything but header
       OutputStream rawOut = finalArrayOut;
       if ( compress && post == PostCompression.zip) rawOut = new DeflaterOutputStream( finalArrayOut);
-      if ( compress && post == PostCompression.bzip2) rawOut = new CBZip2OutputStream( finalArrayOut);
       
       // write table
       if ( !predefined)
@@ -207,7 +218,6 @@ public class TabularCompressor extends AbstractCompressor
       // optionally decompress everything but header
       InputStream rawIn = rawArrayIn;
       if ( post == PostCompression.zip) rawIn = new InflaterInputStream( rawArrayIn);
-      if ( post == PostCompression.bzip2) rawIn = new CBZip2InputStream( rawArrayIn);
       DataInputStream dataIn = new DataInputStream( rawIn);
       
       // read table
