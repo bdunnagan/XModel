@@ -8,8 +8,7 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: org.jdom,
  org.junit,
  org.apache.log4j
-Export-Package: org.apache.tools.bzip2,
- org.xmodel,
+Export-Package: org.xmodel,
  org.xmodel.compress,
  org.xmodel.dependency,
  org.xmodel.diff,
