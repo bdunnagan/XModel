@@ -19,7 +19,6 @@
  */
 package org.xmodel.xpath.expression;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -121,21 +120,16 @@ public abstract class ExactExpressionListener extends ExpressionListener
     ListDiffer differ = new ListDiffer();
     differ.diff( oldNodes, newNodes);
     
-    List<IModelObject> nodes = new ArrayList<IModelObject>();
-    
     List<Change> changes = differ.getChanges();
     for( Change change: changes)
     {
-      nodes.clear();
       if ( change.rIndex >= 0)
       {
-        for( int i=0; i<change.count; i++) nodes.add( newNodes.get( change.rIndex + i));
-        notifyInsert( expression, context, nodes, change.lIndex, change.count);
+        notifyInsert( expression, context, newNodes, change.lIndex, change.count);
       }
       else
       {
-        for( int i=0; i<change.count; i++) nodes.add( oldNodes.get( change.lIndex));
-        notifyRemove( expression, context, nodes, change.lIndex, change.count);
+        notifyRemove( expression, context, newNodes, change.lIndex, change.count);
       }
     }
   }
