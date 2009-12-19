@@ -72,7 +72,15 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> inserts)
   {
-    notifyChange( expression, context);
+    // lastUpdateID == 0 means performing initial notification
+    if ( context.getLastUpdate( expression) == 0)
+    {
+      notifyInsert( expression, context, inserts, 0, inserts.size());
+    }
+    else
+    {
+      notifyChange( expression, context);
+    }
   }
 
   /* (non-Javadoc)
@@ -82,7 +90,15 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> deletes)
   {
-    notifyChange( expression, context);
+    // lastUpdateID == 0 means performing final notification
+    if ( context.getLastUpdate( expression) == 0)
+    {
+      notifyRemove( expression, context, deletes, 0, deletes.size());
+    }
+    else
+    {
+      notifyChange( expression, context);
+    }
   }
 
   /* (non-Javadoc)
@@ -93,12 +109,12 @@ public abstract class ExactExpressionListener extends ExpressionListener
   {
     IModel model = context.getModel();
     
-    // revert and reevaluate
+    // revert and evaluate
     model.revert();
     List<IModelObject> oldNodes = expression.evaluateNodes( context);
-
-    // restore and reevaluate
     model.restore();
+
+    // evaluate
     List<IModelObject> newNodes = expression.evaluateNodes( context);
 
     // diff
