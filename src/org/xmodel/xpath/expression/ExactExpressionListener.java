@@ -20,13 +20,11 @@
 package org.xmodel.xpath.expression;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.diff.AbstractListDiffer;
-import org.xmodel.xpath.expression.IExpression.ResultType;
-
+import org.xmodel.diff.ListDiffer;
+import org.xmodel.diff.ListDiffer.Change;
 
 /**
  * An implementation of IExpression which provides more precise notification for expressions which
@@ -42,8 +40,6 @@ import org.xmodel.xpath.expression.IExpression.ResultType;
  * <p>
  * The <code>notifyChange( IExpression, IContext)</code> method does not need to be overridden. The
  * implementation will provide notification to one of the other notification methods.
- * FIXME: ExactExpressionListener has state which can be corrupted by nested listener notification.
- * @deprecated This class is tries to do its work in the ListDiffer. 
  */
 public abstract class ExactExpressionListener extends ExpressionListener
 {
@@ -76,37 +72,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> inserts)
   {
-    IModel model = context.getModel();
-    long lastUpdate = context.getLastUpdate( expression);
-    if ( context.shouldUpdate( expression))
-    {
-      context.notifyUpdate( expression);
-      try
-      {
-        // revert and reevaluate
-        // lastUpdateID == 0 means context has never been notified
-        List<IModelObject> oldNodes = Collections.emptyList();
-        if ( lastUpdate != 0)
-        {
-          model.revert();
-          oldNodes = expression.evaluateNodes( context);
-        }
-  
-        // restore and reevaluate
-        model.restore();
-        List<IModelObject> newNodes = expression.evaluateNodes( context);
-
-        // difference lists and notify
-        this.expression = expression;
-        this.context = context;
-        ListDiffer differ = new ListDiffer();
-        differ.diff( oldNodes, newNodes);
-      }
-      catch( ExpressionException e)
-      {
-        handleException( expression, context, e);
-      }
-    }
+    notifyChange( expression, context);
   }
 
   /* (non-Javadoc)
@@ -116,34 +82,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> deletes)
   {
-    IModel model = context.getModel();
-    long lastUpdate = context.getLastUpdate( expression);
-    if ( context.shouldUpdate( expression))
-    {
-      context.notifyUpdate( expression);
-      try
-      {
-        // revert and reevaluate
-        model.revert();
-        List<IModelObject> oldNodes = expression.evaluateNodes( context);
-        model.restore();
-  
-        // restore and reevaluate
-        List<IModelObject> newNodes = Collections.emptyList();
-        if ( lastUpdate != 0) 
-          newNodes = expression.evaluateNodes( context);
-
-        // difference lists and notify
-        this.expression = expression;
-        this.context = context;
-        ListDiffer differ = new ListDiffer();
-        differ.diff( oldNodes, newNodes);
-      }
-      catch( ExpressionException e)
-      {
-        handleException( expression, context, e);
-      }
-    }
+    notifyChange( expression, context);
   }
 
   /* (non-Javadoc)
@@ -153,81 +92,35 @@ public abstract class ExactExpressionListener extends ExpressionListener
   public void notifyChange( IExpression expression, IContext context)
   {
     IModel model = context.getModel();
-    long lastUpdate = context.getLastUpdate( expression);
-    if ( expression.getType( context) == ResultType.NODES)
-    {
-      try
-      {
-        List<IModelObject> oldNodes = Collections.emptyList();
-        
-        // revert and reevaluate
-        if ( lastUpdate != 0)
-        {
-          model.revert();
-          oldNodes = expression.evaluateNodes( context);
-        }
-  
-        // restore and reevaluate
-        model.restore();
-        List<IModelObject> newNodes = expression.evaluateNodes( context);
+    
+    // revert and reevaluate
+    model.revert();
+    List<IModelObject> oldNodes = expression.evaluateNodes( context);
 
-        // difference lists and notify
-        this.expression = expression;
-        this.context = context;
-        ListDiffer differ = new ListDiffer();
-        differ.diff( oldNodes, newNodes);
-      }
-      catch( ExpressionException e)
-      {
-        handleException( expression, context, e);
-      }
-    }
-    else
+    // restore and reevaluate
+    model.restore();
+    List<IModelObject> newNodes = expression.evaluateNodes( context);
+
+    // diff
+    ListDiffer differ = new ListDiffer();
+    differ.diff( oldNodes, newNodes);
+    
+    List<IModelObject> nodes = new ArrayList<IModelObject>();
+    
+    List<Change> changes = differ.getChanges();
+    for( Change change: changes)
     {
-      super.notifyChange( expression, context);
+      nodes.clear();
+      if ( change.rIndex >= 0)
+      {
+        for( int i=0; i<change.count; i++) nodes.add( newNodes.get( change.rIndex + i));
+        notifyInsert( expression, context, nodes, change.lIndex, change.count);
+      }
+      else
+      {
+        for( int i=0; i<change.count; i++) nodes.add( oldNodes.get( change.lIndex));
+        notifyRemove( expression, context, nodes, change.lIndex, change.count);
+      }
     }
   }
-
-  @SuppressWarnings("unchecked")
-  private class ListDiffer extends AbstractListDiffer
-  {
-    public void diff( List lhs, List rhs)
-    {
-      nodes = new ArrayList<IModelObject>( lhs);
-      super.diff( lhs, rhs);
-      nodes = null;
-    }
-    public void notifyInsert( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count)
-    {
-      try
-      {
-        int start = lIndex + lAdjust;
-        nodes.addAll( start, rhs.subList( rIndex, rIndex+count));
-        ExactExpressionListener.this.notifyInsert( expression, context, nodes, start, count);
-      }
-      catch( Exception e)
-      {
-        ExactExpressionListener.this.handleException( expression, context, e);
-      }
-    }
-    public void notifyRemove( final List lhs, int lIndex, int lAdjust, final List rhs, int count)
-    {
-      try
-      {
-        int start = lIndex + lAdjust;
-        ExactExpressionListener.this.notifyRemove( expression, context, nodes, start, count);
-        for( int i=0; i<count; i++) nodes.remove( start);
-      }
-      catch( Exception e)
-      {
-        ExactExpressionListener.this.handleException( expression, context, e);
-      }
-    }
-    
-    List<IModelObject> nodes;
-  };
-    
-  // current context and expression
-  IExpression expression;
-  IContext context;
 }
