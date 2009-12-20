@@ -19,6 +19,7 @@
  */
 package org.xmodel.xpath.expression;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -47,7 +48,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
    * method to receive notification when nodes are added to the node-set of the expression.
    * @param expression The expression.
    * @param context The context.
-   * @param nodes The node-set containing the inserts.
+   * @param nodes The node-set after nodes were inserted.
    * @param start The start of the new nodes.
    * @param count The count of new nodes.
    */
@@ -58,7 +59,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
    * method to receive notification when nodes are removed to the node-set of the expression.
    * @param expression The expression.
    * @param context The context.
-   * @param nodes The complete node-set.
+   * @param nodes The node-set before nodes were deleted.
    * @param start The start of the removed nodes.
    * @param count The count of removed nodes.
    */
@@ -69,12 +70,12 @@ public abstract class ExactExpressionListener extends ExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> inserts)
+  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
     // lastUpdateID == 0 means performing initial notification
     if ( context.getLastUpdate( expression) == 0)
     {
-      notifyInsert( expression, context, inserts, 0, inserts.size());
+      notifyInsert( expression, context, nodes, 0, nodes.size());
     }
     else
     {
@@ -87,12 +88,12 @@ public abstract class ExactExpressionListener extends ExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> deletes)
+  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
     // lastUpdateID == 0 means performing final notification
     if ( context.getLastUpdate( expression) == 0)
     {
-      notifyRemove( expression, context, deletes, 0, deletes.size());
+      notifyRemove( expression, context, nodes, 0, nodes.size());
     }
     else
     {
@@ -120,16 +121,21 @@ public abstract class ExactExpressionListener extends ExpressionListener
     ListDiffer differ = new ListDiffer();
     differ.diff( oldNodes, newNodes);
     
+    List<IModelObject> incremental = new ArrayList<IModelObject>();
+    incremental.addAll( oldNodes);
+    
     List<Change> changes = differ.getChanges();
     for( Change change: changes)
     {
       if ( change.rIndex >= 0)
       {
-        notifyInsert( expression, context, newNodes, change.lIndex, change.count);
+        for( int i=0; i<change.count; i++) incremental.add( change.lIndex, newNodes.get( change.rIndex + i));
+        notifyInsert( expression, context, incremental, change.lIndex, change.count);
       }
       else
       {
-        notifyRemove( expression, context, newNodes, change.lIndex, change.count);
+        notifyRemove( expression, context, incremental, change.lIndex, change.count);
+        for( int i=0; i<change.count; i++) incremental.remove( change.lIndex);
       }
     }
   }
