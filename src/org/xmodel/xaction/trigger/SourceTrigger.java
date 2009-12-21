@@ -19,6 +19,7 @@
  */
 package org.xmodel.xaction.trigger;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModelObject;
@@ -119,7 +120,7 @@ public class SourceTrigger extends AbstractTrigger
       {
         NotifyAdd runnable = new NotifyAdd();
         runnable.context = context;
-        runnable.nodes = nodes;
+        runnable.nodes = new ArrayList<IModelObject>( nodes);
         context.getModel().dispatch( runnable);
       }
       finally
@@ -136,7 +137,7 @@ public class SourceTrigger extends AbstractTrigger
       {
         NotifyRemove runnable = new NotifyRemove();
         runnable.context = context;
-        runnable.nodes = nodes;
+        runnable.nodes = new ArrayList<IModelObject>( nodes);
         context.getModel().dispatch( runnable);
       }
       finally
