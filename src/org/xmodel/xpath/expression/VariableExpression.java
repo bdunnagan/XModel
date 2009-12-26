@@ -99,8 +99,7 @@ public class VariableExpression extends Expression
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
     ResultType type = getType( context);
-    if ( type == ResultType.UNDEFINED) 
-      throw new ExpressionException( this, "Undefined variable: "+variable);
+    if ( type == ResultType.UNDEFINED) return false;
     
     IVariableSource source = getVariableSource();
     try
@@ -125,8 +124,7 @@ public class VariableExpression extends Expression
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
   {
     ResultType type = getType( context);
-    if ( type == ResultType.UNDEFINED) 
-      throw new ExpressionException( this, "Undefined variable: "+variable);
+    if ( type == ResultType.UNDEFINED) return Collections.emptyList();
     
     IVariableSource source = getVariableSource();
     try
@@ -151,8 +149,7 @@ public class VariableExpression extends Expression
   public double evaluateNumber( IContext context) throws ExpressionException
   {
     ResultType type = getType( context);
-    if ( type == ResultType.UNDEFINED) 
-      throw new ExpressionException( this, "Undefined variable: "+variable);
+    if ( type == ResultType.UNDEFINED) return 0;
     
     IVariableSource source = getVariableSource();
     try
@@ -178,8 +175,7 @@ public class VariableExpression extends Expression
   public String evaluateString( IContext context) throws ExpressionException
   {
     ResultType type = getType( context);
-    if ( type == ResultType.UNDEFINED) 
-      throw new ExpressionException( this, "Undefined variable: "+variable);
+    if ( type == ResultType.UNDEFINED) return "";
     
     IVariableSource source = getVariableSource();
     try

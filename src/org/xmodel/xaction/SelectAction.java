@@ -29,7 +29,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * An XAction which behaves like a select/case statement. *
  */
-public class SelectAction extends XAction
+public class SelectAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.ViewModel)
@@ -56,9 +56,10 @@ public class SelectAction extends XAction
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  public Object[] doRun( IContext context)
+  @Override
+  protected Object[] doAction( IContext context)
   {
     String selection = sourceExpr.evaluateString( context);
     ScriptAction action = caseScripts.get( selection);

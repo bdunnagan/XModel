@@ -188,9 +188,10 @@ public class ExternalReference extends ModelObject implements IExternalReference
     model.setSyncLock( true);
     try
     {
+      ICachingPolicy cachingPolicy = getCachingPolicy();
       StringBuilder sb = new StringBuilder();
       sb.append( indent); sb.append( "&"); sb.append( super.toString()); sb.append( " + ");
-      sb.append( getCachingPolicy().toString( indent+"  "));
+      if ( cachingPolicy != null) sb.append( cachingPolicy.toString( indent+"  "));
       return sb.toString();
     }
     finally
