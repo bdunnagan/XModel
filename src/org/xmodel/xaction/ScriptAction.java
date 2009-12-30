@@ -129,6 +129,7 @@ public class ScriptAction extends GuardedAction
   private final static String[] defaultIgnore = {
     "condition",
     "factory",
+    "function",
     "matcher",
     "package",
     "when",
