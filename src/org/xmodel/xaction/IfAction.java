@@ -21,6 +21,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An action which executes on of two actions depending on the result of a condition evaluation.
@@ -42,8 +43,16 @@ public class IfAction extends XAction
       negate = true;
     }
     
-    thenScript = document.createChildScript( "then");
-    elseScript = document.createChildScript( "else");
+    if ( document.getRoot().getFirstChild( "then") == null)
+    {
+      thenScript = document.createScript( "true", "false", "test");
+    }
+    else
+    {
+      // deprecated
+      thenScript = document.createChildScript( "then");
+      elseScript = document.createChildScript( "else");
+    }
   }
 
   /* (non-Javadoc)
@@ -51,12 +60,20 @@ public class IfAction extends XAction
    */
   public Object[] doRun( IContext context)
   {
-    if ( negate ^ condition.evaluateBoolean( context)) return thenScript.run( context); 
+    boolean test = condition.evaluateBoolean( context);
+
+    // set variable for use by ElseAction
+    ((StatefulContext)context).set( testResultVariable, test);
+    
+    // run script
+    if ( negate ^ test) return thenScript.run( context); 
     else return elseScript.run( context);
   }
 
+  public final static String testResultVariable = "org.xmodel.xaction.testResult";
+  
   private IExpression condition;
-  private ScriptAction thenScript;
-  private ScriptAction elseScript;
+  private IXAction thenScript;
+  private IXAction elseScript;
   private boolean negate;
 }

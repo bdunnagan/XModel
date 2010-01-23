@@ -122,7 +122,7 @@ public class AddAction extends GuardedAction
           if ( unique)
           {
             IModelObject matching = target.getChild( source.getType(), source.getID());
-            if (matching != null)
+            if ( matching != null)
             {
             	XmlDiffer differ = new XmlDiffer();
             	if (matcher != null) differ.setMatcher( matcher);

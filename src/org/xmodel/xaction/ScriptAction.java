@@ -29,7 +29,7 @@ import org.xmodel.xpath.expression.IContext;
 
 
 /**
- * A toplevel action which executes all of its children until one of them fails.
+ * An action that executes its children.
  */
 public class ScriptAction extends GuardedAction
 {
