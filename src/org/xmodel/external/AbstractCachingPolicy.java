@@ -542,14 +542,25 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     
     try
     {
-      // sync
-      sync( reference);
+      try
+      {
+        // sync
+        sync( reference);
+        
+        // reference enters cache when it is first synced
+        if ( cache != null) cache.add( reference);
+      }
+      catch( CachingException e)
+      {
+        // reset reference
+        reference.setDirty( true);
+        
+        // rethrow
+        throw e;
+      }
     }
     finally
     {
-      // reference enters cache when it is first synced
-      if ( cache != null) cache.add( reference);
-      
       // relock reference if it was previously locked
       if ( wasLocked) model.lock( reference);
     }
