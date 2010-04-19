@@ -228,7 +228,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyAdd( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyAdd( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
       setTriggerVariable( context, "added", nodes); 
       script.run( context);
     }
@@ -241,7 +241,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyRemove( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyRemove( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
       setTriggerVariable( context, "removed", nodes); 
       script.run( context);
     }
@@ -254,7 +254,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
       script.run( context);
     }
 
@@ -267,7 +267,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
       setTriggerVariable( context, "updated", Collections.singletonList( node));
       script.run( context);
     }
@@ -282,7 +282,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
       script.run( context);
     }
 
@@ -295,7 +295,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyChange( "+newValue+"): "+SourceTrigger.this.toString());
+      //System.out.println( "Trigger notifyChange( "+newValue+"): "+SourceTrigger.this.toString());
       script.run( context);
     }
 
