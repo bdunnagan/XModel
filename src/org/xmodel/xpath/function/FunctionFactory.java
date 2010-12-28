@@ -186,15 +186,17 @@ public class FunctionFactory implements IFunctionFactory
    */
   static public FunctionFactory getInstance()
   {
-    if ( instance == null) 
+    FunctionFactory factory = instance.get();
+    if ( factory == null) 
     {
-      instance = new FunctionFactory();
-      instance.addBaseFunctions();
+      factory = new FunctionFactory();
+      factory.addBaseFunctions();
+      instance.set( factory);
     }
-    return instance;
+    return factory;
   }
   
-  private static FunctionFactory instance;
+  private static ThreadLocal<FunctionFactory> instance = new ThreadLocal<FunctionFactory>();
   private Hashtable<String, Function> objectRegistry;
   
   @SuppressWarnings("unchecked")

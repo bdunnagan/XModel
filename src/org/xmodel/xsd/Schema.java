@@ -320,22 +320,22 @@ public class Schema
     return document;
   }
   
-  private static IPath schemaAttributesPath = XPath.createPath( 
+  private final static IPath schemaAttributesPath = XPath.createPath( 
     "attributes/attribute");
   
-  private static IPath schemaConstraintPath = XPath.createPath( 
+  private final static IPath schemaConstraintPath = XPath.createPath( 
     "constraint/*");
   
-  private static IExpression resolveChildExpr = XPath.createExpression(
+  private final static IExpression resolveChildExpr = XPath.createExpression(
     "ancestor::element/children/element[ @name = $name]");
   
-  private static IPath annotationPath = XPath.createPath(
+  private final static IPath annotationPath = XPath.createPath(
     "descendant::schema:errors");
   
-  private static IExpression findMatchingElementLeavesExpr = XPath.createExpression(
+  private final static IExpression findMatchingElementLeavesExpr = XPath.createExpression(
     ".//element[ @name = $name]");
   
-  private static IExpression findMatchingAttributeLeavesExpr = XPath.createExpression(
+  private final static IExpression findMatchingAttributeLeavesExpr = XPath.createExpression(
     ".//attribute[ @name = $name]");
   
   public static void main( String[] args) throws Exception

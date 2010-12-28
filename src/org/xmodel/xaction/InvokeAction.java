@@ -74,8 +74,11 @@ public class InvokeAction extends GuardedAction
     
     if ( contextExpr != null)
     {
-      StatefulContext local = new StatefulContext( context, contextExpr.queryFirst( context));
-      results = script.run( local);
+      for( IModelObject localNode: contextExpr.query( context, null))
+      {
+        StatefulContext local = new StatefulContext( context, localNode);
+        results = script.run( local);
+      }
     }
     else
     {

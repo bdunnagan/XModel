@@ -263,8 +263,8 @@ public class CreateAction extends GuardedAction
         try
         {
           // get single object replacement candidate
-          Object replacement = getExpressionResult( context, matcher.group( 1));
-          result.append( replacement);
+          Object object = getExpressionResult( context, matcher.group( 1));
+          result.append( object);
         }
         catch( ExpressionException e)
         {

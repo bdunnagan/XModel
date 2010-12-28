@@ -37,6 +37,7 @@ public class ReturnAction extends GuardedAction
   {
     super.configure( document);
     resultExpr = document.getExpression();
+    if ( resultExpr == null) resultExpr = document.getExpression( "result", true);
   }
   
   /* (non-Javadoc)

@@ -36,6 +36,7 @@ public class ModelRegistry implements IModelRegistry
 {
   public ModelRegistry()
   {
+    instance = new ThreadLocal<ModelRegistry>();
     register( new DefaultSpace());
     register( new ExternalSpace());
   }
@@ -107,11 +108,16 @@ public class ModelRegistry implements IModelRegistry
    */
   public static ModelRegistry getInstance()
   {
-    if ( instance == null) instance = new ModelRegistry();
-    return instance;
+    ModelRegistry registry = instance.get();
+    if ( registry == null)
+    {
+      registry = new ModelRegistry();
+      instance.set( registry);
+    }
+    return registry;
   }
   
-  private static ModelRegistry instance;
+  private static ThreadLocal<ModelRegistry> instance = new ThreadLocal<ModelRegistry>();
   private static ThreadLocal<IModel> threadModel;
   
   private List<IExternalSpace> externalSpaces;

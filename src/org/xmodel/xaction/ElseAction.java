@@ -42,9 +42,9 @@ public class ElseAction extends XAction
    */
   public Object[] doRun( IContext context)
   {
-    IVariableScope scope = context.getScope();
-    Boolean result = (Boolean)scope.get( IfAction.testResultVariable);
-    if ( !result) return elseScript.run( context);
+//    IVariableScope scope = context.getScope();
+//    Boolean result = (Boolean)scope.get( IfAction.testResultVariable);
+//    if ( !result) return elseScript.run( context);
     return null;
   }
   

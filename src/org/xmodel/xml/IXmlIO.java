@@ -33,7 +33,14 @@ import org.xmodel.IModelObjectFactory;
  */
 public interface IXmlIO
 {
+  public enum Whitespace { keep, trim};  
   public enum Style { compact, printable, html};
+  
+  /**
+   * Specify how whitespace should be handled.
+   * @param whitespace Whitespace handling.
+   */
+  public void setWhitespace( Whitespace whitespace);
   
   /**
    * Set the factory to use to create objects when parsing XML.

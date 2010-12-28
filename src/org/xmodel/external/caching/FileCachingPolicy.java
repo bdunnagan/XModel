@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.net.URI;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -148,7 +149,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   {
     throw new UnsupportedOperationException();
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
    */
@@ -163,7 +164,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   }
 
   private final IExpression defaultPathExpr = XPath.createExpression( "@path");
-  
+
   private IContext parentContext;
   private IExpression pathExpr = defaultPathExpr;
   private boolean create;

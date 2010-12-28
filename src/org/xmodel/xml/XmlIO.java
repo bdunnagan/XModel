@@ -44,13 +44,10 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.TextNode;
-import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.IExpression;
 
 
 public class XmlIO implements IXmlIO
@@ -63,6 +60,7 @@ public class XmlIO implements IXmlIO
     cycleSet = new HashSet<IModelObject>();
     lines = new ArrayList<IModelObject>();
     maxLines = 0;
+    whitespace = Whitespace.trim;
     
     try
     {
@@ -79,6 +77,14 @@ public class XmlIO implements IXmlIO
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xml.IXmlIO#setWhitespace(org.xmodel.xml.IXmlIO.Whitespace)
+   */
+  public void setWhitespace( Whitespace whitespace)
+  {
+    this.whitespace = whitespace;
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#setFactory(org.xmodel.IModelObjectFactory)
    */
@@ -628,10 +634,12 @@ public class XmlIO implements IXmlIO
     }
     public void endElement( String uri, String localName, String qName) throws SAXException
     {
-      // trim text
-      String value = Xlate.get( parent, "");
-      value = value.trim();
-      if ( value.length() > 0) parent.setValue( value); else parent.removeAttribute( "");
+      if ( whitespace == Whitespace.trim)
+      {
+        String value = Xlate.get( parent, "");
+        value = value.trim();
+        if ( value.length() > 0) parent.setValue( value); else parent.removeAttribute( "");
+      }
       
       // clear child
       child = null;
@@ -691,6 +699,7 @@ public class XmlIO implements IXmlIO
   public final static byte[] unexpanded = "(unexpanded reference)".getBytes();
   
   private SAXParser parser;
+  private Whitespace whitespace;
   private ErrorHandler errorHandler;
   private IModelObjectFactory factory;
   private IModelObject root;
@@ -707,38 +716,38 @@ public class XmlIO implements IXmlIO
   private Locator locator;
   private boolean outputHeader;
   
-  public static void main( String[] args) throws Exception
-  {
-    String xml = 
-      "<root>\n" +
-      "  <x id='H938FX9' status='5'/>\n" +
-      "  <?xx Message('50')?>\n" +
-      "  <y>\n" +
-      "    <?xxx?>\n" +
-      "  </y>\n" +
-      "  <z><![CDATA[!@#%^&*()~?<>]]></z>\n" +
-      "</root>\n";
-    
-    XmlIO xmlIO = new XmlIO();
-    xmlIO.setOutputStyle( Style.printable);
-    IModelObject o = xmlIO.read( xml);
-    
-    List<IModelObject> lines = xmlIO.getLineInformation();
-    for( int i=0; i < lines.size(); i++)
-      System.out.printf( "%-4d %s\n", i+1, lines.get( i));
-    
-    System.out.println( xmlIO.write( o));
-    
-    System.out.println( "RESULT");
-    IExpression e = XPath.createExpression( "//*");
-    for( IModelObject r: e.query( o, null))
-      System.out.println( r);
-    
-    IModelObject r = new ModelObject( "root");
-    r.setValue( "<><><>");
-    xml = xmlIO.write( r);
-    System.out.println( xml);
-    r = xmlIO.read( xml);
-    System.out.println( r);
-  }
+//  public static void main( String[] args) throws Exception
+//  {
+//    String xml = 
+//      "<root>\n" +
+//      "  <x id='H938FX9' status='5'/>\n" +
+//      "  <?xx Message('50')?>\n" +
+//      "  <y>\n" +
+//      "    <?xxx?>\n" +
+//      "  </y>\n" +
+//      "  <z><![CDATA[!@#%^&*()~?<>]]></z>\n" +
+//      "</root>\n";
+//    
+//    XmlIO xmlIO = new XmlIO();
+//    xmlIO.setOutputStyle( Style.printable);
+//    IModelObject o = xmlIO.read( xml);
+//    
+//    List<IModelObject> lines = xmlIO.getLineInformation();
+//    for( int i=0; i < lines.size(); i++)
+//      System.out.printf( "%-4d %s\n", i+1, lines.get( i));
+//    
+//    System.out.println( xmlIO.write( o));
+//    
+//    System.out.println( "RESULT");
+//    IExpression e = XPath.createExpression( "//*");
+//    for( IModelObject r: e.query( o, null))
+//      System.out.println( r);
+//    
+//    IModelObject r = new ModelObject( "root");
+//    r.setValue( "<><><>");
+//    xml = xmlIO.write( r);
+//    System.out.println( xml);
+//    r = xmlIO.read( xml);
+//    System.out.println( r);
+//  }
 }

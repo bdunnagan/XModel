@@ -643,7 +643,7 @@ public class BreakAction extends GuardedAction
   }
   
   /**
-   * Pop this BreakAction of of the thread-local break stack.
+   * Pop this BreakAction off of the thread-local break stack.
    */
   private void popThreadBreak()
   {
@@ -680,5 +680,5 @@ public class BreakAction extends GuardedAction
   private IXAction current;
   private int stepOutDepth;
   
-  private static ThreadLocal<Stack<BreakAction>> threadBreakStacks;
+  private static ThreadLocal<Stack<BreakAction>> threadBreakStacks = new ThreadLocal<Stack<BreakAction>>();
 }

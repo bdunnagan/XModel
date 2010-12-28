@@ -39,7 +39,7 @@ public class ContextAction extends XAction
   {
     super.configure( document);
 
-    sourceExpr = document.getExpression( "source", false);
+    sourceExpr = document.getExpression( "source", true);
     script = document.createScript( "source");
   }
 
