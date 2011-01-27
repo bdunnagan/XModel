@@ -48,8 +48,8 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * A caching policy for accessing information from an SQL database. This caching policy is used to load both rows
- * and columns of a table.
+ * A caching policy for accessing information from an SQL database. 
+ * This caching policy is used to load both rows and columns of a table.
  */
 public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
 {
