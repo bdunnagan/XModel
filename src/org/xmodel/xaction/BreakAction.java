@@ -24,9 +24,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -58,12 +58,6 @@ public class BreakAction extends GuardedAction
     xmlIO = new XmlIO();
     xmlIO.skipOutputPrefix( "break");
     xmlIO.setOutputStyle( Style.printable);
-    
-    if ( separator == null)
-    {
-      separator = new char[ 80];
-      Arrays.fill( separator, '_');
-    }
   }
   
   /**
@@ -113,33 +107,17 @@ public class BreakAction extends GuardedAction
       // read past input
       try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
       
-      // show header
-      System.out.println( "");
-      System.out.println( separator);
-      System.out.println( prefix);
-      
       // execute script if any
       if ( script.getActions().size() > 0)
       {
         showElement( prefix, getDocument().getRoot(), maxLines);
-        System.out.println( prefix);
         Object[] result = script.run( context);
         if ( result != null) return result;
         prompt( context, null);
       }
       else
       {
-        // show parent of breakpoint
-        IModelObject parent = getDocument().getRoot().getParent();
-        if ( parent != null)
-        {
-          showElement( prefix, getDocument().getRoot().getParent(), maxLines);
-          System.out.println( prefix);
-        }
-        
         // prompt
-        System.out.println( separator);
-        System.out.println( prefix);
         prompt( context, document.getRoot());
       }
     }
@@ -227,9 +205,6 @@ public class BreakAction extends GuardedAction
   {
     if ( condition == null || condition.evaluateBoolean( context))
     {
-      System.out.println( separator);
-      System.out.println( prefix);
-      
       // show/set location
       this.location = location;
       if ( location != null) showElement( prefix, location, maxLines);
@@ -237,10 +212,8 @@ public class BreakAction extends GuardedAction
       // show watch list
       if ( watches.size() > 0)
       {
-        System.out.println( prefix);
         for( IExpression watch: watches)
           showText( prefix+watch.toString()+"=", watch.evaluateString( context), 1);
-        System.out.println( prefix);
       }
       
       // loop until recognized input
@@ -252,8 +225,6 @@ public class BreakAction extends GuardedAction
           System.err.flush();
           
           // prompt
-          System.out.println( separator);
-          System.out.println( prefix);
           System.out.printf( "-> ");
           
           // get input
@@ -361,9 +332,7 @@ public class BreakAction extends GuardedAction
     // parse @ by itself
     if ( input.equals( "@"))
     {
-      IModelObject branch = ModelAlgorithms.cloneBranch( location);
-      branch = branch.getRoot();
-      showElement( prefix, branch, maxLines);
+      showElement( prefix, location, maxLines);
       return false;
     }
     
@@ -527,21 +496,59 @@ public class BreakAction extends GuardedAction
   {
     try
     {
-      String xml = xmlIO.write( ModelAlgorithms.cloneTree( element, factory));
-      int indent = getAncestorCount( element);
-      for( int i=0; i<indent; i++) prefix += "  ";
-      showText( prefix, xml, maxLines);
+      String xml = xmlIO.write( clonePartialBranch( element));
+      int lineCount = lineCount( xml);
+      showText( prefix, xml, (int)Math.round( lineCount / 2.0));
     }
     catch( Exception e)
     {
     }
   }
+  
+  /**
+   * Clone the specified element and all ancestors and preceding siblings.
+   * @param element The element.
+   * @return Returns the partial clone.
+   */
+  private IModelObject clonePartialBranch( IModelObject element)
+  {
+    IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
+    IModelObject parent = element.getParent();
+    IModelObject child = clone;
+    IModelObject parentClone = parent.cloneObject();
+    while( parent != null)
+    {
+      parentClone.addChild( child);
+      child = parentClone;
+      parent = parent.getParent();
+      if ( parent != null) parentClone = parent.cloneObject();
+    }
+    return parentClone;
+  }
 
+  /**
+   * Count the lines in the specified text.
+   * @param text The text.
+   * @return Returns the number of lines.
+   */
+  private int lineCount( String text)
+  {
+    int count = 0;
+    int index = text.indexOf( "\n");
+    while( index >= 0)
+    {
+      count++;
+      index = text.indexOf( "\n", index+1);
+    }
+    return count;
+  }
+  
   /**
    * Returns the count of ancestors.
    * @param element The element.
    * @return Returns the count of ancestors.
    */
+  @SuppressWarnings("unused")
   private int getAncestorCount( IModelObject element)
   {
     int count = 0;
@@ -663,8 +670,7 @@ public class BreakAction extends GuardedAction
     }
   };
   
-  private static char[] separator;
-  private static String prefix = "    ";
+  private static String prefix = "";
   private static int maxLines = 1000;
   
   private XmlIO xmlIO;
