@@ -217,7 +217,6 @@ public class XPathParser
     
   String spec;
   RootExpression root;
-  final static FunctionFactory functionFactory = FunctionFactory.getInstance();
 }
 
 PARSER_END(XPathParser)
@@ -711,7 +710,7 @@ IExpression FunctionName():
 {
   name = QNameWithoutNodeType() 
   {
-    IExpression function = functionFactory.createFunction( name);
+    IExpression function = FunctionFactory.getInstance().createFunction( name);
     if ( function == null) throw new ParseException( "Undefined function: "+name);
     return function;
   }

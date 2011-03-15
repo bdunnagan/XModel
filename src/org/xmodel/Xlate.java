@@ -19,6 +19,8 @@
  */
 package org.xmodel;
 
+import java.util.Date;
+
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -507,7 +509,7 @@ public class Xlate
     if ( attrValue == null) return defaultValue;
     return attrValue.toString();
   }
-
+  
   /**
    * Convert the attribute to the specified return value.  If the attribute is
    * not defined or cannot be converted then return the specified default value. 
