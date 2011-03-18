@@ -352,13 +352,13 @@ public class XActionDocument
     if ( string.length() == 0) return null;
     
     // create expression and cache
-    IExpression expression = (IExpression)object.getAttribute( cachedExpressionAttribute);
+    IExpression expression = null;
+    try { expression = (IExpression)object.getAttribute( cachedExpressionAttribute);} catch( ClassCastException e) {}
     if ( expression == null)
     {
       expression = XPath.createExpression( string);
       try { object.setAttribute( cachedExpressionAttribute, expression);} catch( UnsupportedOperationException e) {}
     }
-    
     return expression;
   }
    

@@ -159,7 +159,7 @@ public class XPath extends AbstractPath implements IAxis
         }
         catch( ParseException e)
         {
-          throw new PathSyntaxException( "Syntax Error: "+expression, e);
+          throw new PathSyntaxException( "Syntax Error: "+spec, e);
         }
       }
       return expression;

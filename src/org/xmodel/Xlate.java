@@ -19,8 +19,6 @@
  */
 package org.xmodel;
 
-import java.util.Date;
-
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 

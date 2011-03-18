@@ -24,6 +24,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 
@@ -336,6 +338,13 @@ public class BreakAction extends GuardedAction
       return false;
     }
     
+    // parse # by itself
+    if ( input.equals( "#"))
+    {
+      showContext( context);
+      return false;
+    }
+    
     // parse !
     if ( input.charAt( 0) == '!')
     {
@@ -436,6 +445,7 @@ public class BreakAction extends GuardedAction
     System.out.printf( "%s  An expression to be evaluated in the current context.\n", prefix);
     System.out.printf( "%s  $ to print a summary of all context defined variables.\n", prefix);
     System.out.printf( "%s  @ to reprint the current breakpoint location.\n", prefix);
+    System.out.printf( "%s  # to dump the context stack.\n", prefix);
     System.out.printf( "%s  ~ will dump a stack trace to the console.\n", prefix);
     System.out.printf( "%s  | followed by a file path to execute an XAction from a file.\n", prefix);
     System.out.printf( "%s  !, by itself, to show history.\n", prefix);
@@ -451,12 +461,18 @@ public class BreakAction extends GuardedAction
   private void showVariables( IContext context)
   {
     System.out.println( prefix);
+    
     IVariableScope scope = context.getScope();
-    for( String name: scope.getAll())
+    Collection<String> variables = scope.getAll();
+    String[] array = variables.toArray( new String[ 0]);
+    Arrays.sort( array);
+    
+    for( String name: array)
     {
       System.out.print( prefix);
       System.out.println( name);
     }
+    
     System.out.println( prefix);
   }
   
@@ -497,8 +513,7 @@ public class BreakAction extends GuardedAction
     try
     {
       String xml = xmlIO.write( clonePartialBranch( element));
-      int lineCount = lineCount( xml);
-      showText( prefix, xml, (int)Math.round( lineCount / 2.0));
+      showText( prefix, xml, maxLines);
     }
     catch( Exception e)
     {
@@ -513,17 +528,18 @@ public class BreakAction extends GuardedAction
   private IModelObject clonePartialBranch( IModelObject element)
   {
     IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
-    IModelObject parent = element.getParent();
-    IModelObject child = clone;
-    IModelObject parentClone = parent.cloneObject();
-    while( parent != null)
-    {
-      parentClone.addChild( child);
-      child = parentClone;
-      parent = parent.getParent();
-      if ( parent != null) parentClone = parent.cloneObject();
-    }
-    return parentClone;
+    return clone;
+//    IModelObject parent = element.getParent();
+//    IModelObject child = clone;
+//    IModelObject parentClone = parent.cloneObject();
+//    while( parent != null)
+//    {
+//      parentClone.addChild( child);
+//      child = parentClone;
+//      parent = parent.getParent();
+//      if ( parent != null) parentClone = parent.cloneObject();
+//    }
+//    return parentClone;
   }
 
   /**
@@ -596,6 +612,31 @@ public class BreakAction extends GuardedAction
       builder.append( '\n');
     }
     showText( prefix, builder.toString(), 64);
+  }
+  
+  /**
+   * Show the context stack.
+   * @param context The context.
+   */
+  private void showContext( IContext context)
+  {
+    List<IContext> stack = new ArrayList<IContext>();
+    while( context != null)
+    {
+      stack.add( 0, context);
+      context = context.getParent();
+    }
+    
+    StringBuilder sb = new StringBuilder();
+    for( IContext c: stack)
+    {
+      sb.append( String.format( "%x", System.identityHashCode( c)));
+      sb.append( ": ");
+      sb.append( ModelAlgorithms.createIdentityExpression( c.getObject()));
+      sb.append( "\n");
+    }
+    
+    showText( prefix, sb.toString(), 64);
   }
   
   /**
