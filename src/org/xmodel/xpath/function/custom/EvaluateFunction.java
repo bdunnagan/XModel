@@ -70,7 +70,7 @@ public class EvaluateFunction extends Function
     assertType( context, 0, ResultType.NODES);
 
     String spec = getArgument( 1).evaluateString( context);
-    IExpression expr = XPath.createExpression( spec, false);
+    IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateBoolean( context);
     
     for( IModelObject object: getArgument( 0).evaluateNodes( context))
@@ -92,7 +92,7 @@ public class EvaluateFunction extends Function
     assertType( context, 0, ResultType.NODES);
 
     String spec = getArgument( 1).evaluateString( context);
-    IExpression expr = XPath.createExpression( spec, false);
+    IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateNodes( context);
     
     List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
@@ -113,7 +113,7 @@ public class EvaluateFunction extends Function
     assertType( context, 0, ResultType.NODES);
 
     String spec = getArgument( 1).evaluateString( context);
-    IExpression expr = XPath.createExpression( spec, false);
+    IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateNumber( context);
     
     IModelObject object = getArgument( 0).queryFirst( context);
@@ -130,13 +130,30 @@ public class EvaluateFunction extends Function
     assertType( context, 0, ResultType.NODES);
 
     String spec = getArgument( 1).evaluateString( context);
-    IExpression expr = XPath.createExpression( spec, false);
+    IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateString( context);
     
     IModelObject object = getArgument( 0).queryFirst( context);
     return expr.evaluateString( new Context( context, object)); 
   }
 
+  /**
+   * Create the specified expression quietly.
+   * @param spec The expression spec.
+   * @return Returns null or the expression.
+   */
+  private IExpression createExpression( String spec)
+  {
+    try
+    {
+      return XPath.createExpression( spec, false);
+    }
+    catch( Exception e)
+    {
+      return null;
+    }
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
