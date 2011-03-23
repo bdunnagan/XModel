@@ -24,6 +24,7 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.Function;
 
 
@@ -172,5 +173,70 @@ public class NosyncFunction extends Function
       model.setSyncLock( false);
     }
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyAdd( this, context, nodes);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyRemove( this, context, nodes);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyChange(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext, boolean)
+   */
+  @Override
+  public void notifyChange( IExpression expression, IContext context, boolean newValue)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyChange( this, context, newValue);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyChange(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext, double, double)
+   */
+  @Override
+  public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyChange( this, context, newValue, oldValue);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyChange(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext, java.lang.String, java.lang.String)
+   */
+  @Override
+  public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyChange( this, context, newValue, oldValue);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyChange(org.xmodel.xpath.expression.IExpression, 
+   * org.xmodel.xpath.expression.IContext)
+   */
+  @Override
+  public void notifyChange( IExpression expression, IContext context)
+  {
+    IExpression parent = getParent();
+    if ( parent != null) parent.notifyChange( this, context);
+  }
 }

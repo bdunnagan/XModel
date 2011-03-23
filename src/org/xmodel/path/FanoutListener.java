@@ -21,10 +21,20 @@ package org.xmodel.path;
 
 import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IPathElement;
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ConfiguredCachingPolicy;
+import org.xmodel.external.ExternalReference;
+import org.xmodel.external.IExternalReference;
+import org.xmodel.external.UnboundedCache;
 import org.xmodel.xpath.PathElement;
+import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.ExpressionListener;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 
 /**
@@ -192,4 +202,45 @@ public abstract class FanoutListener extends ListenerChainLink
   }
 
   IPathElement fanoutElement;
+  
+  public static void main( String[] args) throws Exception
+  {
+    IExpression expr = XPath.createExpression( "*");
+    
+    ExternalReference x = new ExternalReference( "x");
+    x.setCachingPolicy( new CP());
+    x.setDirty( true);
+    
+    StatefulContext context = new StatefulContext( x);
+    expr.addNotifyListener( context, new ExpressionListener() {
+      public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+      {
+        System.out.println( "notifyAdd");
+      }
+      public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+      {
+        System.out.println( "notifyRemove");
+      }
+    });
+    
+    System.out.println( "manually sync...");
+    
+    x.getChildren();
+    
+    System.out.println( "done");
+  }
+  
+  private static class CP extends ConfiguredCachingPolicy
+  {
+    public CP()
+    {
+      super( new UnboundedCache());
+    }
+    
+    protected void syncImpl( IExternalReference reference) throws CachingException
+    {
+      System.out.println( "syncing");
+      reference.getCreateChild( "y");
+    }
+  }
 }

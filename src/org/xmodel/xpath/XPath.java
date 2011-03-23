@@ -193,7 +193,6 @@ public class XPath extends AbstractPath implements IAxis
       }
       catch( ParseException e)
       {
-        e.printStackTrace( System.err);
         return null;
       }
     }
