@@ -25,6 +25,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.net.ModelServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -81,7 +82,7 @@ public class StartServerAction extends GuardedAction
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
 
     // set dispatcher if none is defined
@@ -99,6 +100,8 @@ public class StartServerAction extends GuardedAction
     
     return null;
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction");
   
   private IModelObjectFactory factory;
   private ModelServer server;

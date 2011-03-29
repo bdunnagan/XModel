@@ -30,6 +30,7 @@ import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.PathSyntaxException;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -132,7 +133,7 @@ public class XPath extends AbstractPath implements IAxis
     }
     catch( PathSyntaxException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -166,7 +167,7 @@ public class XPath extends AbstractPath implements IAxis
     }
     catch( PathSyntaxException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -326,6 +327,8 @@ public class XPath extends AbstractPath implements IAxis
   
   private static ThreadLocal<Map<String, IPath>> threadPathCaches = new ThreadLocal<Map<String, IPath>>();
   private static ThreadLocal<Map<String, IExpression>> threadExprCaches = new ThreadLocal<Map<String, IExpression>>();
+  
+  private static Log log = Log.getLog( "org.xmodel.xml");
   
   public static void main( String[] args) throws Exception
   {

@@ -21,6 +21,7 @@ package org.xmodel;
 
 import java.util.*;
 import org.xmodel.listeners.ClimbingListener;
+import org.xmodel.log.Log;
 import org.xmodel.memento.*;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
@@ -131,10 +132,8 @@ public class ModelObject implements IModelObject
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
 
-    // DEBUG
     if ( parent != null && attrName.equals( "id"))
-      System.out.println( "LATE-ID: "+this+", id="+attrValue);
-    // DEBUG
+      log.warnf( "LATE-ID: %s, id=%s", this, attrValue);
     
     if ( attrValue == null) 
     {
@@ -1115,4 +1114,6 @@ public class ModelObject implements IModelObject
   private Map<String, Object> attributes;
   private ModelListenerList listeners;
   private PathListenerList pathListeners;
+  
+  private static Log log = Log.getLog( "org.xmodel");
 }

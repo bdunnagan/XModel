@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.util.*;
+
+import org.xmodel.log.Log;
 import org.xmodel.net.robust.ISession.StreamFactory;
 
 
@@ -102,7 +104,7 @@ public class Server
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     
     timer = null;
@@ -195,7 +197,7 @@ public class Server
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     return -1;
   }
@@ -215,7 +217,7 @@ public class Server
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -234,7 +236,7 @@ public class Server
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -265,12 +267,12 @@ public class Server
         }
         catch( SocketException e)
         {
-          if ( !exit) e.printStackTrace( System.err);
+          if ( !exit) log.exception( e);
           return;
         }
         catch( IOException e)
         {
-          e.printStackTrace( System.err);
+          log.exception( e);
           return;
         }
       }
@@ -302,6 +304,8 @@ public class Server
      */
     public void notifyIdle();
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private Thread serverThread;
   private ServerSocket serverSocket;

@@ -24,6 +24,7 @@ import java.util.Set;
 import org.xmodel.IModelListener;
 import org.xmodel.IModelObject;
 import org.xmodel.external.NonSyncingIterator;
+import org.xmodel.log.Log;
 import org.xmodel.net.robust.IServerSession;
 
 
@@ -129,7 +130,7 @@ public class ServerModelListener implements IModelListener
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       uninstall( parent);
     }
   }
@@ -147,7 +148,7 @@ public class ServerModelListener implements IModelListener
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       uninstall( parent);
     }
   }
@@ -164,7 +165,7 @@ public class ServerModelListener implements IModelListener
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       uninstall( object);
     }
   }
@@ -181,7 +182,7 @@ public class ServerModelListener implements IModelListener
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       uninstall( object);
     }
   }
@@ -204,6 +205,8 @@ public class ServerModelListener implements IModelListener
     return (ModelServer)session.getServer();
   }
     
+  private static Log log = Log.getLog( "org.xmodel.net");
+  
   private IServerSession session;
   private Set<String> ignoreAttributes;
   private Set<IModelObject> ignoreElements;

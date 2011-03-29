@@ -28,6 +28,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
+import org.xmodel.log.Log;
+
 public class FileServer extends Server
 {
   public FileServer( String input)
@@ -44,7 +46,7 @@ public class FileServer extends Server
         }
         catch( IOException e)
         {
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
       }
     });
@@ -71,6 +73,8 @@ public class FileServer extends Server
     in.close();
     out.close();
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private File file;
 

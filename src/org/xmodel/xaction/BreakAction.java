@@ -33,6 +33,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
@@ -254,7 +255,7 @@ public class BreakAction extends GuardedAction
         }
         catch( IOException e)
         {
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
       }
     }
@@ -728,4 +729,5 @@ public class BreakAction extends GuardedAction
   private int stepOutDepth;
   
   private static ThreadLocal<Stack<BreakAction>> threadBreakStacks = new ThreadLocal<Stack<BreakAction>>();
+  private static Log log = Log.getLog( "org.xmodel.xaction");
 }

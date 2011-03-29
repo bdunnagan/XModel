@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.external.NonSyncingListener;
+import org.xmodel.log.Log;
 import org.xmodel.util.Aggregator;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
@@ -127,7 +128,7 @@ public class EntityTrigger extends AbstractTrigger
   private final Runnable updateRunnable = new Runnable() {
     public void run()
     {
-      System.out.println( "Trigger notifyUpdate(): "+EntityTrigger.this.toString());
+      log.debugf( "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());
       context.set( "changes", new ArrayList<IModelObject>( touched));
       script.run( context);
       touched.clear();
@@ -140,4 +141,6 @@ public class EntityTrigger extends AbstractTrigger
   private ScriptAction script;
   private StatefulContext context;
   private Set<IModelObject> touched;
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
 }

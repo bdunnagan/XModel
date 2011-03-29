@@ -22,6 +22,7 @@ package org.xmodel.xaction.trigger;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.ExpressionListener;
@@ -130,7 +131,7 @@ public class WhenTrigger extends AbstractTrigger
   {
     public void run()
     {
-      System.out.println( "Trigger notifyChange( "+newValue+"): "+WhenTrigger.this.toString());
+      log.debugf( "Trigger notifyChange( %s): %s", Boolean.toString( newValue), WhenTrigger.this.toString());
       script.run( context);
     }
 
@@ -143,4 +144,6 @@ public class WhenTrigger extends AbstractTrigger
   private boolean initialize;
   private boolean finalize;
   private boolean updating;
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
 }

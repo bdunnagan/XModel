@@ -34,6 +34,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -167,7 +168,7 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     return null;
   }
@@ -184,6 +185,8 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
     return folder.toURI();
   }
 
+  private static Log log = Log.getLog( "org.xmodel.external.caching");
+  
   final IExpression folderPath = XPath.createExpression( "*[ @type='folder']");
   final IExpression filePath = XPath.createExpression( "file/*");
     

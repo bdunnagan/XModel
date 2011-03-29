@@ -23,6 +23,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import org.xmodel.log.Log;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
 
@@ -282,8 +284,10 @@ public class Model implements IModel
    */
   public void handleException( Exception e)
   {
-    e.printStackTrace( System.err);
+    log.exception( e);
   }
+  
+  private static Log log = Log.getLog( "org.xmodel");
   
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;

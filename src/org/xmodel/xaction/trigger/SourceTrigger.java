@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.ExpressionListener;
@@ -228,7 +229,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyAdd( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyAdd( %d nodes): %s", nodes.size(), SourceTrigger.this);
       setTriggerVariable( context, "added", nodes); 
       script.run( context);
     }
@@ -241,7 +242,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyRemove( "+nodes.size()+" nodes): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyRemove( %d nodes): %s", nodes.size(), SourceTrigger.this);
       setTriggerVariable( context, "removed", nodes); 
       script.run( context);
     }
@@ -254,7 +255,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyChange( %s, %s): %s", newValue, oldValue, SourceTrigger.this);
       script.run( context);
     }
 
@@ -267,7 +268,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyChange( %s, %s): %s", newValue, oldValue, SourceTrigger.this);
       setTriggerVariable( context, "updated", Collections.singletonList( node));
       script.run( context);
     }
@@ -282,7 +283,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyChange( "+newValue+", "+oldValue+"): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyChange( %f, %f): %s", newValue, oldValue, SourceTrigger.this);
       script.run( context);
     }
 
@@ -295,7 +296,7 @@ public class SourceTrigger extends AbstractTrigger
   {
     public void run()
     {
-      //System.out.println( "Trigger notifyChange( "+newValue+"): "+SourceTrigger.this.toString());
+      log.debugf( "Trigger notifyChange( %s): %s", Boolean.toString( newValue), SourceTrigger.this);
       script.run( context);
     }
 
@@ -308,4 +309,6 @@ public class SourceTrigger extends AbstractTrigger
   private boolean initialize;
   private boolean finalize;
   private boolean updating;
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
 }

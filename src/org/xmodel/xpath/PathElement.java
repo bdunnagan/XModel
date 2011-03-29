@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.zip.CRC32;
 import org.xmodel.*;
+import org.xmodel.log.Log;
 import org.xmodel.util.Fifo;
 import org.xmodel.xpath.expression.*;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -692,7 +693,7 @@ public class PathElement implements IPathElement, IAxis
           }
           catch( ExpressionException e) 
           {
-            e.printStackTrace( System.err);
+            log.exception( e);
             nodeSet.clear();
           }
         }
@@ -713,7 +714,7 @@ public class PathElement implements IPathElement, IAxis
           }
           catch( ExpressionException e)
           {
-            e.printStackTrace( System.err);
+            log.exception( e);
             nodeSet.set( i, null);
           }
         }
@@ -898,4 +899,6 @@ public class PathElement implements IPathElement, IAxis
   int axis;
   String type;
   IPredicate predicate;
+  
+  private static Log log = Log.getLog( "org.xmodel.xml");
 }

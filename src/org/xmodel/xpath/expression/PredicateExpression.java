@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.xmodel.*;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.variable.IVariableSource;
 
 
@@ -364,7 +365,7 @@ public class PredicateExpression extends Expression implements IPredicate
     if ( listeners == null)
     {
       System.err.println( "Expression Error: "+expression+", "+context);
-      e.printStackTrace( System.err);
+      log.exception( e);
       return;
     }
     
@@ -408,4 +409,6 @@ public class PredicateExpression extends Expression implements IPredicate
   boolean setup;
   boolean requiresContext;
   List<IExpressionListener> listeners;
+  
+  private static Log log = Log.getLog( "org.xmodel.xpath.expression");
 }  

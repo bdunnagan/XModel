@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.xmodel.log.Log;
 import org.xmodel.memento.IMemento;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
@@ -128,10 +130,8 @@ public class Element implements IModelObject
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
 
-    // DEBUG
     if ( parent != null && attrName.equals( "id"))
-      System.out.println( "LATE-ID: "+this+", id="+attrValue);
-    // DEBUG
+      log.warnf( "LATE-ID: %s, id=%s", this, attrValue);
     
     if ( attrValue == null) 
     {
@@ -833,4 +833,6 @@ public class Element implements IModelObject
   private IModelObject parent;
   private List<IModelObject> children;
   private Map<String, Object> attributes;
+  
+  private static Log log = Log.getLog( "org.xmodel");
 }

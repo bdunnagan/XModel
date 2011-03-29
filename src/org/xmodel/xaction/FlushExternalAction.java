@@ -21,6 +21,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -58,7 +59,7 @@ public class FlushExternalAction extends GuardedAction
         catch( Exception e)
         {
           System.err.println( "Unable to flush caching policy for reference: "+source);
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
       }
     }
@@ -66,5 +67,7 @@ public class FlushExternalAction extends GuardedAction
     return null;
   }
 
+  private static Log log = Log.getLog( "org.xmodel.xaction");
+  
   private IExpression sourceExpr;
 }

@@ -32,6 +32,8 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.xmodel.log.Log;
+
 public class ChangeFileComment
 {
   public static void main( String[] args) throws Exception
@@ -113,7 +115,7 @@ public class ChangeFileComment
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -129,7 +131,7 @@ public class ChangeFileComment
     }
     catch( IOException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
   }
   
@@ -188,6 +190,8 @@ public class ChangeFileComment
   {
     return header.replaceFirst( "[$]FILE", file);
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.util");
   
   File path;
 }

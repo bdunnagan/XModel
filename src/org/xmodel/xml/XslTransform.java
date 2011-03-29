@@ -28,6 +28,7 @@ import org.jdom.transform.XSLTransformer;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.IXmlDiffer;
 import org.xmodel.diff.XmlDiffer;
+import org.xmodel.log.Log;
 
 
 /**
@@ -140,7 +141,7 @@ public class XslTransform implements ITransform
     catch( XSLTransformException e)
     {
       System.err.println( "Failed XSL transform: ");
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -162,7 +163,7 @@ public class XslTransform implements ITransform
     catch( XSLTransformException e)
     {
       System.err.println( "Failed XSL transform: ");
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     return null;
   }
@@ -179,4 +180,6 @@ public class XslTransform implements ITransform
   XSLTransformer transform;
   XSLTransformer inverseTransform;
   IXmlDiffer differ;
+  
+  private static Log log = Log.getLog( "org.xmodel.xml");
 }

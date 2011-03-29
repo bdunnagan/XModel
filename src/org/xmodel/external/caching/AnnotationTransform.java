@@ -21,6 +21,7 @@ package org.xmodel.external.caching;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
+
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IModelObject;
@@ -33,6 +34,7 @@ import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
@@ -287,7 +289,7 @@ public class AnnotationTransform
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -306,7 +308,7 @@ public class AnnotationTransform
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -319,6 +321,8 @@ public class AnnotationTransform
   
   private final IExpression annotatedExpr = XPath.createExpression(
     "reverse( descendant-or-self::*[ extern:cache])");
+  
+  private static Log log = Log.getLog( "org.xmodel.external.caching");
   
   private ClassLoader loader;
   private IContext parent;

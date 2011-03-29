@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -69,7 +70,7 @@ public class TryAction extends GuardedAction
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
       
       catchBlock.script = new ScriptAction( document.getClassLoader(), catchElement);
@@ -150,6 +151,8 @@ public class TryAction extends GuardedAction
     Class<Throwable> thrownClass;
     ScriptAction script;
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction");
   
   private final IExpression catchActionExpr = XPath.createExpression(
     "*[ name() = 'catch']");

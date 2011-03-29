@@ -24,6 +24,7 @@ import org.xmodel.IModelListener;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.IContext;
 
 
@@ -69,7 +70,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -91,7 +92,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -168,6 +169,8 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
   {
   }
 
+  private static Log log = Log.getLog( "org.xmodel.path");
+  
   IListenerChain chain;
   int chainIndex;
 }

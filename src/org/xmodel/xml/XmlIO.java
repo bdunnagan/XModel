@@ -46,6 +46,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.TextNode;
 
@@ -69,11 +70,11 @@ public class XmlIO implements IXmlIO
     }
     catch( SAXException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     catch( ParserConfigurationException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
   }
   
@@ -252,7 +253,7 @@ public class XmlIO implements IXmlIO
     }
     catch( XmlException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -715,6 +716,8 @@ public class XmlIO implements IXmlIO
   private List<IModelObject> lines;
   private Locator locator;
   private boolean outputHeader;
+  
+  private static Log log = Log.getLog( "org.xmodel.xml");
   
 //  public static void main( String[] args) throws Exception
 //  {

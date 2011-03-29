@@ -24,6 +24,7 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.IContext;
 
 
@@ -70,7 +71,7 @@ public class ChainTerminal implements IListenerChainLink
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -90,7 +91,7 @@ public class ChainTerminal implements IListenerChainLink
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
     
@@ -132,7 +133,7 @@ public class ChainTerminal implements IListenerChainLink
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -152,7 +153,7 @@ public class ChainTerminal implements IListenerChainLink
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
 
@@ -184,6 +185,8 @@ public class ChainTerminal implements IListenerChainLink
   {
     return new ChainTerminal( chain);
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.path");
   
   IListenerChain chain;
 }

@@ -25,6 +25,7 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.ListDiffer;
 import org.xmodel.diff.ListDiffer.Change;
+import org.xmodel.log.Log;
 
 /**
  * An implementation of IExpressionListener with empty method stubs except for the indeterminate
@@ -213,6 +214,8 @@ public class ExpressionListener implements IExpressionListener
   public void handleException( IExpression expression, IContext context, Exception e)
   {
     System.err.println( "Expression Error: "+expression+", "+context);
-    e.printStackTrace( System.err);
+    log.exception( e);
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.xpath.expression");
 }

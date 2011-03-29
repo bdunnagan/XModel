@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.xmodel.*;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.PathElement;
@@ -833,7 +834,7 @@ public class Xsd
     }
     catch( NumberFormatException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -885,7 +886,7 @@ public class Xsd
       }
       catch( PatternSyntaxException e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
         return null;
       }
     }
@@ -961,6 +962,8 @@ public class Xsd
   private IModelObject root;
   private Set<String> includes;
   private Set<String> imports;
+  
+  private static Log log = Log.getLog( "org.xmodel.xsd");
   
   public static void main( String[] args) throws Exception
   {

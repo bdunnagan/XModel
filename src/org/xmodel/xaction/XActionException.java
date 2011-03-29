@@ -25,6 +25,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 
 
 /**
@@ -99,9 +100,11 @@ public class XActionException extends RuntimeException
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
     }
     
     return null;
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction");
 }

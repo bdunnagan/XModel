@@ -21,6 +21,7 @@ package org.xmodel.xpath.function;
 
 import java.util.List;
 import org.xmodel.IModelObject;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -144,7 +145,7 @@ public class TraceFunction extends Function
     }
     catch( ExpressionException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return "Error in trace prefix: ";
     }
   }
@@ -234,4 +235,6 @@ public class TraceFunction extends Function
     System.out.println( "  changed: new="+newValue+", old="+oldValue);
     getParent().notifyValue( this, contexts, object, newValue, oldValue);
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.xpath.function");
 }

@@ -25,6 +25,7 @@ import java.util.List;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.log.Log;
 import org.xmodel.xpath.function.BooleanFunction;
 import org.xmodel.xpath.function.NumberFunction;
 import org.xmodel.xpath.function.StringFunction;
@@ -425,7 +426,7 @@ public abstract class Expression implements IExpression
       return evaluateBoolean( context);
     }
     catch( ExpressionException e)
-    {      e.printStackTrace( System.err);
+    {      log.exception( e);
       return defaultResult;
     }
   }
@@ -715,11 +716,13 @@ public abstract class Expression implements IExpression
     }
     catch( Exception e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
   
   IExpression parent;
   List<IExpression> arguments;
+  
+  private static Log log = Log.getLog( "org.xmodel.xpath.expression");
 }

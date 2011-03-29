@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.xmodel.log.Log;
 import org.xmodel.util.Radix;
 
 
@@ -98,7 +100,7 @@ public abstract class AbstractSession implements ISession
     }
     catch( IOException e)
     {
-      if ( debug) e.printStackTrace( System.err);
+      if ( debug) log.exception( e);
       notifyDisconnect();
       return -1;
     }
@@ -121,7 +123,7 @@ public abstract class AbstractSession implements ISession
     }
     catch( IOException e)
     {
-      if ( debug) e.printStackTrace( System.err);
+      if ( debug) log.exception( e);
       notifyDisconnect();
       return -1;
     }
@@ -144,7 +146,7 @@ public abstract class AbstractSession implements ISession
     }
     catch( IOException e)
     {
-      if ( debug) e.printStackTrace( System.err);
+      if ( debug) log.exception( e);
       notifyDisconnect();
       return false;
     }
@@ -167,7 +169,7 @@ public abstract class AbstractSession implements ISession
     }
     catch( IOException e)
     {
-      if ( debug) e.printStackTrace( System.err);
+      if ( debug) log.exception( e);
       notifyDisconnect();
       return false;
     }
@@ -233,7 +235,7 @@ public abstract class AbstractSession implements ISession
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -252,7 +254,7 @@ public abstract class AbstractSession implements ISession
       }
       catch ( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -271,7 +273,7 @@ public abstract class AbstractSession implements ISession
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
@@ -290,10 +292,12 @@ public abstract class AbstractSession implements ISession
       }
       catch( Exception e)
       {
-        e.printStackTrace( System.err);
+        log.exception( e);
       }
     }
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private List<IListener> handlers;
   private StreamFactory factory;

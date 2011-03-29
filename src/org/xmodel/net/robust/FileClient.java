@@ -28,6 +28,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
+import org.xmodel.log.Log;
+
 public class FileClient extends Client
 {
   public FileClient( String host, String output)
@@ -57,7 +59,7 @@ public class FileClient extends Client
         }
         catch( IOException e)
         {
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
         finally
         {
@@ -104,6 +106,8 @@ public class FileClient extends Client
     out.close();
     in.close();
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private File file;
   

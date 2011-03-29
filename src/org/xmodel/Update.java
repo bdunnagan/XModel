@@ -21,6 +21,8 @@ package org.xmodel;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.xmodel.log.Log;
 import org.xmodel.memento.*;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -209,7 +211,7 @@ public final class Update
         catch( Exception e)
         {
           System.err.println( modificationWarningMessage);
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
       }
     }
@@ -232,7 +234,7 @@ public final class Update
         catch( Exception e)
         {
           System.err.println( modificationWarningMessage);
-          e.printStackTrace( System.err);
+          log.exception( e);
         }
       }
     }
@@ -272,6 +274,8 @@ public final class Update
     }
   }
 
+  private static Log log = Log.getLog( "org.xmodel");
+  
   private final static String modificationWarningMessage =
     "Warning: Two or more listeners have updated the object which triggered their\n" +
     "  notification. The prior state of the model could not be restored and some\n" +

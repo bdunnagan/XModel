@@ -27,6 +27,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Random;
 
+import org.xmodel.log.Log;
+
 /**
  * An implementation of ISession which connects as a client with a TCP socket.
  */
@@ -220,7 +222,7 @@ public class Client extends AbstractSession
         }
         catch( IOException e)
         {
-          e.printStackTrace( System.err);
+          log.exception( e);
           exit = true;
           notifyClose();
         }
@@ -229,6 +231,8 @@ public class Client extends AbstractSession
       open = false;
     }
   };
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private final static int poll = 3000;
 

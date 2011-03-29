@@ -26,6 +26,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.TimerTask;
 
+import org.xmodel.log.Log;
+
 /**
  * An implementation of ISession for the server-side.
  */
@@ -91,7 +93,7 @@ public class ServerSession extends AbstractSession implements IServerSession
     }
     catch( Exception e)
     {
-      if ( debug) e.printStackTrace( System.err);
+      if ( debug) log.exception( e);
     }
     
     // cleanup
@@ -152,7 +154,7 @@ public class ServerSession extends AbstractSession implements IServerSession
       }
       catch( Exception e)
       {
-        if ( debug) e.printStackTrace( System.err);
+        if ( debug) log.exception( e);
       }
     }
     
@@ -224,6 +226,8 @@ public class ServerSession extends AbstractSession implements IServerSession
       close();
     }
   }
+  
+  private static Log log = Log.getLog( "org.xmodel.net.robust");
   
   private SocketSettings settings;  
   private Server server;

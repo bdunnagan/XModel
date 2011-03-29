@@ -28,6 +28,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
@@ -512,12 +513,12 @@ public class XActionDocument
     }
     catch( IllegalAccessException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
     catch( InstantiationException e)
     {
-      e.printStackTrace( System.err);
+      log.exception( e);
       return null;
     }
   }
@@ -665,6 +666,8 @@ public class XActionDocument
     return ModelAlgorithms.createIdentityPath( getRoot()).toString();
   }
 
+  private static Log log = Log.getLog( "org.xmodel.xaction");
+  
   private final IPath functionFinder = XPath.createPath( 
     "ancestor-or-self::*/functions/function[ @name = $name]");
 
