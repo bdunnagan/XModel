@@ -17,6 +17,7 @@ public final class Log
   public final static int severe = 0x02;
   public final static int fatal = 0x01;
   public final static int problems = exception | warn | error | severe | fatal;
+  public final static int all = 0xff;
   
   /**
    * Returns the name of the specified logging level.
@@ -72,7 +73,18 @@ public final class Log
    */
   public void setLevel( int level)
   {
+    if ( mask < 0) configure();
     this.mask = level;
+  }
+  
+  /**
+   * Set the log sink (not thread-safe).
+   * @param sink The log sink.
+   */
+  public void setSink( ILogSink sink)
+  {
+    if ( mask < 0) configure();
+    this.sink = sink;
   }
   
   /**
