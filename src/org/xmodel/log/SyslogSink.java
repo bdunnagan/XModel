@@ -6,16 +6,11 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-
-import org.xmodel.log.Log.ISink;
 
 /**
  * An implementation of Log.ISink that logs to a syslog host.
  */
-public final class SyslogSink implements ISink
+public final class SyslogSink implements ILogSink
 {
   public SyslogSink() throws SocketException
   {
@@ -24,47 +19,37 @@ public final class SyslogSink implements ISink
   
   public SyslogSink( String host) throws SocketException
   {
-    calendar = Calendar.getInstance();
-    dateFormat = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS");
-    dateFormat.setCalendar( calendar);
     socket = new DatagramSocket();
     address = new InetSocketAddress( host, 514);
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.log.Log.ISink#log(int, java.lang.String)
+   * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */
   @Override
-  public void log( int level, String message)
+  public void log( Log log, int level, String message)
   {
-    send( String.format( "<%d>%s %s\n", getPriority( level), dateFormat.format( new Date()), message));
+    send( String.format( "<%d>%s", getPriority( level), message));
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.log.Log.ISink#log(int, java.lang.Throwable)
+   * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.Throwable)
    */
   @Override
-  public void log( int level, Throwable throwable)
+  public void log( Log log, int level, Throwable throwable)
   {
-    log( level, "", throwable);
+    send( String.format( "<%d>%s", getPriority( level), throwable.toString()));
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.log.Log.ISink#log(int, java.lang.String, java.lang.Throwable)
+   * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String, java.lang.Throwable)
    */
   @Override
-  public void log( int level, String message, Throwable throwable)
+  public void log( Log log, int level, String message, Throwable throwable)
   {
-    String date = dateFormat.format( new Date());
     int priority = getPriority( level);
-    
-    send( String.format( "<%d>%s %s\n", priority, date, message));
-    
-    StackTraceElement[] stack = throwable.getStackTrace();
-    for( StackTraceElement element: stack)
-    {
-      send( String.format( "<%d>%s\n", priority, date, element.toString()));
-    }
+    send( String.format( "<%d>%s", priority, message));
+    send( String.format( "<%d>%s", priority, throwable.toString()));
   }
   
   /**
@@ -107,8 +92,6 @@ public final class SyslogSink implements ISink
     }
   }
   
-  private Calendar calendar;
-  private SimpleDateFormat dateFormat;
   private SocketAddress address;
   private DatagramSocket socket;
 }

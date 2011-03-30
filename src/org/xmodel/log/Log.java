@@ -38,35 +38,7 @@ public final class Log
     }
     return null;
   }
-  
-  /**
-   * An interface for handling a log message.
-   */
-  public interface ISink
-  {
-    /**
-     * Log a message.
-     * @param level The log level.
-     * @param message The message.
-     */
-    public void log( int level, String message);
     
-    /**
-     * Log an exception.
-     * @param level The log level.
-     * @param throwable The throwable.
-     */
-    public void log( int level, Throwable throwable);
-    
-    /**
-     * Log a throwable with a message..
-     * @param level The log level.
-     * @param message The message.
-     * @param throwable The throwable.
-     */
-    public void log( int level, String message, Throwable throwable);
-  }
-  
   /**
    * Returns the log with the specified name.
    * @param name The name of the log.
@@ -75,20 +47,23 @@ public final class Log
   public static Log getLog( String name)
   {
     Log log = logs.get( name);
-    if ( log == null) log = new Log();
+    if ( log == null) log = new Log( name);
     logs.put( name, log);
     return log;
   }
   
-  public Log()
+  public Log( String name)
   {
-    this( new ConsoleSink());
+    this.name = name;
+    mask = -1;
   }
   
-  public Log( ISink sink)
+  /**
+   * @return Returns the name of the log.
+   */
+  public String getName()
   {
-    this.mask = problems;
-    this.sink = sink;
+    return name;
   }
   
   /**
@@ -100,28 +75,6 @@ public final class Log
     this.mask = level;
   }
   
-  /**
-   * Log an exception.
-   * @param throwable The exception.
-   */
-  public void exception( Throwable throwable)
-  {
-    if ( (mask & exception) == 0) return;
-    sink.log( exception, throwable);
-  }
-  
-  /**
-   * Log an exception with a message.
-   * @param throwable The exception.
-   * @param format The format.
-   * @param params The format arguments.
-   */
-  public void exceptionf( Throwable throwable, String format, Object... params)
-  {
-    if ( (mask & exception) == 0) return;
-    sink.log( exception, String.format( format, params), throwable);
-  }
-
   /**
    * Log a verbose message.
    * @param message The message.
@@ -256,14 +209,39 @@ public final class Log
   }
   
   /**
+   * Log an exception.
+   * @param throwable The exception.
+   */
+  public void exception( Throwable throwable)
+  {
+    if ( mask < 0) configure();
+    if ( (mask & exception) == 0) return;
+    sink.log( this, exception, throwable);
+  }
+  
+  /**
+   * Log an exception with a message.
+   * @param throwable The exception.
+   * @param format The format.
+   * @param params The format arguments.
+   */
+  public void exceptionf( Throwable throwable, String format, Object... params)
+  {
+    if ( mask < 0) configure();
+    if ( (mask & exception) == 0) return;
+    sink.log( this, exception, String.format( format, params), throwable);
+  }
+
+  /**
    * Log a message.
    * @param level The logging level.
    * @param message The message.
    */
   private void log( int level, String message)
   {
+    if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
-    sink.log( level, message);
+    sink.log( this, level, message);
   }
   
   /**
@@ -274,12 +252,30 @@ public final class Log
    */
   private void logf( int level, String format, Object... params)
   {
+    if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
-    sink.log( level, String.format( format, params));
+    sink.log( this, level, String.format( format, params));
+  }
+  
+  /**
+   * Configure the log level and sink for this log.
+   */
+  private void configure()
+  {
+    mask = problems;
+    try
+    {
+      sink = new MultiSink( new FormatSink( new ConsoleSink()), new FormatSink( new SyslogSink()));
+    }
+    catch( Exception e)
+    {
+      sink = new FormatSink( new ConsoleSink());
+    }
   }
   
   private static Map<String, Log> logs = new HashMap<String, Log>();
-  
+
+  private String name;
   private int mask;
-  private ISink sink;
+  private ILogSink sink;
 }
