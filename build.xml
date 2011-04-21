@@ -1,10 +1,9 @@
-<project name="XModel" default="jar" basedir=".">
+<project name="XModel" default="obfuscate" basedir=".">
   
   <!-- set global properties for this build -->
   <property name="src" location="src"/>
   <property name="bin" location="bin"/>
   <property name="jars" location="jars"/>
-  <property name="xmodelui-plugin-jars" location="../XMPlugin/jars"/>
 
   <target name="init">
     <tstamp/>
@@ -15,11 +14,108 @@
     <mkdir dir="${jars}"/>
     <jar destfile="${jars}/xmodel.jar">
       <fileset dir="${bin}"/>
-      <fileset dir="${src}" includes="**/*.java"/>
     </jar> 
-    <copy file="${jars}/xmodel.jar" tofile="${xmodelui-plugin-jars}/xmodel.jar"/>
-    <!-- copy file="${jars}/xmodel.jar" tofile="${jars}/xmodel-${DSTAMP}-${TSTAMP}.jar"/ -->
   </target>
+	
+	<target name="obfuscate" depends="jar">
+		<taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="lib/yguard.jar"/>		
+		<yguard>
+      <inoutpair in="jars/xmodel.jar" out="jars/xmodel_ob.jar"/>
+      
+      <attribute name="Deprecated"/>
+      
+			<shrink logfile="shrinklog.xml">
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+            <patternset>
+              <include name="org.xmodel.**.*"/>
+            	<include name="org.xmodel.Xlate"/>
+              <exclude name="org.xmodel.AbstractPath"/>
+              <exclude name="org.xmodel.IPathElement"/>
+              <exclude name="org.xmodel.IPredicate"/>
+              <include name="org.xmodel.IModelObject"/>
+              <exclude name="org.xmodel.Model"/>
+              <exclude name="org.xmodel.ModelListenerList"/>
+              <exclude name="org.xmodel.PathListenerList"/>
+              <exclude name="org.xmodel.Update"/>
+              <exclude name="org.xmodel.IAxis"/>
+              <exclude name="org.xmodel.memento.**.*"/>
+              <exclude name="org.xmodel.path.**.*"/>
+              <exclude name="org.xmodel.xpath.expression.PredicateExpression"/>
+              <exclude name="org.xmodel.xpath.expression.AbstractBinaryBooleanExpression"/>
+              <exclude name="org.xmodel.xpath.expression.AbstractBinaryNumericExpression"/>
+              <exclude name="org.xmodel.xpath.expression.ArithmeticExpression"/>
+              <exclude name="org.xmodel.xpath.expression.EqualityExpression"/>
+              <exclude name="org.xmodel.xpath.expression.Expression"/>
+              <exclude name="org.xmodel.xpath.expression.FilteredExpression"/>
+              <exclude name="org.xmodel.xpath.expression.ForExpression"/>
+              <exclude name="org.xmodel.xpath.expression.IfExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LeafValueListener"/>
+              <exclude name="org.xmodel.xpath.expression.LetExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LiteralExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LogicalExpression"/>
+              <exclude name="org.xmodel.xpath.expression.NamePredicate"/>
+              <exclude name="org.xmodel.xpath.expression.NegateExpression"/>
+              <exclude name="org.xmodel.xpath.expression.PathExpression"/>
+              <exclude name="org.xmodel.xpath.expression.RelationalExpression"/>
+              <exclude name="org.xmodel.xpath.expression.RootExpression"/>
+              <exclude name="org.xmodel.xpath.expression.UnionExpression"/>
+              <exclude name="org.xmodel.xpath.expression.VariableExpression"/>
+              <exclude name="org.xmodel.xpath.parser.*"/>
+              <exclude name="org.xmodel.xpath.parser.generated.XPathParser"/>
+              <exclude name="org.xmodel.variable.**.*"/>
+            </patternset>
+          </class>
+        </keep>
+			</shrink>
+			
+      <rename mainclass="org.xmodel.xaction.Main" logfile="renamelog.xml">
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+          	<patternset>
+              <include name="org.xmodel.**.*"/>
+              <exclude name="org.xmodel.AbstractPath"/>
+              <exclude name="org.xmodel.IPathElement"/>
+              <exclude name="org.xmodel.IPredicate"/>
+              <exclude name="org.xmodel.Model"/>
+              <exclude name="org.xmodel.ModelListenerList"/>
+              <exclude name="org.xmodel.PathListenerList"/>
+              <exclude name="org.xmodel.Update"/>
+              <exclude name="org.xmodel.IAxis"/>
+              <exclude name="org.xmodel.memento.**.*"/>
+              <exclude name="org.xmodel.path.**.*"/>
+              <exclude name="org.xmodel.xpath.expression.PredicateExpression"/>
+              <exclude name="org.xmodel.xpath.expression.AbstractBinaryBooleanExpression"/>
+              <exclude name="org.xmodel.xpath.expression.AbstractBinaryNumericExpression"/>
+              <exclude name="org.xmodel.xpath.expression.ArithmeticExpression"/>
+              <exclude name="org.xmodel.xpath.expression.EqualityExpression"/>
+              <exclude name="org.xmodel.xpath.expression.Expression"/>
+              <exclude name="org.xmodel.xpath.expression.FilteredExpression"/>
+              <exclude name="org.xmodel.xpath.expression.ForExpression"/>
+              <exclude name="org.xmodel.xpath.expression.IfExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LeafValueListener"/>
+              <exclude name="org.xmodel.xpath.expression.LetExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LiteralExpression"/>
+              <exclude name="org.xmodel.xpath.expression.LogicalExpression"/>
+              <exclude name="org.xmodel.xpath.expression.NamePredicate"/>
+              <exclude name="org.xmodel.xpath.expression.NegateExpression"/>
+              <exclude name="org.xmodel.xpath.expression.PathExpression"/>
+              <exclude name="org.xmodel.xpath.expression.RelationalExpression"/>
+              <exclude name="org.xmodel.xpath.expression.RootExpression"/>
+              <exclude name="org.xmodel.xpath.expression.UnionExpression"/>
+              <exclude name="org.xmodel.xpath.expression.VariableExpression"/>
+              <exclude name="org.xmodel.xpath.parser.*"/>
+              <exclude name="org.xmodel.xpath.parser.generated.XPathParser"/>
+              <exclude name="org.xmodel.variable.**.*"/>
+          	</patternset>
+          </class>
+        </keep>
+      </rename>
+		</yguard>	 
+
+		<delete dir="jars/xmodel_ob"/>
+		<unzip src="jars/xmodel_ob.jar" dest="jars/xmodel_ob"/>
+	</target>
 	
   <target name="javadoc">
     <javadoc access="package" author="true" classpath="jars/jdom.jar;jars/junit.jar" destdir="doc" doctitle="XModel 1.0" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" packagenames="org.xmodel.xpath.function,org.xmodel.dependency,org.xmodel.external,org.xmodel.index,org.xmodel.path,org.xmodel.xpath,org.xmodel.util,org.xmodel.diff,org.xmodel.xml,org.xmodel.xpath.expression,org.xmodel.memento,org.xmodel.record,org.xmodel.listeners" source="1.5" sourcefiles="src/dunnagan/bob/xmodel/IModel.java,src/dunnagan/bob/xmodel/CanonicalPath.java,src/dunnagan/bob/xmodel/IBoundChangeRecord.java,src/dunnagan/bob/xmodel/Update.java,src/dunnagan/bob/xmodel/ModelObject.java,src/dunnagan/bob/xmodel/ModelLeafIterator.java,src/dunnagan/bob/xmodel/ModelObjectFactory.java,src/dunnagan/bob/xmodel/BreadthFirstIterator.java,src/dunnagan/bob/xmodel/PathSyntaxException.java,src/dunnagan/bob/xmodel/ModelListener.java,src/dunnagan/bob/xmodel/PathListenerList.java,src/dunnagan/bob/xmodel/IModelRegistry.java,src/dunnagan/bob/xmodel/Model.java,src/dunnagan/bob/xmodel/IModelObjectFactory.java,src/dunnagan/bob/xmodel/DepthFirstIterator.java,src/dunnagan/bob/xmodel/IPath.java,src/dunnagan/bob/xmodel/IAxis.java,src/dunnagan/bob/xmodel/Reference.java,src/dunnagan/bob/xmodel/IAncestorListener.java,src/dunnagan/bob/xmodel/ModelRegistry.java,src/dunnagan/bob/xmodel/ModelListenerList.java,src/dunnagan/bob/xmodel/IChangeSet.java,src/dunnagan/bob/xmodel/ChangeSet.java,src/dunnagan/bob/xmodel/Xlate.java,src/dunnagan/bob/xmodel/IModelPrinter.java,src/dunnagan/bob/xmodel/IIndexSpec.java,src/dunnagan/bob/xmodel/AbstractPath.java,src/dunnagan/bob/xmodel/IPathIndexVisitor.java,src/dunnagan/bob/xmodel/ModelAlgorithms.java,src/dunnagan/bob/xmodel/IPredicate.java,src/dunnagan/bob/xmodel/IIndex.java,src/dunnagan/bob/xmodel/IModelObject.java,src/dunnagan/bob/xmodel/IModelListener.java,src/dunnagan/bob/xmodel/IPathElement.java,src/dunnagan/bob/xmodel/IChangeRecord.java,src/dunnagan/bob/xmodel/IPathListener.java" sourcepath="src;_generated" splitindex="true" use="true" version="true">
