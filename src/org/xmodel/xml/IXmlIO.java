@@ -27,14 +27,13 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
-
 /**
  * An interface for generating an XModel from an XML document and vice versa.
  */
 public interface IXmlIO
 {
-  public enum Whitespace { keep, trim};  
-  public enum Style { compact, printable, html};
+  public enum Style { compact, printable};
+  public enum Whitespace { keep, trim};
   
   /**
    * Specify how whitespace should be handled.

@@ -986,23 +986,50 @@ public class ModelObject implements IModelObject
     builder.append( getType());
 
     // attributes
+    Object text = "";
     if ( attributes != null)
     {
       for( Map.Entry<String, Object> entry: attributes.entrySet())
       {
-        builder.append( ' ');
-        builder.append( entry.getKey());
-        builder.append( "='");
-        builder.append( entry.getValue());
-        builder.append( '\'');
+        String attrName = entry.getKey();
+        if ( attrName.length() > 0 && attrName.charAt( 0) != '!')
+        {
+          builder.append( ' ');
+          builder.append( attrName);
+          builder.append( "='");
+          builder.append( entry.getValue());
+          builder.append( '\'');
+        }
       }
+      text = attributes.get( "");
     }
     
     // children
     if ( children != null && children.size() > 0)
-      builder.append( ">...</>");
-    else
+    {
+      if ( text.equals( ""))
+      {
+        builder.append( ">...");
+      }
+      else
+      {
+        builder.append( '>');
+        builder.append( text.toString().trim());
+        builder.append( "...");
+      }
+    }
+    else if ( text.equals( ""))
+    {
       builder.append( "/>");
+    }
+    else
+    {
+      builder.append( '>');
+      builder.append( text);
+      builder.append( "</");
+      builder.append( getType());
+      builder.append( '>');
+    }
 
     return builder.toString();
   }
