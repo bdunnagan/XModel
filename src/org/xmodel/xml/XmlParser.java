@@ -1,6 +1,7 @@
 package org.xmodel.xml;
 
-import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -9,7 +10,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelObject;
+import org.xmodel.ModelObjectFactory;
 
 /**
  * @par An XML 1.0 parser that does not perform validation or any kind of URL lookup.
@@ -33,8 +36,10 @@ public final class XmlParser
 {
   public XmlParser( Reader reader)
   {
+    this.factory = new ModelObjectFactory();
     this.reader = reader;
     this.buffer = new char[ 4096];
+    this.mark = -1;
     
     entities = new HashMap<String, Character>();
     entities.put( "lt", '<');
@@ -56,6 +61,17 @@ public final class XmlParser
   }
   
   /**
+   * Parse the document and return the document node.
+   * @return Returns the document node.
+   */
+  public final IModelObject parse() throws IOException, ParseException
+  {
+    IModelObject node = factory.createObject( null, "document");
+    while( parseContent( node, null));
+    return node;
+  }
+  
+  /**
    * Parse an element declaration (assumes '<' already read).
    * @return Returns null or the parsed element.
    */
@@ -64,7 +80,7 @@ public final class XmlParser
     StringBuilder name = new StringBuilder();
     if ( !parseName( name)) return null;
     
-    ModelObject element = new ModelObject( name.toString());
+    IModelObject element = factory.createObject( null, name.toString());
     StringBuilder text = new StringBuilder();
     
     char c = readSkip();
@@ -73,7 +89,7 @@ public final class XmlParser
       c = readSkip();
       if ( c != '>')
       {
-        throw new ParseException( "Expected > character.", (count - length + offset));
+        throw createException(  "Expected > character.");
       }
       return element;
     }
@@ -92,14 +108,14 @@ public final class XmlParser
         c = readSkip();
         if ( c != '>')
         {
-          throw new ParseException( "Expected > character.", (count - length + offset));
+          throw createException(  "Expected > character.");
         }
         return element;
       }
       
       if ( c != '>')
       {
-        throw new ParseException( "Expected end of element tag.", (count - length + offset));
+        throw createException(  "Expected end of element tag.");
       }
       
       while( parseContent( element, text));
@@ -112,13 +128,13 @@ public final class XmlParser
     if ( !parseExactly( element.getType()))
     {
       String message = String.format( "Expected \"%s\" end tag.", element.getType());
-      throw new ParseException( message, (count - length + offset));
+      throw createException(  message);
     }
     
     c = readSkip();
     if ( c != '>')
     {
-      throw new ParseException( "Illegal character.", (count - length + offset)); 
+      throw createException(  "Illegal character.");
     }
     
     element.setValue( text.toString());
@@ -140,14 +156,14 @@ public final class XmlParser
     c = read();
     if ( c != '=')
     {
-      throw new ParseException( "Expected = character.", (count - length + offset));
+      throw createException(  "Expected = character.");
     }
     
     StringBuilder attrValue = new StringBuilder();
     char q = read();
     if ( q != '\'' && q != '"')
     {
-      throw new ParseException( "Expected ' or \" character.", (count - length + offset));
+      throw createException(  "Expected ' or \" character.");
     }
     
     c = read();
@@ -155,13 +171,13 @@ public final class XmlParser
     {
       if ( c == '<')
       {
-        throw new ParseException( "Illegal character.", (count - length + offset));
+        throw createException(  "Illegal character.");
       }
       else if ( c == '&')
       {
         if ( !parseReference( attrValue))
         {
-          throw new ParseException( "Illegal reference declaration.", (count - length + offset));
+          throw createException(  "Illegal reference declaration.");
         }
       }
       else
@@ -185,15 +201,15 @@ public final class XmlParser
   private boolean parseContent( IModelObject element, StringBuilder text) throws IOException, ParseException
   {
     char c = read();
-    while( c != '<')
+    while( c != '<' && !eoi)
     {
       if ( c == '&' && !parseReference( text))
       {
-        throw new ParseException( "Illegal entity declaration.", (count - length + offset)); 
+        throw createException(  "Illegal entity declaration.");
       }
       else
       {
-        text.append( c);
+        if ( text != null) text.append( c);
       }
       c = read();
     }
@@ -201,7 +217,7 @@ public final class XmlParser
     c = read(); 
     if ( eoi)
     {
-      throw new ParseException( "Expected declaration.", (count - length + offset));
+      throw createException(  "Expected declaration.");
     }
     
     if ( c == '/')
@@ -213,19 +229,24 @@ public final class XmlParser
     {
       if ( parseComment( element)) return true;
       if ( parseCDATA( text)) return true;
-      throw new ParseException( "Illegal declaration.", (count - length + offset));
+      throw createException(  "Illegal declaration.");
     }
     else if ( c == '?')
     {
       if ( parsePI( element)) return true;
-      throw new ParseException( "Illegal declaration.", (count - length + offset));
+      throw createException(  "Illegal declaration.");
     }
     else
     {
+      offset--;
       IModelObject child = parseElement();
-      if ( recordTextPosition) child.setAttribute( "!position", text.length());
-      element.addChild( child);
-      return true;
+      if ( child != null)
+      {
+        if ( recordTextPosition) child.setAttribute( "!position", text.length());
+        element.addChild( child);
+        return true;
+      }
+      return false;
     }
   }
   
@@ -248,7 +269,7 @@ public final class XmlParser
         {
           if ( !isHexDigit( c))
           {
-            throw new ParseException( "Expected hex digit character.", (count - length + offset));
+            throw createException(  "Expected hex digit character.");
           }
           sb.append( c);
         }
@@ -261,7 +282,7 @@ public final class XmlParser
         {
           if ( !isDigit( c))
           {
-            throw new ParseException( "Expected digit character.", (count - length + offset));
+            throw createException(  "Expected digit character.");
           }
           sb.append( c);
         }
@@ -273,13 +294,13 @@ public final class XmlParser
       StringBuilder sb = new StringBuilder();
       if ( !parseName( sb))
       {
-        throw new ParseException( "Illegal character.", (count - length + offset));
+        throw createException(  "Illegal character.");
       }
       
       c = lookupEntity( sb.toString());
       if ( c == 0)
       {
-        throw new ParseException( "Undefined entity.", (count - length + offset));
+        throw createException(  "Undefined entity.");
       }
       
       result.append( c);
@@ -335,34 +356,45 @@ public final class XmlParser
       c = read();
     }
     
+    offset--;
     return true;
   }
   
   /**
-   * Parse a processing instruction (assumes '<' already read).
+   * Parse a processing instruction (assumes "<?" already read).
    * @param parent The parent of the processing-instruction.
    * @return Returns true if parse is successful.
    */
-  private final boolean parsePI( IModelObject parent) throws IOException
+  private final boolean parsePI( IModelObject parent) throws IOException, ParseException
   {
-    char c = read(); if ( eoi) return false;
-    if ( c != '?') return false;
-    
-    ModelObject pi = new ModelObject( "?");
-    StringBuilder body = new StringBuilder();
-    c = read(); if ( eoi) return false;
-    while( isChar( c))
+    StringBuilder sb = new StringBuilder();
+    sb.append( '?');
+    if ( !parseName( sb)) 
     {
-      body.append( c);
+      throw createException( "Expected processing-instruction name.");
+    }
+    
+    IModelObject pi = factory.createObject( null, sb.toString());
+    sb.setLength( 0);
+    
+    char c = readSkip(); if ( eoi) return false;
+    while( isChar( c) && !eoi)
+    {
       if ( c == '?')
       {
         c = read(); if ( eoi) return false;
         if ( c == '>') break;
-        body.append( c);
+        sb.append( '?');
+        sb.append( c);
       }
+      else
+      {
+        sb.append( c);
+      }
+      c = read();
     }
     
-    pi.setValue( body);
+    pi.setValue( sb);
     parent.addChild( pi);
     
     return true;
@@ -377,7 +409,7 @@ public final class XmlParser
   {
     if ( !parseExactly( openCommentChars)) return false;
     
-    ModelObject comment = new ModelObject( "!--");
+    IModelObject comment = factory.createObject( null, "!--");
     StringBuilder body = new StringBuilder();
     char c = read(); if ( eoi) return false;
     while( isChar( c))
@@ -414,7 +446,7 @@ public final class XmlParser
       c = read();
       if ( eoi || c != chars.charAt( i))
       {
-        throw new ParseException( "Illegal character.", (count - length + offset));
+        throw createException(  "Illegal character.");
       }
     }
     return true;
@@ -511,6 +543,15 @@ public final class XmlParser
   }
   
   /**
+   * Reset the buffer to the mark position.
+   */
+  private final void reset() throws IOException
+  {
+    if ( mark == -1) throw new IOException( "Buffer overrun.");
+    offset = mark;
+  }
+  
+  /**
    * Read a character from the stream, normalize line breaks, and set EOI if necessary.
    * @return Returns the character read.
    */
@@ -540,31 +581,63 @@ public final class XmlParser
   {
     if ( offset >= length)
     {
-      if ( mark >= 0)
+      if ( mark < 0)
       {
-        System.arraycopy( buffer, mark, buffer, 0, length - mark);
-        int read = reader.read( buffer, length, buffer.length - length);
-        if ( read < 0) 
-        {
-          eoi = true;
-          return 0;
-        }
-      }
-      else
-      {
-        offset = 1;
+        // preserve one character from previous buffer
         if ( length > 0) buffer[ 0] = buffer[ length-1];
+        
+        // read next buffer
         length = reader.read( buffer, 1, buffer.length - 1) + 1;
+        
+        // end of input
         if ( length < 0) 
         {
           eoi = true;
           return 0;
         }
+        
+        offset = 1;
         count += length;
+      }
+      else if ( mark > 0)
+      {
+        // preserve region of buffer beginning with mark
+        System.arraycopy( buffer, mark, buffer, 0, length - mark);
+        
+        // read next buffer
+        int read = reader.read( buffer, length, buffer.length - length);
+        
+        // end of input
+        if ( read < 0) 
+        {
+          eoi = true;
+          return 0;
+        }
+        
+        offset -= mark;
+        mark = 0;
+        count += read;
+      }
+      else
+      {
+        // clear mark
+        mark = -1;
       }
     }
     
-    return buffer[ offset++];
+    char c = buffer[ offset++];
+    System.out.printf( "%d, %c\n", offset-1, c);
+    return c;
+  }
+
+  /**
+   * Create a ParseException with the specified message.
+   * @param message The message.
+   * @return Returns the exception.
+   */
+  private final ParseException createException( String message)
+  {
+    return new ParseException( message, (count - length + offset));
   }
   
   /**
@@ -1113,6 +1186,7 @@ public final class XmlParser
   private final static String openDOCTYPEChars = "DOCTYPE";
   private final static String openENTITYChars = "ENTITY";
 
+  private IModelObjectFactory factory;
   private Map<String, Character> entities;
   private Reader reader;
   private char[] buffer;
@@ -1127,18 +1201,22 @@ public final class XmlParser
   
   public static void main( String[] args) throws Exception
   {
-    String xml = "x a='5' b='6'  >Beef<![CDATA[LITERAL] ] > ]] ]> ]]></x>";
-    try
+    File folder = new File( "shaks200");
+    File[] files = folder.listFiles();
+    for( File file: files)
     {
-      XmlParser parser = new XmlParser( new StringReader( xml));
-      ModelObject element = (ModelObject)parser.parseElement();
-      System.out.println( element.toXml());
-    }
-    catch( ParseException e)
-    {
-      int offset = e.getErrorOffset();
-      String beginning = xml.substring( 0, offset);
-      System.err.printf( "%s\n", beginning);
+      FileReader reader = new FileReader( file);
+      System.out.println( file);
+      try
+      {
+        XmlParser parser = new XmlParser( reader);
+        ModelObject element = (ModelObject)parser.parse();
+        System.out.println( element.toXml());
+      }
+      catch( ParseException e)
+      {
+        System.err.println( e.getMessage());
+      }
     }
   }
 }
