@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,13 +40,13 @@ public final class XmlParser
     this.buffer = new char[ 4096];
     this.mark = -1;
     
-    entities = new HashMap<String, Character>();
-    entities.put( "lt", '<');
-    entities.put( "gt", '>');
-    entities.put( "amp", '&');
-    entities.put( "quot", '"');
-    entities.put( "apos", '\'');
-    entities.put( "nbsp", ' ');
+    entities = new HashMap<String, String>();
+    entities.put( "lt", "<");
+    entities.put( "gt", ">");
+    entities.put( "amp", "&");
+    entities.put( "quot", "\"");
+    entities.put( "apos", "'");
+    entities.put( "nbsp", " ");
   }
   
   /**
@@ -55,7 +54,7 @@ public final class XmlParser
    * @param name The EntityRef name.
    * @return Returns 0 or the entity with the specified name.
    */
-  public char lookupEntity( String name)
+  public String lookupEntity( String name)
   {
     return entities.get( name);
   }
@@ -200,7 +199,7 @@ public final class XmlParser
    */
   private boolean parseContent( IModelObject element, StringBuilder text) throws IOException, ParseException
   {
-    char c = read();
+    char c = read(); if ( eoi) return false;
     while( c != '<' && !eoi)
     {
       if ( c == '&' && !parseReference( text))
@@ -215,10 +214,7 @@ public final class XmlParser
     }
     
     c = read(); 
-    if ( eoi)
-    {
-      throw createException(  "Expected declaration.");
-    }
+    if ( eoi) return false;
     
     if ( c == '/')
     {
@@ -291,19 +287,21 @@ public final class XmlParser
     }
     else
     {
+      offset--;
+      
       StringBuilder sb = new StringBuilder();
       if ( !parseName( sb))
       {
         throw createException(  "Illegal character.");
       }
       
-      c = lookupEntity( sb.toString());
-      if ( c == 0)
+      String entity = lookupEntity( sb.toString());
+      if ( entity == null)
       {
         throw createException(  "Undefined entity.");
       }
       
-      result.append( c);
+      result.append( entity);
     }
     
     return true;
@@ -313,6 +311,7 @@ public final class XmlParser
    * Parse a ENTITY declaration (assumes '<' already read).
    * @return Returns true if the parse was successful.
    */
+  @SuppressWarnings("unused")
   private final boolean parseENTITY() throws IOException, ParseException
   {
     if ( !parseExactly( openENTITYChars)) return false;
@@ -328,6 +327,7 @@ public final class XmlParser
    * Parse a DOCTYPE declaration (assumes '<' already read).
    * @return Returns true if the parse was successful.
    */
+  @SuppressWarnings("unused")
   private final boolean parseDOCTYPE() throws IOException, ParseException
   {
     if ( !parseExactly( openDOCTYPEChars)) return false;
@@ -409,23 +409,23 @@ public final class XmlParser
   {
     if ( !parseExactly( openCommentChars)) return false;
     
-    IModelObject comment = factory.createObject( null, "!--");
     StringBuilder body = new StringBuilder();
-    char c = read(); if ( eoi) return false;
-    while( isChar( c))
+    body.append( "!--");
+    
+    char c0 = 0;
+    char c1 = read(); if ( eoi) return false;
+    while( isChar( c1) && !eoi)
     {
-      body.append( c);
-      if ( c == '-')
-      {
-        c = read(); if ( eoi) return false;
-        if ( c == '-') break;
-        body.append( c);
-      }
+      body.append( c1);
+      if ( c1 == '-' && c0 == '-') break;
+      c0 = c1; c1 = read();
     }
+
+    c1 = read();
+    if ( c1 != '>') return false;
     
-    if ( c != '>') return false;
     
-    comment.setValue( body);
+    IModelObject comment = factory.createObject( null, body.toString());
     parent.addChild( comment);
     
     return true;
@@ -476,6 +476,7 @@ public final class XmlParser
    * @param result The result.
    * @return Returns true if parse was succesful.
    */
+  @SuppressWarnings("unused")
   private final boolean parseNMToken( StringBuilder result) throws IOException
   {
     char c = read(); if ( eoi) return false;
@@ -590,7 +591,7 @@ public final class XmlParser
         length = reader.read( buffer, 1, buffer.length - 1) + 1;
         
         // end of input
-        if ( length < 0) 
+        if ( length <= 0) 
         {
           eoi = true;
           return 0;
@@ -625,9 +626,7 @@ public final class XmlParser
       }
     }
     
-    char c = buffer[ offset++];
-    System.out.printf( "%d, %c\n", offset-1, c);
-    return c;
+    return buffer[ offset++];
   }
 
   /**
@@ -1187,7 +1186,7 @@ public final class XmlParser
   private final static String openENTITYChars = "ENTITY";
 
   private IModelObjectFactory factory;
-  private Map<String, Character> entities;
+  private Map<String, String> entities;
   private Reader reader;
   private char[] buffer;
   private int offset;
@@ -1201,10 +1200,12 @@ public final class XmlParser
   
   public static void main( String[] args) throws Exception
   {
-    File folder = new File( "shaks200");
+    File folder = new File( ".");
     File[] files = folder.listFiles();
     for( File file: files)
     {
+      if ( !file.getName().endsWith( "lear.xml")) continue;
+      
       FileReader reader = new FileReader( file);
       System.out.println( file);
       try
