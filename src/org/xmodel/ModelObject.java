@@ -1007,7 +1007,7 @@ public class ModelObject implements IModelObject
     // children
     if ( children != null && children.size() > 0)
     {
-      if ( text.equals( ""))
+      if ( text == null || text.equals( ""))
       {
         builder.append( ">...");
       }
@@ -1018,7 +1018,7 @@ public class ModelObject implements IModelObject
         builder.append( "...");
       }
     }
-    else if ( text.equals( ""))
+    else if ( text == null || text.equals( ""))
     {
       builder.append( "/>");
     }

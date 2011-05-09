@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.xmodel.IModelObject;
@@ -22,11 +23,12 @@ import org.xmodel.ModelObjectFactory;
  * @par What's supported:
  * @par Full support of XML character class.
  * @par Flexible whitespace handling.
+ * @par Internal ENTITY declarations.
  *  
  * @par What's not supported:
  * @par The prolog is treated like any other processing-instruction. 
  * @par DOCTYPE declarations are ignored.
- * @par ENTITY declarations are ignored.
+ * @par External ENTITY declarations.
  * @par Language encoding via xml:lang is stored like any attribute.
  *  
  * Specification referenced from: http://www.xml.com/axml/testaxml.htm
@@ -40,13 +42,13 @@ public final class XmlParser
     this.buffer = new char[ 4096];
     this.mark = -1;
     
+    // default entities
     entities = new HashMap<String, String>();
     entities.put( "lt", "<");
     entities.put( "gt", ">");
     entities.put( "amp", "&");
     entities.put( "quot", "\"");
     entities.put( "apos", "'");
-    entities.put( "nbsp", " ");
   }
   
   /**
@@ -111,8 +113,7 @@ public final class XmlParser
         }
         return element;
       }
-      
-      if ( c != '>')
+      else if ( c != '>')
       {
         throw createException(  "Expected end of element tag.");
       }
@@ -120,14 +121,17 @@ public final class XmlParser
       while( parseContent( element, text));
     }
     
-    // parse end tag (assumes < already read)
+    // consume / belonging to end tag
     c = readSkip();
-    assert( c == '/');
+    if ( c != '/')
+    {
+      throw createException(  "Illegal character.");
+    }
     
+    // parse end tag (assumes </ already read)
     if ( !parseExactly( element.getType()))
     {
-      String message = String.format( "Expected \"%s\" end tag.", element.getType());
-      throw createException(  message);
+      throw createException( String.format( "Expected \"%s\" end tag.", element.getType()));
     }
     
     c = readSkip();
@@ -174,10 +178,7 @@ public final class XmlParser
       }
       else if ( c == '&')
       {
-        if ( !parseReference( attrValue))
-        {
-          throw createException(  "Illegal reference declaration.");
-        }
+        parseReference( attrValue);
       }
       else
       {
@@ -202,9 +203,9 @@ public final class XmlParser
     char c = read(); if ( eoi) return false;
     while( c != '<' && !eoi)
     {
-      if ( c == '&' && !parseReference( text))
+      if ( c == '&')
       {
-        throw createException(  "Illegal entity declaration.");
+        parseReference( text);
       }
       else
       {
@@ -223,9 +224,15 @@ public final class XmlParser
     }
     else if ( c == '!')
     {
-      if ( parseComment( element)) return true;
-      if ( parseCDATA( text)) return true;
-      throw createException(  "Illegal declaration.");
+      c = read();
+      switch( c)
+      {
+        case '-': if ( parseComment( element)) return true;
+        case '[': if ( parseCDATA( text)) return true;
+        case 'D': if ( parseDOCTYPE()) return true;
+        case 'E': if ( parseENTITY()) return true;
+        default: throw createException(  "Illegal declaration.");
+      }
     }
     else if ( c == '?')
     {
@@ -249,9 +256,8 @@ public final class XmlParser
   /**
    * Parse an XML Reference and append it to the specified result.
    * @param result The result.
-   * @return Returns true if the parse was successful.
    */
-  private boolean parseReference( StringBuilder result) throws IOException, ParseException
+  private void parseReference( StringBuilder result) throws IOException, ParseException
   {
     char c = read();
     if ( c == '#')
@@ -287,39 +293,66 @@ public final class XmlParser
     }
     else
     {
-      offset--;
-      
       StringBuilder sb = new StringBuilder();
-      if ( !parseName( sb))
+      while( c != ';' && !eoi)
       {
-        throw createException(  "Illegal character.");
+        sb.append( c);
+        c = read();
       }
       
       String entity = lookupEntity( sb.toString());
-      if ( entity == null)
-      {
-        throw createException(  "Undefined entity.");
-      }
+      if ( entity == null) throw createException(  "Undefined entity.");
       
       result.append( entity);
     }
-    
-    return true;
   }
   
   /**
    * Parse a ENTITY declaration (assumes '<' already read).
    * @return Returns true if the parse was successful.
    */
-  @SuppressWarnings("unused")
   private final boolean parseENTITY() throws IOException, ParseException
   {
     if ( !parseExactly( openENTITYChars)) return false;
-    char c = read(); if ( eoi) return false;
-    while( c != '>')
+    
+    char c = readSkip(); if ( eoi) return false;
+    offset--;
+    
+    // entity name
+    StringBuilder sb = new StringBuilder();
+    if ( !parseName( sb)) return false;
+    
+    String name = sb.toString();
+    
+    // entity value
+    sb.setLength( 0);
+    char q = readSkip();
+    if ( q != '\'' && q != '"')
     {
-      c = read(); if ( eoi) return false;
+      throw createException(  "Expected ' or \" character.");
     }
+    
+    c = read();
+    while( c != q)
+    {
+      if ( c == '<')
+      {
+        throw createException(  "Illegal character.");
+      }
+      else if ( c == '&')
+      {
+        parseReference( sb);
+      }
+      else
+      {
+        sb.append( c);
+      }
+      
+      c = read();
+    }
+    
+    entities.put( name, sb.toString());
+    
     return true;
   }
   
@@ -327,7 +360,6 @@ public final class XmlParser
    * Parse a DOCTYPE declaration (assumes '<' already read).
    * @return Returns true if the parse was successful.
    */
-  @SuppressWarnings("unused")
   private final boolean parseDOCTYPE() throws IOException, ParseException
   {
     if ( !parseExactly( openDOCTYPEChars)) return false;
@@ -407,7 +439,8 @@ public final class XmlParser
    */
   private final boolean parseComment( IModelObject parent) throws IOException, ParseException
   {
-    if ( !parseExactly( openCommentChars)) return false;
+    char c = read(); if ( eoi) return false;
+    if ( c != '-' || eoi) return false;
     
     StringBuilder body = new StringBuilder();
     body.append( "!--");
@@ -1180,10 +1213,9 @@ public final class XmlParser
     return false;
   }
 
-  private final static String openCommentChars = "--";
-  private final static String openCDATAChars = "[CDATA[";
-  private final static String openDOCTYPEChars = "DOCTYPE";
-  private final static String openENTITYChars = "ENTITY";
+  private final static String openCDATAChars = "CDATA[";
+  private final static String openDOCTYPEChars = "OCTYPE";
+  private final static String openENTITYChars = "NTITY";
 
   private IModelObjectFactory factory;
   private Map<String, String> entities;
@@ -1204,7 +1236,7 @@ public final class XmlParser
     File[] files = folder.listFiles();
     for( File file: files)
     {
-      if ( !file.getName().endsWith( "lear.xml")) continue;
+      if ( !file.getName().endsWith( "test.xml")) continue;
       
       FileReader reader = new FileReader( file);
       System.out.println( file);

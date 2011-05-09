@@ -94,6 +94,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     // set static attributes
     List<String> staticAttributes = new ArrayList<String>();
     staticAttributes.add( "id");
+    staticAttributes.add( primaryKey);
     staticAttributes.addAll( otherKeys);
     rowCachingPolicy.setStaticAttributes( staticAttributes.toArray( new String[ 0]));
 

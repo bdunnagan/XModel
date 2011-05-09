@@ -25,9 +25,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Instances of this class populate the values of elements representing columns in a database table row
- * which contain large binary data. The <code>toString</code> is only useful for debugging purposes as
- * it does not produce a true string serialization.
+ * Instances of this class populate the values of elements representing columns 
+ * in a database table row which contain large binary data.
  */
 public class BlobAccess 
 {

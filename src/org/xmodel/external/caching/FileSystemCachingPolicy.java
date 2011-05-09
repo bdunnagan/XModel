@@ -63,6 +63,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     defineNextStage( XPath.createExpression( "*"), this, true);
     
     associations = new HashMap<String, IFileAssociation>();
+    addAssociation( csvAssociation);
     addAssociation( txtAssociation);
     addAssociation( xipAssociation);
     addAssociation( xmlAssociation);
@@ -196,6 +197,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     return path.toURI();
   }
 
+  private final static IFileAssociation csvAssociation = new CsvAssociation();
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();
   private final static IFileAssociation xmlAssociation = new XmlAssociation();
