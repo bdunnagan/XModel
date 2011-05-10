@@ -134,7 +134,7 @@ public class AnnotationTransform
   public IModelObject transform( IModelObject element, IModelObject annotation)
   {
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
-    if ( cachingPolicy == null) throw new IllegalArgumentException( "");
+    if ( cachingPolicy == null) throw new IllegalArgumentException( "Caching policy not found.");
     
     IExternalReference reference = factory.createExternalObject( null, element.getType());
     ModelAlgorithms.copyAttributes( element, reference);

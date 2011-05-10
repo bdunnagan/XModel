@@ -24,16 +24,17 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 
 /**
- * An SQLManager for the MySQL database.
+ * An implementation of ISQLProvider for the SQLServer database.
  */
-public class MySQLManager implements SQLManager
+public class SQLServerProvider implements ISQLProvider
 {
-  public MySQLManager()
+  public SQLServerProvider()
   {
     drivers = new HashMap<String, JDCConnectionDriver>();
   }
@@ -45,8 +46,17 @@ public class MySQLManager implements SQLManager
   {
     String database = Xlate.childGet( annotation, "database", (String)null);
     if ( database == null) throw new CachingException( "Database not defined in annotation: "+annotation);
-    
-    url = urlPrefix + database;
+
+    String host = Xlate.childGet( annotation, "host", "127.0.0.1");
+    int port = Xlate.childGet( annotation, "port", -1);
+    if ( port != -1)
+    {
+      url = String.format( "jdbc:sqlserver://%s:%d;databaseName=%s;integratedSecurity=true", host, port, database);
+    }
+    else
+    {
+      url = String.format( "jdbc:sqlserver://%s;databaseName=%s;integratedSecurity=true", host, database);
+    }
    
     login = Xlate.childGet( annotation, "login", (String)null);
     if ( database == null) throw new CachingException( "Login not defined in annotation: "+annotation);
@@ -57,6 +67,7 @@ public class MySQLManager implements SQLManager
 
   /**
    * Returns a connection to the database.
+   * @param context The context of the reference being synced.
    * @return Returns a connection to the database.
    */
   public Connection getConnection() throws CachingException
@@ -68,7 +79,6 @@ public class MySQLManager implements SQLManager
       {
         init = true;
         Class.forName( driverClassName);    
-        
       }
     
       JDCConnectionDriver driver = null;
@@ -123,8 +133,7 @@ public class MySQLManager implements SQLManager
     }
   }
 
-  private final static String urlPrefix = "jdbc:mysql://127.0.0.1/";
-  private final static String driverClassName = "com.mysql.jdbc.Driver";
+  private final static String driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
   
   private static Map<String, JDCConnectionDriver> drivers;
   

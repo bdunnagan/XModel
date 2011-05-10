@@ -32,6 +32,7 @@ class ConnectionReaper extends Thread
 
   ConnectionReaper( JDCConnectionPool pool)
   {
+    setDaemon( true);
     this.pool = pool;
   }
 

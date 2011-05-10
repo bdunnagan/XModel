@@ -21,6 +21,7 @@ package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 
@@ -29,7 +30,7 @@ import org.xmodel.external.CachingException;
  * of the interface must be defined on the <i>meta:sqlmanager</i> attribute or <i>meta:sqlmanager</i> child 
  * of an ancestor of each IExternalReference which uses an SQLCachingPolicy.
  */
-public interface SQLManager
+public interface ISQLProvider
 {
   /**
    * Configure this manager from the specified annotation.

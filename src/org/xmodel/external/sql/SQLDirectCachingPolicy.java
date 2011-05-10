@@ -31,7 +31,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -66,6 +69,13 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     rowCachingPolicy = new SQLRowCachingPolicy( cache);
+    
+    if ( providers == null)
+    {
+      providers = new HashMap<String, Class<? extends ISQLProvider>>();
+      providers.put( "mysql", MySQLProvider.class);
+      providers.put( "sqlserver", SQLServerProvider.class);
+    }
   }
   
   /* (non-Javadoc)
@@ -74,6 +84,10 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
+    // create SQLManager
+    provider = getProvider( annotation);
+    
+    // set factory
     factory = new ModelObjectFactory();
     
     // get parameters
@@ -99,7 +113,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     rowCachingPolicy.setStaticAttributes( staticAttributes.toArray( new String[ 0]));
 
     // set element name for row elements
-    child = Xlate.childGet( annotation, "rows", (String)null);
+    child = Xlate.childGet( annotation, "rows", annotation.getParent().getType());
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( child);
@@ -257,37 +271,29 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   
   /**
    * Returns the SQLManager for the specified reference.
-   * @param locus Either a table or row reference.
+   * @param annotation The caching policy annotation.
    * @return Returns the SQLManager for the specified reference.
    */
-  @SuppressWarnings("unchecked")
-  public SQLManager getSQLManager( IModelObject locus) throws CachingException
+  private static ISQLProvider getProvider( IModelObject annotation) throws CachingException
   {
-    IModelObject sqlManagerNode = sqlManagerExpr.queryFirst( locus);
-    if ( sqlManagerNode == null) return null;
+    String providerName = Xlate.childGet( annotation, "provider", (String)null);
+    if ( providerName == null) throw new CachingException( "SQL database provider not defined.");
     
-    SQLManager sqlManager = (SQLManager)sqlManagerNode.getAttribute( "instance");
-    if ( sqlManager == null)
+    Class<? extends ISQLProvider> providerClass = providers.get( providerName);
+    if ( providerClass == null) throw new CachingException( String.format( "Provider %s not supported.", providerName));
+
+    try
     {
-      String className = Xlate.get( sqlManagerNode, "class", (String)null);
-      if ( className == null) throw new CachingException( "SQLManager class attribute not defined: "+sqlManagerNode);
-      
-      try
-      {
-        Class clss = SQLDirectCachingPolicy.class.getClassLoader().loadClass( className);
-        sqlManager = (SQLManager)clss.newInstance();
-        sqlManager.configure( sqlManagerNode);
-        sqlManagerNode.setAttribute( "instance", sqlManager);
-      }
-      catch( Exception e)
-      {
-        throw new CachingException( "Unable to create instance of SQLManager: "+sqlManagerNode, e);
-      }
+      ISQLProvider provider = providerClass.newInstance();
+      provider.configure( annotation);
+      return provider;
     }
-    
-    return sqlManager;
+    catch( Exception e)
+    {
+      throw new CachingException( e.getMessage());
+    }
   }
-   
+  
   /**
    * Returns the names of the columns in the specified database table.
    * @param table The table reference.
@@ -297,7 +303,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   {
     try
     {
-      Connection connection = getSQLManager( table).getConnection();
+      Connection connection = provider.getConnection();
       DatabaseMetaData meta = connection.getMetaData();
       ResultSet result = meta.getColumns( null, null, Xlate.get( table, "table", ""), null);
       List<Column> columns = new ArrayList<Column>();
@@ -339,8 +345,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     sb.append( " FROM "); sb.append( table);
     
-    SQLManager sqlManager = getSQLManager( reference);
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
 
     return statement;
   }
@@ -358,8 +363,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     sb.append( "SELECT * "); sb.append( "FROM "); sb.append( table);
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
-    SQLManager sqlManager = getSQLManager( reference.getParent());
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
     statement.setString( 1, reference.getID());
     
     return statement;
@@ -379,8 +383,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     sb.append( "SELECT "); sb.append( columnElement.getType()); sb.append( " FROM "); sb.append( table);
     sb.append(" WHERE "); sb.append( primaryKey); sb.append( "=?");
     
-    SQLManager sqlManager = getSQLManager( rowElement.getParent());
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
     statement.setString( 1, rowElement.getID());
     
     return statement;
@@ -454,8 +457,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     for( int j=1; j<columns.length; j++) sb.append( ",?");
     sb.append( ")");
 
-    SQLManager sqlManager = getSQLManager( reference);
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
     
     for( IModelObject node: nodes)
     {
@@ -499,8 +501,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     sb.append( primaryKey);
     sb.append( "=?");
     
-    SQLManager sqlManager = getSQLManager( reference);
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
     
     for( IModelObject node: nodes)
     {
@@ -532,8 +533,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     sb.append( " WHERE "); sb.append( primaryKey);
     sb.append( "=?");
 
-    SQLManager sqlManager = getSQLManager( reference);
-    PreparedStatement statement = sqlManager.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.prepareStatement( sb.toString());
     
     for( IModelObject node: nodes)
     {
@@ -576,6 +576,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
      */
     public void sync( IExternalReference reference) throws CachingException
     {
+      System.err.println( "Syncing row: "+reference.getID());
       IModelObject object = createRowPrototype( reference);
       update( reference, object);
     }
@@ -607,9 +608,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     }
   } 
   
-  private IExpression sqlManagerExpr = XPath.createExpression( 
-    "ancestor-or-self::*/meta:sqlmanager");
-  
+  private static Map<String, Class<? extends ISQLProvider>> providers;
+
+  private ISQLProvider provider;
   private IModelObjectFactory factory;
   private SQLRowCachingPolicy rowCachingPolicy;
   private Column[] columns;
