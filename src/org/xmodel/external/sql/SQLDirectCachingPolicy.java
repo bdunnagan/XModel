@@ -225,20 +225,30 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private Object transformValue( IModelObject rowElement, IModelObject columnElement, ResultSet result, int column) throws SQLException
   {
-    if ( columns[ column].type == Types.LONGVARBINARY)
+    switch( columns[ column].type)
     {
-      if ( columnElement == null) 
-        throw new CachingException(
-          "Blobs cannot be mapped to attributes.");
+      case Types.DATE:
+      {
+        Date date = result.getDate( column + 1);
+        return date.getTime();
+      }
       
-      // create new statement to access blob later (current blob will be out-of-scope)
-      PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
-      BlobAccess access = new BlobAccess( statement);
-      return access;
-    }
-    else
-    {
-      return result.getObject( column+1);
+      case Types.LONGVARBINARY:
+      {
+        if ( columnElement == null) 
+          throw new CachingException(
+            "Blobs cannot be mapped to attributes.");
+        
+        // create new statement to access blob later (current blob will be out-of-scope)
+        PreparedStatement statement = createColumnSelectStatement( rowElement, columnElement);
+        BlobAccess access = new BlobAccess( statement);
+        return access;
+      }
+      
+      default:
+      {
+        return result.getObject( column+1);
+      }
     }
   }
 
