@@ -70,14 +70,17 @@ public abstract class XAction implements IXAction
    */
   public final Object[] run( IContext context)
   {
-    if ( debugger != null) debugger.push( context, this);
+    if ( !debugging) return doRun( context);
+    
+    IDebugger debugger = debuggers.get();
+    debugger.push( context, this);
     try
     {
       return doRun( context);
     }
     finally
     {
-      if ( debugger != null) debugger.pop();
+      debugger.pop();
     }
   }
 
@@ -101,6 +104,16 @@ public abstract class XAction implements IXAction
   {
     if ( document == null) document = new XActionDocument();
     return document;
+  }
+  
+  /**
+   * Turn on debugging and use the specified debugger.
+   * @param debugger The debugger.
+   */
+  public static void setDebugger( IDebugger debugger)
+  {
+    debugging = true;
+    debuggers.set( debugger);
   }
   
   /**
@@ -204,7 +217,8 @@ public abstract class XAction implements IXAction
   private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
-  public static IDebugger debugger;
+  private static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
+  private static boolean debugging = false;
   
   protected XActionDocument document;
 }

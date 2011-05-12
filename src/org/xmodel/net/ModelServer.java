@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -51,8 +52,6 @@ import org.xmodel.net.robust.ServerHandler;
 import org.xmodel.net.robust.ServerSession;
 import org.xmodel.util.Fifo;
 import org.xmodel.util.Radix;
-import org.xmodel.xaction.XAction;
-import org.xmodel.xaction.debug.GlobalDebugger;
 import org.xmodel.xaction.debug.IDebugger.Frame;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
@@ -74,8 +73,6 @@ public class ModelServer extends Server
     
     states = new HashMap<Long, SessionState>();
     netIDs = new Hashtable<String, IModelObject>();
-    debugger = new GlobalDebugger( this);
-    XAction.debugger = debugger;
     
     addHandler( serverHandler);
 
@@ -834,154 +831,6 @@ public class ModelServer extends Server
   }
 
   /**
-   * Handle a debug request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebug( ISession session, IModelObject message)
-  {
-    String action = Xlate.get( message, "action", (String)null);
-    if ( action.equals( "resume"))
-    {
-      handleDebugResume( session, message);
-    }
-    else if ( action.equals( "suspend"))
-    {
-      handleDebugSuspend( session, message);
-    }
-    else if ( action.equals( "stepInto"))
-    {
-      handleDebugStepInto( session, message);
-    }
-    else if ( action.equals( "stepOver"))
-    {
-      handleDebugStepOver( session, message);
-    }
-    else if ( action.equals( "stepReturn"))
-    {
-      handleDebugStepReturn( session, message);
-    }
-    else if ( action.equals( "createBreakpoint"))
-    {
-      handleDebugCreateBreakpoint( session, message);
-    }
-    else if ( action.equals( "removeBreakpoint"))
-    {
-      handleDebugRemoveBreakpoint( session, message);
-    }
-    else if ( action.equals( "setParameters"))
-    {
-      handleDebugSetParameters( session, message);
-    }
-    else if ( action.equals( "getThreads"))
-    {
-      handleDebugGetThreads( session, message);
-    }
-  }
-  
-  /**
-   * Handle a debug set parameters request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugSetParameters( ISession session, IModelObject message)
-  {
-    fileFilter = Xlate.childGet( message, "fileFilter", (IExpression)null);
-    scriptFilter = Xlate.childGet( message, "rootFilter", (IExpression)null);
-    debugger.setFilters( fileFilter, scriptFilter);
-  }
-  
-  /**
-   * Handle a debug get threads request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugGetThreads( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( null);
-    debugger.report();
-  }
-  
-  /**
-   * Handle a debug resume request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugResume( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( Xlate.get( message, "thread", (String)null));
-    debugger.resume();
-  }
-  
-  /**
-   * Handle a debug suspend request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugSuspend( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( Xlate.get( message, "thread", (String)null));
-    debugger.suspend();
-  }
-    
-  /**
-   * Handle a debug step-into request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugStepInto( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( Xlate.get( message, "thread", (String)null));
-    debugger.stepInto();
-  }
-  
-  /**
-   * Handle a debug step-over request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugStepOver( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( Xlate.get( message, "thread", (String)null));
-    debugger.stepOver();
-  }
-  
-  /**
-   * Handle a debug step-return request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugStepReturn( ISession session, IModelObject message)
-  {
-    debugger.setTargetThread( Xlate.get( message, "thread", (String)null));
-    debugger.stepReturn();
-  }
-  
-  /**
-   * Handle a debug create-breakpoint request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugCreateBreakpoint( ISession session, IModelObject message)
-  {
-    String file = Xlate.get( message, "file", (String)null);
-    String path = Xlate.get( message, "path", (String)null);
-    debugger.createBreakpoint( file, path);
-  }
-  
-  /**
-   * Handle a debug remove breakpoint request.
-   * @param session The session.
-   * @param message The message.
-   */
-  private void handleDebugRemoveBreakpoint( ISession session, IModelObject message)
-  {
-    String file = Xlate.get( message, "file", (String)null);
-    String path = Xlate.get( message, "path", (String)null);
-    debugger.removeBreakpoint( file, path);
-  }
-    
-  /**
    * Iterate the elements in the specified query roots breadth-first and begin making stubs
    * out of elements after the limit of elements is reached.
    * @param session The session.
@@ -1152,9 +1001,6 @@ public class ModelServer extends Server
     public void notifyDisconnect( ISession session)
     {
       System.out.println( "Session disconnected: "+session.getShortSessionID());
-      
-      // resume debugger
-      debugger.resume();
     }
   };
 
@@ -1185,19 +1031,11 @@ public class ModelServer extends Server
             System.out.println( "SERVER RECEIVED: \n"+((ModelObject)message).toXml());
           }
           
-          // handle xaction debug messages
-          if ( message.isType( "debug"))
-          {
-            handleDebug( session, message);
-          }
-          else
-          {
-            // gui is running, dispatch to gui thread
-            MessageRunnable runnable = new MessageRunnable();
-            runnable.session = session;
-            runnable.message = message;
-            model.dispatch( runnable);
-          }
+          // gui is running, dispatch to gui thread
+          MessageRunnable runnable = new MessageRunnable();
+          runnable.session = session;
+          runnable.message = message;
+          model.dispatch( runnable);
         }
 
         System.out.println( "Session closed: "+session.getSessionNumber());
@@ -1279,7 +1117,6 @@ public class ModelServer extends Server
   private IContext context;
   private Map<Long, SessionState> states;
   private Map<String, IModelObject> netIDs;
-  private GlobalDebugger debugger;
   private IExpression fileFilter;
   private IExpression scriptFilter;
 }
