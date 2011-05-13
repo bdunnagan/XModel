@@ -92,7 +92,7 @@ public abstract class XAction implements IXAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.IXAction#setDocument(org.xmodel.xaction.XActionDocument)
    */
-  public void setDocument( XActionDocument document)
+  public final void setDocument( XActionDocument document)
   {
     this.document = document;
   }
@@ -100,7 +100,7 @@ public abstract class XAction implements IXAction
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.IXAction#getViewModel()
    */
-  public XActionDocument getDocument()
+  public final XActionDocument getDocument()
   {
     if ( document == null) document = new XActionDocument();
     return document;
@@ -110,10 +110,26 @@ public abstract class XAction implements IXAction
    * Turn on debugging and use the specified debugger.
    * @param debugger The debugger.
    */
-  public static void setDebugger( IDebugger debugger)
+  public final static void setDebugger( IDebugger debugger)
   {
-    debugging = true;
-    debuggers.set( debugger);
+    if ( debugger != null)
+    {
+      debugging = true;
+      debuggers.set( debugger);
+    }
+    else
+    {
+      debugging = false;
+      debuggers.set( null);
+    }
+  }
+  
+  /**
+   * @return Returns the debugger or null.
+   */
+  public final static IDebugger getDebugger()
+  {
+    return debuggers.get();
   }
   
   /**

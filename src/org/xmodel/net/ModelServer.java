@@ -22,8 +22,6 @@ package org.xmodel.net;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,12 +29,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.IPath;
-import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
@@ -52,12 +47,9 @@ import org.xmodel.net.robust.ServerHandler;
 import org.xmodel.net.robust.ServerSession;
 import org.xmodel.util.Fifo;
 import org.xmodel.util.Radix;
-import org.xmodel.xaction.debug.IDebugger.Frame;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-
 
 /**
  * A data-model server which provides remote query and update subscription.
@@ -366,156 +358,6 @@ public class ModelServer extends Server
     ModelObject message = new ModelObject( "close");
     message.setValue( note);
     send( session, message);
-  }
-  
-  /**
-   * Send a debug status message to the client.
-   * @param threadID The thread id.
-   * @param threadName The thread name.
-   * @param state The debug state.
-   * @param action The debug action (or null).
-   * @param stack The current xaction stack (or null).
-   */
-  @SuppressWarnings("unchecked")
-  public void sendDebugMessage( String threadID, String threadName, String state, String action, Stack<Frame> stack)
-  {
-    ModelObject message = new ModelObject( "debug");
-    message.setAttribute( "state", state);
-    message.setAttribute( "action", action);
-    
-    ModelObject threadNode = new ModelObject( "thread", threadID);
-    threadNode.setAttribute( "name", threadName);
-    message.addChild( threadNode);
-    
-    if ( stack != null)
-    {
-      IModelObject stackNode = message.getCreateChild( "stack");
-      for( int i = stack.size()-1; i >= 0; i--)
-      {
-        Frame frame = stack.get( i);
-        
-        ModelObject frameNode = new ModelObject( "frame", Integer.toString( frame.action.hashCode()));
-        stackNode.addChild( frameNode);
-        
-        // frame context
-        {
-          ModelObject contextNode = new ModelObject( "variable", "context");
-          contextNode.setAttribute( "type", "nodes");
-          ModelObject result = new ModelObject( "result");
-          result.addChild( frame.context.getObject().cloneTree());
-          contextNode.addChild( result);
-          frameNode.addChild( contextNode);
-        }
-          
-        // frame context variables
-        for( String variable: frame.context.getScope().getAll())
-        {
-          ModelObject variableNode = new ModelObject( "variable", variable);
-          Object value = frame.context.getScope().get( variable);
-          if ( value == null)
-          {
-            variableNode.setAttribute( "type", "null");
-          }
-          else if ( value instanceof List)
-          {
-            variableNode.setAttribute( "type", "nodes");
-            for( IModelObject node: (List<IModelObject>)value)
-            {
-              ModelObject result = new ModelObject( "result");
-              node.getModel().setSyncLock( true);
-              try { result.addChild( node.cloneTree());} finally { node.getModel().setSyncLock( false);}
-              variableNode.addChild( result);
-            }
-          }
-          else if ( value instanceof Number)
-          {
-            variableNode.setAttribute( "type", "number");
-            ModelObject result = new ModelObject( "result");
-            result.setValue( value.toString());
-            variableNode.addChild( result);
-          }
-          else if ( value instanceof Boolean)
-          {
-            variableNode.setAttribute( "type", "boolean");
-            ModelObject result = new ModelObject( "result");
-            result.setValue( value.toString());
-            variableNode.addChild( result);
-          }
-          else if ( value instanceof IExpression)
-          {
-            variableNode.setAttribute( "type", "expression");
-            ModelObject result = new ModelObject( "result");
-            result.setValue( value.toString());
-            variableNode.addChild( result);
-          }
-          else
-          {
-            variableNode.setAttribute( "type", "string");
-            ModelObject result = new ModelObject( "result");
-            result.setValue( value.toString());
-            variableNode.addChild( result);
-          }
-          
-          frameNode.addChild( variableNode);
-        }
-        
-        // frame action name (either element name or class)
-        IModelObject actionRoot = frame.action.getDocument().getRoot();
-        StringBuilder actionName = new StringBuilder();
-        if ( actionRoot != null)
-        {
-          actionName.append( '<'); actionName.append( actionRoot.getType()); actionName.append( '>');
-          if ( actionRoot.getID().length() > 0) { actionName.append( " id="); actionName.append( actionRoot.getID());}
-          String name = Xlate.get( actionRoot, "name", (String)null);
-          if ( name != null) { actionName.append( " name="); actionName.append( name);}
-        }
-        else
-        { 
-          actionName.append( frame.action.getClass().getSimpleName());
-        }
-        frameNode.setAttribute( "name", actionName.toString());
-        
-        // frame action file path and action xpath relative to file root
-        IModelObject element = frame.action.getDocument().getRoot();
-        if ( element != null)
-        {
-          // fully deference action element to find its original location
-          element = ModelAlgorithms.dereference( element);
-          
-          // create source path and locus
-          String spec = fileFilter.evaluateString( new Context( element));
-          IModelObject scriptElement = scriptFilter.queryFirst( element);
-          if ( scriptElement != null)
-          {
-            String sourcePath = getURLPath( spec);
-            frameNode.setAttribute( "path", sourcePath);
-            IPath actionPath = ModelAlgorithms.createRelativePath( scriptElement, element);
-            frameNode.setAttribute( "locus", actionPath.toString());
-          }
-        }
-      }
-    }
-
-    for( ISession session: getSessions())
-      send( session, message);
-  }
-  
-  /**
-   * Returns null or the path portion of the specified url.
-   * @param spec The url specification.
-   * @return Returns null or the path portion of the specified url.
-   */
-  private String getURLPath( String spec)
-  {
-    try
-    {
-      URL url = new URL( spec);
-      return url.getPath();
-    }
-    catch( MalformedURLException e)
-    {
-      return null;
-    }
   }
   
   /**
@@ -1117,6 +959,4 @@ public class ModelServer extends Server
   private IContext context;
   private Map<Long, SessionState> states;
   private Map<String, IModelObject> netIDs;
-  private IExpression fileFilter;
-  private IExpression scriptFilter;
 }
