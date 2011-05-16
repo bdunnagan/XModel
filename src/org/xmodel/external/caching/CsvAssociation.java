@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.external.CachingException;
 
 /**
@@ -48,15 +49,23 @@ public class CsvAssociation implements IFileAssociation
   {
     try
     {
-      char[] buffer = new char[ 1 << 16];
-      StringBuilder content = new StringBuilder();
       BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
+      int lnum = 1;
       while( reader.ready())
       {
-        int count = reader.read( buffer, 0, buffer.length);
-        if ( count > 0) content.append( buffer, 0, count);
+        String line = reader.readLine();
+        
+        IModelObject object = new ModelObject( "entry", Integer.toString( lnum++));
+        String[] fields = line.split( "\\s*[,]\\s*");
+        for( String field: fields)
+        {
+          IModelObject child = new ModelObject( "field");
+          child.setValue( field);
+          object.addChild( child);
+        }
+        
+        parent.addChild( object);
       }
-      parent.setValue( content.toString());
     }
     catch( Exception e)
     {
