@@ -56,13 +56,7 @@ public class CsvAssociation implements IFileAssociation
         String line = reader.readLine();
         
         IModelObject object = new ModelObject( "entry", Integer.toString( lnum++));
-        String[] fields = line.split( "\\s*[,]\\s*");
-        for( String field: fields)
-        {
-          IModelObject child = new ModelObject( "field");
-          child.setValue( field);
-          object.addChild( child);
-        }
+        parseFields( line, object);
         
         parent.addChild( object);
       }
@@ -70,6 +64,38 @@ public class CsvAssociation implements IFileAssociation
     catch( Exception e)
     {
       throw new CachingException( "Unable read text file: "+name, e);
+    }
+  }
+  
+  /**
+   * Parse the fields in the specified line and add them to the specified parent.
+   * @param line The line.
+   * @param parent The parent.
+   */
+  private void parseFields( String line, IModelObject parent)
+  {
+    boolean quoting = false;
+    IModelObject child = new ModelObject( "field");
+    int index = 0;
+    for( int i=0; i<line.length(); i++)
+    {
+      if ( !quoting && line.charAt( i) == ',')
+      {
+        child.setValue( line.substring( index+1, i));
+        parent.addChild( child);
+        child = new ModelObject( "field");
+        index = i;
+      }
+      else if ( line.charAt( i) == '\"')
+      {
+        quoting = !quoting;
+      }
+    }
+    
+    if ( index != line.length() - 1)
+    {
+      child.setValue( line.substring( index));
+      parent.addChild( child);
     }
   }
   
