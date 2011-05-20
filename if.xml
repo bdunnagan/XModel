@@ -1,0 +1,10 @@
+<assign name="x">condition</assign>
+<script when="$x">
+</script>
+<script when="not( $x)">
+</script>
+
+<if test="blah">
+</if>
+<else>
+</else>

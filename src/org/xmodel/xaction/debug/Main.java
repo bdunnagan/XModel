@@ -26,13 +26,17 @@ public class Main
     StatefulContext context = new StatefulContext( node);
     script.run( context);
     
-    debugger.step();
-    debugger.step();
+    while( debugger.step());
   }
   
   public static String xml = "" +
   		"<script>" +
-  		"  <create assign=\"x\" name=\"'x'\"/>" +
+  		"  <create assign=\"x\">" +
+  		"    <template>" +
+  		"      <x id=\"\"/>" +
+  		"    </template>" +
+  		"    <id>@id</id>" +
+  		"  </create>" +
   		"  <set source=\"Fred\">$x</set>" +
   		"</script>";
 }
@@ -44,11 +48,20 @@ class Debugger implements IDebugger
     stack = new ArrayList<Frame>();
   }
   
-  public Object[] step()
+  public boolean step()
   {
-    if ( stack.size() == 0) return null;
+    if ( stack.size() == 0) return false;
     System.out.println( "Stepping...");
-    return null;
+    try
+    {
+      index = 0;
+      Frame frame = stack.get( 0);
+      frame.script.run( frame.context);
+    }
+    catch( DebuggingException e)
+    {
+    }
+    return true;
   }
 
   public Object[] run( IContext context, IXAction script, List<IXAction> actions)
@@ -57,23 +70,49 @@ class Debugger implements IDebugger
     {
       Frame frame = new Frame();
       frame.context = context;
+      frame.script = script;
       frame.actions = actions;
       frame.index = 0;
       stack.add( frame);
-      index = 0;
+      
+      // stop before executing first action
+      return null;
+    }
+    else if ( index < (stack.size() - 1))
+    {
+      // continue re-building stack frame
+      Frame frame = stack.get( index++);
+      IXAction action = frame.actions.get( frame.index);
+      frame.result = action.run( frame.context);
     }
     else
     {
-      Frame frame = stack.get( index++);
-      assert( frame.script == script);
-      
-      IXAction action = frame.actions.get( frame.index++);
-      frame.result = action.run( frame.context);
-      
-      // throw here?
-      return frame.result;
+      Frame frame = stack.get( index);
+      if ( script == frame.script)
+      {
+        // execute next instruction
+        IXAction action = frame.actions.get( frame.index);
+        System.out.println( "EXEC: "+action);
+        frame.result = action.run( frame.context);
+        if ( frame.index == frame.actions.size())
+        {
+          stack.remove( index--);
+          frame = stack.get( index);
+          frame.index++;
+        }
+      }
+      else
+      {
+        frame = new Frame();
+        frame.context = context;
+        frame.script = script;
+        frame.actions = actions;
+        frame.index = 0;
+        stack.add( frame);
+      }
     }
-    return null;
+    
+    throw new DebuggingException();
   }
   
   private class Frame

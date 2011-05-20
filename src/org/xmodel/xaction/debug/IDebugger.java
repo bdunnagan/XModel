@@ -31,9 +31,9 @@ public interface IDebugger
 {
   /**
    * Execute the next action and pause.
-   * @return Returns the result of the action.
+   * @return Returns false when there are no more steps.
    */
-  public Object[] step();
+  public boolean step();
   
   /**
    * Execute the specified actions belonging to the same stack frame.
