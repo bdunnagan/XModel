@@ -19,6 +19,8 @@
  */
 package org.xmodel.xaction.debug;
 
+import java.util.List;
+
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 
@@ -28,14 +30,17 @@ import org.xmodel.xpath.expression.IContext;
 public interface IDebugger
 {
   /**
-   * Push the specified action on the stack.
-   * @param context The context.
-   * @param action The action.
+   * Execute the next action and pause.
+   * @return Returns the result of the action.
    */
-  public void push( IContext context, IXAction action);
-
+  public Object[] step();
+  
   /**
-   * Pop the current action off the stack.
+   * Execute the specified actions belonging to the same stack frame.
+   * @param context The context.
+   * @param script The script containing the actions.
+   * @param actions The actions to be executed.
+   * @return Returns the result like ScriptAction.
    */
-  public void pop();
+  public Object[] run( IContext context, IXAction script, List<IXAction> actions);
 }

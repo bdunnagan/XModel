@@ -70,18 +70,7 @@ public abstract class XAction implements IXAction
    */
   public final Object[] run( IContext context)
   {
-    if ( !debugging) return doRun( context);
-    
-    IDebugger debugger = debuggers.get();
-    debugger.push( context, this);
-    try
-    {
-      return doRun( context);
-    }
-    finally
-    {
-      debugger.pop();
-    }
+    return doRun( context);
   }
 
   /* (non-Javadoc)
@@ -233,8 +222,8 @@ public abstract class XAction implements IXAction
   private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
-  private static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
-  private static boolean debugging = false;
+  protected static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
+  protected static boolean debugging = false;
   
   protected XActionDocument document;
 }

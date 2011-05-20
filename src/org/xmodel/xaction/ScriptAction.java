@@ -24,9 +24,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
-import org.xmodel.xpath.expression.IContext;
 
+import org.xmodel.IModelObject;
+import org.xmodel.xaction.debug.IDebugger;
+import org.xmodel.xpath.expression.IContext;
 
 /**
  * An action that executes its children.
@@ -115,12 +116,20 @@ public class ScriptAction extends GuardedAction
   @Override
   public Object[] doAction( IContext context)
   {
-    for( IXAction action: actions)
+    if ( !debugging)
     {
-      Object[] result = action.run( context);
-      if ( result != null) return result;
+      for( IXAction action: actions)
+      {
+        Object[] result = action.run( context);
+        if ( result != null) return result;
+      }
+      return null;
     }
-    return null;
+    else
+    {
+      IDebugger debugger = debuggers.get();
+      return debugger.run( context, this, actions);
+    }
   }
   
   private final static String[] defaultIgnore = {
