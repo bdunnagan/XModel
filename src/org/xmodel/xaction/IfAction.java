@@ -76,7 +76,7 @@ public class IfAction extends XAction
   }
   
   private IExpression condition;
-  private IXAction thenScript;
-  private IXAction elseScript;
+  private ScriptAction thenScript;
+  private ScriptAction elseScript;
   private boolean negate;
 }

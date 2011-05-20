@@ -48,6 +48,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Boolean) return (Boolean)attrValue;
     return Boolean.toString( true).equals( attrValue.toString());
   }
 
@@ -63,6 +64,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).shortValue();
     try
     {
       return Short.parseShort( attrValue.toString());
@@ -85,6 +87,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).intValue();
     try
     {
       return Integer.parseInt( attrValue.toString());
@@ -107,6 +110,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).longValue();
     try
     {
       return Long.parseLong( attrValue.toString());
@@ -129,6 +133,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).floatValue();
     try
     {
       return Float.parseFloat( attrValue.toString());
@@ -151,6 +156,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).doubleValue();
     try
     {
       return Double.parseDouble( attrValue.toString());
@@ -173,6 +179,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).byteValue();
     try
     {
       return Byte.parseByte( attrValue.toString());
@@ -218,6 +225,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Character) return (Character)attrValue;
     return attrValue.toString().charAt( 0);
   }
 
@@ -295,6 +303,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Boolean) return (Boolean)attrValue;
     return Boolean.toString( true).equals( attrValue.toString());
   }
 
@@ -311,6 +320,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).shortValue();
     try
     {
       return Short.parseShort( attrValue.toString());
@@ -334,6 +344,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).intValue();
     try
     {
       return Integer.parseInt( attrValue.toString());
@@ -357,6 +368,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).longValue();
     try
     {
       return Long.parseLong( attrValue.toString());
@@ -380,6 +392,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).floatValue();
     try
     {
       return Float.parseFloat( attrValue.toString());
@@ -403,6 +416,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).doubleValue();
     try
     {
       return Double.parseDouble( attrValue.toString());
@@ -426,6 +440,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number) return ((Number)attrValue).byteValue();
     try
     {
       return Byte.parseByte( attrValue.toString());
@@ -473,6 +488,7 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Character) return (Character)attrValue;
     return attrValue.toString().charAt( 0);
   }
 
@@ -552,7 +568,7 @@ public class Xlate
   public static boolean set( IModelObject object, boolean value)
   {
     boolean old = get( object, false);
-    object.setValue( Boolean.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -565,7 +581,7 @@ public class Xlate
   public static short set( IModelObject object, short value)
   {
     short old = get( object, (short)0);
-    object.setValue( Short.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -578,7 +594,7 @@ public class Xlate
   public static int set( IModelObject object, int value)
   {
     int old = get( object, 0);
-    object.setValue( Integer.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -591,7 +607,7 @@ public class Xlate
   public static long set( IModelObject object, long value)
   {
     long old = get( object, (long)0);
-    object.setValue( Long.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -604,7 +620,7 @@ public class Xlate
   public static float set( IModelObject object, float value)
   {
     float old = get( object, (float)0);
-    object.setValue( Float.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -617,7 +633,7 @@ public class Xlate
   public static double set( IModelObject object, double value)
   {
     double old = get( object, (double)0);
-    object.setValue( Double.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -630,7 +646,7 @@ public class Xlate
   public static byte set( IModelObject object, byte value)
   {
     byte old = get( object, value);
-    object.setValue( Byte.toString( value));
+    object.setValue( value);
     return old;
   }
 
@@ -717,7 +733,7 @@ public class Xlate
   public static boolean set( IModelObject object, String attrName, boolean value)
   {
     boolean old = get( object, attrName, false);
-    object.setAttribute( attrName, Boolean.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -731,7 +747,7 @@ public class Xlate
   public static short set( IModelObject object, String attrName, short value)
   {
     short old = get( object, attrName, (short)0);
-    object.setAttribute( attrName, Short.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -745,7 +761,7 @@ public class Xlate
   public static int set( IModelObject object, String attrName, int value)
   {
     int old = get( object, attrName, (int)0);
-    object.setAttribute( attrName, Integer.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -759,7 +775,7 @@ public class Xlate
   public static long set( IModelObject object, String attrName, long value)
   {
     long old = get( object, attrName, (long)0);
-    object.setAttribute( attrName, Long.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -773,7 +789,7 @@ public class Xlate
   public static float set( IModelObject object, String attrName, float value)
   {
     float old = get( object, attrName, (float)0);
-    object.setAttribute( attrName, Float.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -787,7 +803,7 @@ public class Xlate
   public static double set( IModelObject object, String attrName, double value)
   {
     double old = get( object, attrName, (double)0);
-    object.setAttribute( attrName, Double.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 
@@ -801,7 +817,7 @@ public class Xlate
   public static byte set( IModelObject object, String attrName, byte value)
   {
     byte old = get( object, attrName, (byte)0);
-    object.setAttribute( attrName, Byte.toString( value));
+    object.setAttribute( attrName, value);
     return old;
   }
 

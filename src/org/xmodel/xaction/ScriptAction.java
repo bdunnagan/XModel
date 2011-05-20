@@ -115,14 +115,11 @@ public class ScriptAction extends GuardedAction
   @Override
   public Object[] doAction( IContext context)
   {
-    if ( actions == null || actions.size() == 0) return null;
-    
     for( IXAction action: actions)
     {
       Object[] result = action.run( context);
       if ( result != null) return result;
     }
-    
     return null;
   }
   
