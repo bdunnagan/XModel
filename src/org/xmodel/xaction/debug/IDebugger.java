@@ -19,9 +19,8 @@
  */
 package org.xmodel.xaction.debug;
 
-import java.util.List;
-
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -30,17 +29,37 @@ import org.xmodel.xpath.expression.IContext;
 public interface IDebugger
 {
   /**
-   * Execute the next action and pause.
-   * @return Returns false when there are no more steps.
+   * Step within the current action stack frame.
    */
-  public boolean step();
+  public void stepOver();
   
   /**
-   * Execute the specified actions belonging to the same stack frame.
-   * @param context The context.
-   * @param script The script containing the actions.
-   * @param actions The actions to be executed.
-   * @return Returns the result like ScriptAction.
+   * Step into the current action stack frame.
    */
-  public Object[] run( IContext context, IXAction script, List<IXAction> actions);
+  public void stepIn();
+  
+  /**
+   * Step out of the current action stack frame.
+   */
+  public void stepOut();
+  
+  /**
+   * Push a new stack frame.
+   * @param context The context.
+   * @param script The script to be executed.
+   */
+  public void push( IContext context, ScriptAction script);
+  
+  /**
+   * Run the specified action.
+   * @param context The context.
+   * @param action The action.
+   * @return Returns the result of the action.
+   */
+  public Object[] run( IContext context, IXAction action);
+  
+  /**
+   * Pop the current stack frame.
+   */
+  public void pop();
 }

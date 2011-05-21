@@ -65,7 +65,7 @@ public class InvokeAction extends GuardedAction
     IModelObject node = scriptExpr.queryFirst( context);
     if ( node != null && (script == null || scriptNode != node))
     {
-      script = document.getAction( node);
+      script = document.createScript( node);
       scriptNode = node;
       scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
     }

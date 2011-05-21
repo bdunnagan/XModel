@@ -128,7 +128,20 @@ public class ScriptAction extends GuardedAction
     else
     {
       IDebugger debugger = debuggers.get();
-      return debugger.run( context, this, actions);
+      try
+      {
+        debugger.push( context, this);
+        for( IXAction action: actions)
+        {
+          Object[] result = debugger.run( context, action);
+          if ( result != null) return result;
+        }
+      }
+      finally
+      {
+        debugger.pop();
+      }
+      return null;
     }
   }
   
