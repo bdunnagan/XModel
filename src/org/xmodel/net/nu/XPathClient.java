@@ -3,6 +3,7 @@ package org.xmodel.net.nu;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.xmodel.Xlate;
 import org.xmodel.external.IExternalReference;
 
 /**
@@ -17,25 +18,29 @@ public class XPathClient
    */
   public XPathClient( String host, int port)
   {
-    map = new HashMap<IExternalReference, String>();
+    map = new HashMap<String, IExternalReference>();
   }
 
   /**
-   * Bind the specified XPath expression on behalf of the specified reference.
+   * Attach to the element on the specified xpath.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void bind( String xpath, IExternalReference reference)
+  public void attach( String xpath, IExternalReference reference)
   {
+    sendAttach( xpath);
+    // wait for response
+    // update reference
   }
 
   /**
-   * Unbind the specified XPath expression on behalf of the specified reference.
+   * Detach from the element on the specified path.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void unbind( String xpath, IExternalReference reference)
+  public void detach( String xpath, IExternalReference reference)
   {
+    sendDetach( xpath);
   }
 
   /**
@@ -44,15 +49,15 @@ public class XPathClient
    */
   public void sync( IExternalReference reference)
   {
-    String key = map.get( reference);
-    requestSync( key);
+    String key = Xlate.get( reference, "net:key", (String)null);
+    sendSync( key);
   }
 
   /**
    * Send a request to bind the specified xpath.
    * @param xpath The xpath.
    */
-  private void requestBind( String xpath)
+  private void sendAttach( String xpath)
   {
   }
   
@@ -60,25 +65,17 @@ public class XPathClient
    * Send a request to unbind the specified xpath.
    * @param xpath The xpath.
    */
-  private void requestUnbind( String xpath)
+  private void sendDetach( String xpath)
   {
   }
   
   /**
-   * Send a request to sync the server IExternalReference with the specified key.
-   * @param key The key.
+   * Send a request to sync the server IExternalReference on the specified xpath.
+   * @param xpath The xpath.
    */
-  private void requestSync( String key)
+  private void sendSync( String xpath)
   {
   }
-  
-  /**
-   * Wait for a bind request to complete.
-   * @return Returns the
-   */
-  private String waitForBind()
-  {
-  }
-  
-  private Map<IExternalReference, String> map;
+    
+  private Map<String, IExternalReference> map;
 }

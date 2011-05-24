@@ -50,7 +50,7 @@ public class XPathServer
   /**
    * Find the element on the specified xpath and attach listeners.
    * @param client The client that made the request.
-   * @param xpath The XPath expression.
+   * @param xpath The xpath expression.
    */
   private void attach( Client client, String xpath)
   {
@@ -60,7 +60,7 @@ public class XPathServer
   /**
    * Find the element on the specified xpath and attach listeners.
    * @param client The client that made the request.
-   * @param xpath The XPath expression.
+   * @param xpath The xpath expression.
    */
   private void doAttach( Client client, String xpath)
   {
@@ -71,7 +71,7 @@ public class XPathServer
       IModelObject copy = null;
       if ( target != null)
       {
-        copy = copy( target);
+        copy = serialize( target);
         Listener listener = new Listener( client, xpath, target);
         listener.install( target);
       }
@@ -86,7 +86,7 @@ public class XPathServer
   /**
    * Remove listeners from the element on the specified xpath.
    * @param client The client that made the request.
-   * @param xpath The XPath expression.
+   * @param xpath The xpath expression.
    */
   private void detach( Client client, String xpath)
   {
@@ -96,7 +96,7 @@ public class XPathServer
   /**
    * Remove listeners from the element on the specified xpath.
    * @param client The client that made the request.
-   * @param xpath The XPath expression.
+   * @param xpath The xpath expression.
    */
   private void doDetach( Client client, String xpath)
   {
@@ -153,7 +153,7 @@ public class XPathServer
    * @param root The element to be copied.
    * @return Returns the copy.
    */
-  private IModelObject copy( IModelObject root)
+  private IModelObject serialize( IModelObject root)
   {
     IModelObject result = null;
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();

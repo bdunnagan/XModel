@@ -19,4 +19,11 @@ Net Caching
 
 . Use TabularCompressor and maintain global tag table.
 
-. 
+
+
+Comments
+
+. The serialized content of an attach response can be applied directly to the reference:
+  defineNextStage( ".//*[ @net:key]", new NetworkCachingPolicy(), true); 
+  
+. The updates might take the form of an "index path" (see ModelAlgorithms).
