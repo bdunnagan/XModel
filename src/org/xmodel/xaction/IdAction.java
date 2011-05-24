@@ -22,6 +22,7 @@ package org.xmodel.xaction;
 import java.util.Random;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.util.Identifier;
 import org.xmodel.util.Radix;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -80,16 +81,9 @@ public class IdAction extends GuardedAction
    * @param length The length.
    * @return Returns the ID.
    */
-  private String generate( int length)
+  private final String generate( int length)
   {
-    StringBuilder sb = new StringBuilder();
-    for( int i=0; i<length; i=sb.length())
-    {
-      long value = random.nextLong();
-      sb.append( Radix.convert( value, 36).toUpperCase());
-    }
-    sb.setLength( length);
-    return sb.toString();
+    return Identifier.generate( random, length);
   }
   
   private Random random;

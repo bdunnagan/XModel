@@ -8,14 +8,14 @@ import org.xmodel.external.IExternalReference;
 /**
  * A class that implements the network caching policy protocol.
  */
-public class CachingClient
+public class XPathClient
 {
   /**
    * Create a CachingClient to connect to the specified server.
    * @param host The server host.
    * @param port The server port.
    */
-  public CachingClient( String host, int port)
+  public XPathClient( String host, int port)
   {
     map = new HashMap<IExternalReference, String>();
   }
