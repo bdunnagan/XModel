@@ -1,0 +1,22 @@
+Net Caching
+
+. Client sends request to bind an XPath on the server.
+  
+  - Receive a fragment with leaf caching policies as necessary (see CopyCachingPolicy)
+  - Receive update notifications for all elements, time-aggregation
+
+. Client sends request to sync an IExternalReference on the server.
+
+  - Receive a fragment with leaf caching policies (as above).
+  - Receive update notifications for all elements, time-aggregation.
+  - Receive notification if server IExternalReference is marked dirty, mark client IExternalReference dirty.
+  
+. Client sends request to unbind an XPath on the server (happens when IExternalReference is marked dirty or finalized).
+
+  - Stop sending update notifications.
+  
+. Use WeakHashMap for indexing.
+
+. Use TabularCompressor and maintain global tag table.
+
+. 

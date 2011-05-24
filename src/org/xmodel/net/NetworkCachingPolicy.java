@@ -30,7 +30,6 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.net.robust.ISession;
 import org.xmodel.xpath.expression.IContext;
 
-
 /**
  * A ConfiguredCachingPolicy which uses the simple client/server protocol defined in this
  * package to resolve external references.
