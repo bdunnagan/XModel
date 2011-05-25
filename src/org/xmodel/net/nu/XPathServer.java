@@ -1,5 +1,7 @@
 package org.xmodel.net.nu;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +24,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer
+public class XPathServer implements IRecipient
 {
   /**
    * Create a server bound to the specified local address and port.
@@ -30,12 +32,14 @@ public class XPathServer
    * @param port The local port.
    * @param model The model.
    */
-  public XPathServer( String host, String port, IModel model)
+  public XPathServer( String host, int port, IModel model) throws IOException
   {
     this.model = model;
     index = new WeakHashMap<String, IExternalReference>();
     orphans = new ArrayList<Listener>();
     random = new Random();
+    
+    server = new Server( host, port, this);
   }
   
   /**
@@ -386,6 +390,32 @@ public class XPathServer
     private IModelObject root;
   };
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IRecipient#connected(org.xmodel.net.nu.Connection)
+   */
+  @Override
+  public void connected( Connection connection)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IRecipient#disconnected(org.xmodel.net.nu.Connection, boolean)
+   */
+  @Override
+  public void disconnected( Connection connection, boolean nice)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IRecipient#received(org.xmodel.net.nu.Connection, java.nio.ByteBuffer)
+   */
+  @Override
+  public int received( Connection connection, ByteBuffer buffer)
+  {
+    return 0;
+  }
+
+  private Server server;
   private Map<String, IExternalReference> index;
   private List<Listener> orphans;
   private IModel model;
