@@ -1,6 +1,8 @@
 package org.xmodel.net.nu.msg;
 
-
+/**
+ * Base class for messages.
+ */
 public abstract class Message
 {
   protected Message( byte type)

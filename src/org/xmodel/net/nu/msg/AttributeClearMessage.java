@@ -2,7 +2,7 @@ package org.xmodel.net.nu.msg;
 
 public class AttributeClearMessage extends Message
 {
-  public final static byte type = 6;
+  public final static byte type = 8;
   
   public AttributeClearMessage( String path, String attrName)
   {

@@ -54,6 +54,14 @@ public class XPathClient
   }
 
   /**
+   * Send the protocol version requested.
+   * @param version The version.
+   */
+  private void sendVersion( int version)
+  {
+  }
+  
+  /**
    * Send a request to bind the specified xpath.
    * @param xpath The xpath.
    */

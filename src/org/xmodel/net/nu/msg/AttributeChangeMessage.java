@@ -2,7 +2,7 @@ package org.xmodel.net.nu.msg;
 
 public class AttributeChangeMessage extends Message
 {
-  public final static byte type = 6;
+  public final static byte type = 7;
   
   public AttributeChangeMessage( String path, String attrName, byte[] attrValue)
   {
