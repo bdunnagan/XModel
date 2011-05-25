@@ -7,34 +7,33 @@ public class DetachMessage extends Message
   public DetachMessage( String xpath)
   {
     super( type);
-    setLength( xpath.length());
+    setLength( xpath.length() + 4);
   }
   
   /**
    * @return Returns the xpath.
    */
-  public final String getXPath()
+  public String getXPath()
   {
     return xpath;
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.msg.Message#serialize(byte[], int)
+   * @see org.xmodel.net.nu.msg.Message#read()
    */
   @Override
-  protected void serialize( byte[] bytes, int offset)
+  protected void read()
   {
-    byte[] content = xpath.getBytes();
-    System.arraycopy( content, 0, bytes, offset, content.length);
+    xpath = readString();
   }
-  
+
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.msg.Message#deserialize(byte[], int)
+   * @see org.xmodel.net.nu.msg.Message#write()
    */
   @Override
-  protected void deserialize( byte[] bytes, int offset)
+  protected void write()
   {
-    xpath = new String( bytes, offset, bytes.length - offset);
+    writeString( xpath);
   }
   
   private String xpath;

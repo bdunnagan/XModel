@@ -1,17 +1,16 @@
 package org.xmodel.net.nu.msg;
 
-public class AddChildMessage extends Message
+public class RemoveChildMessage extends Message
 {
-  public final static byte type = 5;
+  public final static byte type = 6;
   
-  public AddChildMessage( String path, byte[] child, int index)
+  public RemoveChildMessage( String path, int index)
   {
     super( type);
     
-    setLength( (4 + path.length()) + (4 + child.length) + 4);
+    setLength( (4 + path.length()) + 4);
     
     this.path = path;
-    this.child = child;
     this.index = index;
   }
   
@@ -23,14 +22,6 @@ public class AddChildMessage extends Message
     return path;
   }
 
-  /**
-   * @return Returns the child to be added.
-   */
-  public byte[] getChild()
-  {
-    return child;
-  }
-  
   /**
    * @return Returns the insertion index.
    */
@@ -46,7 +37,6 @@ public class AddChildMessage extends Message
   protected void read()
   {
     path = readString();
-    child = readBytes();
     index = readInt();
   }
   
@@ -57,11 +47,9 @@ public class AddChildMessage extends Message
   protected void write()
   {
     writeString( path);
-    writeBytes( child, 0, child.length);
     writeInt( index);
   }
 
   private String path;
-  private byte[] child;
   private int index;
 }
