@@ -1,18 +1,16 @@
 package org.xmodel.net.nu;
 
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.xmodel.Xlate;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.net.nu.stream.TcpClient;
 
 /**
  * A class that implements the network caching policy protocol.
  */
-public class XPathClient implements IRecipient
+public class XPathClient
 {
   /**
    * Create a CachingClient to connect to the specified server.
@@ -22,7 +20,7 @@ public class XPathClient implements IRecipient
   public XPathClient( String host, int port)
   {
     map = new HashMap<String, IExternalReference>();
-    client = new Client( this);
+    client = new TcpClient( this);
   }
 
   /**
@@ -57,78 +55,8 @@ public class XPathClient implements IRecipient
     sendSync( key);
   }
 
-  /**
-   * Send the protocol version requested.
-   * @param version The version.
-   */
-  private void sendVersion( int version)
-  {
-  }
-  
-  /**
-   * Send a request to bind the specified xpath.
-   * @param xpath The xpath.
-   */
-  private void sendAttach( String xpath)
-  {
-  }
-  
-  /**
-   * Send a request to unbind the specified xpath.
-   * @param xpath The xpath.
-   */
-  private void sendDetach( String xpath)
-  {
-  }
-  
-  /**
-   * Send a request to sync the server IExternalReference on the specified xpath.
-   * @param xpath The xpath.
-   */
-  private void sendSync( String xpath)
-  {
-  }
-    
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#connected(org.xmodel.net.nu.Connection)
-   */
-  @Override
-  public void connected( Connection connection)
-  {
-    sendVersion( 0xF0000001);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#disconnected(org.xmodel.net.nu.Connection, boolean)
-   */
-  @Override
-  public void disconnected( Connection connection, boolean nice)
-  {
-    for( IExternalReference reference: map.values())
-    {
-      reference.setDirty( false);
-      
-      List<String> attributes = Arrays.asList( reference.getCachingPolicy().getStaticAttributes());
-      for( String attrName: reference.getAttributeNames())
-      {
-        if ( !attributes.contains( attrName))
-          reference.removeAttribute( attrName);
-      }
-      reference.removeChildren();
-      
-      reference.setDirty( true);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#received(org.xmodel.net.nu.Connection, java.nio.ByteBuffer)
-   */
-  @Override
-  public int received( Connection connection, ByteBuffer buffer)
-  {
-    return 0;
-  }
-
   private Map<String, IExternalReference> map;
-  private Client client;
+  private INetSender sender;
+  private INetReceiver receiver;
+  private INetFramer framer;
 }

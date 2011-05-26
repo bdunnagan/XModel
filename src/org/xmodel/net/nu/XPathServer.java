@@ -13,9 +13,14 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
+import org.xmodel.compress.ICompressor;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
+import org.xmodel.net.nu.stream.Connection;
+import org.xmodel.net.nu.stream.IReceiver;
+import org.xmodel.net.nu.stream.TcpClient;
+import org.xmodel.net.nu.stream.TcpServer;
 import org.xmodel.util.Identifier;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -24,8 +29,22 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer implements IRecipient
+public class XPathServer implements IReceiver
 {
+  public enum Message
+  {
+    version,
+    attachRequest,
+    attachResponse,
+    detachRequest,
+    syncRequest,
+    addChild,
+    removeChild,
+    changeAttribute,
+    clearAttribute,
+    error
+  }
+  
   /**
    * Create a server bound to the specified local address and port.
    * @param host The local address.
@@ -39,7 +58,7 @@ public class XPathServer implements IRecipient
     orphans = new ArrayList<Listener>();
     random = new Random();
     
-    server = new Server( host, port, this);
+    server = new TcpServer( host, port, this);
   }
   
   /**
@@ -56,7 +75,7 @@ public class XPathServer implements IRecipient
    * @param client The client that made the request.
    * @param xpath The xpath expression.
    */
-  private void attach( Client client, String xpath)
+  private void attach( TcpClient client, String xpath)
   {
     model.dispatch( new AttachRunnable( client, xpath));
   }
@@ -66,7 +85,7 @@ public class XPathServer implements IRecipient
    * @param client The client that made the request.
    * @param xpath The xpath expression.
    */
-  private void doAttach( Client client, String xpath)
+  private void doAttach( TcpClient client, String xpath)
   {
     try
     {
@@ -79,11 +98,11 @@ public class XPathServer implements IRecipient
         Listener listener = new Listener( client, xpath, target);
         listener.install( target);
       }
-      respondAttach( client, copy);
+      sendAttachResponse( client, copy);
     }
     catch( PathSyntaxException e)
     {
-      respondError( client, e.getMessage());
+      sendError( client, e.getMessage());
     }
   }
   
@@ -92,7 +111,7 @@ public class XPathServer implements IRecipient
    * @param client The client that made the request.
    * @param xpath The xpath expression.
    */
-  private void detach( Client client, String xpath)
+  private void detach( TcpClient client, String xpath)
   {
     model.dispatch( new DetachRunnable( client, xpath));
   }
@@ -102,7 +121,7 @@ public class XPathServer implements IRecipient
    * @param client The client that made the request.
    * @param xpath The xpath expression.
    */
-  private void doDetach( Client client, String xpath)
+  private void doDetach( TcpClient client, String xpath)
   {
     try
     {
@@ -117,7 +136,7 @@ public class XPathServer implements IRecipient
     catch( PathSyntaxException e)
     {
       orphans.add( new Listener( client, xpath, null));
-      respondError( client, e.getMessage());
+      sendError( client, e.getMessage());
     }
   }
 
@@ -207,8 +226,9 @@ public class XPathServer implements IRecipient
    * @param client The client.
    * @param copy The content.
    */
-  private void respondAttach( Client client, IModelObject copy)
+  private void sendAttachResponse( TcpClient client, IModelObject copy)
   {
+    byte[] bytes = compressor.compress( copy);
   }
 
   /**
@@ -216,7 +236,7 @@ public class XPathServer implements IRecipient
    * @param client The client.
    * @param message The error message.
    */
-  private void respondError( Client client, String message)
+  private void sendError( TcpClient client, String message)
   {
   }
 
@@ -228,7 +248,7 @@ public class XPathServer implements IRecipient
    * @param child The child.
    * @param index The index.
    */
-  private void sendAddChild( Client client, IModelObject root, IModelObject parent, IModelObject child, int index)
+  private void sendAddChild( TcpClient client, IModelObject root, IModelObject parent, IModelObject child, int index)
   {
   }
 
@@ -239,7 +259,7 @@ public class XPathServer implements IRecipient
    * @param parent The parent.
    * @param index The index.
    */
-  private void sendRemoveChild( Client client, IModelObject root, IModelObject parent, int index)
+  private void sendRemoveChild( TcpClient client, IModelObject root, IModelObject parent, int index)
   {
   }
 
@@ -251,7 +271,7 @@ public class XPathServer implements IRecipient
    * @param attrName The attribute.
    * @param newValue The new value.
    */
-  private void sendAttributeChange( Client client, IModelObject root, IModelObject object, String attrName, Object newValue)
+  private void sendAttributeChange( TcpClient client, IModelObject root, IModelObject object, String attrName, Object newValue)
   {
   }
 
@@ -262,13 +282,13 @@ public class XPathServer implements IRecipient
    * @param object The object.
    * @param attrName The attribute.
    */
-  private void sendAttributeClear( Client client, IModelObject root, IModelObject object, String attrName)
+  private void sendAttributeClear( TcpClient client, IModelObject root, IModelObject object, String attrName)
   {
   }
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( Client client, String xpath)
+    public AttachRunnable( TcpClient client, String xpath)
     {
       this.client = client;
       this.xpath = xpath;
@@ -279,13 +299,13 @@ public class XPathServer implements IRecipient
       doAttach( client, xpath);
     }
 
-    private Client client;
+    private TcpClient client;
     private String xpath;
   }
   
   private final class DetachRunnable implements Runnable
   {
-    public DetachRunnable( Client client, String xpath)
+    public DetachRunnable( TcpClient client, String xpath)
     {
       this.client = client;
       this.xpath = xpath;
@@ -296,7 +316,7 @@ public class XPathServer implements IRecipient
       doDetach( client, xpath);
     }
 
-    private Client client;
+    private TcpClient client;
     private String xpath;
   }
   
@@ -317,7 +337,7 @@ public class XPathServer implements IRecipient
   
   private class Listener extends NonSyncingListener
   {
-    public Listener( Client client, String xpath, IModelObject root)
+    public Listener( TcpClient client, String xpath, IModelObject root)
     {
       this.client = client;
       this.xpath = xpath;
@@ -385,40 +405,16 @@ public class XPathServer implements IRecipient
       return client.hashCode() + xpath.hashCode();
     }
 
-    private Client client;
+    private TcpClient client;
     private String xpath;
     private IModelObject root;
   };
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#connected(org.xmodel.net.nu.Connection)
-   */
-  @Override
-  public void connected( Connection connection)
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#disconnected(org.xmodel.net.nu.Connection, boolean)
-   */
-  @Override
-  public void disconnected( Connection connection, boolean nice)
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IRecipient#received(org.xmodel.net.nu.Connection, java.nio.ByteBuffer)
-   */
-  @Override
-  public int received( Connection connection, ByteBuffer buffer)
-  {
-    return 0;
-  }
-
-  private Server server;
+  private TcpServer server;
   private Map<String, IExternalReference> index;
   private List<Listener> orphans;
   private IModel model;
   private IContext context;
   private Random random;
+  private ICompressor compressor;
 }

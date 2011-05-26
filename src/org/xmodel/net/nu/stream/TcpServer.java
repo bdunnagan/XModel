@@ -1,33 +1,36 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.xmodel.net.nu.INetFramer;
+
 /**
  * A java.nio based Server. This class provides a minimal non-blocking server.
  */
-public class Server
+public class TcpServer implements ITcpAgent
 {
   /**
    * Create a server bound to the specified host and port.
    * @param host The host address.
    * @param port The port.
-   * @param recipient The recipient.
+   * @param framer The message framer.
+   * @param receiver The recipient.
    */
-  public Server( String host, int port, IRecipient recipient) throws IOException
+  public TcpServer( String host, int port, INetFramer framer, IReceiver receiver) throws IOException
   {
-    this.recipient = recipient;
+    this.framer = framer;
+    this.receiver = receiver;
+    
     localAddress = new InetSocketAddress( host, port);
     connections = new HashMap<Channel, Connection>();
     
@@ -41,9 +44,17 @@ public class Server
     serverChannel.register( selector, SelectionKey.OP_ACCEPT);
   }
 
-  /**
-   * Process the next events from the socket.
-   * @param timeout The amount of time to wait for events.
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.stream.ITcpPeer#process()
+   */
+  @Override
+  public void process() throws IOException
+  {
+    process( 0);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.stream.ITcpPeer#process(int)
    */
   public void process( int timeout) throws IOException
   {
@@ -63,7 +74,7 @@ public class Server
           newChannel.configureBlocking( false);
           newChannel.register( selector, SelectionKey.OP_READ);
           
-          Connection connection = new Connection( recipient);
+          Connection connection = new Connection( this, framer, receiver);
           connection.connected( newChannel);
           connections.put( newChannel, connection);
         }
@@ -115,33 +126,6 @@ public class Server
   private ServerSocketChannel serverChannel;
   private Selector selector;
   private Map<Channel, Connection> connections;
-  private IRecipient recipient;
-  
-  public static void main( String[] args) throws Exception
-  {
-    String[] split = args[ 0].split( "[:]");
-    
-    IRecipient recipient = new IRecipient() {
-      public void connected( Connection connection)
-      {
-        System.out.println( "Connected.");
-      }
-      public void disconnected( Connection connection, boolean nice)
-      {
-        System.out.println( "Disconnected: "+nice);
-      }
-      public int received( Connection connection, ByteBuffer buffer)
-      {
-        buffer.flip();
-        return 0;
-      }
-    };
-    
-    Server server = new Server( split[ 0], Integer.parseInt( split[ 1]), recipient);
-    while( true)
-    {
-      System.out.printf( "%s\n", new Date());
-      server.process( 10000);
-    }
-  }
+  private INetFramer framer;
+  private IReceiver receiver;
 }

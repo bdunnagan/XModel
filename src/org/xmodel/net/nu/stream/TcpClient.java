@@ -1,24 +1,25 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class Client
+import org.xmodel.net.nu.INetFramer;
+
+public class TcpClient implements ITcpAgent
 {
-  public Client( IRecipient recipient)
+  public TcpClient( INetFramer framer, IReceiver receiver)
   {
-    this.recipient = recipient;
+    this.framer = framer;
+    this.receiver = receiver;
     pending = new HashMap<Channel, Connection>();
     connected = new HashMap<Channel, Connection>();
   }
@@ -39,7 +40,7 @@ public class Client
     
     channel.connect( address);
     
-    Connection connection = new Connection( recipient);
+    Connection connection = new Connection( this, framer, receiver);
     pending.put( channel, connection);
     return connection;
   }
@@ -70,17 +71,16 @@ public class Client
     channel.connect( address);
   }
   
-  /**
-   * Process next event from the socket and wait forever.
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.stream.ITcpPeer#process()
    */
   public void process() throws IOException
   {
     process( 0);
   }
   
-  /**
-   * Process next event from the socket.
-   * @param timeout The amount of time to wait.
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.stream.ITcpPeer#process(int)
    */
   public void process( int timeout) throws IOException
   {
@@ -136,40 +136,10 @@ public class Client
     readyKeys.clear();
   }
   
+  private INetFramer framer;
+  private IReceiver receiver;
   private InetSocketAddress address;
   private Selector selector;
   private Map<Channel, Connection> pending;
   private Map<Channel, Connection> connected;
-  private IRecipient recipient;
-  
-  public static void main( String[] args) throws Exception
-  {
-    String[] split = args[ 0].split( "[:]");
-    
-    IRecipient recipient = new IRecipient() {
-      public void connected( Connection connection)
-      {
-        System.out.println( "Connected.");
-      }
-      public void disconnected( Connection connection, boolean nice)
-      {
-        System.out.println( "Disconnected: "+nice);
-      }
-      public int received( Connection connection, ByteBuffer buffer)
-      {
-        return 0;
-      }
-    };
-    
-    Client clients = new Client( recipient);
-    Connection connection = clients.connect( split[ 0], Integer.parseInt( split[ 1]));
-    clients.process();
-    
-    while( true)
-    {
-      System.out.printf( "%s\n", new Date());
-      clients.process( 10000);
-      clients.reconnect( connection); 
-    }
-  }
 }

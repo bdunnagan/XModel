@@ -1,19 +1,54 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.xmodel.net.nu.INetFramer;
 
 public class Connection
 {
   /**
    * Create a new connection.
-   * @param recipient The recipient.
+   * @param agent The agent that created the connection.
+   * @param framer The message framer.
+   * @param receiver The primary receiver.
    */
-  Connection( IRecipient recipient)
+  Connection( ITcpAgent agent, INetFramer framer, IReceiver receiver)
   {
-    this.recipient = recipient;
+    this.agent = agent;
+    this.framer = framer;
+    receivers = new ArrayList<IReceiver>();
+    addReceiver( receiver);
+  }
+  
+  /**
+   * @return Returns the agent that created this connection.
+   */
+  public ITcpAgent getAgent()
+  {
+    return agent;
+  }
+  
+  /**
+   * Add a receiver.
+   * @param receiver The receiver.
+   */
+  public void addReceiver( IReceiver receiver)
+  {
+    receivers.add( receiver);
+  }
+  
+  /**
+   * Remove a receiver.
+   * @param receiver The receiver.
+   */
+  public void removeReceiver( IReceiver receiver)
+  {
+    receivers.remove( receiver);
   }
   
   /**
@@ -49,8 +84,6 @@ public class Connection
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
     if ( buffer == null) buffer = ByteBuffer.allocateDirect( 256);
-    
-    if ( recipient != null) recipient.connected( this);
   }
   
   /**
@@ -66,10 +99,7 @@ public class Connection
     catch( IOException e)
     {
     }
-    
     channel = null;
-    
-    if ( recipient != null) recipient.disconnected( this, nice);
   }
   
   /**
@@ -81,35 +111,48 @@ public class Connection
   }
 
   /**
-   * Write the content of the specified buffer to the connection.
-   * @param buffer The buffer (not yet flipped).
-   */
-  public void write( ByteBuffer buffer) throws IOException
-  {
-    buffer.flip();
-    channel.write( buffer);
-  }
-  
-  /**
    * @return Returns the number of bytes read.
    */
   int read() throws IOException
   {
     int nread = channel.read( buffer);
-    if ( recipient != null) 
+    buffer.flip();
+    buffer.mark();
+    
+    int consume = framer.frame( buffer);
+    buffer.reset();
+    
+    int limit = buffer.limit();
+    if ( limit > consume)
     {
-      buffer.flip();
-      buffer.mark();
+      // set limit to end of message
+      buffer.limit( consume);
       
-      int consumed = recipient.received( this, buffer);
+      // pass message to receivers
+      for( IReceiver receiver: receivers)
+        receiver.received( this, buffer);
       
-      buffer.reset();
-      buffer.position( consumed);
-      buffer.limit( buffer.capacity());
+      // restore buffer limit and compact
+      buffer.limit( limit);
+      buffer.compact();
     }
+    else
+    {
+      buffer.reset();
+    }
+    
     return nread;
   }
 
+  /**
+   * Write the content of the specified buffer to the connection.
+   * @param buffer The buffer.
+   */
+  public void write( ByteBuffer buffer) throws IOException
+  {
+    channel.write( buffer);
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -118,8 +161,10 @@ public class Connection
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
+  private ITcpAgent agent;
+  private INetFramer framer;
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
-  private IRecipient recipient;
+  private List<IReceiver> receivers;
 }

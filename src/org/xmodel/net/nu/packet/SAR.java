@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.packet;
 
 import java.util.ArrayList;
 import java.util.List;
