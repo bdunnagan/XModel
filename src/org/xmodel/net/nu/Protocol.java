@@ -191,17 +191,16 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleSyncRequest( INetSender sender, ByteBuffer buffer)
   {
-    String spec = readString( buffer);
-    
-    handleSyncRequest( sender, xpath);
+    String key = readString( buffer);
+    handleSyncRequest( sender, key);
   }
   
   /**
    * Handle an attach request.
    * @param sender The sender.
-   * @parma path The identity path of the reference.
+   * @param key The reference key.
    */
-  protected abstract void handleSyncRequest( INetSender sender, int[] path);
+  protected abstract void handleSyncRequest( INetSender sender, String key);
   
   /**
    * Handle the specified message buffer.
@@ -272,25 +271,6 @@ public abstract class Protocol implements INetFramer, INetReceiver
     byte[] bytes = readBytes( buffer);
     return compressor.decompress( bytes, 0);
   }
-
-  /**
-   * Read an identity path from the message.
-   * @param buffer The buffer.
-   * @return Returns the path.
-   */
-  public int[] readIdentityPath( ByteBuffer buffer)
-  {
-    String string = readString( buffer);
-    List<Integer> list = new ArrayList<Integer>();
-    int index = string.indexOf( ',');
-    while( index >= 0)
-    {
-      int next = string.indexOf( ',', ++index);
-      int step = Integer.parseInt( string.substring( index, next), 36);
-      list.add( step); 
-      index = next;
-    }
-  }
   
   /**
    * Write a block of bytes to the message.
@@ -327,22 +307,6 @@ public abstract class Protocol implements INetFramer, INetReceiver
     writeBytes( buffer, bytes, 0, bytes.length);
   }
 
-  /**
-   * Write an identity path to the message.
-   * @param buffer The buffer.
-   * @param path The path.
-   */
-  public void writeIdentityPath( ByteBuffer buffer, int[] path)
-  {
-    StringBuilder sb = new StringBuilder();
-    for( int i=0; i<path.length; i++)
-    {
-      if ( i > 0) sb.append( ",");
-      sb.append( Integer.toString( path[ i], 36));
-    }
-    writeString( buffer, sb.toString());
-  }
-  
   private ByteBuffer buffer;
   private ICompressor compressor;
 }

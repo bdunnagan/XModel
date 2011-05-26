@@ -250,6 +250,7 @@ public class XPathServer implements IReceiver
    */
   private void sendAddChild( TcpClient client, IModelObject root, IModelObject parent, IModelObject child, int index)
   {
+    // generate key for parent
   }
 
   /**
@@ -261,6 +262,7 @@ public class XPathServer implements IReceiver
    */
   private void sendRemoveChild( TcpClient client, IModelObject root, IModelObject parent, int index)
   {
+    // generate key for parent
   }
 
   /**
@@ -273,6 +275,7 @@ public class XPathServer implements IReceiver
    */
   private void sendAttributeChange( TcpClient client, IModelObject root, IModelObject object, String attrName, Object newValue)
   {
+    // generate key for object
   }
 
   /**
@@ -284,6 +287,7 @@ public class XPathServer implements IReceiver
    */
   private void sendAttributeClear( TcpClient client, IModelObject root, IModelObject object, String attrName)
   {
+    // generate key for object
   }
   
   private final class AttachRunnable implements Runnable

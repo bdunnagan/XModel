@@ -20,7 +20,6 @@ public class XPathClient
   public XPathClient( String host, int port)
   {
     map = new HashMap<String, IExternalReference>();
-    client = new TcpClient( this);
   }
 
   /**
