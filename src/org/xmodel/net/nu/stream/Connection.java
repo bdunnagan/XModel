@@ -4,12 +4,16 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
 
+import org.xmodel.log.Log;
 import org.xmodel.net.nu.INetFramer;
+import org.xmodel.net.nu.INetReceiver;
+import org.xmodel.net.nu.INetSender;
 
-public class Connection
+/**
+ * A class that represents a TCP connection.
+ */
+public class Connection implements INetSender
 {
   /**
    * Create a new connection.
@@ -17,12 +21,11 @@ public class Connection
    * @param framer The message framer.
    * @param receiver The primary receiver.
    */
-  Connection( ITcpAgent agent, INetFramer framer, IReceiver receiver)
+  Connection( ITcpAgent agent, INetFramer framer, INetReceiver receiver)
   {
     this.agent = agent;
     this.framer = framer;
-    receivers = new ArrayList<IReceiver>();
-    addReceiver( receiver);
+    this.receiver = receiver;
   }
   
   /**
@@ -31,24 +34,6 @@ public class Connection
   public ITcpAgent getAgent()
   {
     return agent;
-  }
-  
-  /**
-   * Add a receiver.
-   * @param receiver The receiver.
-   */
-  public void addReceiver( IReceiver receiver)
-  {
-    receivers.add( receiver);
-  }
-  
-  /**
-   * Remove a receiver.
-   * @param receiver The receiver.
-   */
-  public void removeReceiver( IReceiver receiver)
-  {
-    receivers.remove( receiver);
   }
   
   /**
@@ -83,7 +68,7 @@ public class Connection
   {
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( buffer == null) buffer = ByteBuffer.allocateDirect( 256);
+    if ( sendBuffer == null) sendBuffer = ByteBuffer.allocateDirect( 256);
   }
   
   /**
@@ -115,30 +100,29 @@ public class Connection
    */
   int read() throws IOException
   {
-    int nread = channel.read( buffer);
-    buffer.flip();
-    buffer.mark();
+    int nread = channel.read( sendBuffer);
+    sendBuffer.flip();
+    sendBuffer.mark();
     
-    int consume = framer.frame( buffer);
-    buffer.reset();
+    int consume = framer.frame( sendBuffer);
+    sendBuffer.reset();
     
-    int limit = buffer.limit();
+    int limit = sendBuffer.limit();
     if ( limit > consume)
     {
       // set limit to end of message
-      buffer.limit( consume);
+      sendBuffer.limit( consume);
       
       // pass message to receivers
-      for( IReceiver receiver: receivers)
-        receiver.received( this, buffer);
+      receiver.receive( this, sendBuffer);
       
       // restore buffer limit and compact
-      buffer.limit( limit);
-      buffer.compact();
+      sendBuffer.limit( limit);
+      sendBuffer.compact();
     }
     else
     {
-      buffer.reset();
+      sendBuffer.reset();
     }
     
     return nread;
@@ -154,6 +138,51 @@ public class Connection
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.net.nu.INetSender#send(java.nio.ByteBuffer)
+   */
+  @Override
+  public boolean send( ByteBuffer buffer)
+  {
+    try
+    {
+      write( buffer);
+      return true;
+    }
+    catch( IOException e)
+    {
+      return false;
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.INetSender#send(java.nio.ByteBuffer, int)
+   */
+  @Override
+  public ByteBuffer send( ByteBuffer buffer, int timeout)
+  {
+    receiveBuffer = null;
+    send( buffer);
+    try
+    {
+      agent.process( timeout);
+      return receiveBuffer;
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+    }
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.INetSender#close()
+   */
+  @Override
+  public void close()
+  {
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   public String toString()
@@ -163,8 +192,10 @@ public class Connection
 
   private ITcpAgent agent;
   private INetFramer framer;
+  private INetReceiver receiver;
   private InetSocketAddress address;
   private SocketChannel channel;
-  private ByteBuffer buffer;
-  private List<IReceiver> receivers;
+  private ByteBuffer sendBuffer;
+  private ByteBuffer receiveBuffer;
+  private Log log = Log.getLog( "org.xmodel.net.stream");
 }

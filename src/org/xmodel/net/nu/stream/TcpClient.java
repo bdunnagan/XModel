@@ -13,10 +13,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.xmodel.net.nu.INetFramer;
+import org.xmodel.net.nu.INetReceiver;
 
 public class TcpClient implements ITcpAgent
 {
-  public TcpClient( INetFramer framer, IReceiver receiver)
+  public TcpClient( INetFramer framer, INetReceiver receiver)
   {
     this.framer = framer;
     this.receiver = receiver;
@@ -137,7 +138,7 @@ public class TcpClient implements ITcpAgent
   }
   
   private INetFramer framer;
-  private IReceiver receiver;
+  private INetReceiver receiver;
   private InetSocketAddress address;
   private Selector selector;
   private Map<Channel, Connection> pending;

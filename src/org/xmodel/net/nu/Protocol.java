@@ -30,6 +30,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
   protected Protocol( ICompressor compressor)
   {
     this.compressor = compressor;
+    this.timeout = 10000;
     
     // allocate less than standard mtu
     buffer = ByteBuffer.allocateDirect( 4096);
@@ -147,13 +148,13 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param sender The sender.
    * @param xpath The xpath.
    */
-  public final void sendAttachRequeset( INetSender sender, String xpath)
+  public final void sendAttachRequest( INetSender sender, String xpath)
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachRequest, bytes.length);
-    sender.send( buffer);
+    sender.send( buffer, timeout);
   }
   
   /**
@@ -180,15 +181,14 @@ public abstract class Protocol implements INetFramer, INetReceiver
   /**
    * Send an attach response message.
    * @param sender The sender.
-   * @param xpath The xpath.
    * @param element The element.
    */
-  public final void sendAttachResponse( INetSender sender, String xpath, IModelObject element)
+  public final void sendAttachResponse( INetSender sender, IModelObject element)
   {
     initialize( buffer);
-    int length = writeString( buffer, xpath);
-    length += writeElement( buffer, element);
-    finalize( buffer, Type.attachResponse, length);
+    byte[] bytes = compressor.compress( element);
+    buffer.put( bytes, 0, bytes.length);
+    finalize( buffer, Type.attachResponse, bytes.length);
   }
   
   /**
@@ -198,18 +198,16 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleAttachResponse( INetSender sender, ByteBuffer buffer)
   {
-    String xpath = readString( buffer);
     IModelObject element = readElement( buffer);
-    handleAttachResponse( sender, xpath, element);
+    handleAttachResponse( sender, element);
   }
   
   /**
    * Handle an attach response.
    * @param sender The sender.
-   * @param xpath The xpath.
    * @param element The element.
    */
-  protected void handleAttachResponse( INetSender sender, String xpath, IModelObject element)
+  protected void handleAttachResponse( INetSender sender, IModelObject element)
   {
   }
   
@@ -610,4 +608,5 @@ public abstract class Protocol implements INetFramer, INetReceiver
 
   private ByteBuffer buffer;
   private ICompressor compressor;
+  private int timeout;
 }

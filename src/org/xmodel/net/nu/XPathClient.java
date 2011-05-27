@@ -6,6 +6,7 @@ import java.util.Map;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 
 /**
@@ -31,9 +32,9 @@ public class XPathClient extends Protocol
    */
   public void attach( String xpath, IExternalReference reference)
   {
-    sendAttach( xpath);
-    // wait for response
-    // update reference
+    attaching = reference;
+    sendAttachRequest( sender, xpath);
+    attaching = null;
   }
 
   /**
@@ -65,11 +66,13 @@ public class XPathClient extends Protocol
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleAttachResponse(org.xmodel.net.nu.INetSender, java.lang.String, org.xmodel.IModelObject)
+   * @see org.xmodel.net.nu.Protocol#handleAttachResponse(org.xmodel.net.nu.INetSender, org.xmodel.IModelObject)
    */
   @Override
-  protected void handleAttachResponse( INetSender sender, String xpath, IModelObject element)
+  protected void handleAttachResponse( INetSender sender, IModelObject element)
   {
+    ICachingPolicy cachingPolicy = attaching.getCachingPolicy();
+    cachingPolicy.update( attaching, element);
   }
 
   /* (non-Javadoc)
@@ -108,4 +111,5 @@ public class XPathClient extends Protocol
   private INetSender sender;
   private INetReceiver receiver;
   private INetFramer framer;
+  private IExternalReference attaching;
 }

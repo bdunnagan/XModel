@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.xmodel.net.nu.INetFramer;
+import org.xmodel.net.nu.INetReceiver;
 
 /**
  * A java.nio based Server. This class provides a minimal non-blocking server.
@@ -26,7 +27,7 @@ public class TcpServer implements ITcpAgent
    * @param framer The message framer.
    * @param receiver The recipient.
    */
-  public TcpServer( String host, int port, INetFramer framer, IReceiver receiver) throws IOException
+  public TcpServer( String host, int port, INetFramer framer, INetReceiver receiver) throws IOException
   {
     this.framer = framer;
     this.receiver = receiver;
@@ -127,5 +128,5 @@ public class TcpServer implements ITcpAgent
   private Selector selector;
   private Map<Channel, Connection> connections;
   private INetFramer framer;
-  private IReceiver receiver;
+  private INetReceiver receiver;
 }
