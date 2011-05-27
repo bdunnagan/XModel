@@ -1,4 +1,5 @@
-package org.xmodel.net.nu;
+
+.package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,7 +30,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer implements IReceiver
+public class XPathServer extends Protocol
 {
   public enum Message
   {
@@ -219,8 +220,32 @@ public class XPathServer implements IReceiver
     } 
     
     return result;
-  }
+  } 
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.Protocol#handleAttachRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   */
+  @Override
+  protected void handleAttachRequest( INetSender sender, String xpath)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.Protocol#handleDetachRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   */
+  @Override
+  protected void handleDetachRequest( INetSender sender, String xpath)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.Protocol#handleSyncRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   */
+  @Override
+  protected void handleSyncRequest( INetSender sender, String key)
+  {
+  }
+
   /**
    * Send the response to an attach request.
    * @param client The client.

@@ -1,8 +1,6 @@
 package org.xmodel.net.nu;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
@@ -28,7 +26,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     clearAttribute
   }
 
-  public Protocol( ICompressor compressor)
+  protected Protocol( ICompressor compressor)
   {
     this.compressor = compressor;
     
@@ -94,7 +92,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     }
   }
 
-  /**
+   /**
    * Handle the specified message buffer.
    * @param sender The sender.
    * @param buffer The buffer.
@@ -105,7 +103,8 @@ public abstract class Protocol implements INetFramer, INetReceiver
     if ( version != Protocol.version)
     {
       buffer.put( (byte)Type.error.ordinal());
-      writeString( buffer, String.format( "Expected protocol version %d", Protocol.version));
+      writeString( this.buffer, String.format( "Expected protocol version %d", Protocol.version));
+      sender.send( this.buffer);
       sender.close();
     }
   }
@@ -126,7 +125,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param sender The sender.
    * @param message The message.
    */
-  protected abstract void handleError( INetSender sender, String message);
+  protected void handleError( INetSender sender, String message)
+  {
+  }
   
   /**
    * Handle the specified message buffer.
@@ -144,7 +145,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param sender The sender.
    * @param xpath The xpath.
    */
-  protected abstract void handleAttachRequest( INetSender sender, String xpath);
+  protected void handleAttachRequest( INetSender sender, String xpath)
+  {
+  }
   
   /**
    * Handle the specified message buffer.
@@ -164,7 +167,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param xpath The xpath.
    * @param element The element.
    */
-  protected abstract void handleAttachResponse( INetSender sender, String xpath, IModelObject element);
+  protected void handleAttachResponse( INetSender sender, String xpath, IModelObject element)
+  {
+  }
   
   /**
    * Handle the specified message buffer.
@@ -182,7 +187,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param sender The sender.
    * @param xpath The xpath.
    */
-  protected abstract void handleDetachRequest( INetSender sender, String xpath);
+  protected void handleDetachRequest( INetSender sender, String xpath)
+  {
+  }
   
   /**
    * Handle the specified message buffer.
@@ -200,7 +207,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param sender The sender.
    * @param key The reference key.
    */
-  protected abstract void handleSyncRequest( INetSender sender, String key);
+  protected void handleSyncRequest( INetSender sender, String key)
+  {
+  }
   
   /**
    * Handle the specified message buffer.
@@ -208,6 +217,21 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param buffer The buffer.
    */
   private final void handleAddChild( INetSender sender, ByteBuffer buffer)
+  {
+    String xpath = readString( buffer);
+    IModelObject element = readElement( buffer);
+    int index = buffer.getInt();
+    handleAddChild( sender, xpath, element, index);
+  }
+  
+  /**
+   * Handle an add child message.
+   * @param sender The sender.
+   * @param xpath The path from the root to the parent.
+   * @param child The child that was added.
+   * @param index The insertion index.
+   */
+  protected void handleAddChild( INetSender sender, String xpath, IModelObject child, int index)
   {
   }
   
@@ -218,6 +242,19 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleRemoveChild( INetSender sender, ByteBuffer buffer)
   {
+    String xpath = readString( buffer);
+    int index = buffer.getInt();
+    handleRemoveChild( sender, xpath, index);
+  }
+  
+  /**
+   * Handle an remove child message.
+   * @param sender The sender.
+   * @param xpath The path from the root to the parent.
+   * @param index The insertion index.
+   */
+  protected void handleRemoveChild( INetSender sender, String xpath, int index)
+  {
   }
   
   /**
@@ -227,6 +264,21 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleChangeAttribute( INetSender sender, ByteBuffer buffer)
   {
+    String xpath = readString( buffer);
+    String attrName = readString( buffer);
+    byte[] attrValue = readBytes( buffer);
+    handleChangeAttribute( sender, xpath, attrName, attrValue);
+  }
+  
+  /**
+   * Handle an attribute change message.
+   * @param sender The sender.
+   * @param xpath The xpath from the root to the element.
+   * @param attrName The name of the attribute.
+   * @param attrValue The attribute value.
+   */
+  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, byte[] attrValue)
+  {
   }
   
   /**
@@ -235,6 +287,19 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param buffer The buffer.
    */
   private final void handleClearAttribute( INetSender sender, ByteBuffer buffer)
+  {
+    String xpath = readString( buffer);
+    String attrName = readString( buffer);
+    handleClearAttribute( sender, xpath, attrName);
+  }
+  
+  /**
+   * Handle an attribute change message.
+   * @param sender The sender.
+   * @param xpath The xpath from the root to the element.
+   * @param attrName The name of the attribute.
+   */
+  protected void handleClearAttribute( INetSender sender, String xpath, String attrName)
   {
   }
   
