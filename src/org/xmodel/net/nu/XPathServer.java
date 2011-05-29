@@ -1,8 +1,6 @@
-
-.package org.xmodel.net.nu;
+package org.xmodel.net.nu;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,15 +10,13 @@ import java.util.WeakHashMap;
 
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
-import org.xmodel.compress.ICompressor;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
-import org.xmodel.net.nu.stream.Connection;
-import org.xmodel.net.nu.stream.IReceiver;
-import org.xmodel.net.nu.stream.TcpClient;
 import org.xmodel.net.nu.stream.TcpServer;
 import org.xmodel.util.Identifier;
 import org.xmodel.xpath.XPath;
@@ -30,7 +26,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer extends Protocol
+public class XPathServer extends Protocol implements Runnable
 {
   public enum Message
   {
@@ -48,18 +44,13 @@ public class XPathServer extends Protocol
   
   /**
    * Create a server bound to the specified local address and port.
-   * @param host The local address.
-   * @param port The local port.
    * @param model The model.
    */
-  public XPathServer( String host, int port, IModel model) throws IOException
+  public XPathServer()
   {
-    this.model = model;
     index = new WeakHashMap<String, IExternalReference>();
     orphans = new ArrayList<Listener>();
     random = new Random();
-    
-    server = new TcpServer( host, port, this);
   }
   
   /**
@@ -69,24 +60,48 @@ public class XPathServer extends Protocol
   public void setContext( IContext context)
   {
     this.context = context;
+    this.model = context.getModel();
+    this.thread = Thread.currentThread();
+  }
+
+  /**
+   * Start the server thread.
+   * @param host The local address.
+   * @param port The local port.
+   */
+  public void start( String host, int port) throws IOException
+  {
+    server = new TcpServer( host, port, this, this);
+    thread = new Thread( this);
+    thread.setDaemon( true);
+    thread.start();
+  }
+  
+  /* (non-Javadoc)
+   * @see java.lang.Runnable#run()
+   */
+  @Override
+  public void run()
+  {
+    while( true)
+    {
+      try
+      {
+        server.process();
+      }
+      catch( Exception e)
+      {
+        break;
+      }
+    }
   }
 
   /**
    * Find the element on the specified xpath and attach listeners.
-   * @param client The client that made the request.
+   * @param sender The sender.
    * @param xpath The xpath expression.
    */
-  private void attach( TcpClient client, String xpath)
-  {
-    model.dispatch( new AttachRunnable( client, xpath));
-  }
-  
-  /**
-   * Find the element on the specified xpath and attach listeners.
-   * @param client The client that made the request.
-   * @param xpath The xpath expression.
-   */
-  private void doAttach( TcpClient client, String xpath)
+  private void attach( INetSender sender, String xpath)
   {
     try
     {
@@ -96,33 +111,23 @@ public class XPathServer extends Protocol
       if ( target != null)
       {
         copy = serialize( target);
-        Listener listener = new Listener( client, xpath, target);
+        Listener listener = new Listener( sender, xpath, target);
         listener.install( target);
       }
-      sendAttachResponse( client, copy);
+      sendAttachResponse( sender, copy);
     }
     catch( PathSyntaxException e)
     {
-      sendError( client, e.getMessage());
+      sendError( sender, e.getMessage());
     }
   }
   
   /**
    * Remove listeners from the element on the specified xpath.
-   * @param client The client that made the request.
+   * @param sender The sender.
    * @param xpath The xpath expression.
    */
-  private void detach( TcpClient client, String xpath)
-  {
-    model.dispatch( new DetachRunnable( client, xpath));
-  }
-
-  /**
-   * Remove listeners from the element on the specified xpath.
-   * @param client The client that made the request.
-   * @param xpath The xpath expression.
-   */
-  private void doDetach( TcpClient client, String xpath)
+  private void detach( INetSender sender, String xpath)
   {
     try
     {
@@ -130,32 +135,22 @@ public class XPathServer extends Protocol
       IModelObject target = expr.queryFirst( context);
       if ( target != null)
       {
-        Listener listener = new Listener( client, xpath, target);
+        Listener listener = new Listener( sender, xpath, target);
         listener.uninstall( target);
       }
     }
     catch( PathSyntaxException e)
     {
-      orphans.add( new Listener( client, xpath, null));
-      sendError( client, e.getMessage());
+      orphans.add( new Listener( sender, xpath, null));
+      sendError( sender, e.getMessage());
     }
-  }
-
-  /**
-   * Request that the server IExternalReference represented by the specified key be sync'ed.
-   * @param key The key.
-   */
-  private void sync( String key)
-  {
-    IExternalReference reference = index.get( key);
-    if ( reference != null) model.dispatch( new SyncRunnable( reference));
   }
 
   /**
    * Manually sync the specified reference by accessing its children.
    * @param reference The reference.
    */
-  private void doSync( IExternalReference reference)
+  private void sync( IExternalReference reference)
   {
     reference.getChildren();
   }
@@ -228,6 +223,7 @@ public class XPathServer extends Protocol
   @Override
   protected void handleAttachRequest( INetSender sender, String xpath)
   {
+    model.dispatch( new AttachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -236,6 +232,7 @@ public class XPathServer extends Protocol
   @Override
   protected void handleDetachRequest( INetSender sender, String xpath)
   {
+    model.dispatch( new DetachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -244,108 +241,53 @@ public class XPathServer extends Protocol
   @Override
   protected void handleSyncRequest( INetSender sender, String key)
   {
+    IExternalReference reference = index.get( key);
+    if ( reference != null) model.dispatch( new SyncRunnable( reference));
   }
-
+  
   /**
-   * Send the response to an attach request.
-   * @param client The client.
-   * @param copy The content.
+   * Create a relative xpath from the specified root to the specified element.
+   * @param root The root.
+   * @param element The element.
+   * @return Returns the xpath string.
    */
-  private void sendAttachResponse( TcpClient client, IModelObject copy)
+  private final String createPath( IModelObject root, IModelObject element)
   {
-    byte[] bytes = compressor.compress( copy);
-  }
-
-  /**
-   * Send an error response.
-   * @param client The client.
-   * @param message The error message.
-   */
-  private void sendError( TcpClient client, String message)
-  {
-  }
-
-  /**
-   * Send a child added update to the client.
-   * @param client The client.
-   * @param root The attached root.
-   * @param parent The parent.
-   * @param child The child.
-   * @param index The index.
-   */
-  private void sendAddChild( TcpClient client, IModelObject root, IModelObject parent, IModelObject child, int index)
-  {
-    // generate key for parent
-  }
-
-  /**
-   * Send a child removed update to the client.
-   * @param client The client.
-   * @param root The attached root.
-   * @param parent The parent.
-   * @param index The index.
-   */
-  private void sendRemoveChild( TcpClient client, IModelObject root, IModelObject parent, int index)
-  {
-    // generate key for parent
-  }
-
-  /**
-   * Send an attribute change update to the client.
-   * @param client The client.
-   * @param root The attached root.
-   * @param object The object.
-   * @param attrName The attribute.
-   * @param newValue The new value.
-   */
-  private void sendAttributeChange( TcpClient client, IModelObject root, IModelObject object, String attrName, Object newValue)
-  {
-    // generate key for object
-  }
-
-  /**
-   * Send an attribute cleared update to the client.
-   * @param client The client.
-   * @param root The attached root.
-   * @param object The object.
-   * @param attrName The attribute.
-   */
-  private void sendAttributeClear( TcpClient client, IModelObject root, IModelObject object, String attrName)
-  {
-    // generate key for object
+    IPath path = ModelAlgorithms.createRelativePath( root, element);
+    return path.toString();
   }
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( TcpClient client, String xpath)
+    public AttachRunnable( INetSender sender, String xpath)
     {
-      this.client = client;
+      this.sender = sender;
       this.xpath = xpath;
     }
     
     public void run()
     {
-      doAttach( client, xpath);
+      attach( sender, xpath);
     }
 
-    private TcpClient client;
+    private INetSender sender;
     private String xpath;
   }
   
   private final class DetachRunnable implements Runnable
   {
-    public DetachRunnable( TcpClient client, String xpath)
+    public DetachRunnable( INetSender sender, String xpath)
     {
-      this.client = client;
+      this.sender = sender;
       this.xpath = xpath;
     }
     
     public void run()
     {
-      doDetach( client, xpath);
+      detach( sender, xpath);
     }
 
-    private TcpClient client;
+    private INetSender sender;
     private String xpath;
   }
   
@@ -358,7 +300,7 @@ public class XPathServer extends Protocol
     
     public void run()
     {
-      doSync( reference);
+      sync( reference);
     }
     
     private IExternalReference reference;
@@ -366,9 +308,9 @@ public class XPathServer extends Protocol
   
   private class Listener extends NonSyncingListener
   {
-    public Listener( TcpClient client, String xpath, IModelObject root)
+    public Listener( INetSender sender, String xpath, IModelObject root)
     {
-      this.client = client;
+      this.sender = sender;
       this.xpath = xpath;
       this.root = root;
     }
@@ -380,7 +322,7 @@ public class XPathServer extends Protocol
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
-      sendAddChild( client, root, parent, child, index);
+      sendAddChild( sender, createPath( root, parent), child, index);
     }
 
     /* (non-Javadoc)
@@ -390,7 +332,7 @@ public class XPathServer extends Protocol
     public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
-      sendRemoveChild( client, root, parent, index);
+      sendRemoveChild( sender, createPath( root, parent), index);
     }
 
     /* (non-Javadoc)
@@ -399,7 +341,7 @@ public class XPathServer extends Protocol
     @Override
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
-      sendAttributeChange( client, root, object, attrName, newValue);
+      sendChangeAttribute( sender, createPath( root, object), attrName, newValue);
     }
 
     /* (non-Javadoc)
@@ -408,7 +350,7 @@ public class XPathServer extends Protocol
     @Override
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
-      sendAttributeClear( client, root, object, attrName);
+      sendClearAttribute( sender, createPath( root, object), attrName);
     }
     
     /* (non-Javadoc)
@@ -420,7 +362,7 @@ public class XPathServer extends Protocol
       if ( object instanceof Listener)
       {
         Listener other = (Listener)object;
-        return other.client == client && other.xpath.equals( xpath);
+        return other.sender == sender && other.xpath.equals( xpath);
       }
       return false;
     }
@@ -431,19 +373,19 @@ public class XPathServer extends Protocol
     @Override
     public int hashCode()
     {
-      return client.hashCode() + xpath.hashCode();
+      return sender.hashCode() + xpath.hashCode();
     }
 
-    private TcpClient client;
+    private INetSender sender;
     private String xpath;
     private IModelObject root;
   };
   
   private TcpServer server;
+  private Thread thread;
   private Map<String, IExternalReference> index;
   private List<Listener> orphans;
   private IModel model;
   private IContext context;
   private Random random;
-  private ICompressor compressor;
 }

@@ -174,7 +174,7 @@ public interface IModel
   
   /**
    * Handle an exception or error which is thrown during a listener callback.
-   * @parma e The exception.
+   * @param e The exception.
    */
   public void handleException( Exception e);
 }

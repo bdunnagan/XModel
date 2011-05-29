@@ -1,5 +1,7 @@
 package org.xmodel.net.nu;
 
+import java.io.IOException;
+
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -79,13 +81,22 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    if ( reference.getAttribute( "net:key") == null)
+    try
     {
-      client.attach( xpath, reference);
+      if ( reference.getAttribute( "net:key") == null)
+      {
+        client.attach( xpath, reference);
+      }
+      else
+      {
+        client.sync( reference);
+      }
+      
+      if ( error != null) throw new CachingException( error);
     }
-    else
+    catch( IOException e)
     {
-      client.sync( reference);
+      throw new CachingException( "Unable to sync reference: "+reference, e);
     }
   }
   
@@ -93,4 +104,5 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   
   private XPathClient client;
   private String xpath;
+  private String error;
 }

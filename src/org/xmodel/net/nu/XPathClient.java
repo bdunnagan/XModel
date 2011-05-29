@@ -1,13 +1,16 @@
 package org.xmodel.net.nu;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
+import org.xmodel.net.nu.stream.Connection;
+import org.xmodel.net.nu.stream.TcpClient;
+import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.IExpression;
 
 /**
  * A class that implements the network caching policy protocol.
@@ -21,8 +24,10 @@ public class XPathClient extends Protocol
    */
   public XPathClient( String host, int port)
   {
-    super( new TabularCompressor());
-    map = new HashMap<String, IExternalReference>();
+    this.host = host;
+    this.port = port;
+    
+    client = new TcpClient( this, this);
   }
 
   /**
@@ -30,11 +35,19 @@ public class XPathClient extends Protocol
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( String xpath, IExternalReference reference)
+  public void attach( String xpath, IExternalReference reference) throws IOException
   {
-    attaching = reference;
+    if ( connection.isOpen()) 
+    {
+      client.reconnect( connection);
+    }
+    else
+    {
+      connection = client.connect( host, port);
+    }
+    
+    attached = reference;
     sendAttachRequest( sender, xpath);
-    attaching = null;
   }
 
   /**
@@ -44,7 +57,7 @@ public class XPathClient extends Protocol
    */
   public void detach( String xpath, IExternalReference reference)
   {
-    sendDetach( xpath);
+    sendDetachRequest( sender, xpath);
   }
 
   /**
@@ -54,7 +67,7 @@ public class XPathClient extends Protocol
   public void sync( IExternalReference reference)
   {
     String key = Xlate.get( reference, "net:key", (String)null);
-    sendSync( key);
+    sendSyncRequest( sender, key);
   }
 
   /* (non-Javadoc)
@@ -63,6 +76,7 @@ public class XPathClient extends Protocol
   @Override
   protected void handleError( INetSender sender, String message)
   {
+    log.error( message);
   }
 
   /* (non-Javadoc)
@@ -71,8 +85,11 @@ public class XPathClient extends Protocol
   @Override
   protected void handleAttachResponse( INetSender sender, IModelObject element)
   {
-    ICachingPolicy cachingPolicy = attaching.getCachingPolicy();
-    cachingPolicy.update( attaching, element);
+    if ( attached != null)
+    {
+      ICachingPolicy cachingPolicy = attached.getCachingPolicy();
+      cachingPolicy.update( attached, element);
+    }
   }
 
   /* (non-Javadoc)
@@ -81,6 +98,12 @@ public class XPathClient extends Protocol
   @Override
   protected void handleAddChild( INetSender sender, String xpath, IModelObject child, int index)
   {
+    IExpression parentExpr = XPath.createExpression( xpath);
+    if ( parentExpr != null)
+    {
+      IModelObject parent = parentExpr.queryFirst( attached);
+      if ( parent != null) parent.addChild( child, index);
+    }
   }
 
   /* (non-Javadoc)
@@ -89,14 +112,26 @@ public class XPathClient extends Protocol
   @Override
   protected void handleRemoveChild( INetSender sender, String xpath, int index)
   {
+    IExpression parentExpr = XPath.createExpression( xpath);
+    if ( parentExpr != null)
+    {
+      IModelObject parent = parentExpr.queryFirst( attached);
+      if ( parent != null) parent.removeChild( index);
+    }
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleChangeAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String, byte[])
+   * @see org.xmodel.net.nu.Protocol#handleChangeAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String, java.lang.Object)
    */
   @Override
-  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, byte[] attrValue)
+  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, Object attrValue)
   {
+    IExpression elementExpr = XPath.createExpression( xpath);
+    if ( elementExpr != null)
+    {
+      IModelObject element = elementExpr.queryFirst( attached);
+      if ( element != null) element.setAttribute( attrName, attrValue);
+    }
   }
 
   /* (non-Javadoc)
@@ -105,11 +140,20 @@ public class XPathClient extends Protocol
   @Override
   protected void handleClearAttribute( INetSender sender, String xpath, String attrName)
   {
+    IExpression elementExpr = XPath.createExpression( xpath);
+    if ( elementExpr != null)
+    {
+      IModelObject element = elementExpr.queryFirst( attached);
+      if ( element != null) element.removeAttribute( attrName);
+    }
   }
 
-  private Map<String, IExternalReference> map;
+  private String host;
+  private int port;
+  private TcpClient client;
+  private Connection connection;
   private INetSender sender;
-  private INetReceiver receiver;
-  private INetFramer framer;
-  private IExternalReference attaching;
+  private IExternalReference attached;
+  
+  private static Log log = Log.getLog(  "org.xmodel.net");
 }

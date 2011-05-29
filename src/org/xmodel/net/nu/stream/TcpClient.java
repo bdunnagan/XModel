@@ -45,12 +45,12 @@ public class TcpClient implements ITcpAgent
     pending.put( channel, connection);
     return connection;
   }
-   
+  
   /**
    * Reconnect the specified connection.
    * @param connection The connection.
    */
-  void reconnect( Connection connection) throws IOException
+  public void reconnect( Connection connection) throws IOException
   {
     SocketChannel channel = connection.getChannel();
     if ( channel != null)
@@ -71,7 +71,7 @@ public class TcpClient implements ITcpAgent
     pending.put( channel, connection);
     channel.connect( address);
   }
-  
+
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.stream.ITcpPeer#process()
    */

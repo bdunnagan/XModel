@@ -5,6 +5,7 @@ import java.nio.ByteOrder;
 
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
 
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
@@ -27,9 +28,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
     clearAttribute
   }
 
-  protected Protocol( ICompressor compressor)
+  protected Protocol()
   {
-    this.compressor = compressor;
+    this.compressor = new TabularCompressor();
     this.timeout = 10000;
     
     // allocate less than standard mtu
@@ -54,6 +55,17 @@ public abstract class Protocol implements INetFramer, INetReceiver
   @Override
   public final void receive( INetSender sender, ByteBuffer buffer)
   {
+  }
+  
+  /**
+   * Process a queued item.
+   * @param item The queue item.
+   */
+  public final void receive( QueueItem item)
+  {
+    INetSender sender = item.sender;
+    ByteBuffer buffer = item.buffer;
+    
     Type type = readMessageType( buffer);
 
     // handle message types that don't have a length field
@@ -246,12 +258,12 @@ public abstract class Protocol implements INetFramer, INetReceiver
   /**
    * Send an sync request message.
    * @param sender The sender.
-   * @param xpath The xpath.
+   * @param key The key.
    */
-  public final void sendSyncRequest( INetSender sender, String xpath)
+  public final void sendSyncRequest( INetSender sender, String key)
   {
     initialize( buffer);
-    byte[] bytes = xpath.getBytes();
+    byte[] bytes = key.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.syncRequest, bytes.length);
     sender.send( buffer);
@@ -360,12 +372,14 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( INetSender sender, String xpath, String attrName, byte[] value)
+  public final void sendChangeAttribute( INetSender sender, String xpath, String attrName, Object value)
   {
+    byte[] bytes = serialize( value);
+    
     initialize( buffer);
     int length = writeString( buffer, xpath);
     length += writeString( buffer, attrName);
-    length += writeBytes( buffer, value, 0, value.length, true);
+    length += writeBytes( buffer, bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
   }
   
@@ -378,8 +392,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
+    
     byte[] attrValue = readBytes( buffer, true);
-    handleChangeAttribute( sender, xpath, attrName, attrValue);
+    handleChangeAttribute( sender, xpath, attrName, deserialize( attrValue));
   }
   
   /**
@@ -389,7 +404,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param attrName The name of the attribute.
    * @param attrValue The attribute value.
    */
-  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, byte[] attrValue)
+  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, Object attrValue)
   {
   }
   
@@ -399,7 +414,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    */
-  public final void sendChangeAttribute( INetSender sender, String xpath, String attrName)
+  public final void sendClearAttribute( INetSender sender, String xpath, String attrName)
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
@@ -429,6 +444,32 @@ public abstract class Protocol implements INetFramer, INetReceiver
   {
   }
 
+  /**
+   * Returns the serialized attribute value.
+   * @param object The attribute value.
+   * @return Returns the serialized attribute value.
+   */
+  private byte[] serialize( Object object)
+  {
+    if ( object == null) return new byte[ 0];
+    
+    // TODO: beef this up!
+    return object.toString().getBytes();
+  }
+  
+  /**
+   * Returns the deserialized attribute value.
+   * @param bytes The serialized attribute value.
+   * @return Returns the deserialized attribute value.
+   */
+  private Object deserialize( byte[] bytes)
+  {
+    if ( bytes.length == 0) return null;
+    
+    // TODO: beef this up!
+    return new String( bytes);
+  }
+  
   /**
    * Reserve the maximum amount of space for the header.
    * @param buffer The buffer.
@@ -606,6 +647,20 @@ public abstract class Protocol implements INetFramer, INetReceiver
     return writeBytes( buffer, bytes, 0, bytes.length, false);
   }
 
+  private final class QueueItem implements Runnable
+  {
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    public void run()
+    {
+      receive( this);
+    }
+    
+    public INetSender sender;
+    public ByteBuffer buffer;
+  }
+  
   private ByteBuffer buffer;
   private ICompressor compressor;
   private int timeout;
