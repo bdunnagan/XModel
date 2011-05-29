@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import java.io.IOException;
 
@@ -7,8 +7,8 @@ import org.xmodel.Xlate;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.stream.Connection;
-import org.xmodel.net.nu.stream.TcpClient;
+import org.xmodel.net.stream.Connection;
+import org.xmodel.net.stream.TcpClient;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 

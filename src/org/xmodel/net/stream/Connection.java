@@ -1,4 +1,4 @@
-package org.xmodel.net.nu.stream;
+package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -6,9 +6,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.INetFramer;
-import org.xmodel.net.nu.INetReceiver;
-import org.xmodel.net.nu.INetSender;
+import org.xmodel.net.INetFramer;
+import org.xmodel.net.INetReceiver;
+import org.xmodel.net.INetSender;
 
 /**
  * A class that represents a TCP connection.

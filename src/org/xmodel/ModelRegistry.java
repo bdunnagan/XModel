@@ -22,11 +22,9 @@ package org.xmodel;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.external.DefaultSpace;
 import org.xmodel.external.IExternalSpace;
-import org.xmodel.net.ExternalSpace;
-
-
 
 /**
  * An implementation of IModelRegistry which allows IModel instances to be associated with threads
@@ -38,7 +36,7 @@ public class ModelRegistry implements IModelRegistry
   {
     instance = new ThreadLocal<ModelRegistry>();
     register( new DefaultSpace());
-    register( new ExternalSpace());
+    //register( new ExternalSpace());
   }
   
   /* (non-Javadoc)

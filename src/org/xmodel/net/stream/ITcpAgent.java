@@ -1,4 +1,4 @@
-package org.xmodel.net.nu.stream;
+package org.xmodel.net.stream;
 
 import java.io.IOException;
 

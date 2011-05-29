@@ -1,4 +1,4 @@
-package org.xmodel.net.nu.stream;
+package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -12,8 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.xmodel.net.nu.INetFramer;
-import org.xmodel.net.nu.INetReceiver;
+import org.xmodel.net.INetFramer;
+import org.xmodel.net.INetReceiver;
 
 /**
  * A java.nio based Server. This class provides a minimal non-blocking server.

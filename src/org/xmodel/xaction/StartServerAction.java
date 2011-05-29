@@ -20,13 +20,12 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
-import org.xmodel.IModel;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.ManualDispatcher;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
-import org.xmodel.net.ModelServer;
+import org.xmodel.net.XPathServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -50,14 +49,15 @@ public class StartServerAction extends GuardedAction
     // get assign
     assign = Xlate.get( document.getRoot(), "assign", (String)null);
     
-    // get port and timeout
-    port = Xlate.get( document.getRoot(), "port", ModelServer.defaultPort);
+    // get host and port
+    host = Xlate.get( document.getRoot(), "host", "0.0.0.0");
+    port = Xlate.get( document.getRoot(), "port", XPathServer.defaultPort);
     
     // get context expression
     sourceExpr = document.getExpression();
     
     // create server
-    server = new ModelServer( document.getRoot().getModel());
+    server = new XPathServer();
   }
 
   /* (non-Javadoc)
@@ -72,8 +72,8 @@ public class StartServerAction extends GuardedAction
     // start server
     try
     {
-      server.setQueryContext( (source != null)? new StatefulContext( context.getScope(), source): context);
-      server.start( port);
+      server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);
+      server.start( host, port);
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");
@@ -84,19 +84,6 @@ public class StartServerAction extends GuardedAction
     {
       log.exception( e);
     }
-
-    // set dispatcher if none is defined
-    IModel model = context.getModel();
-    if ( model.getDispatcher() == null)
-    {
-      ManualDispatcher dispatcher = new ManualDispatcher();
-      model.setDispatcher( dispatcher);
-      while( true) 
-      {
-        dispatcher.process();
-        try { Thread.sleep( 10);} catch( Exception e) { break;}
-      }
-    }
     
     return null;
   }
@@ -104,8 +91,9 @@ public class StartServerAction extends GuardedAction
   private static Log log = Log.getLog( "org.xmodel.xaction");
   
   private IModelObjectFactory factory;
-  private ModelServer server;
+  private XPathServer server;
   private String assign;
+  private String host;
   private int port;
   private IExpression sourceExpr;
 }

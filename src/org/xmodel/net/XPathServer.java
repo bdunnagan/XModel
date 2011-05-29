@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import org.xmodel.PathSyntaxException;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
-import org.xmodel.net.nu.stream.TcpServer;
+import org.xmodel.net.stream.TcpServer;
 import org.xmodel.util.Identifier;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -41,6 +41,8 @@ public class XPathServer extends Protocol implements Runnable
     clearAttribute,
     error
   }
+  
+  public static int defaultPort = 27613;
   
   /**
    * Create a server bound to the specified local address and port.
@@ -76,6 +78,14 @@ public class XPathServer extends Protocol implements Runnable
     thread.setDaemon( true);
     thread.start();
   }
+
+  /**
+   * Stop the server thread.
+   */
+  public void stop()
+  {
+    exit = true;
+  }
   
   /* (non-Javadoc)
    * @see java.lang.Runnable#run()
@@ -83,11 +93,12 @@ public class XPathServer extends Protocol implements Runnable
   @Override
   public void run()
   {
-    while( true)
+    exit = true;
+    while( !exit)
     {
       try
       {
-        server.process();
+        server.process( 500);
       }
       catch( Exception e)
       {
@@ -383,6 +394,7 @@ public class XPathServer extends Protocol implements Runnable
   
   private TcpServer server;
   private Thread thread;
+  private boolean exit;
   private Map<String, IExternalReference> index;
   private List<Listener> orphans;
   private IModel model;

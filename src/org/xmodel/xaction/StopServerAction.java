@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.net.ModelServer;
+import org.xmodel.net.XPathServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -47,7 +47,7 @@ public class StopServerAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     IModelObject object = serverExpr.queryFirst( context);
-    ModelServer server = (ModelServer)object.getValue();
+    XPathServer server = (XPathServer)object.getValue();
     server.stop();
     return null;
   }
