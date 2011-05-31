@@ -64,6 +64,15 @@ public abstract class AbstractVariableScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#getVariables()
+   */
+  @Override
+  public Collection<String> getVariables()
+  {
+    return variables.keySet();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, org.xmodel.IModelObject)
    */
   @SuppressWarnings("unchecked")

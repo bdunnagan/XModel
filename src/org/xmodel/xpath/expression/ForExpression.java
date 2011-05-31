@@ -478,6 +478,15 @@ class ReturnScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#getVariables()
+   */
+  @Override
+  public Collection<String> getVariables()
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.lang.Boolean)
    */
   public Boolean set( String name, Boolean value)

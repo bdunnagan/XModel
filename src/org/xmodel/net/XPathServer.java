@@ -193,6 +193,32 @@ public class XPathServer extends Protocol implements Runnable, IListener
   }
   
   /**
+   * Execute the specified query and return the result.
+   * @param sender The sender.
+   * @param xpath The query.
+   */
+  private void query( INetSender sender, String xpath)
+  {
+    try
+    {
+      IExpression expr = XPath.compileExpression( xpath);
+      Object result = null;
+      switch( expr.getType( context))
+      {
+        case NODES:   result = expr.evaluateNodes( context); break;
+        case STRING:  result = expr.evaluateString( context); break;
+        case NUMBER:  result = expr.evaluateNumber( context); break;
+        case BOOLEAN: result = expr.evaluateBoolean( context); break;
+      }
+      sendQueryResponse( sender, result);
+    }
+    catch( PathSyntaxException e)
+    {
+      sendError( sender, e.getMessage());
+    }
+  }
+  
+  /**
    * Index the specified reference.
    * @param reference The reference.
    * @return Returns the key.
@@ -282,6 +308,15 @@ public class XPathServer extends Protocol implements Runnable, IListener
     if ( reference != null) context.getModel().dispatch( new SyncRunnable( reference));
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleQueryRequest(org.xmodel.net.INetSender, java.lang.String)
+   */
+  @Override
+  protected void handleQueryRequest( INetSender sender, String xpath)
+  {
+    context.getModel().dispatch( new QueryRunnable( sender, xpath));
+  }
+
   /**
    * Create a relative xpath from the specified root to the specified element.
    * @param root The root.
@@ -341,6 +376,23 @@ public class XPathServer extends Protocol implements Runnable, IListener
     }
     
     private IExternalReference reference;
+  }
+  
+  private final class QueryRunnable implements Runnable
+  {
+    public QueryRunnable( INetSender sender, String xpath)
+    {
+      this.sender = sender;
+      this.xpath = xpath;
+    }
+    
+    public void run()
+    {
+      query( sender, xpath);
+    }
+    
+    private INetSender sender;
+    private String xpath;
   }
   
   private class Listener extends NonSyncingListener

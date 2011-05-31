@@ -1,9 +1,18 @@
 package org.xmodel.xaction.debug;
 
+import java.util.Collection;
+import java.util.Random;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
+import org.xmodel.Reference;
+import org.xmodel.external.ExternalReference;
+import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
+import org.xmodel.net.XPathServer;
+import org.xmodel.util.Identifier;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XAction;
@@ -11,6 +20,7 @@ import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.variable.IVariableScope;
 
 /**
  * A base class for IDebugger implementations.
@@ -22,6 +32,8 @@ public abstract class Debugger implements IDebugger
     semaphore = new Semaphore( 0);
     stack = new Stack<Frame>();
     stepFrame = 1;
+    random = new Random();
+    context = new StatefulContext( new ModelObject( "debug"));
   }
 
   protected static class Frame
@@ -93,9 +105,11 @@ public abstract class Debugger implements IDebugger
   @Override
   public Object[] run( IContext context, IXAction action)
   {
-    stack.push( new Frame( context, action));
+    Frame frame = new Frame( context, action);
+    stack.push( frame);
     if ( stepFrame >= currFrame) 
     {
+      context.getObject().addChild( createFrameElement( frame), 0);
       pause( context, stack);
       block();
     }
@@ -112,6 +126,7 @@ public abstract class Debugger implements IDebugger
   @Override
   public void pop()
   {
+    context.getObject().removeChild( 0); 
     currFrame--;
     if ( currFrame == 0) resume();
   }
@@ -121,6 +136,20 @@ public abstract class Debugger implements IDebugger
    */
   private void block()
   {
+    if ( server == null)
+    {
+      try
+      {
+        server = new XPathServer();
+        server.setContext( context);
+        server.start( "127.0.0.1", 27700);
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+    }
+    
     try { semaphore.acquire();} catch( InterruptedException e) {}
   }
 
@@ -131,11 +160,46 @@ public abstract class Debugger implements IDebugger
   {
     semaphore.release();
   }
+
+  /**
+   * Create an element representing the specified frame.
+   * @param frame The frame.
+   * @return Returns the new element.
+   */
+  @SuppressWarnings("unchecked")
+  private IModelObject createFrameElement( Frame frame)
+  {
+    ModelObject element = new ModelObject( "frame", Identifier.generate( random, 10));
+    
+    // xaction
+    IModelObject xaction = frame.action.getDocument().getRoot();
+    element.getCreateChild( "action").addChild( new Reference( xaction));
+    
+    // variables
+    IVariableScope scope = frame.context.getScope();
+    Collection<String> variables = scope.getVariables();
+    IModelObject varRoot = element.getCreateChild( "variables");
+    for( String variable: variables)
+    {
+      IExternalReference varElement = new ExternalReference( "variable");
+      varElement.setID( variable);
+      varElement.setCachingPolicy( new ContextCachingPolicy( frame.context));
+      varElement.setDirty( true);
+      varRoot.addChild( varElement);
+    }
+    
+    return element;
+  }
+  
+  private static Log log = Log.getLog( "org.xmodel.xaction.debug");
   
   private Semaphore semaphore;
   private Stack<Frame> stack;
   private int stepFrame;
   private int currFrame;
+  private Random random;
+  private StatefulContext context;
+  private XPathServer server;
   
   public static void main( String[] args) throws Exception
   {

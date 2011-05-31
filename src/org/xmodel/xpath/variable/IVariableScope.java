@@ -58,6 +58,11 @@ public interface IVariableScope
    * @return Returns the name of the scope.
    */
   public String getName();
+  
+  /**
+   * @return Returns the names of all variables defined in this scope.
+   */
+  public Collection<String> getVariables();
 
   /**
    * Set the specified variable.

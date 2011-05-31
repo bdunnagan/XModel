@@ -26,7 +26,12 @@ public abstract class Protocol implements INetFramer, INetReceiver
     addChild,
     removeChild,
     changeAttribute,
-    clearAttribute
+    clearAttribute,
+    queryRequest,
+    queryResponse,
+    debugStepIn,
+    debugStepOver,
+    debugStepOut
   }
 
   protected Protocol()
@@ -69,6 +74,11 @@ public abstract class Protocol implements INetFramer, INetReceiver
       case removeChild:     handleRemoveChild( sender, buffer); return;
       case changeAttribute: handleChangeAttribute( sender, buffer); return;
       case clearAttribute:  handleClearAttribute( sender, buffer); return;
+      case queryRequest:    handleQueryRequest( sender, buffer); return;
+      case queryResponse:   handleQueryResponse( sender, buffer); return;
+      case debugStepIn:     handleDebugStepIn( sender, buffer); return;
+      case debugStepOver:   handleDebugStepOver( sender, buffer); return;
+      case debugStepOut:    handleDebugStepOut( sender, buffer); return;
     }
   }
   
@@ -261,8 +271,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleSyncRequest( INetSender sender, ByteBuffer buffer)
   {
-    String key = readString( buffer);
-    handleSyncRequest( sender, key);
+    byte[] bytes = new byte[ buffer.remaining()];
+    buffer.get( bytes);
+    handleSyncRequest( sender, new String( bytes));
   }
   
   /**
@@ -433,6 +444,163 @@ public abstract class Protocol implements INetFramer, INetReceiver
   {
   }
 
+  /**
+   * Send a query request message.
+   * @param sender The sender.
+   * @param xpath The xpath.
+   */
+  public final void sendQueryRequest( INetSender sender, String xpath)
+  {
+    initialize( buffer);
+    byte[] bytes = xpath.getBytes();
+    buffer.put( bytes, 0, bytes.length);
+    finalize( buffer, Type.queryRequest, bytes.length);
+    sender.send( buffer, timeout);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param sender The sender.
+   * @param buffer The buffer.
+   */
+  private final void handleQueryRequest( INetSender sender, ByteBuffer buffer)
+  {
+    byte[] bytes = new byte[ buffer.remaining()];
+    buffer.get( bytes);
+    handleQueryRequest( sender, new String( bytes));
+  }
+  
+  /**
+   * Handle a query requset.
+   * @param sender The sender.
+   * @param xpath The query.
+   */
+  protected void handleQueryRequest( INetSender sender, String xpath)
+  {
+  }
+  
+  /**
+   * Send a query response message.
+   * @param sender The sender.
+   * @param result The result.
+   */
+  public final void sendQueryResponse( INetSender sender, Object result)
+  {
+    initialize( buffer);
+    byte[] bytes = serialize( result);
+    buffer.put( bytes);
+    finalize( buffer, Type.queryResponse, bytes.length);
+    sender.send( buffer, timeout);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param sender The sender.
+   * @param buffer The buffer.
+   */
+  private final void handleQueryResponse( INetSender sender, ByteBuffer buffer)
+  {
+    byte[] bytes = new byte[ buffer.remaining()];
+    buffer.get( bytes);
+    handleQueryResponse( sender, bytes);
+  }
+  
+  /**
+   * Handle a query requset.
+   * @param sender The sender.
+   * @param bytes The serialized query result.
+   */
+  protected void handleQueryResponse( INetSender sender, byte[] bytes)
+  {
+  }
+  
+  /**
+   * Send a debug step message.
+   * @param sender The sender.
+   */
+  public final void sendDebugStepIn( INetSender sender)
+  {
+    initialize( buffer);
+    finalize( buffer, Type.debugStepIn, 0);
+    sender.send( buffer, 60000);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param sender The sender.
+   * @param buffer The buffer.
+   */
+  private final void handleDebugStepIn( INetSender sender, ByteBuffer buffer)
+  {
+    handleDebugStepIn( sender);
+  }
+  
+  /**
+   * Handle a debug step.
+   * @param sender The sender.
+   */
+  protected void handleDebugStepIn( INetSender sender)
+  {
+  }
+  
+  /**
+   * Send a debug step message.
+   * @param sender The sender.
+   */
+  public final void sendDebugStepOver( INetSender sender)
+  {
+    initialize( buffer);
+    finalize( buffer, Type.debugStepOver, 0);
+    sender.send( buffer, 60000);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param sender The sender.
+   * @param buffer The buffer.
+   */
+  private final void handleDebugStepOver( INetSender sender, ByteBuffer buffer)
+  {
+    handleDebugStepOver( sender);
+  }
+  
+  /**
+   * Handle a debug step.
+   * @param sender The sender.
+   */
+  protected void handleDebugStepOver( INetSender sender)
+  {
+  }
+  
+  /**
+   * Send a debug step message.
+   * @param sender The sender.
+   */
+  public final void sendDebugStepOut( INetSender sender)
+  {
+    initialize( buffer);
+    finalize( buffer, Type.debugStepOut, 0);
+    sender.send( buffer, 60000);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param sender The sender.
+   * @param buffer The buffer.
+   */
+  private final void handleDebugStepOut( INetSender sender, ByteBuffer buffer)
+  {
+    handleDebugStepOut( sender);
+  }
+  
+  /**
+   * Handle a debug step.
+   * @param sender The sender.
+   */
+  protected void handleDebugStepOut( INetSender sender)
+  {
+  }
+  
   /**
    * Returns the serialized attribute value.
    * @param object The attribute value.

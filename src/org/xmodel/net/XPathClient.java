@@ -136,6 +136,15 @@ public class XPathClient extends Protocol implements IListener
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleQueryResponse(org.xmodel.net.INetSender, byte[])
+   */
+  @Override
+  protected void handleQueryResponse( INetSender sender, byte[] bytes)
+  {
+    // TODO: finish this
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.Protocol#handleAddChild(org.xmodel.net.INetSender, java.lang.String, byte[], int)
    */
   @Override
