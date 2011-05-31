@@ -449,18 +449,19 @@ public class XPathServer extends Protocol implements Runnable, IListener
     {
       long time = System.currentTimeMillis();
       long elapsed = (time - stamp);
-      if ( elapsed > 5000)
+      if ( elapsed > 10000)
       {
         stamp = time;
         ModelObject child = new ModelObject( "child");
-        child.setAttribute( "tstamp", ""+time);
+        child.setAttribute( "tstamp", time);
         parent.addChild( child);
       }
       else
       {
         for( IModelObject child: parent.getChildren())
         {
-          child.setValue( ""+(time - Xlate.get( child, "tstamp", 0)));
+          long tstamp = Xlate.get( child, "tstamp", 0L);
+          child.setValue( time - tstamp);
         }
       }
       
