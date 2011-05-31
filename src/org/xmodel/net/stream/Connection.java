@@ -2,6 +2,7 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -68,7 +69,7 @@ public class Connection implements INetSender
   {
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( sendBuffer == null) sendBuffer = ByteBuffer.allocateDirect( 256);
+    if ( sendBuffer == null) sendBuffer = ByteBuffer.allocateDirect( 4096);
   }
   
   /**
@@ -102,28 +103,46 @@ public class Connection implements INetSender
   {
     int nread = channel.read( sendBuffer);
     sendBuffer.flip();
-    sendBuffer.mark();
     
-    int consume = framer.frame( sendBuffer);
+    while( true)
+    {
+      sendBuffer.mark();
+
+      try
+      {
+        int consume = framer.frame( sendBuffer);
+        int limit = sendBuffer.limit();
+        if ( limit > consume)
+        {
+          // set limit to end of message
+          sendBuffer.limit( sendBuffer.position() + consume);
+          
+          // pass message to receivers
+          sendBuffer.reset();
+          
+          System.out.printf( "read: ");
+          for( int i=sendBuffer.position(); i<sendBuffer.limit(); i++)
+            System.out.printf(  "%02X", sendBuffer.get( i));
+          System.out.println( "");
+          
+          receiver.receive( this, sendBuffer);
+          
+          // restore buffer limit and compact
+          sendBuffer.limit( limit);
+        }
+        else
+        {
+          break;
+        }
+      }
+      catch( BufferUnderflowException e)
+      {
+        break;
+      }
+    }
+    
     sendBuffer.reset();
-    
-    int limit = sendBuffer.limit();
-    if ( limit > consume)
-    {
-      // set limit to end of message
-      sendBuffer.limit( consume);
-      
-      // pass message to receivers
-      receiver.receive( this, sendBuffer);
-      
-      // restore buffer limit and compact
-      sendBuffer.limit( limit);
-      sendBuffer.compact();
-    }
-    else
-    {
-      sendBuffer.reset();
-    }
+    sendBuffer.compact();
     
     return nread;
   }
@@ -134,6 +153,10 @@ public class Connection implements INetSender
    */
   public void write( ByteBuffer buffer) throws IOException
   {
+    System.out.printf( "write: pos=%d, lim=%d: ", buffer.position(), buffer.limit());
+    for( int i=buffer.position(); i<buffer.limit(); i++) System.out.printf( "%02X", buffer.get( i));
+    System.out.println( "");
+    
     channel.write( buffer);
   }
   

@@ -6,6 +6,8 @@ import java.nio.ByteOrder;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.compress.TabularCompressor.PostCompression;
+import org.xmodel.log.Log;
 
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
@@ -30,7 +32,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
 
   protected Protocol()
   {
-    this.compressor = new TabularCompressor();
+    this.compressor = new TabularCompressor( PostCompression.zip);
     this.timeout = 10000;
     
     // allocate less than standard mtu
@@ -44,8 +46,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
   @Override
   public final int frame( ByteBuffer buffer)
   {
-    Type type = readMessageType( buffer);
-    if ( type == Type.version) return 2;
+    buffer.get();
     return readMessageLength( buffer);
   }
   
@@ -55,29 +56,11 @@ public abstract class Protocol implements INetFramer, INetReceiver
   @Override
   public final void receive( INetSender sender, ByteBuffer buffer)
   {
-  }
-  
-  /**
-   * Process a queued item.
-   * @param item The queue item.
-   */
-  public final void receive( QueueItem item)
-  {
-    INetSender sender = item.sender;
-    ByteBuffer buffer = item.buffer;
-    
     Type type = readMessageType( buffer);
-
-    // handle message types that don't have a length field
-    switch( type)
-    {
-      case version: handleVersion( sender, buffer); return;
-    }
-
-    // handle message types that have a length field
     readMessageLength( buffer);
     switch( type)
     {
+      case version: handleVersion( sender, buffer); return;
       case error:           handleError( sender, buffer); return;
       case attachRequest:   handleAttachRequest( sender, buffer); return;
       case attachResponse:  handleAttachResponse( sender, buffer); return;
@@ -201,6 +184,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachResponse, bytes.length);
+    sender.send( buffer);
   }
   
   /**
@@ -210,7 +194,9 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   private final void handleAttachResponse( INetSender sender, ByteBuffer buffer)
   {
-    IModelObject element = readElement( buffer);
+    byte[] bytes = new byte[ buffer.remaining()];
+    buffer.get( bytes);
+    IModelObject element = compressor.decompress( bytes, 0);
     handleAttachResponse( sender, element);
   }
   
@@ -303,6 +289,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     length += writeElement( buffer, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
+    sender.send( buffer);
   }
   
   /**
@@ -341,6 +328,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     int length = writeString( buffer, xpath);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, length);
+    sender.send( buffer);
   }
   
   /**
@@ -381,6 +369,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     length += writeString( buffer, attrName);
     length += writeBytes( buffer, bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
+    sender.send( buffer);
   }
   
   /**
@@ -420,6 +409,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     int length = writeString( buffer, xpath);
     length += writeString( buffer, attrName);
     finalize( buffer, Type.clearAttribute, length);
+    sender.send( buffer);
   }
   
   /**
@@ -476,6 +466,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   public static void initialize( ByteBuffer buffer)
   {
+    buffer.clear();
     buffer.position( 5);
   }
   
@@ -486,7 +477,8 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   public static Type readMessageType( ByteBuffer buffer)
   {
-    return Type.values()[ buffer.get() & 0x7f];
+    int index = buffer.get() & 0x7f;
+    return Type.values()[ index];
   }
   
   /**
@@ -512,15 +504,14 @@ public abstract class Protocol implements INetFramer, INetReceiver
     buffer.limit( buffer.position());
     if ( length < 128)
     {
+      buffer.put( 3, (byte)type.ordinal());
+      buffer.put( 4, (byte)length);
       buffer.position( 3);
-      buffer.put( (byte)type.ordinal());
-      buffer.put( (byte)length);
     }
     else
     {
-      buffer.position( 1);
-      buffer.put( (byte)(type.ordinal() | 0x80));
-      buffer.putInt( length);
+      buffer.put( 0, (byte)(type.ordinal() | 0x80));
+      buffer.putInt( 1, length);
     }
   }
   
@@ -646,22 +637,10 @@ public abstract class Protocol implements INetFramer, INetReceiver
     byte[] bytes = compressor.compress( element);
     return writeBytes( buffer, bytes, 0, bytes.length, false);
   }
-
-  private final class QueueItem implements Runnable
-  {
-    /* (non-Javadoc)
-     * @see java.lang.Runnable#run()
-     */
-    public void run()
-    {
-      receive( this);
-    }
-    
-    public INetSender sender;
-    public ByteBuffer buffer;
-  }
   
   private ByteBuffer buffer;
   private ICompressor compressor;
   private int timeout;
+  
+  private static Log log = Log.getLog( "org.xmodel.net");
 }

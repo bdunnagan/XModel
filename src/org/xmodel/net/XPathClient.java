@@ -3,13 +3,17 @@ package org.xmodel.net;
 import java.io.IOException;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ManualDispatcher;
 import org.xmodel.Xlate;
+import org.xmodel.external.ExternalReference;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpClient;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
@@ -37,7 +41,7 @@ public class XPathClient extends Protocol
    */
   public void attach( String xpath, IExternalReference reference) throws IOException
   {
-    if ( connection.isOpen()) 
+    if ( connection != null && connection.isOpen()) 
     {
       client.reconnect( connection);
     }
@@ -46,8 +50,11 @@ public class XPathClient extends Protocol
       connection = client.connect( host, port);
     }
     
+    client.process();
+    sendVersion( connection, (byte)1);
+    
     attached = reference;
-    sendAttachRequest( sender, xpath);
+    sendAttachRequest( connection, xpath);
   }
 
   /**
@@ -57,7 +64,7 @@ public class XPathClient extends Protocol
    */
   public void detach( String xpath, IExternalReference reference)
   {
-    sendDetachRequest( sender, xpath);
+    sendDetachRequest( connection, xpath);
   }
 
   /**
@@ -67,7 +74,7 @@ public class XPathClient extends Protocol
   public void sync( IExternalReference reference)
   {
     String key = Xlate.get( reference, "net:key", (String)null);
-    sendSyncRequest( sender, key);
+    sendSyncRequest( connection, key);
   }
 
   /* (non-Javadoc)
@@ -152,8 +159,30 @@ public class XPathClient extends Protocol
   private int port;
   private TcpClient client;
   private Connection connection;
-  private INetSender sender;
   private IExternalReference attached;
   
   private static Log log = Log.getLog(  "org.xmodel.net");
+  
+  public static void main( String[] args) throws Exception
+  {
+    String xml = "<config host=\"127.0.0.1\" port=\"27613\" xpath=\".\"/>";
+    XmlIO xmlIO = new XmlIO();
+    IModelObject config = xmlIO.read( xml);
+    
+    IExternalReference reference = new ExternalReference( "parent");
+    NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
+    cachingPolicy.configure( new Context( config), config);
+    reference.setCachingPolicy( cachingPolicy);
+    reference.setDirty( true);
+
+    reference.getChildren();
+    
+    ManualDispatcher dispatcher = new ManualDispatcher();
+    reference.getModel().setDispatcher( dispatcher);
+    while( true)
+    {
+      dispatcher.process();
+      Thread.sleep(  500);
+    }
+  }
 }

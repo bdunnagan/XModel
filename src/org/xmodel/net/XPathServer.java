@@ -11,6 +11,7 @@ import java.util.WeakHashMap;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
+import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
@@ -20,6 +21,7 @@ import org.xmodel.external.NonSyncingListener;
 import org.xmodel.net.stream.TcpServer;
 import org.xmodel.util.Identifier;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -93,7 +95,7 @@ public class XPathServer extends Protocol implements Runnable
   @Override
   public void run()
   {
-    exit = true;
+    exit = false;
     while( !exit)
     {
       try
@@ -400,4 +402,24 @@ public class XPathServer extends Protocol implements Runnable
   private IModel model;
   private IContext context;
   private Random random;
+  
+  public static void main( String[] args) throws Exception
+  {
+    IModelObject parent = new ModelObject( "parent");
+
+    ManualDispatcher dispatcher = new ManualDispatcher();
+    parent.getModel().setDispatcher( dispatcher);
+    
+    XPathServer server = new XPathServer();
+    server.setContext( new Context( parent));
+    server.start( "0.0.0.0", 27613);
+    
+    while( true)
+    {
+      parent.removeChildren();
+      parent.addChild( new ModelObject( "child"));
+      dispatcher.process();
+      Thread.sleep( 500);
+    }
+  }
 }

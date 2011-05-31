@@ -114,12 +114,8 @@ public class TcpClient implements ITcpAgent
           Connection connection = connected.get( channel);
           try
           {
-            int nread = connection.read();
-            if ( nread < 0)
-            {
-              connected.remove( channel);
-              connection.close( true);
-            }
+            int nread = 0;
+            while( nread >= 0) nread = connection.read();
           }
           catch( IOException e)
           {

@@ -89,14 +89,8 @@ public class TcpServer implements ITcpAgent
         Connection connection = connections.get( socketChannel);
         try
         {
-          int nread = connection.read();
-          if ( nread < 0)
-          {
-            connection.close( nread == 0);
-            connections.remove( channel);
-            channel.close();
-            continue;
-          }
+          int nread = 0;
+          while( nread >= 0) nread = connection.read();
         }
         catch( Exception e)
         {
