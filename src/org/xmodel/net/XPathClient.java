@@ -6,12 +6,14 @@ import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.Xlate;
+import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpClient;
+import org.xmodel.net.stream.Connection.IListener;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
@@ -20,7 +22,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the network caching policy protocol.
  */
-public class XPathClient extends Protocol
+public class XPathClient extends Protocol implements IListener
 {
   /**
    * Create a CachingClient to connect to the specified server.
@@ -32,7 +34,29 @@ public class XPathClient extends Protocol
     this.host = host;
     this.port = port;
     
-    client = new TcpClient( this, this);
+    client = new TcpClient( this, this, this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.Connection.IListener#connected(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  public void connected( Connection connection)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.Connection.IListener#disconnected(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  public void disconnected( Connection connection)
+  {
+    exit = true;
+    if ( attached != null)
+    {
+      dispatcher.execute( new DisconnectEvent( attached));
+      attached = null;
+    }
   }
 
   /**
@@ -52,11 +76,17 @@ public class XPathClient extends Protocol
     }
     
     client.process();
-    sendVersion( connection, (byte)1);
-    
-    dispatcher = reference.getModel().getDispatcher();
-    attached = reference;
-    sendAttachRequest( connection, xpath);
+    if ( connection.isOpen())
+    {
+      sendVersion( connection, (byte)1);
+      dispatcher = reference.getModel().getDispatcher();
+      attached = reference;
+      sendAttachRequest( connection, xpath);
+    }
+    else
+    {
+      throw new CachingException( "Unable to connect to server.");
+    }
   }
 
   /**
@@ -122,6 +152,8 @@ public class XPathClient extends Protocol
    */
   private void processAddChild( String xpath, byte[] bytes, int index)
   {
+    if ( attached == null) return;
+    
     IExpression parentExpr = XPath.createExpression( xpath);
     if ( parentExpr != null)
     {
@@ -147,6 +179,8 @@ public class XPathClient extends Protocol
    */
   private void processRemoveChild( String xpath, int index)
   {
+    if ( attached == null) return;
+    
     IExpression parentExpr = XPath.createExpression( xpath);
     if ( parentExpr != null)
     {
@@ -172,6 +206,8 @@ public class XPathClient extends Protocol
    */
   private void processChangeAttribute( String xpath, String attrName, Object attrValue)
   {
+    if ( attached == null) return;
+    
     IExpression elementExpr = XPath.createExpression( xpath);
     if ( elementExpr != null)
     {
@@ -196,6 +232,8 @@ public class XPathClient extends Protocol
    */
   private void processClearAttribute( String xpath, String attrName)
   {
+    if ( attached == null) return;
+    
     IExpression elementExpr = XPath.createExpression( xpath);
     if ( elementExpr != null)
     {
@@ -276,14 +314,33 @@ public class XPathClient extends Protocol
     private String attrName;
   }
   
+  private final class DisconnectEvent implements Runnable
+  {
+    public DisconnectEvent( IExternalReference attached)
+    {
+      this.attached = attached;
+    }
+    
+    public void run()
+    {
+      System.out.println( "mark dirty");
+      attached.setDirty( true);
+      System.out.println( "resync");
+      attached.getChildren();
+    }
+    
+    private IExternalReference attached;
+  }
+  
   private final Runnable clientRunnable = new Runnable() {
     public void run()
     {
-      while( true)
+      exit = false;
+      while( !exit)
       {
         try
         {
-          client.process();
+          client.process( 500);
         }
         catch( IOException e)
         {
@@ -299,6 +356,7 @@ public class XPathClient extends Protocol
   private Connection connection;
   private IExternalReference attached;
   private Thread thread;
+  private boolean exit;
   private IDispatcher dispatcher;
   
   private static Log log = Log.getLog(  "org.xmodel.net");

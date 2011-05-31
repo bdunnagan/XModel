@@ -14,6 +14,7 @@ import java.util.Set;
 
 import org.xmodel.net.INetFramer;
 import org.xmodel.net.INetReceiver;
+import org.xmodel.net.stream.Connection.IListener;
 
 /**
  * A java.nio based Server. This class provides a minimal non-blocking server.
@@ -27,10 +28,11 @@ public class TcpServer implements ITcpAgent
    * @param framer The message framer.
    * @param receiver The recipient.
    */
-  public TcpServer( String host, int port, INetFramer framer, INetReceiver receiver) throws IOException
+  public TcpServer( String host, int port, INetFramer framer, INetReceiver receiver, IListener listener) throws IOException
   {
     this.framer = framer;
     this.receiver = receiver;
+    this.listener = listener;
     
     localAddress = new InetSocketAddress( host, port);
     connections = new HashMap<Channel, Connection>();
@@ -75,7 +77,7 @@ public class TcpServer implements ITcpAgent
           newChannel.configureBlocking( false);
           newChannel.register( selector, SelectionKey.OP_READ);
           
-          Connection connection = new Connection( this, framer, receiver);
+          Connection connection = new Connection( this, framer, receiver, listener);
           connection.connected( newChannel);
           connections.put( newChannel, connection);
         }
@@ -86,11 +88,12 @@ public class TcpServer implements ITcpAgent
       else
       {
         SocketChannel socketChannel = (SocketChannel)channel;
+        socketChannel.configureBlocking( false);
         Connection connection = connections.get( socketChannel);
         try
         {
-          int nread = 0;
-          while( nread >= 0) nread = connection.read();
+          int nread = connection.read();
+          while( nread > 0) nread = connection.read();
         }
         catch( Exception e)
         {
@@ -123,4 +126,5 @@ public class TcpServer implements ITcpAgent
   private Map<Channel, Connection> connections;
   private INetFramer framer;
   private INetReceiver receiver;
+  private IListener listener;
 }

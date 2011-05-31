@@ -14,13 +14,16 @@ import java.util.Set;
 
 import org.xmodel.net.INetFramer;
 import org.xmodel.net.INetReceiver;
+import org.xmodel.net.stream.Connection.IListener;
 
 public class TcpClient implements ITcpAgent
 {
-  public TcpClient( INetFramer framer, INetReceiver receiver)
+  public TcpClient( INetFramer framer, INetReceiver receiver, IListener listener)
   {
     this.framer = framer;
     this.receiver = receiver;
+    this.listener = listener;
+    
     pending = new HashMap<Channel, Connection>();
     connected = new HashMap<Channel, Connection>();
   }
@@ -41,7 +44,7 @@ public class TcpClient implements ITcpAgent
     
     channel.connect( address);
     
-    Connection connection = new Connection( this, framer, receiver);
+    Connection connection = new Connection( this, framer, receiver, listener);
     pending.put( channel, connection);
     return connection;
   }
@@ -135,6 +138,7 @@ public class TcpClient implements ITcpAgent
   
   private INetFramer framer;
   private INetReceiver receiver;
+  private IListener listener;
   private InetSocketAddress address;
   private Selector selector;
   private Map<Channel, Connection> pending;

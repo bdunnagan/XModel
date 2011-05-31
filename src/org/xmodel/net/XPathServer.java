@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
@@ -12,11 +13,17 @@ import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
+import org.xmodel.Xlate;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
+import org.xmodel.log.Log;
+import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpServer;
+import org.xmodel.net.stream.Connection.IListener;
+import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.Identifier;
+import org.xmodel.util.MultiMap;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
@@ -25,7 +32,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer extends Protocol implements Runnable
+public class XPathServer extends Protocol implements Runnable, IListener
 {
   public enum Message
   {
@@ -49,8 +56,9 @@ public class XPathServer extends Protocol implements Runnable
    */
   public XPathServer()
   {
-    index = new WeakHashMap<String, IExternalReference>();
     random = new Random();
+    index = new WeakHashMap<String, IExternalReference>();
+    listeners = new HashMultiMap<INetSender, Listener>();
   }
   
   /**
@@ -70,7 +78,7 @@ public class XPathServer extends Protocol implements Runnable
    */
   public void start( String host, int port) throws IOException
   {
-    server = new TcpServer( host, port, this, this);
+    server = new TcpServer( host, port, this, this, this);
     thread = new Thread( this);
     thread.setDaemon( true);
     thread.start();
@@ -96,12 +104,33 @@ public class XPathServer extends Protocol implements Runnable
       try
       {
         server.process( 500);
+        System.out.println( ".");
       }
       catch( Exception e)
       {
+        log.warn( e.getMessage());
         break;
       }
     }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.Connection.IListener#connected(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  public void connected( Connection connection)
+  {
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.Connection.IListener#disconnected(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  public void disconnected( Connection connection)
+  {
+    List<Listener> list = listeners.get( connection);
+    for( Listener listener: list) listener.uninstall();
+    listeners.removeAll( connection);
   }
 
   /**
@@ -121,6 +150,7 @@ public class XPathServer extends Protocol implements Runnable
         copy = serialize( target);
         Listener listener = new Listener( sender, xpath, target);
         listener.install( target);
+        listeners.put( sender, listener);
       }
       sendAttachResponse( sender, copy);
     }
@@ -322,6 +352,11 @@ public class XPathServer extends Protocol implements Runnable
       this.root = root;
     }
     
+    public void uninstall()
+    {
+      uninstall( root);
+    }
+    
     /* (non-Javadoc)
      * @see org.xmodel.external.NonSyncingListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
      */
@@ -388,10 +423,13 @@ public class XPathServer extends Protocol implements Runnable
     private IModelObject root;
   };
   
+  private static Log log = Log.getLog( "org.xmodel.net");
+  
   private TcpServer server;
   private Thread thread;
   private boolean exit;
   private Map<String, IExternalReference> index;
+  private MultiMap<INetSender, Listener> listeners;
   private IContext context;
   private Random random;
   
@@ -414,13 +452,16 @@ public class XPathServer extends Protocol implements Runnable
       if ( elapsed > 5000)
       {
         stamp = time;
-        parent.removeChildren();
-        parent.addChild( new ModelObject( "child"));
+        ModelObject child = new ModelObject( "child");
+        child.setAttribute( "tstamp", ""+time);
+        parent.addChild( child);
       }
       else
       {
-        if ( parent.getNumberOfChildren() > 0)
-          parent.getChild( 0).setValue( elapsed);
+        for( IModelObject child: parent.getChildren())
+        {
+          child.setValue( ""+(time - Xlate.get( child, "tstamp", 0)));
+        }
       }
       
       dispatcher.process();

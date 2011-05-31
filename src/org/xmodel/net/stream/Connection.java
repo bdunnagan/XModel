@@ -16,17 +16,34 @@ import org.xmodel.net.INetSender;
  */
 public class Connection implements INetSender
 {
+  public interface IListener
+  {
+    /**
+     * Called when a connection is established.
+     * @param connection The connection.
+     */
+    public void connected( Connection connection);
+    
+    /**
+     * Called when a connection is closed.
+     * @param connection The connection.
+     */
+    public void disconnected( Connection connection);
+  }
+  
   /**
    * Create a new connection.
    * @param agent The agent that created the connection.
    * @param framer The message framer.
    * @param receiver The primary receiver.
+   * @param listener The connection listener.
    */
-  Connection( ITcpAgent agent, INetFramer framer, INetReceiver receiver)
+  Connection( ITcpAgent agent, INetFramer framer, INetReceiver receiver, IListener listener)
   {
     this.agent = agent;
     this.framer = framer;
     this.receiver = receiver;
+    this.listener = listener;
   }
   
   /**
@@ -70,6 +87,8 @@ public class Connection implements INetSender
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
     if ( sendBuffer == null) sendBuffer = ByteBuffer.allocateDirect( 4096);
+    
+    if ( listener != null) listener.connected( this);
   }
   
   /**
@@ -86,6 +105,8 @@ public class Connection implements INetSender
     {
     }
     channel = null;
+    
+    if ( listener != null) listener.disconnected( this);
   }
   
   /**
@@ -157,7 +178,7 @@ public class Connection implements INetSender
     for( int i=buffer.position(); i<buffer.limit(); i++) System.out.printf( "%02X", buffer.get( i));
     System.out.println( "");
     
-    channel.write( buffer);
+    if ( channel != null) channel.write( buffer);
   }
   
   /* (non-Javadoc)
@@ -203,6 +224,11 @@ public class Connection implements INetSender
   @Override
   public void close()
   {
+    if ( channel != null) 
+    {
+      try { channel.close();} catch( Exception e) {}
+      channel = null;
+    }
   }
 
   /* (non-Javadoc)
@@ -220,5 +246,6 @@ public class Connection implements INetSender
   private SocketChannel channel;
   private ByteBuffer sendBuffer;
   private ByteBuffer receiveBuffer;
+  private IListener listener;
   private Log log = Log.getLog( "org.xmodel.net.stream");
 }
