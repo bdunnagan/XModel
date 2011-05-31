@@ -1,14 +1,11 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
 
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ManualDispatcher;
@@ -53,7 +50,6 @@ public class XPathServer extends Protocol implements Runnable
   public XPathServer()
   {
     index = new WeakHashMap<String, IExternalReference>();
-    orphans = new ArrayList<Listener>();
     random = new Random();
   }
   
@@ -64,7 +60,6 @@ public class XPathServer extends Protocol implements Runnable
   public void setContext( IContext context)
   {
     this.context = context;
-    this.model = context.getModel();
     this.thread = Thread.currentThread();
   }
 
@@ -154,7 +149,6 @@ public class XPathServer extends Protocol implements Runnable
     }
     catch( PathSyntaxException e)
     {
-      orphans.add( new Listener( sender, xpath, null));
       sendError( sender, e.getMessage());
     }
   }
@@ -236,7 +230,7 @@ public class XPathServer extends Protocol implements Runnable
   @Override
   protected void handleAttachRequest( INetSender sender, String xpath)
   {
-    model.dispatch( new AttachRunnable( sender, xpath));
+    context.getModel().dispatch( new AttachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -245,7 +239,7 @@ public class XPathServer extends Protocol implements Runnable
   @Override
   protected void handleDetachRequest( INetSender sender, String xpath)
   {
-    model.dispatch( new DetachRunnable( sender, xpath));
+    context.getModel().dispatch( new DetachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -255,7 +249,7 @@ public class XPathServer extends Protocol implements Runnable
   protected void handleSyncRequest( INetSender sender, String key)
   {
     IExternalReference reference = index.get( key);
-    if ( reference != null) model.dispatch( new SyncRunnable( reference));
+    if ( reference != null) context.getModel().dispatch( new SyncRunnable( reference));
   }
   
   /**
@@ -398,8 +392,6 @@ public class XPathServer extends Protocol implements Runnable
   private Thread thread;
   private boolean exit;
   private Map<String, IExternalReference> index;
-  private List<Listener> orphans;
-  private IModel model;
   private IContext context;
   private Random random;
   
@@ -413,13 +405,26 @@ public class XPathServer extends Protocol implements Runnable
     XPathServer server = new XPathServer();
     server.setContext( new Context( parent));
     server.start( "0.0.0.0", 27613);
-    
+
+    long stamp = System.currentTimeMillis();
     while( true)
     {
-      parent.removeChildren();
-      parent.addChild( new ModelObject( "child"));
+      long time = System.currentTimeMillis();
+      long elapsed = (time - stamp);
+      if ( elapsed > 5000)
+      {
+        stamp = time;
+        parent.removeChildren();
+        parent.addChild( new ModelObject( "child"));
+      }
+      else
+      {
+        if ( parent.getNumberOfChildren() > 0)
+          parent.getChild( 0).setValue( elapsed);
+      }
+      
       dispatcher.process();
-      Thread.sleep( 500);
+      Thread.sleep( 1000);
     }
   }
 }

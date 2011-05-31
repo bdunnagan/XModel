@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.io.IOException;
 
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.Xlate;
@@ -53,6 +54,7 @@ public class XPathClient extends Protocol
     client.process();
     sendVersion( connection, (byte)1);
     
+    dispatcher = reference.getModel().getDispatcher();
     attached = reference;
     sendAttachRequest( connection, xpath);
   }
@@ -97,27 +99,53 @@ public class XPathClient extends Protocol
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
       cachingPolicy.update( attached, element);
     }
+    
+    thread = new Thread( clientRunnable, "client");
+    thread.setDaemon( true);
+    thread.start();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleAddChild(org.xmodel.net.nu.INetSender, java.lang.String, org.xmodel.IModelObject, int)
+   * @see org.xmodel.net.Protocol#handleAddChild(org.xmodel.net.INetSender, java.lang.String, byte[], int)
    */
   @Override
-  protected void handleAddChild( INetSender sender, String xpath, IModelObject child, int index)
+  protected void handleAddChild( INetSender sender, String xpath, byte[] child, int index)
+  {
+    dispatcher.execute( new AddChildEvent( xpath, child, index));
+  }
+
+  /**
+   * Process an add child event in the appropriate thread.
+   * @param xpath The xpath of the parent.
+   * @param bytes The child that was added.
+   * @param index The index of insertion.
+   */
+  private void processAddChild( String xpath, byte[] bytes, int index)
   {
     IExpression parentExpr = XPath.createExpression( xpath);
     if ( parentExpr != null)
     {
       IModelObject parent = parentExpr.queryFirst( attached);
+      IModelObject child = compressor.decompress( bytes, 0);
       if ( parent != null) parent.addChild( child, index);
     }
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.Protocol#handleRemoveChild(org.xmodel.net.nu.INetSender, java.lang.String, int)
    */
   @Override
   protected void handleRemoveChild( INetSender sender, String xpath, int index)
+  {
+    dispatcher.execute( new RemoveChildEvent( xpath, index));
+  }
+
+  /**
+   * Process an remove child event in the appropriate thread.
+   * @param xpath The xpath of the parent.
+   * @param index The index of insertion.
+   */
+  private void processRemoveChild( String xpath, int index)
   {
     IExpression parentExpr = XPath.createExpression( xpath);
     if ( parentExpr != null)
@@ -126,12 +154,23 @@ public class XPathClient extends Protocol
       if ( parent != null) parent.removeChild( index);
     }
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.Protocol#handleChangeAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String, java.lang.Object)
    */
   @Override
   protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, Object attrValue)
+  {
+    dispatcher.execute( new ChangeAttributeEvent( xpath, attrName, attrValue));
+  }
+
+  /**
+   * Process an change attribute event in the appropriate thread.
+   * @param xpath The xpath of the element.
+   * @param attrName The name of the attribute.
+   * @param attrValue The new value.
+   */
+  private void processChangeAttribute( String xpath, String attrName, Object attrValue)
   {
     IExpression elementExpr = XPath.createExpression( xpath);
     if ( elementExpr != null)
@@ -140,12 +179,22 @@ public class XPathClient extends Protocol
       if ( element != null) element.setAttribute( attrName, attrValue);
     }
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.Protocol#handleClearAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String)
    */
   @Override
   protected void handleClearAttribute( INetSender sender, String xpath, String attrName)
+  {
+    dispatcher.execute( new ClearAttributeEvent( xpath, attrName));
+  }
+
+  /**
+   * Process a clear attribute event in the appropriate thread.
+   * @param xpath The xpath of the element.
+   * @param attrName The name of the attribute.
+   */
+  private void processClearAttribute( String xpath, String attrName)
   {
     IExpression elementExpr = XPath.createExpression( xpath);
     if ( elementExpr != null)
@@ -154,12 +203,103 @@ public class XPathClient extends Protocol
       if ( element != null) element.removeAttribute( attrName);
     }
   }
-
+  
+  private final class AddChildEvent implements Runnable
+  {
+    public AddChildEvent( String xpath, byte[] child, int index)
+    {
+      this.xpath = xpath;
+      this.child = child;
+      this.index = index;
+    }
+    
+    public void run()
+    {
+      processAddChild( xpath, child, index);
+    }
+    
+    private String xpath;
+    private byte[] child;
+    private int index;
+  }
+  
+  private final class RemoveChildEvent implements Runnable
+  {
+    public RemoveChildEvent( String xpath, int index)
+    {
+      this.xpath = xpath;
+      this.index = index;
+    }
+    
+    public void run()
+    {
+      processRemoveChild( xpath, index);
+    }
+    
+    private String xpath;
+    private int index;
+  }
+  
+  private final class ChangeAttributeEvent implements Runnable
+  {
+    public ChangeAttributeEvent( String xpath, String attrName, Object attrValue)
+    {
+      this.xpath = xpath;
+      this.attrName = attrName;
+      this.attrValue = attrValue;
+    }
+    
+    public void run()
+    {
+      processChangeAttribute( xpath, attrName, attrValue);
+    }
+    
+    private String xpath;
+    private String attrName;
+    private Object attrValue;
+  }
+  
+  private final class ClearAttributeEvent implements Runnable
+  {
+    public ClearAttributeEvent( String xpath, String attrName)
+    {
+      this.xpath = xpath;
+      this.attrName = attrName;
+    }
+    
+    public void run()
+    {
+      processClearAttribute( xpath, attrName);
+    }
+    
+    private String xpath;
+    private String attrName;
+  }
+  
+  private final Runnable clientRunnable = new Runnable() {
+    public void run()
+    {
+      while( true)
+      {
+        try
+        {
+          client.process();
+        }
+        catch( IOException e)
+        {
+          break;
+        }
+      }
+    }
+  };
+  
   private String host;
   private int port;
   private TcpClient client;
   private Connection connection;
   private IExternalReference attached;
+  private Thread thread;
+  private IDispatcher dispatcher;
   
   private static Log log = Log.getLog(  "org.xmodel.net");
   
@@ -175,14 +315,16 @@ public class XPathClient extends Protocol
     reference.setCachingPolicy( cachingPolicy);
     reference.setDirty( true);
 
-    reference.getChildren();
-    
     ManualDispatcher dispatcher = new ManualDispatcher();
     reference.getModel().setDispatcher( dispatcher);
+    
+    reference.getChildren();
+    
     while( true)
     {
+      System.out.println( xmlIO.write( reference));
       dispatcher.process();
-      Thread.sleep(  500);
+      Thread.sleep( 1000);
     }
   }
 }

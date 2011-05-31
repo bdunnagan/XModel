@@ -86,7 +86,7 @@ public class TcpClient implements ITcpAgent
   public void process( int timeout) throws IOException
   {
     if ( selector.select( timeout) == 0) return; 
-    
+
     Set<SelectionKey> readyKeys = selector.selectedKeys();
     for( SelectionKey readyKey: readyKeys)
     {
@@ -114,8 +114,8 @@ public class TcpClient implements ITcpAgent
           Connection connection = connected.get( channel);
           try
           {
-            int nread = 0;
-            while( nread >= 0) nread = connection.read();
+            int nread = connection.read();
+            while( nread > 0) nread = connection.read();
           }
           catch( IOException e)
           {

@@ -7,7 +7,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
-import org.xmodel.log.Log;
 
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
@@ -60,7 +59,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     readMessageLength( buffer);
     switch( type)
     {
-      case version: handleVersion( sender, buffer); return;
+      case version:         handleVersion( sender, buffer); return;
       case error:           handleError( sender, buffer); return;
       case attachRequest:   handleAttachRequest( sender, buffer); return;
       case attachResponse:  handleAttachResponse( sender, buffer); return;
@@ -72,7 +71,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
       case clearAttribute:  handleClearAttribute( sender, buffer); return;
     }
   }
-
+  
   /**
    * Send the protocol version.
    * @param sender The sender.
@@ -300,19 +299,19 @@ public abstract class Protocol implements INetFramer, INetReceiver
   private final void handleAddChild( INetSender sender, ByteBuffer buffer)
   {
     String xpath = readString( buffer);
-    IModelObject element = readElement( buffer);
+    byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( sender, xpath, element, index);
+    handleAddChild( sender, xpath, bytes, index);
   }
   
   /**
    * Handle an add child message.
    * @param sender The sender.
    * @param xpath The path from the root to the parent.
-   * @param child The child that was added.
+   * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( INetSender sender, String xpath, IModelObject child, int index)
+  protected void handleAddChild( INetSender sender, String xpath, byte[] child, int index)
   {
   }
   
@@ -637,10 +636,8 @@ public abstract class Protocol implements INetFramer, INetReceiver
     byte[] bytes = compressor.compress( element);
     return writeBytes( buffer, bytes, 0, bytes.length, false);
   }
-  
+
+  protected ICompressor compressor;
   private ByteBuffer buffer;
-  private ICompressor compressor;
   private int timeout;
-  
-  private static Log log = Log.getLog( "org.xmodel.net");
 }
