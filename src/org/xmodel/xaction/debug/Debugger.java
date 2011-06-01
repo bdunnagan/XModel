@@ -11,7 +11,7 @@ import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.XPathServer;
+import org.xmodel.net.Server;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XAction;
@@ -22,9 +22,10 @@ import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
- * A base class for IDebugger implementations.
+ * A reference IDebugger implementation that uses an XPathServer to provide
+ * access to the debugging operations and stack frame information.
  */
-public abstract class Debugger implements IDebugger
+public class Debugger implements IDebugger
 {
   public Debugger()
   {
@@ -51,12 +52,16 @@ public abstract class Debugger implements IDebugger
    * @param context The execution context.
    * @param stack The stack.
    */
-  protected abstract void pause( IContext context, Stack<Frame> stack);
+  protected void pause( IContext context, Stack<Frame> stack)
+  {
+  }
   
   /**
    * Called when the current script is complete.
    */
-  protected abstract void resume();
+  protected void resume()
+  {
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#stepOver()
@@ -138,7 +143,7 @@ public abstract class Debugger implements IDebugger
     {
       try
       {
-        server = new XPathServer();
+        server = new Server();
         server.setContext( context);
         server.start( "127.0.0.1", 27700);
       }
@@ -224,7 +229,7 @@ public abstract class Debugger implements IDebugger
   private int stepFrame;
   private int currFrame;
   private StatefulContext context;
-  private XPathServer server;
+  private Server server;
   
   public static void main( String[] args) throws Exception
   {

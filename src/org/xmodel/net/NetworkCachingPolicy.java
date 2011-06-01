@@ -55,7 +55,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Port not defined in annotation: \n"+xml);
     }
     
-    client = new XPathClient( host, port);
+    client = new Client( host, port);
     
     xpath = Xlate.get( annotation, "xpath", (String)null);
     if ( xpath == null)
@@ -102,7 +102,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   
   private final static IExpression stageExpr = XPath.createExpression( "descendant::*[ @net:key]");
   
-  private XPathClient client;
+  private Client client;
   private String xpath;
   private String error;
 }

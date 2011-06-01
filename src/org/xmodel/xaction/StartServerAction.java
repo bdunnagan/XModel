@@ -25,7 +25,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
-import org.xmodel.net.XPathServer;
+import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -51,13 +51,13 @@ public class StartServerAction extends GuardedAction
     
     // get host and port
     host = Xlate.get( document.getRoot(), "host", "0.0.0.0");
-    port = Xlate.get( document.getRoot(), "port", XPathServer.defaultPort);
+    port = Xlate.get( document.getRoot(), "port", Server.defaultPort);
     
     // get context expression
     sourceExpr = document.getExpression();
     
     // create server
-    server = new XPathServer();
+    server = new Server();
   }
 
   /* (non-Javadoc)
@@ -91,7 +91,7 @@ public class StartServerAction extends GuardedAction
   private static Log log = Log.getLog( "org.xmodel.xaction");
   
   private IModelObjectFactory factory;
-  private XPathServer server;
+  private Server server;
   private String assign;
   private String host;
   private int port;

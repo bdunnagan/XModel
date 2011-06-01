@@ -22,14 +22,14 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the network caching policy protocol.
  */
-public class XPathClient extends Protocol implements IListener
+public class Client extends Protocol implements IListener
 {
   /**
    * Create a CachingClient to connect to the specified server.
    * @param host The server host.
    * @param port The server port.
    */
-  public XPathClient( String host, int port)
+  public Client( String host, int port)
   {
     this.host = host;
     this.port = port;

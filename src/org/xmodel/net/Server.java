@@ -32,7 +32,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class XPathServer extends Protocol implements Runnable, IListener
+public class Server extends Protocol implements Runnable, IListener
 {
   public enum Message
   {
@@ -54,7 +54,7 @@ public class XPathServer extends Protocol implements Runnable, IListener
    * Create a server bound to the specified local address and port.
    * @param model The model.
    */
-  public XPathServer()
+  public Server()
   {
     random = new Random();
     index = new WeakHashMap<String, IExternalReference>();
@@ -492,7 +492,7 @@ public class XPathServer extends Protocol implements Runnable, IListener
     ManualDispatcher dispatcher = new ManualDispatcher();
     parent.getModel().setDispatcher( dispatcher);
     
-    XPathServer server = new XPathServer();
+    Server server = new Server();
     server.setContext( new Context( parent));
     server.start( "0.0.0.0", 27613);
 
