@@ -41,14 +41,14 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     XmlIO xmlIO = new XmlIO();
-    String host = Xlate.get( annotation, "host", (String)null);
+    String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", (String)null));
     if ( host == null) 
     {
       String xml = xmlIO.write( annotation);
       throw new CachingException( "Host not defined in annotation: \n"+xml);
     }
     
-    int port = Xlate.get( annotation, "port", 0);
+    int port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", 0));
     if ( port == 0)
     {
       String xml = xmlIO.write( annotation);
@@ -57,7 +57,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     
     client = new Client( host, port);
     
-    xpath = Xlate.get( annotation, "xpath", (String)null);
+    xpath = Xlate.get( annotation, "xpath", Xlate.childGet( annotation, "xpath", (String)null));
     if ( xpath == null)
     {
       String xml = xmlIO.write( annotation);

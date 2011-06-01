@@ -633,6 +633,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
    */
   public static void initialize( ByteBuffer buffer)
   {
+    System.out.println( buffer);
     buffer.clear();
     buffer.position( 5);
   }
@@ -679,6 +680,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
     {
       buffer.put( 0, (byte)(type.ordinal() | 0x80));
       buffer.putInt( 1, length);
+      buffer.position( 0);
     }
   }
   

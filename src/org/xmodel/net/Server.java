@@ -24,6 +24,7 @@ import org.xmodel.net.stream.Connection.IListener;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.Identifier;
 import org.xmodel.util.MultiMap;
+import org.xmodel.xaction.XAction;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
@@ -54,11 +55,12 @@ public class Server extends Protocol implements Runnable, IListener
    * Create a server bound to the specified local address and port.
    * @param model The model.
    */
-  public Server()
+  public Server( String host, int port) throws IOException
   {
     random = new Random();
     index = new WeakHashMap<String, IExternalReference>();
     listeners = new HashMultiMap<INetSender, Listener>();
+    server = new TcpServer( host, port, this, this, this);
   }
   
   /**
@@ -68,17 +70,15 @@ public class Server extends Protocol implements Runnable, IListener
   public void setContext( IContext context)
   {
     this.context = context;
-    this.thread = Thread.currentThread();
   }
 
   /**
-   * Start the server thread.
+   * Start the server thread and dispatch events using the IDispatcher.
    * @param host The local address.
    * @param port The local port.
    */
-  public void start( String host, int port) throws IOException
+  public void start()
   {
-    server = new TcpServer( host, port, this, this, this);
     thread = new Thread( this);
     thread.setDaemon( true);
     thread.start();
@@ -92,6 +92,15 @@ public class Server extends Protocol implements Runnable, IListener
     exit = true;
   }
   
+  /**
+   * Process server events in the current thread (without using IDispatcher).
+   * @param timeout The amount of time to wait for a server event in milliseconds.
+   */
+  public void process( int timeout) throws IOException
+  {
+    server.process( timeout);
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Runnable#run()
    */
@@ -103,8 +112,7 @@ public class Server extends Protocol implements Runnable, IListener
     {
       try
       {
-        server.process( 500);
-        System.out.println( ".");
+        server.process();
       }
       catch( Exception e)
       {
@@ -286,7 +294,14 @@ public class Server extends Protocol implements Runnable, IListener
   @Override
   protected void handleAttachRequest( INetSender sender, String xpath)
   {
-    context.getModel().dispatch( new AttachRunnable( sender, xpath));
+    if ( thread == null) 
+    {
+      attach( sender, xpath);
+    }
+    else 
+    {
+      context.getModel().dispatch( new AttachRunnable( sender, xpath));
+    }
   }
 
   /* (non-Javadoc)
@@ -295,7 +310,14 @@ public class Server extends Protocol implements Runnable, IListener
   @Override
   protected void handleDetachRequest( INetSender sender, String xpath)
   {
-    context.getModel().dispatch( new DetachRunnable( sender, xpath));
+    if ( thread == null) 
+    {
+      detach( sender, xpath);
+    }
+    else 
+    {
+      context.getModel().dispatch( new DetachRunnable( sender, xpath));
+    }
   }
 
   /* (non-Javadoc)
@@ -305,7 +327,17 @@ public class Server extends Protocol implements Runnable, IListener
   protected void handleSyncRequest( INetSender sender, String key)
   {
     IExternalReference reference = index.get( key);
-    if ( reference != null) context.getModel().dispatch( new SyncRunnable( reference));
+    if ( reference != null)
+    {
+      if ( thread == null) 
+      {
+        sync( reference);
+      }
+      else 
+      {
+        context.getModel().dispatch( new SyncRunnable( reference));
+      }
+    }
   }
   
   /* (non-Javadoc)
@@ -314,7 +346,41 @@ public class Server extends Protocol implements Runnable, IListener
   @Override
   protected void handleQueryRequest( INetSender sender, String xpath)
   {
-    context.getModel().dispatch( new QueryRunnable( sender, xpath));
+    if ( thread == null) 
+    {
+      query( sender, xpath);
+    }
+    else 
+    {
+      context.getModel().dispatch( new QueryRunnable( sender, xpath));
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleDebugStepIn(org.xmodel.net.INetSender)
+   */
+  @Override
+  protected void handleDebugStepIn( INetSender sender)
+  {
+    XAction.getDebugger().stepIn();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleDebugStepOut(org.xmodel.net.INetSender)
+   */
+  @Override
+  protected void handleDebugStepOut( INetSender sender)
+  {
+    XAction.getDebugger().stepOut();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleDebugStepOver(org.xmodel.net.INetSender)
+   */
+  @Override
+  protected void handleDebugStepOver( INetSender sender)
+  {
+    XAction.getDebugger().stepOver();
   }
 
   /**
@@ -492,9 +558,9 @@ public class Server extends Protocol implements Runnable, IListener
     ManualDispatcher dispatcher = new ManualDispatcher();
     parent.getModel().setDispatcher( dispatcher);
     
-    Server server = new Server();
+    Server server = new Server( "0.0.0.0", 27613);
     server.setContext( new Context( parent));
-    server.start( "0.0.0.0", 27613);
+    server.start();
 
     long stamp = System.currentTimeMillis();
     while( true)

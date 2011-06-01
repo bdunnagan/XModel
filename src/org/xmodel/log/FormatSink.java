@@ -48,12 +48,20 @@ public final class FormatSink implements ILogSink
   {
     String levelName = Log.getLevelName( level);
     
+    String date = dateFormat.format( new Date());
     StringBuilder sb = new StringBuilder();
     sb.append( levelName); sb.append( ' ');
     sb.append( log.getName()); sb.append( ' ');
-    sb.append( dateFormat.format( new Date())); sb.append( ' ');
+    sb.append( date); sb.append( ' ');
     sb.append( message);
-    delegate.log( log, level, message);
+    delegate.log( log, level, sb.toString());
+    
+    sb.setLength( 0);
+    sb.append( levelName); sb.append( ' ');
+    sb.append( log.getName()); sb.append( ' ');
+    sb.append( date); sb.append( ' ');
+    sb.append( throwable.getMessage());
+    delegate.log( log, level, sb.toString());
     
     StackTraceElement[] stack = throwable.getStackTrace();
     for( StackTraceElement element: stack)
@@ -61,7 +69,7 @@ public final class FormatSink implements ILogSink
       sb.setLength( 0);
       sb.append( levelName); sb.append( ' ');
       sb.append( log.getName()); sb.append( ' ');
-      sb.append( "                        ");
+      sb.append( date); sb.append( ' ');
       sb.append( element.toString());
       delegate.log( log, level, sb.toString());
     }

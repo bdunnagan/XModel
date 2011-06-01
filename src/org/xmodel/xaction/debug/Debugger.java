@@ -1,5 +1,6 @@
 package org.xmodel.xaction.debug;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
@@ -27,6 +28,8 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public class Debugger implements IDebugger
 {
+  public final static int defaultPort = 27700;
+  
   public Debugger()
   {
     semaphore = new Semaphore( 0);
@@ -54,6 +57,7 @@ public class Debugger implements IDebugger
    */
   protected void pause( IContext context, Stack<Frame> stack)
   {
+    log.info( "debugger: pausing ...");
   }
   
   /**
@@ -61,6 +65,7 @@ public class Debugger implements IDebugger
    */
   protected void resume()
   {
+    log.info( "debugger: resuming ...");
   }
   
   /* (non-Javadoc)
@@ -143,17 +148,26 @@ public class Debugger implements IDebugger
     {
       try
       {
-        server = new Server();
+        server = new Server( "0.0.0.0", defaultPort);
         server.setContext( context);
-        server.start( "127.0.0.1", 27700);
       }
       catch( Exception e)
       {
         log.exception( e);
       }
     }
-    
-    try { semaphore.acquire();} catch( InterruptedException e) {}
+
+    while( !semaphore.tryAcquire())
+    {
+      try
+      {
+        server.process( 0);
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
+    }
   }
 
   /**
@@ -204,7 +218,6 @@ public class Debugger implements IDebugger
     IModelObject newElement = createFrameElement( frame);
     if ( oldElement != null)
     {
-      // turn off syncing
       boolean syncLock = root.getModel().getSyncLock();
       try
       {

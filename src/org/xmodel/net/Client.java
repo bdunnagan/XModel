@@ -60,11 +60,9 @@ public class Client extends Protocol implements IListener
   }
 
   /**
-   * Attach to the element on the specified xpath.
-   * @param xpath The XPath expression.
-   * @param reference The reference.
+   * Connect (or reconnect) to the remote host.
    */
-  public void attach( String xpath, IExternalReference reference) throws IOException
+  public void connect() throws IOException
   {
     if ( connection != null && connection.isOpen()) 
     {
@@ -75,7 +73,34 @@ public class Client extends Protocol implements IListener
       connection = client.connect( host, port);
     }
     
+    // wait for connection to be established
     client.process();
+  }
+
+  /**
+   * Disconnect form the remote host.
+   */
+  public void disconnect() throws IOException
+  {
+    if ( isConnected()) connection.close();
+  }
+  
+  /**
+   * @return Returns true if the client is connected.
+   */
+  public boolean isConnected()
+  {
+    return connection != null && connection.isOpen();
+  }
+  
+  /**
+   * Attach to the element on the specified xpath.
+   * @param xpath The XPath expression.
+   * @param reference The reference.
+   */
+  public void attach( String xpath, IExternalReference reference) throws IOException
+  {
+    connect();
     if ( connection.isOpen())
     {
       sendVersion( connection, (byte)1);
@@ -109,6 +134,33 @@ public class Client extends Protocol implements IListener
     sendSyncRequest( connection, key);
   }
 
+  /**
+   * Send a debugStepIn message.
+   */
+  public void sendDebugStepIn() throws IOException
+  {
+    if ( connection == null) connection = client.connect( host, port);
+    sendDebugStepIn( connection);
+  }
+  
+  /**
+   * Send a debugStepOver message.
+   */
+  public void sendDebugStepOver() throws IOException
+  {
+    if ( connection == null) connection = client.connect( host, port);
+    sendDebugStepOver( connection);
+  }
+  
+  /**
+   * Send a debugStepOut message.
+   */
+  public void sendDebugStepOut() throws IOException
+  {
+    if ( connection == null) connection = client.connect( host, port);
+    sendDebugStepOut( connection);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.Protocol#handleError(org.xmodel.net.nu.INetSender, java.lang.String)
    */

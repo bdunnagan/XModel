@@ -50,14 +50,11 @@ public class StartServerAction extends GuardedAction
     assign = Xlate.get( document.getRoot(), "assign", (String)null);
     
     // get host and port
-    host = Xlate.get( document.getRoot(), "host", "0.0.0.0");
-    port = Xlate.get( document.getRoot(), "port", Server.defaultPort);
+    hostExpr = document.getExpression( "host", true);
+    portExpr = document.getExpression( "port", true);
     
     // get context expression
     sourceExpr = document.getExpression();
-    
-    // create server
-    server = new Server();
   }
 
   /* (non-Javadoc)
@@ -72,8 +69,12 @@ public class StartServerAction extends GuardedAction
     // start server
     try
     {
+      String host = hostExpr.evaluateString( context);
+      int port = (int)portExpr.evaluateNumber( context);
+      
+      server = new Server( host, port);
       server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);
-      server.start( host, port);
+      server.start();
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");
@@ -93,7 +94,7 @@ public class StartServerAction extends GuardedAction
   private IModelObjectFactory factory;
   private Server server;
   private String assign;
-  private String host;
-  private int port;
+  private IExpression hostExpr;
+  private IExpression portExpr;
   private IExpression sourceExpr;
 }

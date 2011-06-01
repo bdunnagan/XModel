@@ -86,7 +86,7 @@ public class Connection implements INetSender
   {
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( sendBuffer == null) sendBuffer = ByteBuffer.allocateDirect( 4096);
+    if ( recvBuffer == null) recvBuffer = ByteBuffer.allocateDirect( 4096);
     
     if ( listener != null) listener.connected( this);
   }
@@ -122,34 +122,34 @@ public class Connection implements INetSender
    */
   int read() throws IOException
   {
-    int nread = channel.read( sendBuffer);
-    sendBuffer.flip();
+    int nread = channel.read( recvBuffer);
+    recvBuffer.flip();
     
     while( true)
     {
-      sendBuffer.mark();
+      recvBuffer.mark();
 
       try
       {
-        int consume = framer.frame( sendBuffer);
-        int limit = sendBuffer.limit();
+        int consume = framer.frame( recvBuffer);
+        int limit = recvBuffer.limit();
         if ( limit > consume)
         {
           // set limit to end of message
-          sendBuffer.limit( sendBuffer.position() + consume);
+          recvBuffer.limit( recvBuffer.position() + consume);
           
           // pass message to receivers
-          sendBuffer.reset();
+          recvBuffer.reset();
           
           System.out.printf( "read: ");
-          for( int i=sendBuffer.position(); i<sendBuffer.limit(); i++)
-            System.out.printf(  "%02X", sendBuffer.get( i));
+          for( int i=recvBuffer.position(); i<recvBuffer.limit(); i++)
+            System.out.printf(  "%02X", recvBuffer.get( i));
           System.out.println( "");
           
-          receiver.receive( this, sendBuffer);
+          receiver.receive( this, recvBuffer);
           
           // restore buffer limit and compact
-          sendBuffer.limit( limit);
+          recvBuffer.limit( limit);
         }
         else
         {
@@ -162,14 +162,14 @@ public class Connection implements INetSender
       }
     }
     
-    sendBuffer.reset();
-    sendBuffer.compact();
+    recvBuffer.reset();
+    recvBuffer.compact();
     
     return nread;
   }
 
   /**
-   * Write the content of the specified buffer to the connection.
+   * Synchronously write the content of the specified buffer to the connection.
    * @param buffer The buffer.
    */
   public void write( ByteBuffer buffer) throws IOException
@@ -204,12 +204,12 @@ public class Connection implements INetSender
   @Override
   public ByteBuffer send( ByteBuffer buffer, int timeout)
   {
-    receiveBuffer = null;
+    syncBuffer = null;
     send( buffer);
     try
     {
       agent.process( timeout);
-      return receiveBuffer;
+      return syncBuffer;
     }
     catch( Exception e)
     {
@@ -244,8 +244,8 @@ public class Connection implements INetSender
   private INetReceiver receiver;
   private InetSocketAddress address;
   private SocketChannel channel;
-  private ByteBuffer sendBuffer;
-  private ByteBuffer receiveBuffer;
+  private ByteBuffer recvBuffer;
+  private ByteBuffer syncBuffer;
   private IListener listener;
   private Log log = Log.getLog( "org.xmodel.net.stream");
 }

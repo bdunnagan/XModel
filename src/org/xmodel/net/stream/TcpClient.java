@@ -112,7 +112,7 @@ public class TcpClient implements ITcpAgent
             connection.close( false);
           }
         }
-        else
+        else if ( (readyOps & SelectionKey.OP_READ) != 0)
         {
           Connection connection = connected.get( channel);
           try

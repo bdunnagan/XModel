@@ -274,7 +274,7 @@ public final class Log
    */
   private void configure()
   {
-    mask = problems;
+    mask = all;
     try
     {
       sink = new MultiSink( new FormatSink( new ConsoleSink()), new FormatSink( new SyslogSink()));
