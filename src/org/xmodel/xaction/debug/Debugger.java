@@ -1,18 +1,17 @@
 package org.xmodel.xaction.debug;
 
 import java.util.Collection;
-import java.util.Random;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
+import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.XPathServer;
-import org.xmodel.util.Identifier;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XAction;
@@ -32,7 +31,6 @@ public abstract class Debugger implements IDebugger
     semaphore = new Semaphore( 0);
     stack = new Stack<Frame>();
     stepFrame = 1;
-    random = new Random();
     context = new StatefulContext( new ModelObject( "debug"));
   }
 
@@ -109,7 +107,7 @@ public abstract class Debugger implements IDebugger
     stack.push( frame);
     if ( stepFrame >= currFrame) 
     {
-      context.getObject().addChild( createFrameElement( frame), 0);
+      updateFrameElement( frame);
       pause( context, stack);
       block();
     }
@@ -166,10 +164,9 @@ public abstract class Debugger implements IDebugger
    * @param frame The frame.
    * @return Returns the new element.
    */
-  @SuppressWarnings("unchecked")
-  private IModelObject createFrameElement( Frame frame)
+  private static IModelObject createFrameElement( Frame frame)
   {
-    ModelObject element = new ModelObject( "frame", Identifier.generate( random, 10));
+    ModelObject element = new ModelObject( "frame", Integer.toString( frame.hashCode()));
     
     // xaction
     IModelObject xaction = frame.action.getDocument().getRoot();
@@ -177,12 +174,12 @@ public abstract class Debugger implements IDebugger
     
     // variables
     IVariableScope scope = frame.context.getScope();
-    Collection<String> variables = scope.getVariables();
-    IModelObject varRoot = element.getCreateChild( "variables");
-    for( String variable: variables)
+    Collection<String> vars = scope.getVariables();
+    IModelObject varRoot = element.getCreateChild( "vars");
+    for( String var: vars)
     {
-      IExternalReference varElement = new ExternalReference( "variable");
-      varElement.setID( variable);
+      IExternalReference varElement = new ExternalReference( "var");
+      varElement.setID( var);
       varElement.setCachingPolicy( new ContextCachingPolicy( frame.context));
       varElement.setDirty( true);
       varRoot.addChild( varElement);
@@ -191,13 +188,41 @@ public abstract class Debugger implements IDebugger
     return element;
   }
   
+  /**
+   * Create or update the element representing the specified frame.
+   * @param frame The frame.
+   */
+  private void updateFrameElement( Frame frame)
+  {
+    IModelObject root = context.getObject();
+    IModelObject oldElement = root.getChild( "frame", Integer.toString( frame.hashCode()));
+    IModelObject newElement = createFrameElement( frame);
+    if ( oldElement != null)
+    {
+      // turn off syncing
+      boolean syncLock = root.getModel().getSyncLock();
+      try
+      {
+        XmlDiffer differ = new XmlDiffer();
+        differ.diffAndApply( oldElement, newElement);
+      }
+      finally
+      {
+        root.getModel().setSyncLock( syncLock);
+      }
+    }
+    else
+    {
+      root.addChild( newElement, 0);
+    }
+  }
+  
   private static Log log = Log.getLog( "org.xmodel.xaction.debug");
   
   private Semaphore semaphore;
   private Stack<Frame> stack;
   private int stepFrame;
   private int currFrame;
-  private Random random;
   private StatefulContext context;
   private XPathServer server;
   
