@@ -2,6 +2,7 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -9,31 +10,23 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
-import org.xmodel.net.INetFramer;
-import org.xmodel.net.INetReceiver;
-import org.xmodel.net.stream.Connection.IListener;
+import org.xmodel.log.Log;
 
 /**
- * A java.nio based Server. This class provides a minimal non-blocking server.
+ * A java.nio based Server.
  */
-public class TcpServer implements ITcpAgent
+public final class TcpServer
 {
   /**
    * Create a server bound to the specified host and port.
    * @param host The host address.
    * @param port The port.
-   * @param framer The message framer.
-   * @param receiver The recipient.
    */
-  public TcpServer( String host, int port, INetFramer framer, INetReceiver receiver, IListener listener) throws IOException
+  public TcpServer( String host, int port) throws IOException
   {
-    this.framer = framer;
-    this.receiver = receiver;
-    this.listener = listener;
-    
     localAddress = new InetSocketAddress( host, port);
     connections = new HashMap<Channel, Connection>();
     
@@ -45,67 +38,132 @@ public class TcpServer implements ITcpAgent
     // register accept selector
     selector = SelectorProvider.provider().openSelector();
     serverChannel.register( selector, SelectionKey.OP_ACCEPT);
+    
+    writeLock = new Object();
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.stream.ITcpPeer#process()
+  /**
+   * Start the server.
+   * @param listener The TCP event listener.
    */
-  @Override
-  public void process() throws IOException
+  public void start( ITcpListener listener)
   {
-    process( 0);
+    this.listener = listener;
+    
+    Runnable runnable = new Runnable() {
+      public void run()
+      {
+        thread();
+      }
+    };
+    
+    thread = new Thread( runnable, "server");
+    thread.setDaemon( true);
+    thread.start();
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.stream.ITcpPeer#process(int)
+  
+  /**
+   * Process socket events.
+   * @param timeout The timeout in milliseconds.
    */
-  public void process( int timeout) throws IOException
+  private void process( int timeout) throws IOException
   {
     // wait for connection
     if ( selector.select( timeout) == 0) return; 
       
     // handle events
-    Set<SelectionKey> readyKeys = selector.selectedKeys();
-    for( SelectionKey readyKey: readyKeys)
+    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+    while( iter.hasNext())
     {
-      Channel channel = readyKey.channel();
-      if ( serverChannel == channel)
+      SelectionKey readyKey = iter.next();
+      iter.remove();
+      
+      if ( !readyKey.isValid()) continue;
+      
+      try
       {
-        try
+        if ( readyKey.isAcceptable())
         {
-          SocketChannel newChannel = serverChannel.accept();
-          newChannel.configureBlocking( false);
-          newChannel.register( selector, SelectionKey.OP_READ);
-          
-          Connection connection = new Connection( this, framer, receiver, listener);
-          connection.connected( newChannel);
-          connections.put( newChannel, connection);
+          accept( readyKey);
         }
-        catch( IOException e)
+        else
         {
+          read( readyKey);
         }
       }
-      else
+      catch( IOException e)
       {
-        SocketChannel socketChannel = (SocketChannel)channel;
-        socketChannel.configureBlocking( false);
-        Connection connection = connections.get( socketChannel);
-        try
-        {
-          int nread = connection.read();
-          while( nread > 0) nread = connection.read();
-        }
-        catch( Exception e)
-        {
-          connections.remove( channel);
-          connection.close( false);
-        }
+        log.exception( e);
       }
     }
-    
-    readyKeys.clear();
   }
   
+  /**
+   * Accept an incoming connection.
+   * @param key The selection key.
+   */
+  private void accept( SelectionKey key) throws IOException
+  {
+    SocketChannel newChannel = serverChannel.accept();
+    newChannel.configureBlocking( false);
+    newChannel.register( selector, SelectionKey.OP_READ);
+    
+    Connection connection = new Connection( listener);
+    connection.connected( newChannel);
+    connections.put( newChannel, connection);
+  }
+  
+  /**
+   * Read from a ready channel.
+   * @param key The selection key.
+   */
+  private void read( SelectionKey key) throws IOException
+  {
+    SocketChannel socketChannel = (SocketChannel)key.channel();
+    Connection connection = connections.get( socketChannel);
+    try
+    {
+      int nread = connection.read();
+      if ( nread == -1) close( key);
+    }
+    catch( Exception e)
+    {
+      close( key);
+    }
+  }
+  
+  /**
+   * Write (blocking) the specified buffer to the specified channel.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void write( Channel channel, ByteBuffer buffer) throws IOException
+  {
+    synchronized( writeLock)
+    {
+      // abort server thread select
+      selector.wakeup();
+      
+      // 
+    }
+  }
+  
+  /**
+   * Close the connection with the specified key.
+   * @param key The selected key.
+   */
+  private void close( SelectionKey key)
+  {
+    SocketChannel channel = (SocketChannel)key.channel();
+    Connection connection = connections.get( channel);
+    connections.remove( channel);
+    connection.close( false);
+    key.cancel();
+  }
+  
+  /**
+   * Close the server socket.
+   */
   public void close()
   {
     try
@@ -114,17 +172,44 @@ public class TcpServer implements ITcpAgent
     }
     catch( IOException e)
     {
-      System.err.println( "Error closing server socket: "+e.getMessage());
+      log.exception( e);
     }
-    
     serverChannel = null;
   }
+  
+  /**
+   * Server thread entry-point.
+   */
+  private void thread()
+  {
+    exit = false;
+    while( !exit)
+    {
+      try
+      {
+        process( 0);
+        
+        synchronized( writeLock)
+        {
+          System.out.printf( ".");
+        }
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
+        try { Thread.sleep( 250);} catch( InterruptedException i) {}
+      }
+    }
+  }
+
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
   
   private InetSocketAddress localAddress;
   private ServerSocketChannel serverChannel;
   private Selector selector;
   private Map<Channel, Connection> connections;
-  private INetFramer framer;
-  private INetReceiver receiver;
-  private IListener listener;
+  private ITcpListener listener;
+  private Thread thread;
+  private boolean exit;
+  private Object writeLock;
 }

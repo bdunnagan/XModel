@@ -2,56 +2,26 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.spi.SelectorProvider;
 
 import org.xmodel.log.Log;
-import org.xmodel.net.INetFramer;
-import org.xmodel.net.INetReceiver;
-import org.xmodel.net.INetSender;
 
 /**
  * A class that represents a TCP connection.
  */
-public class Connection implements INetSender
+public class Connection
 {
-  public interface IListener
-  {
-    /**
-     * Called when a connection is established.
-     * @param connection The connection.
-     */
-    public void connected( Connection connection);
-    
-    /**
-     * Called when a connection is closed.
-     * @param connection The connection.
-     */
-    public void disconnected( Connection connection);
-  }
-  
   /**
    * Create a new connection.
-   * @param agent The agent that created the connection.
-   * @param framer The message framer.
-   * @param receiver The primary receiver.
-   * @param listener The connection listener.
+   * @param listener The TCP event listener.
    */
-  Connection( ITcpAgent agent, INetFramer framer, INetReceiver receiver, IListener listener)
+  Connection( ITcpListener listener)
   {
-    this.agent = agent;
-    this.framer = framer;
-    this.receiver = receiver;
     this.listener = listener;
-  }
-  
-  /**
-   * @return Returns the agent that created this connection.
-   */
-  public ITcpAgent getAgent()
-  {
-    return agent;
   }
   
   /**
@@ -82,13 +52,17 @@ public class Connection implements INetSender
    * Called when the channel becomes connected.
    * @param channel The channel.
    */
-  void connected( SocketChannel channel)
+  void connected( SocketChannel channel) throws IOException
   {
     this.channel = channel;
-    this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( recvBuffer == null) recvBuffer = ByteBuffer.allocateDirect( 4096);
     
-    if ( listener != null) listener.connected( this);
+    selector = SelectorProvider.provider().openSelector();
+    channel.register( selector, SelectionKey.OP_WRITE);
+    
+    this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
+    if ( buffer == null) buffer = ByteBuffer.allocateDirect( 4096);
+    
+    if ( listener != null) listener.onConnect( this);
   }
   
   /**
@@ -106,7 +80,7 @@ public class Connection implements INetSender
     }
     channel = null;
     
-    if ( listener != null) listener.disconnected( this);
+    if ( listener != null) listener.onClose( this);
   }
   
   /**
@@ -122,50 +96,7 @@ public class Connection implements INetSender
    */
   int read() throws IOException
   {
-    int nread = channel.read( recvBuffer);
-    recvBuffer.flip();
-    
-    while( true)
-    {
-      recvBuffer.mark();
-
-      try
-      {
-        int consume = framer.frame( recvBuffer);
-        int limit = recvBuffer.limit();
-        if ( limit > consume)
-        {
-          // set limit to end of message
-          recvBuffer.limit( recvBuffer.position() + consume);
-          
-          // pass message to receivers
-          recvBuffer.reset();
-          
-          System.out.printf( "read: ");
-          for( int i=recvBuffer.position(); i<recvBuffer.limit(); i++)
-            System.out.printf(  "%02X", recvBuffer.get( i));
-          System.out.println( "");
-          
-          receiver.receive( this, recvBuffer);
-          
-          // restore buffer limit and compact
-          recvBuffer.limit( limit);
-        }
-        else
-        {
-          break;
-        }
-      }
-      catch( BufferUnderflowException e)
-      {
-        break;
-      }
-    }
-    
-    recvBuffer.reset();
-    recvBuffer.compact();
-    
-    return nread;
+    System.out.printf( "READ\n%s\n", Util.dump( buffer));
   }
 
   /**
@@ -174,17 +105,26 @@ public class Connection implements INetSender
    */
   public void write( ByteBuffer buffer) throws IOException
   {
-    System.out.printf( "write: pos=%d, lim=%d: ", buffer.position(), buffer.limit());
-    for( int i=buffer.position(); i<buffer.limit(); i++) System.out.printf( "%02X", buffer.get( i));
-    System.out.println( "");
+    System.out.printf( "WRITE\n%s\n", Util.dump( buffer));
     
-    if ( channel != null) channel.write( buffer);
+    if ( channel != null) 
+    {
+      // wait for channel to become writeable
+      if ( selector.select() == 0) throw new IOException( "Write failed.");
+      
+      // clear write operation
+      selector.selectedKeys().clear();
+      
+      // write
+      channel.write( buffer);
+    }
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.INetSender#send(java.nio.ByteBuffer)
+  /**
+   * Send the contents of the specified buffer.
+   * @param buffer The buffer.
+   * @return Returns true if the send was successful.
    */
-  @Override
   public boolean send( ByteBuffer buffer)
   {
     try
@@ -198,30 +138,29 @@ public class Connection implements INetSender
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.INetSender#send(java.nio.ByteBuffer, int)
+  /**
+   * Send and wait for a response.
+   * @param buffer The buffer to send.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns true if a response was received within the timeout.
    */
-  @Override
-  public ByteBuffer send( ByteBuffer buffer, int timeout)
+  public boolean send( ByteBuffer buffer, int timeout)
   {
-    syncBuffer = null;
-    send( buffer);
     try
     {
-      agent.process( timeout);
-      return syncBuffer;
+      send( buffer);
+      return true;
     }
     catch( Exception e)
     {
       log.exception( e);
+      return false;
     }
-    return null;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.INetSender#close()
+  /**
+   * Close this connection.
    */
-  @Override
   public void close()
   {
     if ( channel != null) 
@@ -230,7 +169,7 @@ public class Connection implements INetSender
       channel = null;
     }
   }
-
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -239,13 +178,11 @@ public class Connection implements INetSender
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
-  private ITcpAgent agent;
-  private INetFramer framer;
-  private INetReceiver receiver;
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  
+  private ITcpListener listener;
   private InetSocketAddress address;
   private SocketChannel channel;
-  private ByteBuffer recvBuffer;
-  private ByteBuffer syncBuffer;
-  private IListener listener;
-  private Log log = Log.getLog( "org.xmodel.net.stream");
+  private ByteBuffer buffer;
+  private Selector selector;
 }
