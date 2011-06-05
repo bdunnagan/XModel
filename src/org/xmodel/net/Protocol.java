@@ -1,17 +1,23 @@
 package org.xmodel.net;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
+import org.xmodel.net.stream.Connection;
+import org.xmodel.net.stream.ITcpListener;
 
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
  */
-public abstract class Protocol implements INetFramer, INetReceiver
+public abstract class Protocol implements ITcpListener
 {
   public final static int version = 1;
   
@@ -38,6 +44,7 @@ public abstract class Protocol implements INetFramer, INetReceiver
   {
     this.compressor = new TabularCompressor( PostCompression.zip);
     this.timeout = 10000;
+    this.queue = new SynchronousQueue<ByteBuffer>();
     
     // allocate less than standard mtu
     buffer = ByteBuffer.allocateDirect( 4096);
@@ -45,332 +52,361 @@ public abstract class Protocol implements INetFramer, INetReceiver
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.INetFramer#frame(java.nio.ByteBuffer)
+   * @see org.xmodel.net.stream.ITcpListener#onConnect(org.xmodel.net.stream.Connection)
    */
   @Override
-  public final int frame( ByteBuffer buffer)
+  public void onConnect( Connection connection)
   {
-    buffer.get();
-    return readMessageLength( buffer);
   }
-  
+
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.INetReceiver#receive(org.xmodel.net.nu.INetSender, java.nio.ByteBuffer)
+   * @see org.xmodel.net.stream.ITcpListener#onClose(org.xmodel.net.stream.Connection)
    */
   @Override
-  public final void receive( INetSender sender, ByteBuffer buffer)
+  public void onClose( Connection connection)
   {
-    Type type = readMessageType( buffer);
-    readMessageLength( buffer);
-    switch( type)
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.ITcpListener#onReceive(org.xmodel.net.stream.Connection, java.nio.ByteBuffer)
+   */
+  @Override
+  public void onReceive( Connection connection, ByteBuffer buffer)
+  {
+    buffer.mark();
+    try
     {
-      case version:         handleVersion( sender, buffer); return;
-      case error:           handleError( sender, buffer); return;
-      case attachRequest:   handleAttachRequest( sender, buffer); return;
-      case attachResponse:  handleAttachResponse( sender, buffer); return;
-      case detachRequest:   handleDetachRequest( sender, buffer); return;
-      case syncRequest:     handleSyncRequest( sender, buffer); return;
-      case addChild:        handleAddChild( sender, buffer); return;
-      case removeChild:     handleRemoveChild( sender, buffer); return;
-      case changeAttribute: handleChangeAttribute( sender, buffer); return;
-      case clearAttribute:  handleClearAttribute( sender, buffer); return;
-      case queryRequest:    handleQueryRequest( sender, buffer); return;
-      case queryResponse:   handleQueryResponse( sender, buffer); return;
-      case debugStepIn:     handleDebugStepIn( sender, buffer); return;
-      case debugStepOver:   handleDebugStepOver( sender, buffer); return;
-      case debugStepOut:    handleDebugStepOut( sender, buffer); return;
+      Type type = readMessageType( buffer);
+      
+      int length = readMessageLength( buffer);
+      if ( length > buffer.remaining())
+      {
+        buffer.reset();
+        return;
+      }
+      
+      switch( type)
+      {
+        case version:         handleVersion( connection, buffer, length); return;
+        case error:           handleError( connection, buffer, length); return;
+        case attachRequest:   handleAttachRequest( connection, buffer, length); return;
+        case attachResponse:  handleAttachResponse( connection, buffer, length); return;
+        case detachRequest:   handleDetachRequest( connection, buffer, length); return;
+        case syncRequest:     handleSyncRequest( connection, buffer, length); return;
+        case addChild:        handleAddChild( connection, buffer, length); return;
+        case removeChild:     handleRemoveChild( connection, buffer, length); return;
+        case changeAttribute: handleChangeAttribute( connection, buffer, length); return;
+        case clearAttribute:  handleClearAttribute( connection, buffer, length); return;
+        case queryRequest:    handleQueryRequest( connection, buffer, length); return;
+        case queryResponse:   handleQueryResponse( connection, buffer, length); return;
+        case debugStepIn:     handleDebugStepIn( connection, buffer, length); return;
+        case debugStepOver:   handleDebugStepOver( connection, buffer, length); return;
+        case debugStepOut:    handleDebugStepOut( connection, buffer, length); return;
+      }
+    }
+    catch( BufferUnderflowException e)
+    {
+      buffer.reset();
     }
   }
   
   /**
    * Send the protocol version.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param version The version.
    */
-  public final void sendVersion( INetSender sender, short version)
+  public final void sendVersion( Connection connection, short version)
   {
     initialize( buffer);
     buffer.putShort( version);
     finalize( buffer, Type.version, 2);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
    /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleVersion( INetSender sender, ByteBuffer buffer)
+  private final void handleVersion( Connection connection, ByteBuffer buffer, int length)
   {
     int version = buffer.getShort();
     if ( version != Protocol.version)
     {
       buffer.put( (byte)Type.error.ordinal());
       writeString( this.buffer, String.format( "Expected protocol version %d", Protocol.version));
-      sender.send( this.buffer);
-      sender.close();
+      connection.send( this.buffer);
+      connection.close();
     }
   }
   
   /**
    * Send an error message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param message The error message.
    */
-  public final void sendError( INetSender sender, String message)
+  public final void sendError( Connection connection, String message)
   {
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.error, bytes.length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleError( INetSender sender, ByteBuffer buffer)
+  private final void handleError( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleError( sender, new String( bytes));
+    handleError( connection, new String( bytes));
   }
   
   /**
    * Handle an error message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param message The message.
    */
-  protected void handleError( INetSender sender, String message)
+  protected void handleError( Connection connection, String message)
   {
   }
   
   /**
    * Send an attach request message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendAttachRequest( INetSender sender, String xpath)
+  public final void sendAttachRequest( Connection connection, String xpath)
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachRequest, bytes.length);
-    sender.send( buffer, timeout);
+    send( connection, buffer, timeout);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleAttachRequest( INetSender sender, ByteBuffer buffer)
+  private final void handleAttachRequest( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleAttachRequest( sender, new String( bytes));
+    handleAttachRequest( connection, new String( bytes));
   }
   
   /**
    * Handle an attach request.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    */
-  protected void handleAttachRequest( INetSender sender, String xpath)
+  protected void handleAttachRequest( Connection connection, String xpath)
   {
   }
 
   /**
    * Send an attach response message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param element The element.
    */
-  public final void sendAttachResponse( INetSender sender, IModelObject element)
+  public final void sendAttachResponse( Connection connection, IModelObject element)
   {
     initialize( buffer);
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachResponse, bytes.length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleAttachResponse( INetSender sender, ByteBuffer buffer)
+  private final void handleAttachResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
     IModelObject element = compressor.decompress( bytes, 0);
-    handleAttachResponse( sender, element);
+    handleAttachResponse( connection, element);
   }
   
   /**
    * Handle an attach response.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param element The element.
    */
-  protected void handleAttachResponse( INetSender sender, IModelObject element)
+  protected void handleAttachResponse( Connection connection, IModelObject element)
   {
   }
   
   /**
    * Send an detach request message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendDetachRequest( INetSender sender, String xpath)
+  public final void sendDetachRequest( Connection connection, String xpath)
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.detachRequest, bytes.length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleDetachRequest( INetSender sender, ByteBuffer buffer)
+  private final void handleDetachRequest( Connection connection, ByteBuffer buffer, int length)
   {
   }
   
   /**
    * Handle an attach request.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    */
-  protected void handleDetachRequest( INetSender sender, String xpath)
+  protected void handleDetachRequest( Connection connection, String xpath)
   {
   }
   
   /**
    * Send an sync request message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param key The key.
    */
-  public final void sendSyncRequest( INetSender sender, String key)
+  public final void sendSyncRequest( Connection connection, String key)
   {
     initialize( buffer);
     byte[] bytes = key.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.syncRequest, bytes.length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleSyncRequest( INetSender sender, ByteBuffer buffer)
+  private final void handleSyncRequest( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleSyncRequest( sender, new String( bytes));
+    handleSyncRequest( connection, new String( bytes));
   }
   
   /**
    * Handle an attach request.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param key The reference key.
    */
-  protected void handleSyncRequest( INetSender sender, String key)
+  protected void handleSyncRequest( Connection connection, String key)
   {
   }
   
   /**
    * Send an add child message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( INetSender sender, String xpath, IModelObject element, int index)
+  public final void sendAddChild( Connection connection, String xpath, IModelObject element, int index)
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     length += writeElement( buffer, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleAddChild( INetSender sender, ByteBuffer buffer)
+  private final void handleAddChild( Connection connection, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( sender, xpath, bytes, index);
+    handleAddChild( connection, xpath, bytes, index);
   }
   
   /**
    * Handle an add child message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The path from the root to the parent.
    * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( INetSender sender, String xpath, byte[] child, int index)
+  protected void handleAddChild( Connection connection, String xpath, byte[] child, int index)
   {
   }
   
   /**
    * Send an add child message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( INetSender sender, String xpath, int index)
+  public final void sendRemoveChild( Connection connection, String xpath, int index)
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleRemoveChild( INetSender sender, ByteBuffer buffer)
+  private final void handleRemoveChild( Connection connection, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     int index = buffer.getInt();
-    handleRemoveChild( sender, xpath, index);
+    handleRemoveChild( connection, xpath, index);
   }
   
   /**
    * Handle an remove child message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The path from the root to the parent.
    * @param index The insertion index.
    */
-  protected void handleRemoveChild( INetSender sender, String xpath, int index)
+  protected void handleRemoveChild( Connection connection, String xpath, int index)
   {
   }
   
   /**
    * Send an change attribute message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( INetSender sender, String xpath, String attrName, Object value)
+  public final void sendChangeAttribute( Connection connection, String xpath, String attrName, Object value)
   {
     byte[] bytes = serialize( value);
     
@@ -379,226 +415,252 @@ public abstract class Protocol implements INetFramer, INetReceiver
     length += writeString( buffer, attrName);
     length += writeBytes( buffer, bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleChangeAttribute( INetSender sender, ByteBuffer buffer)
+  private final void handleChangeAttribute( Connection connection, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
-    
     byte[] attrValue = readBytes( buffer, true);
-    handleChangeAttribute( sender, xpath, attrName, deserialize( attrValue));
+    handleChangeAttribute( connection, xpath, attrName, deserialize( attrValue));
   }
   
   /**
    * Handle an attribute change message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    * @param attrValue The attribute value.
    */
-  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, Object attrValue)
+  protected void handleChangeAttribute( Connection connection, String xpath, String attrName, Object attrValue)
   {
   }
   
   /**
    * Send a clear attribute message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    */
-  public final void sendClearAttribute( INetSender sender, String xpath, String attrName)
+  public final void sendClearAttribute( Connection connection, String xpath, String attrName)
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     length += writeString( buffer, attrName);
     finalize( buffer, Type.clearAttribute, length);
-    sender.send( buffer);
+    connection.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleClearAttribute( INetSender sender, ByteBuffer buffer)
+  private final void handleClearAttribute( Connection connection, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
-    handleClearAttribute( sender, xpath, attrName);
+    handleClearAttribute( connection, xpath, attrName);
   }
   
   /**
    * Handle an attribute change message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    */
-  protected void handleClearAttribute( INetSender sender, String xpath, String attrName)
+  protected void handleClearAttribute( Connection connection, String xpath, String attrName)
   {
   }
 
   /**
    * Send a query request message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendQueryRequest( INetSender sender, String xpath)
+  public final void sendQueryRequest( Connection connection, String xpath)
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.queryRequest, bytes.length);
-    sender.send( buffer, timeout);
+    send( connection, buffer, timeout);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleQueryRequest( INetSender sender, ByteBuffer buffer)
+  private final void handleQueryRequest( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleQueryRequest( sender, new String( bytes));
+    handleQueryRequest( connection, new String( bytes));
   }
   
   /**
    * Handle a query requset.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param xpath The query.
    */
-  protected void handleQueryRequest( INetSender sender, String xpath)
+  protected void handleQueryRequest( Connection connection, String xpath)
   {
   }
   
   /**
    * Send a query response message.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param result The result.
    */
-  public final void sendQueryResponse( INetSender sender, Object result)
+  public final void sendQueryResponse( Connection connection, Object result)
   {
     initialize( buffer);
     byte[] bytes = serialize( result);
     buffer.put( bytes);
     finalize( buffer, Type.queryResponse, bytes.length);
-    sender.send( buffer, timeout);
+    send( connection, buffer, timeout);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleQueryResponse( INetSender sender, ByteBuffer buffer)
+  private final void handleQueryResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ buffer.remaining()];
+    byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleQueryResponse( sender, bytes);
+    handleQueryResponse( connection, bytes);
   }
   
   /**
    * Handle a query requset.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param bytes The serialized query result.
    */
-  protected void handleQueryResponse( INetSender sender, byte[] bytes)
+  protected void handleQueryResponse( Connection connection, byte[] bytes)
   {
   }
   
   /**
    * Send a debug step message.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  public final void sendDebugStepIn( INetSender sender)
+  public final void sendDebugStepIn( Connection connection)
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepIn, 0);
-    sender.send( buffer, 60000);
+    send( connection, buffer, 60000);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleDebugStepIn( INetSender sender, ByteBuffer buffer)
+  private final void handleDebugStepIn( Connection connection, ByteBuffer buffer, int length)
   {
-    handleDebugStepIn( sender);
+    handleDebugStepIn( connection);
   }
   
   /**
    * Handle a debug step.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  protected void handleDebugStepIn( INetSender sender)
+  protected void handleDebugStepIn( Connection connection)
   {
   }
   
   /**
    * Send a debug step message.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  public final void sendDebugStepOver( INetSender sender)
+  public final void sendDebugStepOver( Connection connection)
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOver, 0);
-    sender.send( buffer, 60000);
+    send( connection, buffer, 60000);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleDebugStepOver( INetSender sender, ByteBuffer buffer)
+  private final void handleDebugStepOver( Connection connection, ByteBuffer buffer, int length)
   {
-    handleDebugStepOver( sender);
+    handleDebugStepOver( connection);
   }
   
   /**
    * Handle a debug step.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  protected void handleDebugStepOver( INetSender sender)
+  protected void handleDebugStepOver( Connection connection)
   {
   }
   
   /**
    * Send a debug step message.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  public final void sendDebugStepOut( INetSender sender)
+  public final void sendDebugStepOut( Connection connection)
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOut, 0);
-    sender.send( buffer, 60000);
+    send( connection, buffer, 60000);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param sender The sender.
+   * @param connection The connection.
    * @param buffer The buffer.
+   * @param length The length of the message.
    */
-  private final void handleDebugStepOut( INetSender sender, ByteBuffer buffer)
+  private final void handleDebugStepOut( Connection connection, ByteBuffer buffer, int length)
   {
-    handleDebugStepOut( sender);
+    handleDebugStepOut( connection);
   }
   
   /**
    * Handle a debug step.
-   * @param sender The sender.
+   * @param connection The connection.
    */
-  protected void handleDebugStepOut( INetSender sender)
+  protected void handleDebugStepOut( Connection connection)
   {
+  }
+
+  /**
+   * Send and wait for a response.
+   * @param connection The connection.
+   * @param buffer The buffer to send.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns null or the response buffer.
+   */
+  private ByteBuffer send( Connection connection, ByteBuffer buffer, int timeout)
+  {
+    try
+    {
+      connection.send( buffer);
+      return queue.poll( timeout, TimeUnit.MILLISECONDS);
+    }
+    catch( InterruptedException e)
+    {
+      return null;
+    }
   }
   
   /**
@@ -810,4 +872,5 @@ public abstract class Protocol implements INetFramer, INetReceiver
   protected ICompressor compressor;
   private ByteBuffer buffer;
   private int timeout;
+  private BlockingQueue<ByteBuffer> queue;
 }

@@ -19,8 +19,8 @@ import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
+import org.xmodel.net.stream.ITcpListener;
 import org.xmodel.net.stream.TcpServer;
-import org.xmodel.net.stream.Connection.IListener;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.Identifier;
 import org.xmodel.util.MultiMap;
@@ -33,7 +33,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class Server extends Protocol implements Runnable, IListener
+public class Server extends Protocol implements Runnable
 {
   public enum Message
   {
@@ -59,8 +59,12 @@ public class Server extends Protocol implements Runnable, IListener
   {
     random = new Random();
     index = new WeakHashMap<String, IExternalReference>();
-    listeners = new HashMultiMap<INetSender, Listener>();
-    server = new TcpServer( host, port, this, this, this);
+    listeners = new HashMultiMap<Connection, Listener>();
+    server = new TcpServer( host, port);
+  }
+
+  public void start()
+  {
   }
   
   /**
@@ -72,70 +76,24 @@ public class Server extends Protocol implements Runnable, IListener
     this.context = context;
   }
 
-  /**
-   * Start the server thread and dispatch events using the IDispatcher.
-   * @param host The local address.
-   * @param port The local port.
-   */
-  public void start()
-  {
-    thread = new Thread( this);
-    thread.setDaemon( true);
-    thread.start();
-  }
-
-  /**
-   * Stop the server thread.
-   */
-  public void stop()
-  {
-    exit = true;
-  }
-  
-  /**
-   * Process server events in the current thread (without using IDispatcher).
-   * @param timeout The amount of time to wait for a server event in milliseconds.
-   */
-  public void process( int timeout) throws IOException
-  {
-    server.process( timeout);
-  }
-  
   /* (non-Javadoc)
    * @see java.lang.Runnable#run()
    */
   @Override
   public void run()
   {
-    exit = false;
-    while( !exit)
-    {
-      try
-      {
-        server.process();
-      }
-      catch( Exception e)
-      {
-        log.warn( e.getMessage());
-        break;
-      }
-    }
+    // TODO Auto-generated method stub
+    
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.Connection.IListener#connected(org.xmodel.net.stream.Connection)
+   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.stream.Connection)
    */
   @Override
-  public void connected( Connection connection)
+  public void onClose( Connection connection)
   {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.stream.Connection.IListener#disconnected(org.xmodel.net.stream.Connection)
-   */
-  @Override
-  public void disconnected( Connection connection)
-  {
+    super.onClose( connection);
+    
     List<Listener> list = listeners.get( connection);
     for( Listener listener: list) listener.uninstall();
     listeners.removeAll( connection);
@@ -146,7 +104,7 @@ public class Server extends Protocol implements Runnable, IListener
    * @param sender The sender.
    * @param xpath The xpath expression.
    */
-  private void attach( INetSender sender, String xpath)
+  private void attach( Connection sender, String xpath)
   {
     try
     {
@@ -173,7 +131,7 @@ public class Server extends Protocol implements Runnable, IListener
    * @param sender The sender.
    * @param xpath The xpath expression.
    */
-  private void detach( INetSender sender, String xpath)
+  private void detach( Connection sender, String xpath)
   {
     try
     {
@@ -205,7 +163,7 @@ public class Server extends Protocol implements Runnable, IListener
    * @param sender The sender.
    * @param xpath The query.
    */
-  private void query( INetSender sender, String xpath)
+  private void query( Connection sender, String xpath)
   {
     try
     {
@@ -289,10 +247,10 @@ public class Server extends Protocol implements Runnable, IListener
   } 
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleAttachRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   * @see org.xmodel.net.nu.Protocol#handleAttachRequest(org.xmodel.net.nu.Connection, java.lang.String)
    */
   @Override
-  protected void handleAttachRequest( INetSender sender, String xpath)
+  protected void handleAttachRequest( Connection sender, String xpath)
   {
     if ( thread == null) 
     {
@@ -305,10 +263,10 @@ public class Server extends Protocol implements Runnable, IListener
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleDetachRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   * @see org.xmodel.net.nu.Protocol#handleDetachRequest(org.xmodel.net.nu.Connection, java.lang.String)
    */
   @Override
-  protected void handleDetachRequest( INetSender sender, String xpath)
+  protected void handleDetachRequest( Connection sender, String xpath)
   {
     if ( thread == null) 
     {
@@ -321,10 +279,10 @@ public class Server extends Protocol implements Runnable, IListener
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleSyncRequest(org.xmodel.net.nu.INetSender, java.lang.String)
+   * @see org.xmodel.net.nu.Protocol#handleSyncRequest(org.xmodel.net.nu.Connection, java.lang.String)
    */
   @Override
-  protected void handleSyncRequest( INetSender sender, String key)
+  protected void handleSyncRequest( Connection sender, String key)
   {
     IExternalReference reference = index.get( key);
     if ( reference != null)
@@ -341,10 +299,10 @@ public class Server extends Protocol implements Runnable, IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleQueryRequest(org.xmodel.net.INetSender, java.lang.String)
+   * @see org.xmodel.net.Protocol#handleQueryRequest(org.xmodel.net.Connection, java.lang.String)
    */
   @Override
-  protected void handleQueryRequest( INetSender sender, String xpath)
+  protected void handleQueryRequest( Connection sender, String xpath)
   {
     if ( thread == null) 
     {
@@ -357,28 +315,28 @@ public class Server extends Protocol implements Runnable, IListener
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleDebugStepIn(org.xmodel.net.INetSender)
+   * @see org.xmodel.net.Protocol#handleDebugStepIn(org.xmodel.net.Connection)
    */
   @Override
-  protected void handleDebugStepIn( INetSender sender)
+  protected void handleDebugStepIn( Connection sender)
   {
     XAction.getDebugger().stepIn();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleDebugStepOut(org.xmodel.net.INetSender)
+   * @see org.xmodel.net.Protocol#handleDebugStepOut(org.xmodel.net.Connection)
    */
   @Override
-  protected void handleDebugStepOut( INetSender sender)
+  protected void handleDebugStepOut( Connection sender)
   {
     XAction.getDebugger().stepOut();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleDebugStepOver(org.xmodel.net.INetSender)
+   * @see org.xmodel.net.Protocol#handleDebugStepOver(org.xmodel.net.Connection)
    */
   @Override
-  protected void handleDebugStepOver( INetSender sender)
+  protected void handleDebugStepOver( Connection sender)
   {
     XAction.getDebugger().stepOver();
   }
@@ -397,7 +355,7 @@ public class Server extends Protocol implements Runnable, IListener
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( INetSender sender, String xpath)
+    public AttachRunnable( Connection sender, String xpath)
     {
       this.sender = sender;
       this.xpath = xpath;
@@ -408,13 +366,13 @@ public class Server extends Protocol implements Runnable, IListener
       attach( sender, xpath);
     }
 
-    private INetSender sender;
+    private Connection sender;
     private String xpath;
   }
   
   private final class DetachRunnable implements Runnable
   {
-    public DetachRunnable( INetSender sender, String xpath)
+    public DetachRunnable( Connection sender, String xpath)
     {
       this.sender = sender;
       this.xpath = xpath;
@@ -425,7 +383,7 @@ public class Server extends Protocol implements Runnable, IListener
       detach( sender, xpath);
     }
 
-    private INetSender sender;
+    private Connection sender;
     private String xpath;
   }
   
@@ -446,7 +404,7 @@ public class Server extends Protocol implements Runnable, IListener
   
   private final class QueryRunnable implements Runnable
   {
-    public QueryRunnable( INetSender sender, String xpath)
+    public QueryRunnable( Connection sender, String xpath)
     {
       this.sender = sender;
       this.xpath = xpath;
@@ -457,13 +415,13 @@ public class Server extends Protocol implements Runnable, IListener
       query( sender, xpath);
     }
     
-    private INetSender sender;
+    private Connection sender;
     private String xpath;
   }
   
   private class Listener extends NonSyncingListener
   {
-    public Listener( INetSender sender, String xpath, IModelObject root)
+    public Listener( Connection sender, String xpath, IModelObject root)
     {
       this.sender = sender;
       this.xpath = xpath;
@@ -536,7 +494,7 @@ public class Server extends Protocol implements Runnable, IListener
       return sender.hashCode() + xpath.hashCode();
     }
 
-    private INetSender sender;
+    private Connection sender;
     private String xpath;
     private IModelObject root;
   };
@@ -544,10 +502,8 @@ public class Server extends Protocol implements Runnable, IListener
   private static Log log = Log.getLog( "org.xmodel.net");
   
   private TcpServer server;
-  private Thread thread;
-  private boolean exit;
   private Map<String, IExternalReference> index;
-  private MultiMap<INetSender, Listener> listeners;
+  private MultiMap<Connection, Listener> listeners;
   private IContext context;
   private Random random;
   

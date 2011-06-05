@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -13,7 +14,6 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpClient;
-import org.xmodel.net.stream.Connection.IListener;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
@@ -22,7 +22,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the network caching policy protocol.
  */
-public class Client extends Protocol implements IListener
+public class Client extends Protocol
 {
   /**
    * Create a CachingClient to connect to the specified server.
@@ -33,30 +33,36 @@ public class Client extends Protocol implements IListener
   {
     this.host = host;
     this.port = port;
-    
-    client = new TcpClient( this, this, this);
+    this.client = new TcpClient( this);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.Connection.IListener#connected(org.xmodel.net.stream.Connection)
+   * @see org.xmodel.net.stream.ITcpListener#onConnect(org.xmodel.net.stream.Connection)
    */
   @Override
-  public void connected( Connection connection)
+  public void onConnect( Connection connection)
   {
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.Connection.IListener#disconnected(org.xmodel.net.stream.Connection)
+   * @see org.xmodel.net.stream.ITcpListener#onClose(org.xmodel.net.stream.Connection)
    */
   @Override
-  public void disconnected( Connection connection)
+  public void onClose( Connection connection)
   {
-    exit = true;
     if ( attached != null)
     {
       dispatcher.execute( new DisconnectEvent( attached));
       attached = null;
     }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.ITcpListener#onReceive(org.xmodel.net.stream.Connection, java.nio.ByteBuffer)
+   */
+  @Override
+  public void onReceive( Connection connection, ByteBuffer buffer)
+  {
   }
 
   /**
@@ -66,15 +72,12 @@ public class Client extends Protocol implements IListener
   {
     if ( connection != null && connection.isOpen()) 
     {
-      client.reconnect( connection);
+      client.reconnect( connection, 30000);
     }
     else
     {
-      connection = client.connect( host, port);
+      connection = client.connect( host, port, 30000);
     }
-    
-    // wait for connection to be established
-    client.process();
   }
 
   /**
@@ -139,7 +142,7 @@ public class Client extends Protocol implements IListener
    */
   public void sendDebugStepIn() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port);
+    if ( connection == null) connection = client.connect( host, port, 30000);
     sendDebugStepIn( connection);
   }
   
@@ -148,7 +151,7 @@ public class Client extends Protocol implements IListener
    */
   public void sendDebugStepOver() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port);
+    if ( connection == null) connection = client.connect( host, port, 30000);
     sendDebugStepOver( connection);
   }
   
@@ -157,50 +160,46 @@ public class Client extends Protocol implements IListener
    */
   public void sendDebugStepOut() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port);
+    if ( connection == null) connection = client.connect( host, port, 30000);
     sendDebugStepOut( connection);
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleError(org.xmodel.net.nu.INetSender, java.lang.String)
+   * @see org.xmodel.net.nu.Protocol#handleError(org.xmodel.net.stream.Connection, java.lang.String)
    */
   @Override
-  protected void handleError( INetSender sender, String message)
+  protected void handleError( Connection sender, String message)
   {
     log.error( message);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleAttachResponse(org.xmodel.net.nu.INetSender, org.xmodel.IModelObject)
+   * @see org.xmodel.net.nu.Protocol#handleAttachResponse(org.xmodel.net.stream.Connection, org.xmodel.IModelObject)
    */
   @Override
-  protected void handleAttachResponse( INetSender sender, IModelObject element)
+  protected void handleAttachResponse( Connection sender, IModelObject element)
   {
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
       cachingPolicy.update( attached, element);
     }
-    
-    thread = new Thread( clientRunnable, "client");
-    thread.setDaemon( true);
-    thread.start();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleQueryResponse(org.xmodel.net.INetSender, byte[])
+   * @see org.xmodel.net.Protocol#handleQueryResponse(org.xmodel.net.Connection, byte[])
    */
   @Override
-  protected void handleQueryResponse( INetSender sender, byte[] bytes)
+  protected void handleQueryResponse( Connection sender, byte[] bytes)
   {
     // TODO: finish this
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#handleAddChild(org.xmodel.net.INetSender, java.lang.String, byte[], int)
+   * @see org.xmodel.net.Protocol#handleAddChild(org.xmodel.net.Connection, java.lang.String, byte[], int)
    */
   @Override
-  protected void handleAddChild( INetSender sender, String xpath, byte[] child, int index)
+  protected void handleAddChild( Connection sender, String xpath, byte[] child, int index)
   {
     dispatcher.execute( new AddChildEvent( xpath, child, index));
   }
@@ -225,10 +224,10 @@ public class Client extends Protocol implements IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleRemoveChild(org.xmodel.net.nu.INetSender, java.lang.String, int)
+   * @see org.xmodel.net.nu.Protocol#handleRemoveChild(org.xmodel.net.stream.Connection, java.lang.String, int)
    */
   @Override
-  protected void handleRemoveChild( INetSender sender, String xpath, int index)
+  protected void handleRemoveChild( Connection sender, String xpath, int index)
   {
     dispatcher.execute( new RemoveChildEvent( xpath, index));
   }
@@ -251,10 +250,10 @@ public class Client extends Protocol implements IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleChangeAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String, java.lang.Object)
+   * @see org.xmodel.net.nu.Protocol#handleChangeAttribute(org.xmodel.net.stream.Connection, java.lang.String, java.lang.String, java.lang.Object)
    */
   @Override
-  protected void handleChangeAttribute( INetSender sender, String xpath, String attrName, Object attrValue)
+  protected void handleChangeAttribute( Connection sender, String xpath, String attrName, Object attrValue)
   {
     dispatcher.execute( new ChangeAttributeEvent( xpath, attrName, attrValue));
   }
@@ -278,10 +277,10 @@ public class Client extends Protocol implements IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.nu.Protocol#handleClearAttribute(org.xmodel.net.nu.INetSender, java.lang.String, java.lang.String)
+   * @see org.xmodel.net.nu.Protocol#handleClearAttribute(org.xmodel.net.stream.Connection, java.lang.String, java.lang.String)
    */
   @Override
-  protected void handleClearAttribute( INetSender sender, String xpath, String attrName)
+  protected void handleClearAttribute( Connection sender, String xpath, String attrName)
   {
     dispatcher.execute( new ClearAttributeEvent( xpath, attrName));
   }
@@ -393,31 +392,11 @@ public class Client extends Protocol implements IListener
     private IExternalReference attached;
   }
   
-  private final Runnable clientRunnable = new Runnable() {
-    public void run()
-    {
-      exit = false;
-      while( !exit)
-      {
-        try
-        {
-          client.process( 500);
-        }
-        catch( IOException e)
-        {
-          break;
-        }
-      }
-    }
-  };
-  
   private String host;
   private int port;
   private TcpClient client;
   private Connection connection;
   private IExternalReference attached;
-  private Thread thread;
-  private boolean exit;
   private IDispatcher dispatcher;
   
   private static Log log = Log.getLog(  "org.xmodel.net");

@@ -2,7 +2,6 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -38,8 +37,6 @@ public final class TcpServer
     // register accept selector
     selector = SelectorProvider.provider().openSelector();
     serverChannel.register( selector, SelectionKey.OP_ACCEPT);
-    
-    writeLock = new Object();
   }
 
   /**
@@ -63,7 +60,7 @@ public final class TcpServer
   }
   
   /**
-   * Process socket events.
+   * Process socket accept/read events.
    * @param timeout The timeout in milliseconds.
    */
   private void process( int timeout) throws IOException
@@ -133,22 +130,6 @@ public final class TcpServer
   }
   
   /**
-   * Write (blocking) the specified buffer to the specified channel.
-   * @param channel The channel.
-   * @param buffer The buffer.
-   */
-  public void write( Channel channel, ByteBuffer buffer) throws IOException
-  {
-    synchronized( writeLock)
-    {
-      // abort server thread select
-      selector.wakeup();
-      
-      // 
-    }
-  }
-  
-  /**
    * Close the connection with the specified key.
    * @param key The selected key.
    */
@@ -187,17 +168,12 @@ public final class TcpServer
     {
       try
       {
-        process( 0);
-        
-        synchronized( writeLock)
-        {
-          System.out.printf( ".");
-        }
+        process( 500);
       }
       catch( IOException e)
       {
         log.exception( e);
-        try { Thread.sleep( 250);} catch( InterruptedException i) {}
+        try { Thread.sleep( 500);} catch( InterruptedException i) {}
       }
     }
   }
@@ -211,5 +187,4 @@ public final class TcpServer
   private ITcpListener listener;
   private Thread thread;
   private boolean exit;
-  private Object writeLock;
 }

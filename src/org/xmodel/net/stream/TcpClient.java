@@ -12,18 +12,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.xmodel.net.INetFramer;
-import org.xmodel.net.INetReceiver;
-import org.xmodel.net.stream.Connection.IListener;
+import org.xmodel.log.Log;
 
-public class TcpClient implements ITcpAgent
+public class TcpClient
 {
-  public TcpClient( INetFramer framer, INetReceiver receiver, IListener listener)
+  public TcpClient( ITcpListener listener)
   {
-    this.framer = framer;
-    this.receiver = receiver;
     this.listener = listener;
-    
     pending = new HashMap<Channel, Connection>();
     connected = new HashMap<Channel, Connection>();
   }
@@ -32,8 +27,9 @@ public class TcpClient implements ITcpAgent
    * Connect to the specified remote address.
    * @param host The remote host.
    * @param port The remote port.
+   * @param timeout The timeout in milliseconds.
    */
-  public Connection connect( String host, int port) throws IOException
+  public Connection connect( String host, int port, int timeout) throws IOException
   {
     address = new InetSocketAddress( host, port);
     SocketChannel channel = SocketChannel.open();
@@ -43,8 +39,9 @@ public class TcpClient implements ITcpAgent
     channel.register( selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ);
     
     channel.connect( address);
+    process( timeout);
     
-    Connection connection = new Connection( this, framer, receiver, listener);
+    Connection connection = new Connection( listener);
     pending.put( channel, connection);
     return connection;
   }
@@ -52,8 +49,9 @@ public class TcpClient implements ITcpAgent
   /**
    * Reconnect the specified connection.
    * @param connection The connection.
+   * @param timeout The timeout in milliseconds.
    */
-  public void reconnect( Connection connection) throws IOException
+  public void reconnect( Connection connection, int timeout) throws IOException
   {
     SocketChannel channel = connection.getChannel();
     if ( channel != null)
@@ -73,20 +71,34 @@ public class TcpClient implements ITcpAgent
     
     pending.put( channel, connection);
     channel.connect( address);
+    process( timeout);
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.stream.ITcpPeer#process()
+  /**
+   * Start the server.
+   * @param listener The TCP event listener.
    */
-  public void process() throws IOException
+  public void start( ITcpListener listener)
   {
-    process( 0);
+    this.listener = listener;
+    
+    Runnable runnable = new Runnable() {
+      public void run()
+      {
+        thread();
+      }
+    };
+    
+    thread = new Thread( runnable, "client");
+    thread.setDaemon( true);
+    thread.start();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.stream.ITcpPeer#process(int)
+  /**
+   * Process socket connect/read events.
+   * @param timeout The timeout in milliseconds.
    */
-  public void process( int timeout) throws IOException
+  private void process( int timeout) throws IOException
   {
     if ( selector.select( timeout) == 0) return; 
 
@@ -136,11 +148,33 @@ public class TcpClient implements ITcpAgent
     readyKeys.clear();
   }
   
-  private INetFramer framer;
-  private INetReceiver receiver;
-  private IListener listener;
+  /**
+   * Client thread entry-point.
+   */
+  private void thread()
+  {
+    exit = false;
+    while( !exit)
+    {
+      try
+      {
+        process( 500);
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
+        try { Thread.sleep( 500);} catch( InterruptedException i) {}
+      }
+    }
+  }
+
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  
   private InetSocketAddress address;
   private Selector selector;
   private Map<Channel, Connection> pending;
   private Map<Channel, Connection> connected;
+  private ITcpListener listener;
+  private Thread thread;
+  private boolean exit;
 }

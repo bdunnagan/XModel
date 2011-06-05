@@ -96,28 +96,38 @@ public class Connection
    */
   int read() throws IOException
   {
-    System.out.printf( "READ\n%s\n", Util.dump( buffer));
+    if ( channel == null) return -1;
+    
+    int nread = channel.read( buffer);
+    if ( nread == -1) return nread;
+    
+    if ( listener != null && nread > 0) 
+    {
+      System.out.printf( "READ\n%s\n", Util.dump( buffer));
+      listener.onReceive( this, buffer);
+    }
+    
+    return nread;
   }
 
   /**
    * Synchronously write the content of the specified buffer to the connection.
    * @param buffer The buffer.
    */
-  public void write( ByteBuffer buffer) throws IOException
+  private void write( ByteBuffer buffer) throws IOException
   {
     System.out.printf( "WRITE\n%s\n", Util.dump( buffer));
     
-    if ( channel != null) 
-    {
-      // wait for channel to become writeable
-      if ( selector.select() == 0) throw new IOException( "Write failed.");
-      
-      // clear write operation
-      selector.selectedKeys().clear();
-      
-      // write
-      channel.write( buffer);
-    }
+    if ( channel == null) return;
+    
+    // wait for channel to become writeable
+    if ( selector.select() == 0) throw new IOException( "Write failed.");
+    
+    // clear write operation
+    selector.selectedKeys().clear();
+    
+    // write
+    channel.write( buffer);
   }
   
   /**
@@ -134,26 +144,6 @@ public class Connection
     }
     catch( IOException e)
     {
-      return false;
-    }
-  }
-
-  /**
-   * Send and wait for a response.
-   * @param buffer The buffer to send.
-   * @param timeout The timeout in milliseconds.
-   * @return Returns true if a response was received within the timeout.
-   */
-  public boolean send( ByteBuffer buffer, int timeout)
-  {
-    try
-    {
-      send( buffer);
-      return true;
-    }
-    catch( Exception e)
-    {
-      log.exception( e);
       return false;
     }
   }
@@ -178,6 +168,7 @@ public class Connection
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
+  @SuppressWarnings("unused")
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
   
   private ITcpListener listener;
