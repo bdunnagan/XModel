@@ -6,6 +6,7 @@ import java.util.Stack;
 import java.util.concurrent.Semaphore;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.diff.XmlDiffer;
@@ -32,7 +33,6 @@ public class Debugger implements IDebugger
   
   public Debugger()
   {
-    semaphore = new Semaphore( 0);
     stack = new Stack<Frame>();
     stepFrame = 1;
     context = new StatefulContext( new ModelObject( "debug"));
@@ -157,11 +157,12 @@ public class Debugger implements IDebugger
       }
     }
 
-    while( !semaphore.tryAcquire())
+    unblock = false;
+    while( !unblock)
     {
       try
       {
-        server.process( 0);
+        dispatcher.process();
       }
       catch( IOException e)
       {
@@ -175,7 +176,7 @@ public class Debugger implements IDebugger
    */
   private void unblock()
   {
-    semaphore.release();
+    unblock = true;
   }
 
   /**
@@ -237,12 +238,13 @@ public class Debugger implements IDebugger
   
   private static Log log = Log.getLog( "org.xmodel.xaction.debug");
   
-  private Semaphore semaphore;
   private Stack<Frame> stack;
   private int stepFrame;
   private int currFrame;
   private StatefulContext context;
   private Server server;
+  private boolean unblock;
+  private BlockingDispatcher dispatcher;
   
   public static void main( String[] args) throws Exception
   {
