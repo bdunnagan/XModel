@@ -50,16 +50,22 @@ public final class FormatSink implements ILogSink
     
     String date = dateFormat.format( new Date());
     StringBuilder sb = new StringBuilder();
-    sb.append( levelName); sb.append( ' ');
-    sb.append( log.getName()); sb.append( ' ');
-    sb.append( date); sb.append( ' ');
-    sb.append( message);
-    delegate.log( log, level, sb.toString());
+    
+    if ( message.length() > 0)
+    {
+      sb.append( levelName); sb.append( ' ');
+      sb.append( log.getName()); sb.append( ' ');
+      sb.append( date); sb.append( ' ');
+      sb.append( message);
+      delegate.log( log, level, sb.toString());
+    }
     
     sb.setLength( 0);
     sb.append( levelName); sb.append( ' ');
     sb.append( log.getName()); sb.append( ' ');
     sb.append( date); sb.append( ' ');
+    sb.append( throwable.getClass().getSimpleName());
+    sb.append( ": ");
     sb.append( throwable.getMessage());
     delegate.log( log, level, sb.toString());
     

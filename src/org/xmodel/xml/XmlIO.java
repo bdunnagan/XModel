@@ -513,7 +513,7 @@ public class XmlIO implements IXmlIO
     finally
     {
       // remove from cycle set if reference
-      if ( root.getReferent() != root) cycleSet.remove( root);
+      if ( cycleSet != null && root.getReferent() != root) cycleSet.remove( root);
     }
   }
   
