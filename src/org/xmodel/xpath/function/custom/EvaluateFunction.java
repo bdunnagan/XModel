@@ -21,10 +21,15 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.*;
+import org.xmodel.xpath.expression.Context;
+import org.xmodel.xpath.expression.ExpressionException;
+import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.Function;
+import org.xmodel.xpath.parser.generated.TokenMgrError;
 
 /**
  * An XPath function that compiles and evaluates the expression returned by its second argument. The first
@@ -149,6 +154,10 @@ public class EvaluateFunction extends Function
       return XPath.createExpression( spec, false);
     }
     catch( Exception e)
+    {
+      return null;
+    }
+    catch( TokenMgrError e)
     {
       return null;
     }
