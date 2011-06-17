@@ -19,13 +19,6 @@
  */
 package org.xmodel.xpath.variable;
 
-import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
-import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.Context;
-import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 
 
 /**
@@ -72,39 +65,4 @@ public class VariableScope extends AbstractVariableScope
 
   private int precedence;
   private String scopeName;
-  
-  public static void main( String[] args) throws Exception
-  {
-    VariableScope scope = new VariableScope( "global", 0);
-    IExpression e = XPath.createExpression( "/r/x");
-
-    scope.define( "v", e);
-    
-    IModelObject root = new ModelObject( "r");
-    IContext context = new Context( root);
-    scope.addListener( "v", context, new IVariableListener() {
-      public void notifyAdd( String name, IVariableScope scope, IContext context, List<IModelObject> nodes)
-      {
-        System.out.println( "update: name="+name+", scope="+scope.getName()+", add="+nodes);
-      }
-      public void notifyChange( String name, IVariableScope scope, IContext context, Boolean newValue)
-      {
-      }
-      public void notifyChange( String name, IVariableScope scope, IContext context, Number newValue, Number oldValue)
-      {
-        System.out.println( "update: name="+name+", scope="+scope.getName()+", new="+newValue+", old="+oldValue);
-      }
-      public void notifyChange( String name, IVariableScope scope, IContext context, String newValue, String oldValue)
-      {
-        System.out.println( "update: name="+name+", scope="+scope.getName()+", new="+newValue+", old="+oldValue);
-      }
-      public void notifyRemove( String name, IVariableScope scope, IContext context, List<IModelObject> nodes)
-      {
-        System.out.println( "update: name="+name+", scope="+scope.getName()+", del="+nodes);
-      }
-    });
-    
-    root.getCreateChild( "x");
-    root.removeChildren( "x");
-  }
 }
