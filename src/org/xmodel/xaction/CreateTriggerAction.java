@@ -20,6 +20,7 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.xaction.trigger.EntityTrigger;
 import org.xmodel.xaction.trigger.ITrigger;
@@ -67,9 +68,14 @@ public class CreateTriggerAction extends XAction
   public Object[] doRun( IContext context)
   {
     IVariableScope scope = context.getScope();
-    if ( scope != null) scope.setPojo( variable, trigger, null);
-    trigger.activate( context);
+    if ( scope != null)
+    {
+      IModelObject holder = new ModelObject( "trigger");
+      holder.setValue( trigger);
+      scope.set( variable, holder);
+    }
     
+    trigger.activate( context);
     return null;
   }
 

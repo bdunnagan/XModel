@@ -511,6 +511,51 @@ class ReturnScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public Object set( String name, Object value)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#insert(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public void insert( String name, Object object)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#insert(java.lang.String, java.lang.Object, int)
+   */
+  @Override
+  public void insert( String name, Object object, int index)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#remove(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public void remove( String name, Object object)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#remove(java.lang.String, int)
+   */
+  @Override
+  public void remove( String name, int index)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.lang.Number)
    */
   public Number set( String name, Number value)
@@ -560,16 +605,6 @@ class ReturnScope implements IVariableScope
     if ( name.equals( this.name)) return value;
     if ( parent == null) return null;
     return parent.get( name);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.variable.IVariableScope#getPojo(java.lang.String)
-   */
-  public Object getPojo( String name)
-  {
-    if ( name.equals( this.name)) return value;
-    if ( parent == null) return null;
-    return parent.getPojo( name);
   }
 
   /* (non-Javadoc)

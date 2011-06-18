@@ -19,8 +19,6 @@
  */
 package org.xmodel.xpath.variable;
 
-
-
 /**
  * An extension of AbstractVariableScope which stores its scope name and precedence.
  */

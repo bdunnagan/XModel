@@ -358,33 +358,4 @@ public class VariableExpression extends Expression
   };
   
   private String variable;
-  
-  public static void main( String[] args) throws Exception
-  {
-    IExpression expr = XPath.createExpression( "$v");
-    expr.setVariable( "v", 1);
-    
-    IVariableSource source = expr.getVariableSource();
-    IVariableScope scope = new VariableScope( "tmp", 5);
-    source.addScope( scope);
-    scope.set( "v", "a");
-    
-    IExpressionListener listener = new ExpressionListener() {
-      public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
-      {
-        System.out.println( "value="+newValue);
-      }
-      public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
-      {
-        System.out.println( "value=\""+newValue+"\"");
-      }
-    };
-    
-    expr.addNotifyListener( NullContext.getInstance(), listener);
-    scope.set( "v", "b");
-    source.removeScope( scope);
-    scope.set( "v", "c");
-    
-    expr.removeListener( NullContext.getInstance(), listener);
-  }
 }

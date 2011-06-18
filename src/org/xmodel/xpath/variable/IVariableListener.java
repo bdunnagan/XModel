@@ -23,7 +23,6 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 
-
 /**
  * An interface for receiving notification of variable updates.
  */

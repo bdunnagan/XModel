@@ -25,10 +25,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
-import org.xmodel.ModelObjectFactory;
 import org.xmodel.ModelRegistry;
 import org.xmodel.Update;
 import org.xmodel.memento.IMemento;
@@ -37,14 +36,14 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.ExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.expression.IExpressionListener;
 import org.xmodel.xpath.expression.RootExpression;
-import org.xmodel.xpath.expression.IExpression.ResultType;
-
 
 /**
  * A base implementation of IVariableScope which does not define the scope name or precedence.
  */
+@SuppressWarnings("unchecked")
 public abstract class AbstractVariableScope implements IVariableScope
 {
   /* (non-Javadoc)
@@ -73,12 +72,116 @@ public abstract class AbstractVariableScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public Object set( String name, Object value)
+  {
+    return internal_set( name, value);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#insert(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public void insert( String name, Object object)
+  {
+    insert( name, object, Integer.MAX_VALUE);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#insert(java.lang.String, java.lang.Object, int)
+   */
+  @Override
+  public void insert( String name, Object object, int index)
+  {
+    Variable variable = getCreateVariable( name);
+    if ( variable.value == null) variable.value = new ArrayList<IModelObject>();
+    if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
+    
+    List<Object> list = (List<Object>)variable.value;
+    if ( list.size() > 0)
+    {
+      // verify consistency
+      Object first = list.get( 0);
+      if ( !object.getClass().equals( first.getClass())) throw new IllegalStateException( "Inconsistent type inserted into variable.");
+    }
+    
+    if ( index == Integer.MAX_VALUE) index = list.size();
+    
+    if ( !(list instanceof ArrayList))
+    {
+      list = new ArrayList<Object>();
+      variable.value = list;
+    }
+    
+    list.add( index, object);
+
+    List<IModelObject> inserted = Collections.singletonList( (IModelObject)object);
+    if ( variable.bindings != null)
+    {
+      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
+      for( Binding binding: bindings)
+      {
+        binding.listener.notifyAdd( name, this, binding.context, inserted);
+      }
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#remove(java.lang.String, java.lang.Object)
+   */
+  @Override
+  public void remove( String name, Object object)
+  {
+    Variable variable = variables.get( name);
+    if ( variable == null) return;
+    if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
+    
+    List<IModelObject> removed = Collections.singletonList( (IModelObject)object);
+    if ( variable.bindings != null)
+    {
+      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
+      for( Binding binding: bindings)
+      {
+        binding.listener.notifyRemove( name, this, binding.context, removed);
+      }
+    }
+    
+    List<Object> list = (List<Object>)variable.value;
+    list.remove( object);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#remove(java.lang.String, int)
+   */
+  @Override
+  public void remove( String name, int index)
+  {
+    Variable variable = variables.get( name);
+    if ( variable == null) return;
+    if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
+    
+    List<Object> list = (List<Object>)variable.value;
+    Object object = list.remove( index);
+
+    List<IModelObject> removed = Collections.singletonList( (IModelObject)object);
+    if ( variable.bindings != null)
+    {
+      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
+      for( Binding binding: bindings)
+      {
+        binding.listener.notifyRemove( name, this, binding.context, removed);
+      }
+    }
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, org.xmodel.IModelObject)
    */
-  @SuppressWarnings("unchecked")
   public List<IModelObject> set( String name, IModelObject value)
   {
-    List list = (value != null)? 
+    List<? extends Object> list = (value != null)? 
       Collections.singletonList( value):
       Collections.emptyList();
       
@@ -90,7 +193,6 @@ public abstract class AbstractVariableScope implements IVariableScope
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.util.List)
    */
-  @SuppressWarnings("unchecked")
   public List<IModelObject> set( String name, List<IModelObject> value)
   {
     Object old = internal_set( name, value);
@@ -126,35 +228,6 @@ public abstract class AbstractVariableScope implements IVariableScope
     Object old = internal_set( name, value);
     if ( old instanceof String) return (String)old;
     return "";
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.variable.IVariableScope#setPojo(java.lang.String, java.lang.Object, org.xmodel.IModelObjectFactory)
-   */
-  @SuppressWarnings("unchecked")
-  public Object setPojo( String name, Object pojo, IModelObjectFactory factory)
-  {
-    Object object = get( name);
-    if ( object instanceof List)
-    {
-      List<IModelObject> nodes = (List<IModelObject>)object;
-      if ( nodes.size() > 0)
-      {
-        IModelObject node = nodes.get( 0);
-        if ( node.isType( "xm:pojo"))
-        {
-          node.setValue( pojo);
-          return node.getValue();
-        }
-      }
-    }
-    
-    if ( factory == null) factory = new ModelObjectFactory();
-    IModelObject element = factory.createObject( null, "xm:pojo");
-    element.setValue( pojo);
-    set( name, element);
-
-    return null;
   }
 
   /**
@@ -230,7 +303,6 @@ public abstract class AbstractVariableScope implements IVariableScope
    * @param newValue The new value.
    * @param oldValue The old value.
    */
-  @SuppressWarnings("unchecked")
   private void performNotification( Variable variable, String name, Object newValue, Object oldValue)
   {
     if ( variable.bindings == null) return;
@@ -296,26 +368,6 @@ public abstract class AbstractVariableScope implements IVariableScope
     Variable variable = variables.get( name);
     if ( variable == null) return null;
     return variable.value;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.variable.IVariableScope#getPojo(java.lang.String)
-   */
-  @SuppressWarnings("unchecked")
-  public Object getPojo( String name)
-  {
-    Object object = get( name);
-    if ( object != null && object instanceof List)
-    {
-      List<IModelObject> nodes = (List<IModelObject>)object;
-      if ( nodes.size() > 0)
-      {
-        IModelObject node = nodes.get( 0);
-        if ( node.isType( "xm:pojo")) return node.getValue();
-      }
-    }
-    
-    return null;
   }
 
   /* (non-Javadoc)
