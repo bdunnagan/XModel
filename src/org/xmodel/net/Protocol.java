@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -115,12 +116,12 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param version The version.
    */
-  public final void sendVersion( Connection connection, short version)
+  public final void sendVersion( Connection connection, short version) throws IOException
   {
     initialize( buffer);
     buffer.putShort( version);
     finalize( buffer, Type.version, 2);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
    /**
@@ -134,9 +135,6 @@ public abstract class Protocol implements ITcpListener
     int version = buffer.getShort();
     if ( version != Protocol.version)
     {
-      buffer.put( (byte)Type.error.ordinal());
-      writeString( this.buffer, String.format( "Expected protocol version %d", Protocol.version));
-      connection.send( this.buffer);
       connection.close();
     }
   }
@@ -146,13 +144,13 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param message The error message.
    */
-  public final void sendError( Connection connection, String message)
+  public final void sendError( Connection connection, String message) throws IOException
   {
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.error, bytes.length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -182,7 +180,7 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendAttachRequest( Connection connection, String xpath)
+  public final void sendAttachRequest( Connection connection, String xpath) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
@@ -218,13 +216,13 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param element The element.
    */
-  public final void sendAttachResponse( Connection connection, IModelObject element)
+  public final void sendAttachResponse( Connection connection, IModelObject element) throws IOException
   {
     initialize( buffer);
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachResponse, bytes.length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -255,13 +253,13 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendDetachRequest( Connection connection, String xpath)
+  public final void sendDetachRequest( Connection connection, String xpath) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.detachRequest, bytes.length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -288,13 +286,13 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param key The key.
    */
-  public final void sendSyncRequest( Connection connection, String key)
+  public final void sendSyncRequest( Connection connection, String key) throws IOException
   {
     initialize( buffer);
     byte[] bytes = key.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.syncRequest, bytes.length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -326,14 +324,14 @@ public abstract class Protocol implements ITcpListener
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( Connection connection, String xpath, IModelObject element, int index)
+  public final void sendAddChild( Connection connection, String xpath, IModelObject element, int index) throws IOException
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     length += writeElement( buffer, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -367,13 +365,13 @@ public abstract class Protocol implements ITcpListener
    * @param xpath The xpath.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( Connection connection, String xpath, int index)
+  public final void sendRemoveChild( Connection connection, String xpath, int index) throws IOException
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -406,7 +404,7 @@ public abstract class Protocol implements ITcpListener
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( Connection connection, String xpath, String attrName, Object value)
+  public final void sendChangeAttribute( Connection connection, String xpath, String attrName, Object value) throws IOException
   {
     byte[] bytes = serialize( value);
     
@@ -415,7 +413,7 @@ public abstract class Protocol implements ITcpListener
     length += writeString( buffer, attrName);
     length += writeBytes( buffer, bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -449,13 +447,13 @@ public abstract class Protocol implements ITcpListener
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    */
-  public final void sendClearAttribute( Connection connection, String xpath, String attrName)
+  public final void sendClearAttribute( Connection connection, String xpath, String attrName) throws IOException
   {
     initialize( buffer);
     int length = writeString( buffer, xpath);
     length += writeString( buffer, attrName);
     finalize( buffer, Type.clearAttribute, length);
-    connection.send( buffer);
+    connection.write( buffer);
   }
   
   /**
@@ -486,7 +484,7 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param xpath The xpath.
    */
-  public final void sendQueryRequest( Connection connection, String xpath)
+  public final void sendQueryRequest( Connection connection, String xpath) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
@@ -522,7 +520,7 @@ public abstract class Protocol implements ITcpListener
    * @param connection The connection.
    * @param result The result.
    */
-  public final void sendQueryResponse( Connection connection, Object result)
+  public final void sendQueryResponse( Connection connection, Object result) throws IOException
   {
     initialize( buffer);
     byte[] bytes = serialize( result);
@@ -557,7 +555,7 @@ public abstract class Protocol implements ITcpListener
    * Send a debug step message.
    * @param connection The connection.
    */
-  public final void sendDebugStepIn( Connection connection)
+  public final void sendDebugStepIn( Connection connection) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepIn, 0);
@@ -587,7 +585,7 @@ public abstract class Protocol implements ITcpListener
    * Send a debug step message.
    * @param connection The connection.
    */
-  public final void sendDebugStepOver( Connection connection)
+  public final void sendDebugStepOver( Connection connection) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOver, 0);
@@ -617,7 +615,7 @@ public abstract class Protocol implements ITcpListener
    * Send a debug step message.
    * @param connection The connection.
    */
-  public final void sendDebugStepOut( Connection connection)
+  public final void sendDebugStepOut( Connection connection) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOut, 0);
@@ -650,11 +648,11 @@ public abstract class Protocol implements ITcpListener
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response buffer.
    */
-  private ByteBuffer send( Connection connection, ByteBuffer buffer, int timeout)
+  private ByteBuffer send( Connection connection, ByteBuffer buffer, int timeout) throws IOException
   {
     try
     {
-      connection.send( buffer);
+      connection.write( buffer);
       return queue.poll( timeout, TimeUnit.MILLISECONDS);
     }
     catch( InterruptedException e)

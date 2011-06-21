@@ -19,7 +19,6 @@ import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
-import org.xmodel.net.stream.ITcpListener;
 import org.xmodel.net.stream.TcpServer;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.Identifier;
@@ -60,11 +59,23 @@ public class Server extends Protocol implements Runnable
     random = new Random();
     index = new WeakHashMap<String, IExternalReference>();
     listeners = new HashMultiMap<Connection, Listener>();
-    server = new TcpServer( host, port);
+    server = new TcpServer( host, port, this);
   }
 
+  /**
+   * Start the server.
+   */
   public void start()
   {
+    server.start();
+  }
+  
+  /**
+   * Stop the server.
+   */
+  public void stop()
+  {
+    server.stop();
   }
   
   /**
@@ -104,7 +115,7 @@ public class Server extends Protocol implements Runnable
    * @param sender The sender.
    * @param xpath The xpath expression.
    */
-  private void attach( Connection sender, String xpath)
+  private void attach( Connection sender, String xpath) throws IOException
   {
     try
     {
@@ -145,7 +156,7 @@ public class Server extends Protocol implements Runnable
     }
     catch( PathSyntaxException e)
     {
-      sendError( sender, e.getMessage());
+      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
     }
   }
 
@@ -163,7 +174,7 @@ public class Server extends Protocol implements Runnable
    * @param sender The sender.
    * @param xpath The query.
    */
-  private void query( Connection sender, String xpath)
+  private void query( Connection sender, String xpath) throws IOException
   {
     try
     {
@@ -180,7 +191,7 @@ public class Server extends Protocol implements Runnable
     }
     catch( PathSyntaxException e)
     {
-      sendError( sender, e.getMessage());
+      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
     }
   }
   
@@ -252,14 +263,7 @@ public class Server extends Protocol implements Runnable
   @Override
   protected void handleAttachRequest( Connection sender, String xpath)
   {
-    if ( thread == null) 
-    {
-      attach( sender, xpath);
-    }
-    else 
-    {
-      context.getModel().dispatch( new AttachRunnable( sender, xpath));
-    }
+    context.getModel().dispatch( new AttachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -268,14 +272,7 @@ public class Server extends Protocol implements Runnable
   @Override
   protected void handleDetachRequest( Connection sender, String xpath)
   {
-    if ( thread == null) 
-    {
-      detach( sender, xpath);
-    }
-    else 
-    {
-      context.getModel().dispatch( new DetachRunnable( sender, xpath));
-    }
+    context.getModel().dispatch( new DetachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -287,14 +284,7 @@ public class Server extends Protocol implements Runnable
     IExternalReference reference = index.get( key);
     if ( reference != null)
     {
-      if ( thread == null) 
-      {
-        sync( reference);
-      }
-      else 
-      {
-        context.getModel().dispatch( new SyncRunnable( reference));
-      }
+      context.getModel().dispatch( new SyncRunnable( reference));
     }
   }
   
@@ -304,14 +294,7 @@ public class Server extends Protocol implements Runnable
   @Override
   protected void handleQueryRequest( Connection sender, String xpath)
   {
-    if ( thread == null) 
-    {
-      query( sender, xpath);
-    }
-    else 
-    {
-      context.getModel().dispatch( new QueryRunnable( sender, xpath));
-    }
+    context.getModel().dispatch( new QueryRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -363,7 +346,14 @@ public class Server extends Protocol implements Runnable
     
     public void run()
     {
-      attach( sender, xpath);
+      try
+      {
+        attach( sender, xpath);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
 
     private Connection sender;
@@ -412,7 +402,14 @@ public class Server extends Protocol implements Runnable
     
     public void run()
     {
-      query( sender, xpath);
+      try
+      {
+        query( sender, xpath);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
     
     private Connection sender;
@@ -440,7 +437,14 @@ public class Server extends Protocol implements Runnable
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
-      sendAddChild( sender, createPath( root, parent), child, index);
+      try
+      {
+        sendAddChild( sender, createPath( root, parent), child, index);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
 
     /* (non-Javadoc)
@@ -450,7 +454,14 @@ public class Server extends Protocol implements Runnable
     public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
-      sendRemoveChild( sender, createPath( root, parent), index);
+      try
+      {
+        sendRemoveChild( sender, createPath( root, parent), index);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
 
     /* (non-Javadoc)
@@ -459,7 +470,14 @@ public class Server extends Protocol implements Runnable
     @Override
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
-      sendChangeAttribute( sender, createPath( root, object), attrName, newValue);
+      try
+      {
+        sendChangeAttribute( sender, createPath( root, object), attrName, newValue);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
 
     /* (non-Javadoc)
@@ -468,7 +486,14 @@ public class Server extends Protocol implements Runnable
     @Override
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
-      sendClearAttribute( sender, createPath( root, object), attrName);
+      try
+      {
+        sendClearAttribute( sender, createPath( root, object), attrName);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
     }
     
     /* (non-Javadoc)
@@ -500,7 +525,7 @@ public class Server extends Protocol implements Runnable
   };
   
   private static Log log = Log.getLog( "org.xmodel.net");
-  
+
   private TcpServer server;
   private Map<String, IExternalReference> index;
   private MultiMap<Connection, Listener> listeners;

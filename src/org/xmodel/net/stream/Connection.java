@@ -3,24 +3,21 @@ package org.xmodel.net.stream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
-
-import org.xmodel.log.Log;
 
 /**
  * A class that represents a TCP connection.
  */
-public class Connection
+public final class Connection
 {
   /**
    * Create a new connection.
+   * @param manager The TcpManager instance.
    * @param listener The TCP event listener.
    */
-  Connection( ITcpListener listener)
+  Connection( TcpManager manager, ITcpListener listener)
   {
+    this.manager = manager;
     this.listener = listener;
   }
   
@@ -55,9 +52,6 @@ public class Connection
   void connected( SocketChannel channel) throws IOException
   {
     this.channel = channel;
-    
-    selector = SelectorProvider.provider().openSelector();
-    channel.register( selector, SelectionKey.OP_WRITE);
     
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
     if ( buffer == null) buffer = ByteBuffer.allocateDirect( 4096);
@@ -114,40 +108,11 @@ public class Connection
    * Synchronously write the content of the specified buffer to the connection.
    * @param buffer The buffer.
    */
-  private void write( ByteBuffer buffer) throws IOException
+  public void write( ByteBuffer buffer) throws IOException
   {
-    System.out.printf( "WRITE\n%s\n", Util.dump( buffer));
-    
-    if ( channel == null) return;
-    
-    // wait for channel to become writeable
-    if ( selector.select() == 0) throw new IOException( "Write failed.");
-    
-    // clear write operation
-    selector.selectedKeys().clear();
-    
-    // write
-    channel.write( buffer);
+    manager.write( channel, buffer);
   }
   
-  /**
-   * Send the contents of the specified buffer.
-   * @param buffer The buffer.
-   * @return Returns true if the send was successful.
-   */
-  public boolean send( ByteBuffer buffer)
-  {
-    try
-    {
-      write( buffer);
-      return true;
-    }
-    catch( IOException e)
-    {
-      return false;
-    }
-  }
-
   /**
    * Close this connection.
    */
@@ -168,12 +133,11 @@ public class Connection
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
-  @SuppressWarnings("unused")
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
-  
+  //private final static Log log = Log.getLog( "org.xmodel.net.stream");
+
+  private TcpManager manager;
   private ITcpListener listener;
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
-  private Selector selector;
 }

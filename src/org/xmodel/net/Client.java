@@ -29,7 +29,7 @@ public class Client extends Protocol
    * @param host The server host.
    * @param port The server port.
    */
-  public Client( String host, int port)
+  public Client( String host, int port) throws IOException
   {
     this.host = host;
     this.port = port;
@@ -68,15 +68,15 @@ public class Client extends Protocol
   /**
    * Connect (or reconnect) to the remote host.
    */
-  public void connect() throws IOException
+  public void connect( int timeout) throws IOException
   {
     if ( connection != null && connection.isOpen()) 
     {
-      client.reconnect( connection, 30000);
+      client.reconnect( connection, timeout);
     }
     else
     {
-      connection = client.connect( host, port, 30000);
+      connection = client.connect( host, port, timeout);
     }
   }
 
@@ -103,7 +103,7 @@ public class Client extends Protocol
    */
   public void attach( String xpath, IExternalReference reference) throws IOException
   {
-    connect();
+    connect( 30000);
     if ( connection.isOpen())
     {
       sendVersion( connection, (byte)1);
@@ -122,7 +122,7 @@ public class Client extends Protocol
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void detach( String xpath, IExternalReference reference)
+  public void detach( String xpath, IExternalReference reference) throws IOException
   {
     sendDetachRequest( connection, xpath);
   }
@@ -131,7 +131,7 @@ public class Client extends Protocol
    * Request that the server IExternalReference represented by the specified client IExternalReference be sync'ed.
    * @param reference The client IExternalReference.
    */
-  public void sync( IExternalReference reference)
+  public void sync( IExternalReference reference) throws IOException
   {
     String key = Xlate.get( reference, "net:key", (String)null);
     sendSyncRequest( connection, key);

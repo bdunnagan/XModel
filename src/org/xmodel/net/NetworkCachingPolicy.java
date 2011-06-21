@@ -55,7 +55,14 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Port not defined in annotation: \n"+xml);
     }
     
-    client = new Client( host, port);
+    try
+    {
+      client = new Client( host, port);
+    }
+    catch( IOException e)
+    {
+      throw new CachingException( "Illegal host or port specification.", e);
+    }
     
     xpath = Xlate.get( annotation, "xpath", Xlate.childGet( annotation, "xpath", (String)null));
     if ( xpath == null)

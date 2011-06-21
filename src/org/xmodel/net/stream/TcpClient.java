@@ -2,25 +2,21 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.xmodel.log.Log;
 
-public class TcpClient
+public class TcpClient extends TcpManager
 {
-  public TcpClient( ITcpListener listener)
+  public TcpClient( ITcpListener listener) throws IOException
   {
-    this.listener = listener;
+    super( listener);
     pending = new HashMap<Channel, Connection>();
-    connected = new HashMap<Channel, Connection>();
   }
   
   /**
@@ -31,27 +27,25 @@ public class TcpClient
    */
   public Connection connect( String host, int port, int timeout) throws IOException
   {
-    address = new InetSocketAddress( host, port);
+    InetSocketAddress address = new InetSocketAddress( host, port);
     SocketChannel channel = SocketChannel.open();
-    channel.configureBlocking( false);
     
-    if ( selector == null) selector = SelectorProvider.provider().openSelector();
-    channel.register( selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ);
+    Connection connection = createConnection( channel, SelectionKey.OP_CONNECT);
+    pending.put( channel, connection);
     
     channel.connect( address);
-    process( timeout);
+    if ( process( timeout)) return connection;
     
-    Connection connection = new Connection( listener);
-    pending.put( channel, connection);
-    return connection;
+    return null;
   }
   
   /**
    * Reconnect the specified connection.
    * @param connection The connection.
    * @param timeout The timeout in milliseconds.
+   * @return Returns true if the connection was reestablished.
    */
-  public void reconnect( Connection connection, int timeout) throws IOException
+  public boolean reconnect( Connection connection, int timeout) throws IOException
   {
     SocketChannel channel = connection.getChannel();
     if ( channel != null)
@@ -60,121 +54,83 @@ public class TcpClient
     }
     
     pending.remove( channel);
-    connected.remove( channel);
     
-    address = new InetSocketAddress( connection.getAddress(), connection.getPort());
+    InetSocketAddress address = new InetSocketAddress( connection.getAddress(), connection.getPort());
     channel = SocketChannel.open();
-    channel.configureBlocking( false);
     
-    if ( selector == null) selector = SelectorProvider.provider().openSelector();
     channel.register( selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ);
     
     pending.put( channel, connection);
     channel.connect( address);
-    process( timeout);
+    
+    return process( timeout);
   }
 
-  /**
-   * Start the server.
-   * @param listener The TCP event listener.
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpManager#process(int)
    */
-  public void start( ITcpListener listener)
+  protected boolean process( int timeout) throws IOException
   {
-    this.listener = listener;
-    
-    Runnable runnable = new Runnable() {
-      public void run()
-      {
-        thread();
-      }
-    };
-    
-    thread = new Thread( runnable, "client");
-    thread.setDaemon( true);
-    thread.start();
-  }
-  
-  /**
-   * Process socket connect/read events.
-   * @param timeout The timeout in milliseconds.
-   */
-  private void process( int timeout) throws IOException
-  {
-    if ( selector.select( timeout) == 0) return; 
-
-    Set<SelectionKey> readyKeys = selector.selectedKeys();
-    for( SelectionKey readyKey: readyKeys)
+    // wait for connection
+    if ( selector.select( timeout) == 0) return false; 
+      
+    // handle events
+    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+    while( iter.hasNext())
     {
-      SocketChannel channel = (SocketChannel)readyKey.channel();
+      SelectionKey readyKey = iter.next();
+      iter.remove();
+      
+      if ( !readyKey.isValid()) continue;
+      
       try
       {
-        int readyOps = readyKey.readyOps();
-        if ( (readyOps & SelectionKey.OP_CONNECT) != 0)
+        if ( readyKey.isConnectable())
         {
-          Connection connection = pending.remove( channel);
-          try
+          connect( readyKey);
+        }
+        else
+        {
+          if ( readyKey.isReadable())
           {
-            channel.finishConnect();
-            channel.register( selector, SelectionKey.OP_READ);
-            connected.put( channel, connection);
-            connection.connected( channel);
+            read( readyKey);
           }
-          catch( IOException e)
+          else if ( readyKey.isWritable())
           {
-            connection.close( false);
+            write( readyKey);
           }
         }
-        else if ( (readyOps & SelectionKey.OP_READ) != 0)
-        {
-          Connection connection = connected.get( channel);
-          try
-          {
-            int nread = connection.read();
-            while( nread > 0) nread = connection.read();
-          }
-          catch( IOException e)
-          {
-            connection.close( false);
-          }
-        }
-      }
-      catch( CancelledKeyException e)
-      {
-        Connection connection = connected.get( address);
-        connection.close( false);
-      }
-    }
-    
-    readyKeys.clear();
-  }
-  
-  /**
-   * Client thread entry-point.
-   */
-  private void thread()
-  {
-    exit = false;
-    while( !exit)
-    {
-      try
-      {
-        process( 500);
       }
       catch( IOException e)
       {
         log.exception( e);
-        try { Thread.sleep( 500);} catch( InterruptedException i) {}
       }
     }
+    
+    return true;
   }
-
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
   
-  private InetSocketAddress address;
-  private Selector selector;
+  /**
+   * Process a newly connected socket.
+   * @param key The selection key.
+   */
+  private void connect( SelectionKey key) throws IOException
+  {
+    SocketChannel channel = (SocketChannel)key.channel();
+    Connection connection = pending.remove( channel);
+    try
+    {
+      channel.finishConnect();
+      channel.register( selector, SelectionKey.OP_READ);
+      connection.connected( channel);
+    }
+    catch( IOException e)
+    {
+      connection.close( false);
+    }
+  }
+  
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+
   private Map<Channel, Connection> pending;
-  private Map<Channel, Connection> connected;
-  private ITcpListener listener;
-  private Thread thread;
-  private boolean exit;
 }
