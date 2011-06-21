@@ -51,13 +51,20 @@ public class DebugAction extends GuardedAction
       {
         String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
         int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Debugger.defaultPort;
-        clients.set( new Client( host, port));
+        try
+        {
+          clients.set( new Client( host, port));
+        } 
+        catch( IOException e)
+        {
+          throw new XActionException( String.format( "Unable to connect to %s:%d.", host, port), e);
+        }
       }
       
       Client client = clients.get();
       try
       {
-        if ( !client.isConnected()) client.connect();
+        if ( !client.isConnected()) client.connect( 30000);
         
         if ( op.equals( "stepin")) client.sendDebugStepIn();
         else if ( op.equals( "stepover")) client.sendDebugStepOver();

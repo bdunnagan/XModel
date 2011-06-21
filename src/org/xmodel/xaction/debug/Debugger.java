@@ -1,12 +1,10 @@
 package org.xmodel.xaction.debug;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 
 import org.xmodel.IModelObject;
-import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
 import org.xmodel.diff.XmlDiffer;
@@ -74,8 +72,11 @@ public class Debugger implements IDebugger
   @Override
   public void stepOver()
   {
-    stepFrame = currFrame;
-    unblock();
+    synchronized( this)
+    {
+      stepFrame = currFrame;
+      unblock();
+    }
   }
 
   /* (non-Javadoc)
@@ -84,8 +85,11 @@ public class Debugger implements IDebugger
   @Override
   public void stepIn()
   {
-    stepFrame = currFrame + 1;
-    unblock();
+    synchronized( this)
+    {
+      stepFrame = currFrame + 1;
+      unblock();
+    }
   }
 
   /* (non-Javadoc)
@@ -94,8 +98,11 @@ public class Debugger implements IDebugger
   @Override
   public void stepOut()
   {
-    stepFrame = currFrame - 1;
-    unblock();
+    synchronized( this)
+    {
+      stepFrame = currFrame - 1;
+      unblock();
+    }
   }
 
   /* (non-Javadoc)
@@ -104,7 +111,10 @@ public class Debugger implements IDebugger
   @Override
   public void push( IContext context, ScriptAction script)
   {
-    currFrame++;
+    synchronized( this)
+    {
+      currFrame++;
+    }
   }
 
   /* (non-Javadoc)
@@ -113,19 +123,22 @@ public class Debugger implements IDebugger
   @Override
   public Object[] run( IContext context, IXAction action)
   {
-    Frame frame = new Frame( context, action);
-    stack.push( frame);
-    if ( stepFrame >= currFrame) 
+    synchronized( this)
     {
-      updateFrameElement( frame);
-      pause( context, stack);
-      block();
+      Frame frame = new Frame( context, action);
+      stack.push( frame);
+      if ( stepFrame >= currFrame) 
+      {
+        updateFrameElement( frame);
+        pause( context, stack);
+        block();
+      }
+      
+      Object[] result = action.run( context);
+      stack.pop();
+      
+      return result;
     }
-    
-    Object[] result = action.run( context);
-    stack.pop();
-    
-    return result;
   }
 
   /* (non-Javadoc)
@@ -134,9 +147,12 @@ public class Debugger implements IDebugger
   @Override
   public void pop()
   {
-    context.getObject().removeChild( 0); 
-    currFrame--;
-    if ( currFrame == 0) resume();
+    synchronized( this)
+    {
+      context.getObject().removeChild( 0); 
+      currFrame--;
+      if ( currFrame == 0) resume();
+    }
   }
   
   /**
@@ -157,18 +173,7 @@ public class Debugger implements IDebugger
       }
     }
 
-    unblock = false;
-    while( !unblock)
-    {
-      try
-      {
-        dispatcher.process();
-      }
-      catch( IOException e)
-      {
-        log.exception( e);
-      }
-    }
+    try { semaphore.acquire();} catch( InterruptedException e) {}
   }
 
   /**
@@ -176,7 +181,7 @@ public class Debugger implements IDebugger
    */
   private void unblock()
   {
-    unblock = true;
+    semaphore.release();
   }
 
   /**
@@ -243,8 +248,7 @@ public class Debugger implements IDebugger
   private int currFrame;
   private StatefulContext context;
   private Server server;
-  private boolean unblock;
-  private BlockingDispatcher dispatcher;
+  private Semaphore semaphore;
   
   public static void main( String[] args) throws Exception
   {
