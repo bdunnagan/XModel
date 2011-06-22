@@ -274,11 +274,7 @@ public class Server extends Protocol
   @Override
   protected void handleSyncRequest( Connection sender, String key)
   {
-    IExternalReference reference = index.get( key);
-    if ( reference != null)
-    {
-      context.getModel().dispatch( new SyncRunnable( reference));
-    }
+    context.getModel().dispatch( new SyncRunnable( key));
   }
   
   /* (non-Javadoc)
@@ -372,17 +368,21 @@ public class Server extends Protocol
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( IExternalReference reference)
+    public SyncRunnable( String key)
     {
-      this.reference = reference;
+      this.key = key;
     }
     
     public void run()
     {
-      sync( reference);
+      IExternalReference reference = index.get( key);
+      if ( reference != null)
+      {
+        sync( reference);
+      }
     }
     
-    private IExternalReference reference;
+    private String key;
   }
   
   private final class QueryRunnable implements Runnable
@@ -541,19 +541,22 @@ public class Server extends Protocol
     {
       long time = System.currentTimeMillis();
       long elapsed = (time - stamp);
-      if ( elapsed > 10000)
+      if ( false)
       {
-        stamp = time;
-        ModelObject child = new ModelObject( "child");
-        child.setAttribute( "tstamp", time);
-        parent.addChild( child);
-      }
-      else
-      {
-        for( IModelObject child: parent.getChildren())
+        if ( elapsed > 10000)
         {
-          long tstamp = Xlate.get( child, "tstamp", 0L);
-          child.setValue( time - tstamp);
+          stamp = time;
+          ModelObject child = new ModelObject( "child");
+          child.setAttribute( "tstamp", time);
+          parent.addChild( child);
+        }
+        else
+        {
+          for( IModelObject child: parent.getChildren())
+          {
+            long tstamp = Xlate.get( child, "tstamp", 0L);
+            child.setValue( time - tstamp);
+          }
         }
       }
       

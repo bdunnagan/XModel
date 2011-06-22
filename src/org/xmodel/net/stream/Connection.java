@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
+import org.xmodel.log.Log;
+
 /**
  * A class that represents a TCP connection.
  */
@@ -105,7 +107,7 @@ public final class Connection
     
     if ( listener != null && nread > 0) 
     {
-      System.out.printf( "READ\n%s\n", Util.dump( buffer));
+      log.debugf( "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -141,7 +143,7 @@ public final class Connection
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
-  //private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
   private TcpManager manager;
   private ITcpListener listener;

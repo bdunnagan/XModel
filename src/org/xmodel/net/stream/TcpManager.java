@@ -60,9 +60,13 @@ public abstract class TcpManager
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
+    ByteBuffer clone = ByteBuffer.allocateDirect( buffer.remaining());
+    clone.put( buffer);
+    clone.flip();
+    
     Request request = new Request();
     request.channel = channel;
-    request.buffer = buffer;
+    request.buffer = clone;
     try { writeQueue.put( request);} catch( InterruptedException e) {}
     selector.wakeup();
   }
@@ -122,7 +126,7 @@ public abstract class TcpManager
     Request request = writeQueue.poll();
     if ( request != null)
     {
-      System.out.printf( "WRITE\n%s\n", Util.dump( request.buffer));
+      log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
       request.channel.write( request.buffer);
       request.channel.register( selector, SelectionKey.OP_READ);
     }

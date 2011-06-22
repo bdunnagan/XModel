@@ -12,6 +12,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
+import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.ITcpListener;
 
@@ -118,6 +119,7 @@ public abstract class Protocol implements ITcpListener
    */
   public final void sendVersion( Connection connection, short version) throws IOException
   {
+    log.debugf( "sendVersion: %d\n", version);
     initialize( buffer);
     buffer.putShort( version);
     finalize( buffer, Type.version, 2);
@@ -133,6 +135,7 @@ public abstract class Protocol implements ITcpListener
   private final void handleVersion( Connection connection, ByteBuffer buffer, int length)
   {
     int version = buffer.getShort();
+    log.debugf( "handleVersion: %d\n", version);
     if ( version != Protocol.version)
     {
       connection.close();
@@ -146,6 +149,7 @@ public abstract class Protocol implements ITcpListener
    */
   public final void sendError( Connection connection, String message) throws IOException
   {
+    log.debugf( "sendError: %s\n", message);
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
@@ -163,6 +167,7 @@ public abstract class Protocol implements ITcpListener
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
+    log.debugf( "handleError: %s\n", new String( bytes));
     handleError( connection, new String( bytes));
   }
   
@@ -182,6 +187,7 @@ public abstract class Protocol implements ITcpListener
    */
   public final void sendAttachRequest( Connection connection, String xpath) throws IOException
   {
+    log.debugf( "sendAttachRequest: %s\n", xpath);
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
@@ -199,6 +205,7 @@ public abstract class Protocol implements ITcpListener
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
+    log.debugf( "handleAttachRequest: %s\n", new String( bytes));
     handleAttachRequest( connection, new String( bytes));
   }
   
@@ -218,6 +225,7 @@ public abstract class Protocol implements ITcpListener
    */
   public final void sendAttachResponse( Connection connection, IModelObject element) throws IOException
   {
+    log.debugf( "sendAttachResponse: %s\n", element.getType());
     initialize( buffer);
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
@@ -236,6 +244,7 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     IModelObject element = compressor.decompress( bytes, 0);
+    log.debugf( "handleAttachRequest: %s\n", element.getType());
     handleAttachResponse( connection, element);
   }
   
@@ -866,6 +875,8 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = compressor.compress( element);
     return writeBytes( buffer, bytes, 0, bytes.length, false);
   }
+  
+  private static Log log = Log.getLog(  "org.xmodel.net");
 
   protected ICompressor compressor;
   private ByteBuffer buffer;
