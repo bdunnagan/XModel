@@ -9,6 +9,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import org.xmodel.log.Log;
@@ -23,6 +24,7 @@ public abstract class TcpManager
     this.listener = listener;
     connections = new HashMap<Channel, Connection>();
     selector = SelectorProvider.provider().openSelector();
+    writeQueue = new ArrayBlockingQueue<Request>( 1);
   }
 
   /**
@@ -58,10 +60,11 @@ public abstract class TcpManager
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
-    WriteRequest request = new WriteRequest();
+    Request request = new Request();
     request.channel = channel;
     request.buffer = buffer;
     try { writeQueue.put( request);} catch( InterruptedException e) {}
+    selector.wakeup();
   }
   
   /**
@@ -116,9 +119,10 @@ public abstract class TcpManager
    */
   protected void write( SelectionKey key) throws IOException
   {
-    WriteRequest request = writeQueue.poll();
+    Request request = writeQueue.poll();
     if ( request != null)
     {
+      System.out.printf( "WRITE\n%s\n", Util.dump( request.buffer));
       request.channel.write( request.buffer);
       request.channel.register( selector, SelectionKey.OP_READ);
     }
@@ -145,11 +149,14 @@ public abstract class TcpManager
       try
       {
         // process socket events
-        process( 1000);
+        process( 0);
         
         // turn on write operations if queue is not empty
-        WriteRequest request = writeQueue.peek();
-        if ( request != null) request.channel.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        Request request = writeQueue.peek();
+        if ( request != null) 
+        {
+          request.channel.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        }
       }
       catch( IOException e)
       {
@@ -159,7 +166,7 @@ public abstract class TcpManager
     }
   }
 
-  private static class WriteRequest
+  protected static class Request
   {
     public SocketChannel channel;
     public ByteBuffer buffer;
@@ -170,7 +177,7 @@ public abstract class TcpManager
   protected Selector selector;
   private ITcpListener listener;
   private Map<Channel, Connection> connections;
-  private BlockingQueue<WriteRequest> writeQueue;
+  private BlockingQueue<Request> writeQueue;
   private Thread thread;
   private boolean exit;
 }

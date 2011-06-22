@@ -32,7 +32,7 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A class that implements the server-side of the network caching policy protocol.
  */
-public class Server extends Protocol implements Runnable
+public class Server extends Protocol
 {
   public enum Message
   {
@@ -88,16 +88,6 @@ public class Server extends Protocol implements Runnable
   }
 
   /* (non-Javadoc)
-   * @see java.lang.Runnable#run()
-   */
-  @Override
-  public void run()
-  {
-    // TODO Auto-generated method stub
-    
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.stream.Connection)
    */
   @Override
@@ -106,8 +96,11 @@ public class Server extends Protocol implements Runnable
     super.onClose( connection);
     
     List<Listener> list = listeners.get( connection);
-    for( Listener listener: list) listener.uninstall();
-    listeners.removeAll( connection);
+    if ( list != null)
+    {
+      for( Listener listener: list) listener.uninstall();
+      listeners.removeAll( connection);
+    }
   }
 
   /**

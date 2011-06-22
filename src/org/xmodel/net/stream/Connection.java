@@ -54,7 +54,11 @@ public final class Connection
     this.channel = channel;
     
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( buffer == null) buffer = ByteBuffer.allocateDirect( 4096);
+    if ( buffer == null) 
+    {
+      buffer = ByteBuffer.allocateDirect( 4096);
+      buffer.flip();
+    }
     
     if ( listener != null) listener.onConnect( this);
   }
@@ -92,8 +96,12 @@ public final class Connection
   {
     if ( channel == null) return -1;
     
+    buffer.compact();
+    
     int nread = channel.read( buffer);
     if ( nread == -1) return nread;
+    
+    buffer.flip();
     
     if ( listener != null && nread > 0) 
     {

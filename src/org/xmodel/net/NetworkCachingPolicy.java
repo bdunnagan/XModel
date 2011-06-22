@@ -65,21 +65,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
     
     xpath = Xlate.get( annotation, "xpath", Xlate.childGet( annotation, "xpath", (String)null));
-    if ( xpath == null)
-    {
-      String xml = xmlIO.write( annotation);
-      throw new CachingException( "XPath not defined in annotation: \n"+xml);
-    }
-    
-    try
-    {
-      XPath.compileExpression( xpath);
-    }
-    catch( PathSyntaxException e)
-    {
-      String xml = xmlIO.write( annotation);
-      throw new CachingException( "Error in xpath in annotation: \n"+xml, e);
-    }
+    if ( xpath != null) validate( xpath);
   }
   
   /* (non-Javadoc)
@@ -92,6 +78,12 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( reference.getAttribute( "net:key") == null)
       {
+        if ( xpath == null)
+        {
+          xpath = Xlate.get( reference, "xpath", (String)null);
+          if ( xpath == null) return;
+        }
+        
         client.attach( xpath, reference);
       }
       else
@@ -104,6 +96,23 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     catch( IOException e)
     {
       throw new CachingException( "Unable to sync reference: "+reference, e);
+    }
+  }
+
+  /**
+   * Validate the specified expression.
+   * @param xpath The xpath expression.
+   */
+  private void validate( String xpath)
+  {
+    try
+    {
+      XPath.compileExpression( xpath);
+    }
+    catch( PathSyntaxException e)
+    {
+      String message = String.format( "Error in remote expression: %s\n", xpath);
+      throw new CachingException( message, e);
     }
   }
   

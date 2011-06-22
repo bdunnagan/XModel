@@ -34,9 +34,18 @@ public class TcpClient extends TcpManager
     pending.put( channel, connection);
     
     channel.connect( address);
-    if ( process( timeout)) return connection;
     
-    return null;
+    Request request = new Request();
+    request.channel = channel;
+    request.buffer = null;
+    
+    // wait for connect to complete or timeout
+    if ( !process( timeout)) return null;
+    
+    // start client thread
+    start();
+    
+    return connection;
   }
   
   /**
@@ -47,6 +56,8 @@ public class TcpClient extends TcpManager
    */
   public boolean reconnect( Connection connection, int timeout) throws IOException
   {
+    stop();
+    
     SocketChannel channel = connection.getChannel();
     if ( channel != null)
     {
@@ -63,7 +74,13 @@ public class TcpClient extends TcpManager
     pending.put( channel, connection);
     channel.connect( address);
     
-    return process( timeout);
+    // wait for reconnect to complete or timeout
+    if ( !process( timeout)) return false;
+    
+    // start client thread
+    start();
+    
+    return true;
   }
 
   /* (non-Javadoc)
@@ -72,7 +89,8 @@ public class TcpClient extends TcpManager
   protected boolean process( int timeout) throws IOException
   {
     // wait for connection
-    if ( selector.select( timeout) == 0) return false; 
+    if ( selector.select( timeout) == 0) 
+      return false; 
       
     // handle events
     Iterator<SelectionKey> iter = selector.selectedKeys().iterator();

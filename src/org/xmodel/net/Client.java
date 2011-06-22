@@ -1,7 +1,6 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -55,14 +54,6 @@ public class Client extends Protocol
       dispatcher.execute( new DisconnectEvent( attached));
       attached = null;
     }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.stream.ITcpListener#onReceive(org.xmodel.net.stream.Connection, java.nio.ByteBuffer)
-   */
-  @Override
-  public void onReceive( Connection connection, ByteBuffer buffer)
-  {
   }
 
   /**
