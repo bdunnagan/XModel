@@ -46,10 +46,10 @@ public abstract class Protocol implements ITcpListener
   {
     this.compressor = new TabularCompressor( PostCompression.zip);
     this.timeout = 10000;
-    this.queue = new SynchronousQueue<ByteBuffer>();
+    this.responseQueue = new SynchronousQueue<ByteBuffer>();
     
     // allocate less than standard mtu
-    buffer = ByteBuffer.allocateDirect( 4096);
+    buffer = ByteBuffer.allocate( 4096);
     buffer.order( ByteOrder.BIG_ENDIAN);
   }
   
@@ -76,40 +76,49 @@ public abstract class Protocol implements ITcpListener
   public void onReceive( Connection connection, ByteBuffer buffer)
   {
     buffer.mark();
+    while( handleMessage( connection, buffer)) buffer.mark();
+    buffer.reset();
+  }
+  
+  /**
+   * Parse and handle one message from the specified buffer.
+   * @param connection The connection.
+   * @param buffer The buffer.
+   * @return Returns true if a message was handled.
+   */
+  private final boolean handleMessage( Connection connection, ByteBuffer buffer)
+  {
     try
     {
       Type type = readMessageType( buffer);
       
       int length = readMessageLength( buffer);
-      if ( length > buffer.remaining())
-      {
-        buffer.reset();
-        return;
-      }
+      if ( length > buffer.remaining()) return false;
       
       switch( type)
       {
-        case version:         handleVersion( connection, buffer, length); return;
-        case error:           handleError( connection, buffer, length); return;
-        case attachRequest:   handleAttachRequest( connection, buffer, length); return;
-        case attachResponse:  handleAttachResponse( connection, buffer, length); return;
-        case detachRequest:   handleDetachRequest( connection, buffer, length); return;
-        case syncRequest:     handleSyncRequest( connection, buffer, length); return;
-        case addChild:        handleAddChild( connection, buffer, length); return;
-        case removeChild:     handleRemoveChild( connection, buffer, length); return;
-        case changeAttribute: handleChangeAttribute( connection, buffer, length); return;
-        case clearAttribute:  handleClearAttribute( connection, buffer, length); return;
-        case queryRequest:    handleQueryRequest( connection, buffer, length); return;
-        case queryResponse:   handleQueryResponse( connection, buffer, length); return;
-        case debugStepIn:     handleDebugStepIn( connection, buffer, length); return;
-        case debugStepOver:   handleDebugStepOver( connection, buffer, length); return;
-        case debugStepOut:    handleDebugStepOut( connection, buffer, length); return;
+        case version:         handleVersion( connection, buffer, length); return true;
+        case error:           handleError( connection, buffer, length); return true;
+        case attachRequest:   handleAttachRequest( connection, buffer, length); return true;
+        case attachResponse:  handleAttachResponse( connection, buffer, length); return true;
+        case detachRequest:   handleDetachRequest( connection, buffer, length); return true;
+        case syncRequest:     handleSyncRequest( connection, buffer, length); return true;
+        case addChild:        handleAddChild( connection, buffer, length); return true;
+        case removeChild:     handleRemoveChild( connection, buffer, length); return true;
+        case changeAttribute: handleChangeAttribute( connection, buffer, length); return true;
+        case clearAttribute:  handleClearAttribute( connection, buffer, length); return true;
+        case queryRequest:    handleQueryRequest( connection, buffer, length); return true;
+        case queryResponse:   handleQueryResponse( connection, buffer, length); return true;
+        case debugStepIn:     handleDebugStepIn( connection, buffer, length); return true;
+        case debugStepOver:   handleDebugStepOver( connection, buffer, length); return true;
+        case debugStepOut:    handleDebugStepOut( connection, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
     {
-      buffer.reset();
     }
+    
+    return false;
   }
   
   /**
@@ -192,7 +201,12 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachRequest, bytes.length);
-    send( connection, buffer, timeout);
+
+    // send and wait for response
+    ByteBuffer response = send( connection, buffer, timeout);
+    IModelObject element = compressor.decompress( response.array(), response.arrayOffset() + response.position());
+    log.debugf( "handleAttachRequest: %s\n", element.getType());
+    handleAttachResponse( connection, element);
   }
   
   /**
@@ -241,11 +255,11 @@ public abstract class Protocol implements ITcpListener
    */
   private final void handleAttachResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ length];
-    buffer.get( bytes);
-    IModelObject element = compressor.decompress( bytes, 0);
-    log.debugf( "handleAttachRequest: %s\n", element.getType());
-    handleAttachResponse( connection, element);
+    ByteBuffer response = ByteBuffer.allocate( length);
+    buffer.get( response.array(), 0, length);
+    response.limit( length);
+    response.flip();
+    try { responseQueue.put( response);} catch( InterruptedException e) {}
   }
   
   /**
@@ -535,7 +549,10 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = serialize( result);
     buffer.put( bytes);
     finalize( buffer, Type.queryResponse, bytes.length);
-    send( connection, buffer, timeout);
+
+    // wait for response
+    ByteBuffer response = send( connection, buffer, timeout);
+    handleQueryResponse( connection, response.array());
   }
   
   /**
@@ -546,9 +563,11 @@ public abstract class Protocol implements ITcpListener
    */
   private final void handleQueryResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ length];
-    buffer.get( bytes);
-    handleQueryResponse( connection, bytes);
+    ByteBuffer response = ByteBuffer.allocate( length);
+    buffer.get( response.array(), 0, length);
+    response.limit( length);
+    response.flip();
+    try { responseQueue.put( response);} catch( InterruptedException e) {}
   }
   
   /**
@@ -568,7 +587,7 @@ public abstract class Protocol implements ITcpListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepIn, 0);
-    send( connection, buffer, 60000);
+    connection.write( buffer);
   }
   
   /**
@@ -598,7 +617,7 @@ public abstract class Protocol implements ITcpListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOver, 0);
-    send( connection, buffer, 60000);
+    connection.write( buffer);
   }
   
   /**
@@ -628,7 +647,7 @@ public abstract class Protocol implements ITcpListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOut, 0);
-    send( connection, buffer, 60000);
+    connection.write( buffer);
   }
   
   /**
@@ -662,12 +681,15 @@ public abstract class Protocol implements ITcpListener
     try
     {
       connection.write( buffer);
-      return queue.poll( timeout, TimeUnit.MILLISECONDS);
+      ByteBuffer response = responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
+      if ( response != null) return response;
     }
     catch( InterruptedException e)
     {
       return null;
     }
+    
+    throw new IOException( "Network request timeout.");
   }
   
   /**
@@ -875,11 +897,11 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = compressor.compress( element);
     return writeBytes( buffer, bytes, 0, bytes.length, false);
   }
-  
+
   private static Log log = Log.getLog(  "org.xmodel.net");
 
   protected ICompressor compressor;
   private ByteBuffer buffer;
+  private BlockingQueue<ByteBuffer> responseQueue;
   private int timeout;
-  private BlockingQueue<ByteBuffer> queue;
 }

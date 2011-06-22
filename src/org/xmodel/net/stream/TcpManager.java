@@ -9,8 +9,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.xmodel.log.Log;
 
@@ -24,7 +24,7 @@ public abstract class TcpManager
     this.listener = listener;
     connections = new HashMap<Channel, Connection>();
     selector = SelectorProvider.provider().openSelector();
-    writeQueue = new ArrayBlockingQueue<Request>( 1);
+    writeQueue = new ConcurrentLinkedQueue<Request>();
   }
 
   /**
@@ -60,14 +60,15 @@ public abstract class TcpManager
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
-    ByteBuffer clone = ByteBuffer.allocateDirect( buffer.remaining());
+    ByteBuffer clone = ByteBuffer.allocate( buffer.remaining());
     clone.put( buffer);
     clone.flip();
     
     Request request = new Request();
     request.channel = channel;
     request.buffer = clone;
-    try { writeQueue.put( request);} catch( InterruptedException e) {}
+    
+    writeQueue.offer( request);
     selector.wakeup();
   }
   
@@ -126,9 +127,15 @@ public abstract class TcpManager
     Request request = writeQueue.poll();
     if ( request != null)
     {
-      log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
+      log.debugf( "WRITE (%d)\n%s\n", writeQueue.size(), Util.dump( request.buffer));
       request.channel.write( request.buffer);
-      request.channel.register( selector, SelectionKey.OP_READ);
+      
+      // disable write events if queue is empty or next request is for a different channel
+      request = writeQueue.peek();
+      if ( request == null || request.channel != key.channel())
+      {
+        key.channel().register( selector, SelectionKey.OP_READ);
+      }
     }
   }
   
@@ -181,7 +188,7 @@ public abstract class TcpManager
   protected Selector selector;
   private ITcpListener listener;
   private Map<Channel, Connection> connections;
-  private BlockingQueue<Request> writeQueue;
+  private Queue<Request> writeQueue;
   private Thread thread;
   private boolean exit;
 }

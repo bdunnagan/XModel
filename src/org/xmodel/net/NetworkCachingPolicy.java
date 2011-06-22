@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
+import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -30,6 +31,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     super( cache);
     setStaticAttributes( new String[] { "id", "net:key"});
     defineNextStage( stageExpr, this, true);
+    getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
 
   /* (non-Javadoc)

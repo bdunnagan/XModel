@@ -173,7 +173,9 @@ public class Client extends Protocol
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
+      log.debug( "START...");
       cachingPolicy.update( attached, element);
+      log.debug( "COMPLETE.");
     }
   }
 

@@ -90,7 +90,16 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
 
   /**
-   * Returns the IXmlDiffer used by this caching policy.
+   * Set the IXmlDiffer used to update references when they are synchronized.
+   * @param differ The differ instance.
+   */
+  public void setDiffer( IXmlDiffer differ)
+  {
+    this.differ = differ;
+  }
+  
+  /**
+   * Returns the IXmlDiffer used to update references when they are synchronized.
    * @return Returns the IXmlDiffer used by this caching policy.
    */
   public IXmlDiffer getDiffer()

@@ -58,7 +58,7 @@ public final class Connection
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
     if ( buffer == null) 
     {
-      buffer = ByteBuffer.allocateDirect( 4096);
+      buffer = ByteBuffer.allocate( 4096);
       buffer.flip();
     }
     
