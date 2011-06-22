@@ -21,7 +21,7 @@ public final class TcpServer extends TcpManager
    */
   public TcpServer( String host, int port, ITcpListener listener) throws IOException
   {
-    super( listener);
+    this.listener = listener;
     
     InetSocketAddress address = new InetSocketAddress( host, port);
     serverChannel = ServerSocketChannel.open();
@@ -82,7 +82,7 @@ public final class TcpServer extends TcpManager
    */
   private void accept( SelectionKey key) throws IOException
   {
-    createConnection( serverChannel.accept(), SelectionKey.OP_READ);
+    createConnection( serverChannel.accept(), SelectionKey.OP_READ, listener);
   }
   
   /**
@@ -104,4 +104,5 @@ public final class TcpServer extends TcpManager
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
   private ServerSocketChannel serverChannel;
+  private ITcpListener listener;
 }

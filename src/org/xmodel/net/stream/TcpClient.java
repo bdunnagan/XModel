@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -13,10 +14,9 @@ import org.xmodel.log.Log;
 
 public class TcpClient extends TcpManager
 {
-  public TcpClient( ITcpListener listener) throws IOException
+  public TcpClient() throws IOException
   {
-    super( listener);
-    pending = new HashMap<Channel, Connection>();
+    pending = Collections.synchronizedMap( new HashMap<Channel, Connection>());
   }
   
   /**
@@ -24,13 +24,14 @@ public class TcpClient extends TcpManager
    * @param host The remote host.
    * @param port The remote port.
    * @param timeout The timeout in milliseconds.
+   * @param listener The listener for socket events.
    */
-  public Connection connect( String host, int port, int timeout) throws IOException
+  public Connection connect( String host, int port, int timeout, ITcpListener listener) throws IOException
   {
     InetSocketAddress address = new InetSocketAddress( host, port);
     SocketChannel channel = SocketChannel.open();
     
-    Connection connection = createConnection( channel, SelectionKey.OP_CONNECT);
+    Connection connection = createConnection( channel, SelectionKey.OP_CONNECT, listener);
     pending.put( channel, connection);
     
     channel.connect( address);
@@ -149,6 +150,5 @@ public class TcpClient extends TcpManager
   }
   
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
-
   private Map<Channel, Connection> pending;
 }

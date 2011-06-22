@@ -46,7 +46,7 @@ public abstract class Protocol implements ITcpListener
   {
     this.compressor = new TabularCompressor( PostCompression.zip);
     this.timeout = 10000;
-    this.responseQueue = new SynchronousQueue<ByteBuffer>();
+    this.responseQueue = new SynchronousQueue<byte[]>();
     
     // allocate less than standard mtu
     buffer = ByteBuffer.allocate( 4096);
@@ -203,8 +203,8 @@ public abstract class Protocol implements ITcpListener
     finalize( buffer, Type.attachRequest, bytes.length);
 
     // send and wait for response
-    ByteBuffer response = send( connection, buffer, timeout);
-    IModelObject element = compressor.decompress( response.array(), response.arrayOffset() + response.position());
+    byte[] response = send( connection, buffer, timeout);
+    IModelObject element = compressor.decompress( response, 0);
     log.debugf( "handleAttachRequest: %s\n", element.getType());
     handleAttachResponse( connection, element);
   }
@@ -255,11 +255,7 @@ public abstract class Protocol implements ITcpListener
    */
   private final void handleAttachResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    ByteBuffer response = ByteBuffer.allocate( length);
-    buffer.get( response.array(), 0, length);
-    response.limit( length);
-    response.flip();
-    try { responseQueue.put( response);} catch( InterruptedException e) {}
+    queueResponse( buffer, length);
   }
   
   /**
@@ -551,8 +547,8 @@ public abstract class Protocol implements ITcpListener
     finalize( buffer, Type.queryResponse, bytes.length);
 
     // wait for response
-    ByteBuffer response = send( connection, buffer, timeout);
-    handleQueryResponse( connection, response.array());
+    byte[] response = send( connection, buffer, timeout);
+    handleQueryResponse( connection, response);
   }
   
   /**
@@ -563,11 +559,7 @@ public abstract class Protocol implements ITcpListener
    */
   private final void handleQueryResponse( Connection connection, ByteBuffer buffer, int length)
   {
-    ByteBuffer response = ByteBuffer.allocate( length);
-    buffer.get( response.array(), 0, length);
-    response.limit( length);
-    response.flip();
-    try { responseQueue.put( response);} catch( InterruptedException e) {}
+    queueResponse( buffer, length);
   }
   
   /**
@@ -676,12 +668,12 @@ public abstract class Protocol implements ITcpListener
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response buffer.
    */
-  private ByteBuffer send( Connection connection, ByteBuffer buffer, int timeout) throws IOException
+  private byte[] send( Connection connection, ByteBuffer buffer, int timeout) throws IOException
   {
     try
     {
       connection.write( buffer);
-      ByteBuffer response = responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
+      byte[] response = responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
       if ( response != null) return response;
     }
     catch( InterruptedException e)
@@ -690,6 +682,18 @@ public abstract class Protocol implements ITcpListener
     }
     
     throw new IOException( "Network request timeout.");
+  }
+  
+  /**
+   * Queue a synchronous response.
+   * @param buffer The buffer containing the response.
+   * @param length The length of the response.
+   */
+  private void queueResponse( ByteBuffer buffer, int length)
+  {
+    byte[] bytes = new byte[ length];
+    buffer.get( bytes);
+    try { responseQueue.put( bytes);} catch( InterruptedException e) {}
   }
   
   /**
@@ -902,6 +906,6 @@ public abstract class Protocol implements ITcpListener
 
   protected ICompressor compressor;
   private ByteBuffer buffer;
-  private BlockingQueue<ByteBuffer> responseQueue;
+  private BlockingQueue<byte[]> responseQueue;
   private int timeout;
 }

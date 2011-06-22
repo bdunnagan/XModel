@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -19,10 +20,9 @@ import org.xmodel.log.Log;
  */
 public abstract class TcpManager
 {
-  public TcpManager( ITcpListener listener) throws IOException
+  public TcpManager() throws IOException
   {
-    this.listener = listener;
-    connections = new HashMap<Channel, Connection>();
+    connections = Collections.synchronizedMap( new HashMap<Channel, Connection>());
     selector = SelectorProvider.provider().openSelector();
     writeQueue = new ConcurrentLinkedQueue<Request>();
   }
@@ -83,9 +83,10 @@ public abstract class TcpManager
    * Create a new Connection instance for the specified channel.
    * @param channel The channel.
    * @param ops The selector operations to register on the channel.
+   * @parma listener The listener for socket events.
    * @return Returns the new Connection.
    */
-  protected Connection createConnection( SocketChannel channel, int ops) throws IOException
+  protected Connection createConnection( SocketChannel channel, int ops, ITcpListener listener) throws IOException
   {
     // configure channel
     channel.configureBlocking( false);
@@ -146,9 +147,8 @@ public abstract class TcpManager
   private void close( SelectionKey key)
   {
     SocketChannel channel = (SocketChannel)key.channel();
-    Connection connection = connections.get( channel);
-    connections.remove( channel);
-    connection.close( false);
+    Connection connection = connections.remove( channel);
+    if ( connection != null) connection.close( false);
     key.cancel();
   }
   
@@ -186,7 +186,6 @@ public abstract class TcpManager
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
   
   protected Selector selector;
-  private ITcpListener listener;
   private Map<Channel, Connection> connections;
   private Queue<Request> writeQueue;
   private Thread thread;

@@ -32,7 +32,7 @@ public class Client extends Protocol
   {
     this.host = host;
     this.port = port;
-    this.client = new TcpClient( this);
+    if ( client == null) client = new TcpClient();
   }
 
   /* (non-Javadoc)
@@ -67,7 +67,7 @@ public class Client extends Protocol
     }
     else
     {
-      connection = client.connect( host, port, timeout);
+      connection = client.connect( host, port, timeout, this);
     }
   }
 
@@ -133,7 +133,7 @@ public class Client extends Protocol
    */
   public void sendDebugStepIn() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port, 30000);
+    if ( connection == null) connection = client.connect( host, port, 30000, this);
     sendDebugStepIn( connection);
   }
   
@@ -142,7 +142,7 @@ public class Client extends Protocol
    */
   public void sendDebugStepOver() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port, 30000);
+    if ( connection == null) connection = client.connect( host, port, 30000, this);
     sendDebugStepOver( connection);
   }
   
@@ -151,7 +151,7 @@ public class Client extends Protocol
    */
   public void sendDebugStepOut() throws IOException
   {
-    if ( connection == null) connection = client.connect( host, port, 30000);
+    if ( connection == null) connection = client.connect( host, port, 30000, this);
     sendDebugStepOut( connection);
   }
   
@@ -385,9 +385,10 @@ public class Client extends Protocol
     private IExternalReference attached;
   }
   
+  private static TcpClient client;
+  
   private String host;
   private int port;
-  private TcpClient client;
   private Connection connection;
   private IExternalReference attached;
   private IDispatcher dispatcher;
