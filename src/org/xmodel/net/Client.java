@@ -1,11 +1,17 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
+import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
@@ -31,9 +37,12 @@ public class Client extends Protocol
    */
   public Client( String host, int port) throws IOException
   {
+    if ( client == null) client = new TcpClient();
+    
     this.host = host;
     this.port = port;
-    if ( client == null) client = new TcpClient();
+    
+    this.keys = new WeakHashMap<IModelObject, String>();
   }
 
   /* (non-Javadoc)
@@ -125,10 +134,8 @@ public class Client extends Protocol
    */
   public void sync( IExternalReference reference) throws IOException
   {
-    syncing = new WeakReference<IExternalReference>( reference);
-    String key = Xlate.get( reference, "net:key", (String)null);
+    String key = keys.get( reference);
     sendSyncRequest( connection, key);
-    syncing = null;
   }
 
   /**
@@ -176,7 +183,7 @@ public class Client extends Protocol
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
-      cachingPolicy.update( attached, element);
+      cachingPolicy.update( attached, interpret( element));
     }
   }
 
@@ -186,10 +193,6 @@ public class Client extends Protocol
   @Override
   protected void handleSyncResponse( Connection connection)
   {
-    IExternalReference reference = syncing.get();
-    if ( reference != null)
-    {
-    }
   }
 
   /* (non-Javadoc)
@@ -225,15 +228,7 @@ public class Client extends Protocol
     {
       IModelObject parent = parentExpr.queryFirst( attached);
       IModelObject child = compressor.decompress( bytes, 0);
-      if ( parent != null) 
-      {
-        if ( child.getAttribute( "net:key") != null)
-        {
-          ICachingPolicy cachingPolicy = attached.getCachingPolicy(); 
-          child = cachingPolicy.createExternalTree( child, true, attached);
-        }
-        parent.addChild( child, index);
-      }
+      if ( parent != null) parent.addChild( interpret( child), index);
     }
   }
   
@@ -259,7 +254,11 @@ public class Client extends Protocol
     if ( parentExpr != null)
     {
       IModelObject parent = parentExpr.queryFirst( attached);
-      if ( parent != null) parent.removeChild( index);
+      if ( parent != null) 
+      {
+        IModelObject removed = parent.removeChild( index);
+        if ( removed instanceof IExternalReference) keys.remove( removed);
+      }
     }
   }
   
@@ -346,6 +345,63 @@ public class Client extends Protocol
     }
   }
 
+  /**
+   * Interpret the content of the specified server encoded subtree.
+   * @param root The root of the encoded subtree.
+   * @return Returns the decoded element.
+   */
+  private IModelObject interpret( IModelObject root)
+  {
+    Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
+    BreadthFirstIterator iter = new BreadthFirstIterator( root);
+    while( iter.hasNext())
+    {
+      IModelObject lNode = iter.next();
+      if ( lNode.isType( "net:static")) continue;
+      
+      IModelObject rNode = map.get( lNode);
+      IModelObject rParent = map.get( lNode.getParent());
+      
+      String key = Xlate.get( lNode, "net:key", (String)null);
+      if ( key != null)
+      {
+        ExternalReference reference = new ExternalReference( lNode.getType());
+        ModelAlgorithms.copyAttributes( lNode, reference);
+        reference.removeAttribute( "net:key");
+        
+        NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
+        cachingPolicy.setRoot( false);
+        cachingPolicy.setStaticAttributes( getStaticAttributes( lNode));
+        reference.setCachingPolicy( attached.getCachingPolicy());
+        reference.setDirty( true);
+        
+        keys.put( reference, key);
+        rNode = reference;
+      }
+      else
+      {
+        rNode = lNode;
+      }
+      
+      map.put( lNode, rNode);
+      if ( rParent != null) rParent.addChild( rNode);
+    }
+    
+    return map.get( root);
+  }
+  
+  /**
+   * Returns a list of the static attributes encoded for the specified element.
+   * @param element The encoded element.
+   */
+  private List<String> getStaticAttributes( IModelObject element)
+  {
+    List<String> statics = new ArrayList<String>();
+    List<IModelObject> children = element.getChildren( "net:static");
+    for( IModelObject child: children) statics.add( Xlate.get( child, ""));
+    return statics;
+  }
+  
   private final class AddChildEvent implements Runnable
   {
     public AddChildEvent( String xpath, byte[] child, int index)
@@ -460,7 +516,7 @@ public class Client extends Protocol
   private Connection connection;
   private IDispatcher dispatcher;
   private IExternalReference attached;
-  private WeakReference<IExternalReference> syncing;
+  private Map<IModelObject, String> keys;
   
   private static Log log = Log.getLog(  "org.xmodel.net");
   

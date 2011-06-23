@@ -234,6 +234,11 @@ public class Server extends Protocol
         for( String attrName: lRef.getStaticAttributes())
         {
           rNode.setAttribute( attrName, lNode.getAttribute( attrName));
+          
+          // enumerate static attributes for client
+          IModelObject entry = new ModelObject( "net:static");
+          entry.setValue( attrName);
+          rNode.addChild( entry);
         }
 
         // index reference so it can be synced remotely

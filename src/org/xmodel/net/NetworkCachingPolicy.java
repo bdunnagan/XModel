@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
@@ -14,7 +15,6 @@ import org.xmodel.external.UnboundedCache;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 
 /**
  * An ICachingPolicy that accesses data across a network.
@@ -29,11 +29,29 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   public NetworkCachingPolicy( ICache cache)
   {
     super( cache);
-    setStaticAttributes( new String[] { "id", "net:key"});
-    defineNextStage( stageExpr, this, true);
+    root = true;
+    setStaticAttributes( new String[] { "id"});
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
 
+  /**
+   * Specify whether this is the caching policy for the root reference.
+   * @param root True if this is the root caching policy.
+   */
+  public void setRoot( boolean root)
+  {
+    this.root = root;
+  }
+  
+  /**
+   * Set the static attributes.
+   * @param list The list of static attribute names.
+   */
+  public void setStaticAttributes( List<String> list)
+  {
+    setStaticAttributes( list.toArray( new String[ 0]));
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
@@ -78,7 +96,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   {
     try
     {
-      if ( reference.getAttribute( "net:key") == null)
+      if ( root)
       {
         if ( xpath == null)
         {
@@ -118,8 +136,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private final static IExpression stageExpr = XPath.createExpression( "descendant-or-self::*[ @net:key]");
-  
+  private boolean root;
   private Client client;
   private String xpath;
   private String error;
