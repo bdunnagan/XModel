@@ -274,7 +274,7 @@ public class Server extends Protocol
   @Override
   protected void handleSyncRequest( Connection sender, String key)
   {
-    context.getModel().dispatch( new SyncRunnable( key));
+    context.getModel().dispatch( new SyncRunnable( sender, key));
   }
   
   /* (non-Javadoc)
@@ -368,8 +368,9 @@ public class Server extends Protocol
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( String key)
+    public SyncRunnable( Connection sender, String key)
     {
+      this.sender = sender;
       this.key = key;
     }
     
@@ -378,10 +379,19 @@ public class Server extends Protocol
       IExternalReference reference = index.get( key);
       if ( reference != null)
       {
-        sync( reference);
+        try
+        {
+          sync( reference);
+          sendSyncResponse( sender);
+        }
+        catch( IOException e)
+        {
+          log.exception( e);
+        }
       }
     }
     
+    private Connection sender;
     private String key;
   }
   

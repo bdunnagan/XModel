@@ -31,6 +31,7 @@ public abstract class Protocol implements ITcpListener
     attachResponse,
     detachRequest,
     syncRequest,
+    syncResponse,
     addChild,
     removeChild,
     changeAttribute,
@@ -103,6 +104,7 @@ public abstract class Protocol implements ITcpListener
         case attachResponse:  handleAttachResponse( connection, buffer, length); return true;
         case detachRequest:   handleDetachRequest( connection, buffer, length); return true;
         case syncRequest:     handleSyncRequest( connection, buffer, length); return true;
+        case syncResponse:    handleSyncResponse( connection, buffer, length); return true;
         case addChild:        handleAddChild( connection, buffer, length); return true;
         case removeChild:     handleRemoveChild( connection, buffer, length); return true;
         case changeAttribute: handleChangeAttribute( connection, buffer, length); return true;
@@ -311,7 +313,10 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = key.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.syncRequest, bytes.length);
-    connection.write( buffer);
+    
+    // send and wait for response
+    send( connection, buffer, timeout);
+    handleSyncResponse( connection);
   }
   
   /**
@@ -328,11 +333,41 @@ public abstract class Protocol implements ITcpListener
   }
   
   /**
-   * Handle an attach request.
+   * Handle a sync request.
    * @param connection The connection.
    * @param key The reference key.
    */
   protected void handleSyncRequest( Connection connection, String key)
+  {
+  }
+  
+  /**
+   * Send an sync response message.
+   * @param connection The connection.
+   */
+  public final void sendSyncResponse( Connection connection) throws IOException
+  {
+    initialize( buffer);
+    finalize( buffer, Type.syncResponse, 0);
+    connection.write( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param connection The connection.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleSyncResponse( Connection connection, ByteBuffer buffer, int length)
+  {
+    queueResponse( buffer, length);
+  }
+  
+  /**
+   * Handle a sync response.
+   * @param connection The connection.
+   */
+  protected void handleSyncResponse( Connection connection)
   {
   }
   
