@@ -118,7 +118,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private final static IExpression stageExpr = XPath.createExpression( "descendant::*[ @net:key]");
+  private final static IExpression stageExpr = XPath.createExpression( "descendant-or-self::*[ @net:key]");
   
   private Client client;
   private String xpath;

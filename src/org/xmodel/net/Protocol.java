@@ -9,6 +9,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
@@ -36,6 +37,7 @@ public abstract class Protocol implements ITcpListener
     removeChild,
     changeAttribute,
     clearAttribute,
+    changeDirty,
     queryRequest,
     queryResponse,
     debugStepIn,
@@ -109,6 +111,7 @@ public abstract class Protocol implements ITcpListener
         case removeChild:     handleRemoveChild( connection, buffer, length); return true;
         case changeAttribute: handleChangeAttribute( connection, buffer, length); return true;
         case clearAttribute:  handleClearAttribute( connection, buffer, length); return true;
+        case changeDirty:     handleChangeDirty( connection, buffer, length); return true;
         case queryRequest:    handleQueryRequest( connection, buffer, length); return true;
         case queryResponse:   handleQueryResponse( connection, buffer, length); return true;
         case debugStepIn:     handleDebugStepIn( connection, buffer, length); return true;
@@ -207,7 +210,7 @@ public abstract class Protocol implements ITcpListener
     // send and wait for response
     byte[] response = send( connection, buffer, timeout);
     IModelObject element = compressor.decompress( response, 0);
-    log.debugf( "handleAttachRequest: %s\n", element.getType());
+    log.debugf( "handleAttachResponse: %s\n", element.getType());
     handleAttachResponse( connection, element);
   }
   
@@ -530,6 +533,44 @@ public abstract class Protocol implements ITcpListener
    * @param attrName The name of the attribute.
    */
   protected void handleClearAttribute( Connection connection, String xpath, String attrName)
+  {
+  }
+
+  /**
+   * Send a change dirty message.
+   * @param connection The connection.
+   * @param xpath The xpath.
+   * @param dirty The dirty state.
+   */
+  public final void sendChangeDirty( Connection connection, String xpath, boolean dirty) throws IOException
+  {
+    initialize( buffer);
+    int length = writeString( buffer, xpath);
+    buffer.put( dirty? (byte)1: 0); length++;
+    finalize( buffer, Type.clearAttribute, length);
+    connection.write( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param connection The connection.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleChangeDirty( Connection connection, ByteBuffer buffer, int length)
+  {
+    String xpath = readString( buffer);
+    boolean dirty = buffer.get() != 0;
+    handleChangeDirty( connection, xpath, dirty);
+  }
+  
+  /**
+   * Handle a change dirty message.
+   * @param connection The connection.
+   * @param xpath The xpath from the root to the element.
+   * @param dirty The dirty state.
+   */
+  protected void handleChangeDirty( Connection connection, String xpath, boolean dirty)
   {
   }
 
@@ -923,7 +964,9 @@ public abstract class Protocol implements ITcpListener
   public IModelObject readElement( ByteBuffer buffer)
   {
     byte[] bytes = readBytes( buffer, false);
-    return compressor.decompress( bytes, 0);
+    IModelObject object = compressor.decompress( bytes, 0);
+    System.out.println( ((ModelObject)object).toXml());
+    return object;
   }
 
   /**

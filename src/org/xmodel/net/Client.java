@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -124,8 +125,10 @@ public class Client extends Protocol
    */
   public void sync( IExternalReference reference) throws IOException
   {
+    syncing = new WeakReference<IExternalReference>( reference);
     String key = Xlate.get( reference, "net:key", (String)null);
     sendSyncRequest( connection, key);
+    syncing = null;
   }
 
   /**
@@ -173,9 +176,19 @@ public class Client extends Protocol
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
-      log.debug( "START...");
       cachingPolicy.update( attached, element);
-      log.debug( "COMPLETE.");
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleSyncResponse(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  protected void handleSyncResponse( Connection connection)
+  {
+    IExternalReference reference = syncing.get();
+    if ( reference != null)
+    {
     }
   }
 
@@ -212,7 +225,15 @@ public class Client extends Protocol
     {
       IModelObject parent = parentExpr.queryFirst( attached);
       IModelObject child = compressor.decompress( bytes, 0);
-      if ( parent != null) parent.addChild( child, index);
+      if ( parent != null) 
+      {
+        if ( child.getAttribute( "net:key") != null)
+        {
+          ICachingPolicy cachingPolicy = attached.getCachingPolicy(); 
+          child = cachingPolicy.createExternalTree( child, true, attached);
+        }
+        parent.addChild( child, index);
+      }
     }
   }
   
@@ -295,6 +316,36 @@ public class Client extends Protocol
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleChangeDirty(org.xmodel.net.stream.Connection, java.lang.String, boolean)
+   */
+  @Override
+  protected void handleChangeDirty( Connection connection, String xpath, boolean dirty)
+  {
+    dispatcher.execute( new ChangeDirtyEvent( xpath, dirty));
+  }
+  
+  /**
+   * Process a change dirty event in the appropriate thread.
+   * @param xpath The xpath of the element.
+   * @param dirty The new dirty state.
+   */
+  private void processChangeDirty( String xpath, boolean dirty)
+  {
+    if ( attached == null) return;
+    
+    IExpression elementExpr = XPath.createExpression( xpath);
+    if ( elementExpr != null)
+    {
+      IModelObject element = elementExpr.queryFirst( attached);
+      if ( element != null)
+      {
+        IExternalReference reference = (IExternalReference)element;
+        reference.setDirty( dirty);
+      }
+    }
+  }
+
   private final class AddChildEvent implements Runnable
   {
     public AddChildEvent( String xpath, byte[] child, int index)
@@ -367,6 +418,23 @@ public class Client extends Protocol
     private String attrName;
   }
   
+  private final class ChangeDirtyEvent implements Runnable
+  {
+    public ChangeDirtyEvent( String xpath, boolean dirty)
+    {
+      this.xpath = xpath;
+      this.dirty = dirty;
+    }
+    
+    public void run()
+    {
+      processChangeDirty( xpath, dirty);
+    }
+    
+    private String xpath;
+    private boolean dirty;
+  }
+  
   private final class DisconnectEvent implements Runnable
   {
     public DisconnectEvent( IExternalReference attached)
@@ -390,8 +458,9 @@ public class Client extends Protocol
   private String host;
   private int port;
   private Connection connection;
-  private IExternalReference attached;
   private IDispatcher dispatcher;
+  private IExternalReference attached;
+  private WeakReference<IExternalReference> syncing;
   
   private static Log log = Log.getLog(  "org.xmodel.net");
   

@@ -117,7 +117,7 @@ public class Server extends Protocol
       IModelObject copy = null;
       if ( target != null)
       {
-        copy = serialize( target);
+        copy = copy( target);
         Listener listener = new Listener( sender, xpath, target);
         listener.install( target);
         listeners.put( sender, listener);
@@ -205,7 +205,7 @@ public class Server extends Protocol
    * @param root The element to be copied.
    * @return Returns the copy.
    */
-  private IModelObject serialize( IModelObject root)
+  private IModelObject copy( IModelObject root)
   {
     IModelObject result = null;
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
@@ -217,10 +217,18 @@ public class Server extends Protocol
       IModelObject lNode = iter.next();
       IModelObject rNode = null;
       IModelObject rParent = map.get( lNode.getParent());
-      if ( lNode.isDirty())
+      if ( lNode instanceof IExternalReference)
       {
-        rNode = new ModelObject( lNode.getType());
-
+        if ( lNode.isDirty())
+        {
+          rNode = new ModelObject( lNode.getType());
+          rNode.setAttribute( "net:dirty");
+        }
+        else
+        {
+          rNode = lNode.cloneObject();
+        }
+        
         // copy static attributes
         IExternalReference lRef = (IExternalReference)lNode;
         for( String attrName: lRef.getStaticAttributes())
@@ -238,17 +246,17 @@ public class Server extends Protocol
       {
         rNode = lNode.cloneObject();
         if ( rParent != null) rParent.addChild( rNode);
-        
-        // add to stitch-up map
-        map.put( lNode, rNode);
       }
+      
+      // add to stitch-up map
+      map.put( lNode, rNode);
       
       // set result if not already set
       if ( result == null) result = rNode;
     } 
     
     return result;
-  } 
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.net.nu.Protocol#handleAttachRequest(org.xmodel.net.nu.Connection, java.lang.String)
@@ -442,7 +450,8 @@ public class Server extends Protocol
       super.notifyAddChild( parent, child, index);
       try
       {
-        sendAddChild( sender, createPath( root, parent), child, index);
+        IModelObject clone = copy( child);
+        sendAddChild( sender, createPath( root, parent), clone, index);
       } 
       catch( IOException e)
       {
@@ -499,6 +508,22 @@ public class Server extends Protocol
       }
     }
     
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
+     */
+    @Override
+    public void notifyDirty( IModelObject object, boolean dirty)
+    {
+      try
+      {
+        sendChangeDirty( sender, createPath( root, object), dirty);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#equals(java.lang.Object)
      */
