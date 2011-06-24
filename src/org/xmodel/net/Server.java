@@ -1,11 +1,8 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.WeakHashMap;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -15,7 +12,6 @@ import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.external.NonSyncingIterator;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
@@ -57,7 +53,6 @@ public class Server extends Protocol
   public Server( String host, int port) throws IOException
   {
     random = new Random();
-    index = new WeakHashMap<String, IExternalReference>();
     listeners = new HashMultiMap<Connection, Listener>();
     server = new TcpServer( host, port, this);
   }
@@ -119,7 +114,7 @@ public class Server extends Protocol
       {
         // make sure target is synced since that is what we are requesting
         target.getChildren();
-        copy = encode( target);
+        copy = encode( sender, target);
         Listener listener = new Listener( sender, xpath, target);
         listener.install( target);
         listeners.put( sender, listener);
@@ -139,6 +134,8 @@ public class Server extends Protocol
    */
   private void detach( Connection sender, String xpath)
   {
+    sender.getIndex().clear();
+    
     try
     {
       IExpression expr = XPath.compileExpression( xpath);
@@ -192,22 +189,36 @@ public class Server extends Protocol
   
   /**
    * Index the specified reference.
+   * @param connection The connection.
    * @param reference The reference.
    * @return Returns the key.
    */
-  private String index( IExternalReference reference)
+  private String index( Connection connection, IExternalReference reference)
   {
     String key = Identifier.generate( random, 13);
-    index.put( key, reference);
+    connection.getIndex().put( key, reference);
     return key;
   }
   
   /**
-   * Create a copy of the specified element putting IExternalReferences where there are dirty references.
+   * Encode the specified element that is the root of the attachment.
+   * @param connection The connection.
    * @param element The element to be copied.
    * @return Returns the copy.
    */
-  private IModelObject encode( IModelObject element)
+  private IModelObject encode( Connection connection, IModelObject element)
+  {
+    return encode( connection, element, true);
+  }
+  
+  /**
+   * Encode the specified element.
+   * @param connection The connection.
+   * @param root True if the element is the root of the attachment.
+   * @param element The element to be copied.
+   * @return Returns the copy.
+   */
+  private IModelObject encode( Connection connection, IModelObject element, boolean root)
   {
     IModelObject encoded = null;
     
@@ -217,8 +228,17 @@ public class Server extends Protocol
       encoded = new ModelObject( lRef.getType());
       
       // index reference so it can be synced remotely
-      if ( element != attached) rNode.setAttribute( "net:key", index( lRef));
+      if ( !root) encoded.setAttribute( "net:key", index( connection, lRef));
       
+      // enumerate static attributes for client
+      for( String attrName: lRef.getStaticAttributes())
+      {
+        IModelObject entry = new ModelObject( "net:static");
+        entry.setValue( attrName);
+        encoded.addChild( entry);
+      }
+      
+      // copy only static attributes if reference is dirty
       if ( element.isDirty())
       {
         Xlate.set( encoded, "net:dirty", true);
@@ -226,88 +246,30 @@ public class Server extends Protocol
         // copy static attributes
         for( String attrName: lRef.getStaticAttributes())
         {
-          // some static attributes may nevertheless be null
-          encoded.setAttribute( attrName, element.getAttribute( attrName));
-          
-          // enumerate static attributes for client
-          IModelObject entry = new ModelObject( "net:static");
-          entry.setValue( attrName);
-          encoded.addChild( entry);
+          Object attrValue = element.getAttribute( attrName);
+          if ( attrValue != null) encoded.setAttribute( attrName, attrValue);
         }
       }
-      else
-      {
-        for( IModelObject child: lRef.getChildren())
-        {
-          encoded.addChild( encode( child));
-        }
-      }
-      
-      // add new element to tree
-      if ( rParent != null) rParent.addChild( rNode);
     }
     else
     {
-      rNode = lNode.cloneObject();
-      if ( rParent != null) rParent.addChild( rNode);
+      encoded = new ModelObject( element.getType());
     }
     
-    
-    
-    
-    IModelObject result = null;
-    
-    // create copy
-    NonSyncingIterator iter = new NonSyncingIterator( root);
-    while( iter.hasNext())
+    // copy all attributes and children
+    if ( !(element instanceof IExternalReference) || !element.isDirty())
     {
-      IModelObject lNode = iter.next();
-      IModelObject rNode = null;
-      IModelObject rParent = map.get( lNode.getParent());
-      if ( lNode instanceof IExternalReference)
-      {
-        if ( lNode.isDirty())
-        {
-          rNode = new ModelObject( lNode.getType());
-          Xlate.set( rNode, "net:dirty", true);
-        }
-        else
-        {
-          rNode = lNode.cloneObject();
-        }
-        
-        // copy static attributes
-        IExternalReference lRef = (IExternalReference)lNode;
-        for( String attrName: lRef.getStaticAttributes())
-        {
-          rNode.setAttribute( attrName, lNode.getAttribute( attrName));
-          
-          // enumerate static attributes for client
-          IModelObject entry = new ModelObject( "net:static");
-          entry.setValue( attrName);
-          rNode.addChild( entry);
-        }
-
-        // index reference so it can be synced remotely
-        if ( lNode != root) rNode.setAttribute( "net:key", index( lRef));
-        
-        // add new element to tree
-        if ( rParent != null) rParent.addChild( rNode);
-      }
-      else
-      {
-        rNode = lNode.cloneObject();
-        if ( rParent != null) rParent.addChild( rNode);
-      }
+      // copy attributes
+      ModelAlgorithms.copyAttributes( element, encoded);
       
-      // add to stitch-up map
-      map.put( lNode, rNode);
-      
-      // set result if not already set
-      if ( result == null) result = rNode;
-    } 
+      // copy children
+      for( IModelObject child: element.getChildren())
+      {
+        encoded.addChild( encode( connection, child, false));
+      }
+    }
     
-    return result;
+    return encoded;
   }
   
   /* (non-Javadoc)
@@ -436,7 +398,7 @@ public class Server extends Protocol
     
     public void run()
     {
-      IExternalReference reference = index.get( key);
+      IExternalReference reference = sender.getIndex().get( key);
       if ( reference != null)
       {
         try
@@ -502,7 +464,7 @@ public class Server extends Protocol
       super.notifyAddChild( parent, child, index);
       try
       {
-        IModelObject clone = encode( child);
+        IModelObject clone = encode( sender, child, false);
         sendAddChild( sender, createPath( root, parent), clone, index);
       } 
       catch( IOException e)
@@ -607,7 +569,6 @@ public class Server extends Protocol
   private static Log log = Log.getLog( "org.xmodel.net");
 
   private TcpServer server;
-  private Map<String, IExternalReference> index;
   private MultiMap<Connection, Listener> listeners;
   private IContext context;
   private Random random;

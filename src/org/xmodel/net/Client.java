@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import org.xmodel.BreadthFirstIterator;
+import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
@@ -356,7 +356,7 @@ public class Client extends Protocol
     System.out.println( ((ModelObject)root).toXml());
     
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
-    BreadthFirstIterator iter = new BreadthFirstIterator( root);
+    DepthFirstIterator iter = new DepthFirstIterator( root);
     while( iter.hasNext())
     {
       IModelObject lNode = iter.next();

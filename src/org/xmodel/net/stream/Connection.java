@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 
 /**
@@ -134,6 +137,16 @@ public final class Connection
       channel = null;
     }
   }
+
+  /**
+   * Note the violation of layering here ;)
+   * @return Returns the external reference index associated with this connection.
+   */
+  public Map<String, IExternalReference> getIndex()
+  {
+    if ( index == null) index = new HashMap<String, IExternalReference>();
+    return index;
+  }
   
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
@@ -150,4 +163,5 @@ public final class Connection
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
+  private Map<String, IExternalReference> index;
 }
