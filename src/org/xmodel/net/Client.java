@@ -12,6 +12,7 @@ import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
@@ -183,7 +184,7 @@ public class Client extends Protocol
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
-      cachingPolicy.update( attached, interpret( element));
+      cachingPolicy.update( attached, decode( element));
     }
   }
 
@@ -228,7 +229,7 @@ public class Client extends Protocol
     {
       IModelObject parent = parentExpr.queryFirst( attached);
       IModelObject child = compressor.decompress( bytes, 0);
-      if ( parent != null) parent.addChild( interpret( child), index);
+      if ( parent != null) parent.addChild( decode( child), index);
     }
   }
   
@@ -350,8 +351,10 @@ public class Client extends Protocol
    * @param root The root of the encoded subtree.
    * @return Returns the decoded element.
    */
-  private IModelObject interpret( IModelObject root)
+  private IModelObject decode( IModelObject root)
   {
+    System.out.println( ((ModelObject)root).toXml());
+    
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     BreadthFirstIterator iter = new BreadthFirstIterator( root);
     while( iter.hasNext())
@@ -368,15 +371,23 @@ public class Client extends Protocol
         ExternalReference reference = new ExternalReference( lNode.getType());
         ModelAlgorithms.copyAttributes( lNode, reference);
         reference.removeAttribute( "net:key");
+        reference.removeChildren( "net:static");
         
-        NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
-        cachingPolicy.setRoot( false);
+        NetworkCachingPolicy cachingPolicy = ((NetworkCachingPolicy)attached.getCachingPolicy()).getNested();
         cachingPolicy.setStaticAttributes( getStaticAttributes( lNode));
-        reference.setCachingPolicy( attached.getCachingPolicy());
-        reference.setDirty( true);
+        reference.setCachingPolicy( cachingPolicy);
+        
+        boolean dirty = Xlate.get( reference, "net:dirty", false);
+        reference.removeAttribute( "net:dirty");
+        reference.setDirty( dirty);
         
         keys.put( reference, key);
         rNode = reference;
+      }
+      else if ( lNode == root)
+      {
+        rNode = new ModelObject( root.getType());
+        ModelAlgorithms.copyAttributes( lNode, rNode);
       }
       else
       {

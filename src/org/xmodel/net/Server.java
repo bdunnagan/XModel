@@ -117,7 +117,9 @@ public class Server extends Protocol
       IModelObject copy = null;
       if ( target != null)
       {
-        copy = copy( target);
+        // make sure target is synced since that is what we are requesting
+        target.getChildren();
+        copy = encode( target);
         Listener listener = new Listener( sender, xpath, target);
         listener.install( target);
         listeners.put( sender, listener);
@@ -202,13 +204,58 @@ public class Server extends Protocol
   
   /**
    * Create a copy of the specified element putting IExternalReferences where there are dirty references.
-   * @param root The element to be copied.
+   * @param element The element to be copied.
    * @return Returns the copy.
    */
-  private IModelObject copy( IModelObject root)
+  private IModelObject encode( IModelObject element)
   {
+    IModelObject encoded = null;
+    
+    if ( element instanceof IExternalReference)
+    {
+      IExternalReference lRef = (IExternalReference)element;
+      encoded = new ModelObject( lRef.getType());
+      
+      // index reference so it can be synced remotely
+      if ( element != attached) rNode.setAttribute( "net:key", index( lRef));
+      
+      if ( element.isDirty())
+      {
+        Xlate.set( encoded, "net:dirty", true);
+        
+        // copy static attributes
+        for( String attrName: lRef.getStaticAttributes())
+        {
+          // some static attributes may nevertheless be null
+          encoded.setAttribute( attrName, element.getAttribute( attrName));
+          
+          // enumerate static attributes for client
+          IModelObject entry = new ModelObject( "net:static");
+          entry.setValue( attrName);
+          encoded.addChild( entry);
+        }
+      }
+      else
+      {
+        for( IModelObject child: lRef.getChildren())
+        {
+          encoded.addChild( encode( child));
+        }
+      }
+      
+      // add new element to tree
+      if ( rParent != null) rParent.addChild( rNode);
+    }
+    else
+    {
+      rNode = lNode.cloneObject();
+      if ( rParent != null) rParent.addChild( rNode);
+    }
+    
+    
+    
+    
     IModelObject result = null;
-    Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     
     // create copy
     NonSyncingIterator iter = new NonSyncingIterator( root);
@@ -222,7 +269,7 @@ public class Server extends Protocol
         if ( lNode.isDirty())
         {
           rNode = new ModelObject( lNode.getType());
-          rNode.setAttribute( "net:dirty");
+          Xlate.set( rNode, "net:dirty", true);
         }
         else
         {
@@ -242,7 +289,7 @@ public class Server extends Protocol
         }
 
         // index reference so it can be synced remotely
-        rNode.setAttribute( "net:key", index( lRef));
+        if ( lNode != root) rNode.setAttribute( "net:key", index( lRef));
         
         // add new element to tree
         if ( rParent != null) rParent.addChild( rNode);
@@ -455,7 +502,7 @@ public class Server extends Protocol
       super.notifyAddChild( parent, child, index);
       try
       {
-        IModelObject clone = copy( child);
+        IModelObject clone = encode( child);
         sendAddChild( sender, createPath( root, parent), clone, index);
       } 
       catch( IOException e)

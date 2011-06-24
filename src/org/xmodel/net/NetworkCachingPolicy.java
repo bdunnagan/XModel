@@ -35,12 +35,14 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   }
 
   /**
-   * Specify whether this is the caching policy for the root reference.
-   * @param root True if this is the root caching policy.
+   * @return Returns a NetworkCachingPolicy for nested references.
    */
-  public void setRoot( boolean root)
+  public NetworkCachingPolicy getNested()
   {
-    this.root = root;
+    NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
+    cachingPolicy.root = false;
+    cachingPolicy.client = client;
+    return cachingPolicy;
   }
   
   /**
