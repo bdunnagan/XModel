@@ -24,6 +24,10 @@ public final class Connection
   {
     this.manager = manager;
     this.listener = listener;
+    
+    buffer = ByteBuffer.allocateDirect( 4096);
+    buffer.flip();
+    largeCount = 25;
   }
   
   /**
@@ -59,12 +63,6 @@ public final class Connection
     this.channel = channel;
     
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( buffer == null) 
-    {
-      buffer = ByteBuffer.allocate( 4096);
-      buffer.flip();
-    }
-    
     if ( listener != null) listener.onConnect( this);
   }
   
@@ -100,17 +98,29 @@ public final class Connection
   int read() throws IOException
   {
     if ( channel == null) return -1;
+
+    // unflip
+    if ( buffer.position() < buffer.limit())
+    {
+      buffer.position( buffer.limit());
+      buffer.limit( buffer.capacity());
+    }
+    else
+    {
+      buffer.clear();
+    }
     
-    buffer.compact();
+    insureCapacity();
     
     int nread = channel.read( buffer);
     if ( nread == -1) return nread;
-    
-    buffer.flip();
+
+    //optimizeCapacity();
     
     if ( listener != null && nread > 0) 
     {
-      log.debugf( "READ\n%s\n", Util.dump( buffer));
+      buffer.flip();
+      //log.debugf( "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -124,6 +134,47 @@ public final class Connection
   public void write( ByteBuffer buffer) throws IOException
   {
     manager.write( channel, buffer);
+  }
+
+  /**
+   * Insure that the internal read buffer has sufficient capacity. This will allocate or reallocate
+   * the buffer as necessary to insure that the limit of the buffer does not exceed the threshold.
+   */
+  private void insureCapacity()
+  {
+    if ( buffer.position() == buffer.limit())
+    {
+      ByteBuffer larger = ByteBuffer.allocate( buffer.capacity() << 1);
+      buffer.flip();
+      larger.put( buffer);
+      buffer = larger;
+      largeCount = 25;
+      System.out.printf( "Increased buffer: %d\n", buffer.capacity());
+    }
+  }
+
+  /**
+   * Calculate the ongoing usage of the buffer and possibly reduce its size to save memory.
+   * TODO: This is broken.
+   */
+  private void optimizeCapacity()
+  {
+    float usage = (float)buffer.position() / buffer.limit();
+    if ( usage > 0.375f) largeCount++; else largeCount--;
+
+    // limit hysteresis of large messages
+    if ( largeCount > 1000) largeCount = 1000;
+    
+    // contract insufficiently used buffer
+    if ( largeCount == 0)
+    {
+      ByteBuffer smaller = ByteBuffer.allocateDirect( buffer.capacity() >> 1);
+      buffer.flip();
+      smaller.put( buffer);
+      buffer = smaller;
+      largeCount = 25;
+      System.out.printf( "Decreased buffer: %d\n", buffer.capacity());
+    }
   }
   
   /**
@@ -163,5 +214,6 @@ public final class Connection
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
+  private int largeCount;
   private Map<String, IExternalReference> index;
 }

@@ -353,7 +353,7 @@ public class Client extends Protocol
    */
   private IModelObject decode( IModelObject root)
   {
-    System.out.println( ((ModelObject)root).toXml());
+    //System.out.println( ((ModelObject)root).toXml());
     
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     DepthFirstIterator iter = new DepthFirstIterator( root);

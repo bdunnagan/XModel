@@ -60,6 +60,7 @@ public abstract class TcpManager
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
+    // TODO: this could be allocated direct if it lived on the Connection
     ByteBuffer clone = ByteBuffer.allocate( buffer.remaining());
     clone.put( buffer);
     clone.flip();
@@ -128,7 +129,7 @@ public abstract class TcpManager
     Request request = writeQueue.poll();
     if ( request != null)
     {
-      log.debugf( "WRITE (%d)\n%s\n", writeQueue.size(), Util.dump( request.buffer));
+      //log.debugf( "WRITE (%d)\n%s\n", writeQueue.size(), Util.dump( request.buffer));
       request.channel.write( request.buffer);
       
       // disable write events if queue is empty or next request is for a different channel

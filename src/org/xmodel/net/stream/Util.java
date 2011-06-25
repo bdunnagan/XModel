@@ -26,6 +26,12 @@ public class Util
       }
       
       sb.append( String.format( "%02X", buffer.get( i)));
+      
+      if ( (i - buffer.position()) > 128)
+      {
+        sb.append( "...");
+        break;
+      }
     }
     
     sb.append( "\n");

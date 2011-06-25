@@ -589,7 +589,8 @@ public class Server extends Protocol
     {
       long time = System.currentTimeMillis();
       long elapsed = (time - stamp);
-      if ( false)
+      boolean f = false;
+      if ( f)
       {
         if ( elapsed > 10000)
         {

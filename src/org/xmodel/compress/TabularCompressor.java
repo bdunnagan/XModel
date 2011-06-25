@@ -19,14 +19,24 @@
  */
 package org.xmodel.compress;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import org.xmodel.*;
-import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.IModelObject;
+import org.xmodel.ModelObjectFactory;
+import org.xmodel.Xlate;
 
 
 /**
@@ -94,50 +104,12 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   /**
-   * Predefine the tag table by traversing the specified schema and assigning indexes to each
-   * element in the schema in a deterministic way.  This method is useful for predefining a 
-   * table on either end of a network connection using a common schema.  This method works 
-   * for xsd as well as simplified schemas.
-   * @param schema The root of the schema.
-   */
-  public void defineTagTable( IModelObject schema)
-  {
-    map.clear();
-    table.clear();
-
-    int index = 0;
-    if ( schema.isType( "xs:schema"))
-    {
-      for( IModelObject element: schemaTagExpr.query( schema, null))
-      {
-        String name = Xlate.get( element, "name", "");
-        map.put( name, index++);
-        table.add( name);
-      }
-    }
-    else if ( schema.isType( "schema"))
-    {
-      for( IModelObject element: simpleSchemaTagExpr.query( schema, null))
-      {
-        String name = Xlate.get( element, "name", "");
-        map.put( name, index++);
-        table.add( name);
-      }
-    }
-    else
-    {
-      throw new IllegalArgumentException( "Method requires root of schema: "+schema);
-    }
-    
-    predefined = true;
-  }
-  
-  /**
    * Clear the predefined tag table.
    */
   public void clearTagTable()
   {
     map.clear();
+    table.clear();
     predefined = false;
   }
   
@@ -146,10 +118,7 @@ public class TabularCompressor extends AbstractCompressor
    */
   public void compress( IModelObject element, OutputStream finalArrayOut) throws CompressorException
   {
-    int count = 0;
-    if ( !predefined) count = buildTagTable( element);
-    
-    ByteArrayOutputStream contentArrayOut = new ByteArrayOutputStream( count * 30);
+    ByteArrayOutputStream contentArrayOut = new ByteArrayOutputStream( 1024);
     DataOutputStream contentOut = new DataOutputStream( contentArrayOut);
     
     try
@@ -157,10 +126,6 @@ public class TabularCompressor extends AbstractCompressor
       // create content and decide if compression is required
       writeElement( contentOut, element);
       boolean compress = contentArrayOut.size() > compressionThreshold;
-      
-      // write magic number (to debug zip exceptions)
-      finalArrayOut.write( 0xca);
-      finalArrayOut.write( 0xfe);
       
       // write header
       byte header = 0;
@@ -192,6 +157,8 @@ public class TabularCompressor extends AbstractCompressor
     {
       throw new CompressorException( e);
     }
+    
+    predefined = true;
   }
   
   /* (non-Javadoc)
@@ -201,15 +168,9 @@ public class TabularCompressor extends AbstractCompressor
   {
     try
     {
-      // read magic number (to debug zip exceptions)
-      int mb1 = rawArrayIn.read();
-      int mb2 = rawArrayIn.read();
-      if ( mb1 != 0xca || mb2 != 0xfe)
-        throw new CompressorException( "Magic number missing from message header.");
-      
       // read header
       byte header = (byte)rawArrayIn.read();
-      boolean predefined = (header & 0x40) != 0;
+      boolean predefined = (header & 0x20) != 0;
       
       PostCompression post = PostCompression.none;
       if ( (header & 0x80) != 0) post = PostCompression.zip;
@@ -282,16 +243,8 @@ public class TabularCompressor extends AbstractCompressor
     for( int i=0; i<count; i++)
     {
       String attrName = readHash( stream);
-      if ( true || attrName.equals( "id"))
-      {
-        String attrValue = readText( stream);
-        node.setAttribute( attrName, attrValue);
-      }
-      else
-      {
-        String attrValue = readHash( stream);
-        node.setAttribute( attrName, attrValue);
-      }
+      String attrValue = readText( stream);
+      node.setAttribute( attrName, attrValue);
     }
   }
   
@@ -328,14 +281,7 @@ public class TabularCompressor extends AbstractCompressor
     for( String attrName: attrNames)
     {
       writeHash( stream, attrName);
-      if ( true || attrName.equals( "id"))
-      {
-        writeText( stream, Xlate.get( node, attrName, ""));
-      }
-      else
-      {
-        writeHash( stream, Xlate.get( node, attrName, ""));
-      }
+      writeText( stream, Xlate.get( node, attrName, ""));
     }
   }
   
@@ -378,10 +324,10 @@ public class TabularCompressor extends AbstractCompressor
     if ( hash == null)
     {
       hash = hashIndex++;
+      table.add( name);
       map.put( name, hash);
       predefined = false;
     }
-    
     writeValue( stream, hash);
   }
   
@@ -426,7 +372,10 @@ public class TabularCompressor extends AbstractCompressor
     {
       builder.setLength( 0);
       for( byte b = stream.readByte(); b != 0; b = stream.readByte())
+      {
         builder.append( (char)b);
+      }
+      
       table.add( builder.toString());
     }
   }
@@ -437,6 +386,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
+    System.out.println( "TabularCompressor: writing table...");
+    
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
@@ -492,56 +443,7 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
-  
-  /**
-   * Build the tag table for the specified tree.
-   * @param element The root of the tree.
-   * @return Returns the number of tags in the tree.
-   */
-  private int buildTagTable( IModelObject element)
-  {
-    table.clear();
-    map.clear();
-    int count = 0;
     
-    // put empty first to optimize storage of value attributes
-    map.put( "", 0);
-    table.add( "");
-    
-    // build tag table
-    BreadthFirstIterator iter = new BreadthFirstIterator( element);
-    while( iter.hasNext())
-    {
-      IModelObject node = iter.next();
-      String type = node.getType();
-      if ( map.get( type) == null)
-      {
-        map.put( type, table.size());
-        table.add( type);
-      }
-      
-      // attributes, too
-      for( String attrName: node.getAttributeNames())
-      {
-        if ( map.get( attrName) == null)
-        {
-          map.put( attrName, table.size());
-          table.add( attrName);
-        }
-      } 
-      
-      count++;
-    }
-
-    return count;
-  }
-  
-  private IExpression schemaTagExpr = XPath.createExpression(
-    ".//xs:element");
-  
-  private IExpression simpleSchemaTagExpr = XPath.createExpression(
-    ".//element");
-  
   private final static int compressionThreshold = 256;
   
   private List<String> table;

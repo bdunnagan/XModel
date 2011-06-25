@@ -9,7 +9,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
@@ -384,8 +383,8 @@ public abstract class Protocol implements ITcpListener
   public final void sendAddChild( Connection connection, String xpath, IModelObject element, int index) throws IOException
   {
     initialize( buffer);
-    int length = writeString( buffer, xpath);
-    length += writeElement( buffer, element);
+    int length = writeString( xpath);
+    length += writeElement( element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
     connection.write( buffer);
@@ -425,7 +424,7 @@ public abstract class Protocol implements ITcpListener
   public final void sendRemoveChild( Connection connection, String xpath, int index) throws IOException
   {
     initialize( buffer);
-    int length = writeString( buffer, xpath);
+    int length = writeString( xpath);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, length);
     connection.write( buffer);
@@ -466,9 +465,9 @@ public abstract class Protocol implements ITcpListener
     byte[] bytes = serialize( value);
     
     initialize( buffer);
-    int length = writeString( buffer, xpath);
-    length += writeString( buffer, attrName);
-    length += writeBytes( buffer, bytes, 0, bytes.length, true);
+    int length = writeString( xpath);
+    length += writeString( attrName);
+    length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
     connection.write( buffer);
   }
@@ -507,8 +506,8 @@ public abstract class Protocol implements ITcpListener
   public final void sendClearAttribute( Connection connection, String xpath, String attrName) throws IOException
   {
     initialize( buffer);
-    int length = writeString( buffer, xpath);
-    length += writeString( buffer, attrName);
+    int length = writeString( xpath);
+    length += writeString( attrName);
     finalize( buffer, Type.clearAttribute, length);
     connection.write( buffer);
   }
@@ -545,7 +544,7 @@ public abstract class Protocol implements ITcpListener
   public final void sendChangeDirty( Connection connection, String xpath, boolean dirty) throws IOException
   {
     initialize( buffer);
-    int length = writeString( buffer, xpath);
+    int length = writeString( xpath);
     buffer.put( dirty? (byte)1: 0); length++;
     finalize( buffer, Type.clearAttribute, length);
     connection.write( buffer);
@@ -928,8 +927,17 @@ public abstract class Protocol implements ITcpListener
    * @param offset The offset.
    * @param length The length.
    */
-  public static int writeBytes( ByteBuffer buffer, byte[] bytes, int offset, int length, boolean small)
+  public int writeBytes( byte[] bytes, int offset, int length, boolean small)
   {
+    int required = buffer.position() + length;
+    if ( required >= buffer.limit())
+    {
+      buffer.flip();
+      ByteBuffer larger = ByteBuffer.allocateDirect( (int)(required * 1.5));
+      larger.put( buffer);
+      buffer = larger;
+    }
+    
     int prefix = writeLength( buffer, length, small);
     buffer.put( bytes, offset, length);
     return prefix + length;
@@ -950,10 +958,10 @@ public abstract class Protocol implements ITcpListener
    * @param buffer The buffer.
    * @param string The string.
    */
-  public static int writeString( ByteBuffer buffer, String string)
+  public int writeString( String string)
   {
     byte[] bytes = string.getBytes();
-    return writeBytes( buffer, bytes, 0, bytes.length, true);
+    return writeBytes( bytes, 0, bytes.length, true);
   }
   
   /**
@@ -965,19 +973,18 @@ public abstract class Protocol implements ITcpListener
   {
     byte[] bytes = readBytes( buffer, false);
     IModelObject object = compressor.decompress( bytes, 0);
-    System.out.println( ((ModelObject)object).toXml());
+    //System.out.println( ((ModelObject)object).toXml());
     return object;
   }
 
   /**
    * Write an IModelObject to the message.
-   * @param buffer The buffer.
    * @param element The element.
    */
-  public int writeElement( ByteBuffer buffer, IModelObject element)
+  public int writeElement( IModelObject element)
   {
     byte[] bytes = compressor.compress( element);
-    return writeBytes( buffer, bytes, 0, bytes.length, false);
+    return writeBytes( bytes, 0, bytes.length, false);
   }
 
   private static Log log = Log.getLog(  "org.xmodel.net");
