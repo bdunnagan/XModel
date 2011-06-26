@@ -110,7 +110,7 @@ public class Client extends Protocol
   public void attach( String xpath, IExternalReference reference) throws IOException
   {
     connect( 30000);
-    if ( connection.isOpen())
+    if ( connection != null && connection.isOpen())
     {
       sendVersion( connection, (byte)1);
       dispatcher = reference.getModel().getDispatcher();
