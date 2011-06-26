@@ -1,14 +1,17 @@
 package org.xmodel.net.stream;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -22,9 +25,17 @@ public abstract class TcpManager
 {
   public TcpManager() throws IOException
   {
+    this( null);
+  }
+  
+  public TcpManager( ITcpListener listener) throws IOException
+  {
+    this.listener = listener;
+    
     connections = Collections.synchronizedMap( new HashMap<Channel, Connection>());
     selector = SelectorProvider.provider().openSelector();
-    writeQueue = new ConcurrentLinkedQueue<Request>();
+    queue = new ConcurrentLinkedQueue<Request>();
+    pending = new HashMap<Channel, Request>();
   }
 
   /**
@@ -52,6 +63,64 @@ public abstract class TcpManager
     exit = true;
     selector.wakeup();
   }
+
+  /**
+   * Return the connection associated with the specified channel.
+   * @param channel The channel.
+   * @return Return the connection associated with the specified channel.
+   */
+  protected Connection getConnection( Channel channel)
+  {
+    return connections.get( channel);
+  }
+  
+  /**
+   * Connect to the specified remote address.
+   * @param host The remote host.
+   * @param port The remote port.
+   * @param timeout The timeout in milliseconds.
+   * @param listener The listener for socket events.
+   */
+  protected Connection connect( String host, int port, int timeout, ITcpListener listener) throws IOException
+  {
+    SocketChannel channel = SocketChannel.open();
+    channel.configureBlocking( false);
+    
+    channel.connect( new InetSocketAddress( host, port));
+    Connection connection = createConnection( channel, listener);
+    
+    Request request = new Request();
+    request.channel = connection.getChannel();
+    request.buffer = null;
+    request.ops = SelectionKey.OP_CONNECT;
+    
+    enqueue( request);
+    
+    if ( !connection.waitForConnect( timeout)) return null; 
+    
+    return connection;
+  }
+  
+  /**
+   * Reconnect the specified connection.
+   * @param connection The connection.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns true if the connection was reestablished.
+   */
+  protected boolean reconnect( Connection connection, int timeout) throws IOException
+  {
+    if ( connection.isOpen()) connection.close();
+    
+    Request request = new Request();
+    request.channel = connection.getChannel();
+    request.buffer = null;
+    request.ops = SelectionKey.OP_CONNECT;
+    
+    enqueue( request);
+    
+    return connection.waitForConnect( timeout);
+  }
+
   
   /**
    * Enqueue a request to write data.
@@ -68,37 +137,116 @@ public abstract class TcpManager
     Request request = new Request();
     request.channel = channel;
     request.buffer = clone;
+    request.ops = SelectionKey.OP_READ | SelectionKey.OP_WRITE;
     
-    writeQueue.offer( request);
-    selector.wakeup();
+    enqueue( request);
   }
   
   /**
-   * Process socket events.
-   * @param timeout The timeout in milliseconds.
-   * @return Returns false if a timeout occurs.
+   * Enqueue the specified request and wakeup the selector.
+   * @param request The request.
    */
-  protected abstract boolean process( int timeout) throws IOException;
+  private void enqueue( Request request)
+  {
+    queue.offer( request);
+    selector.wakeup();
+  }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpManager#process(int)
+   */
+  protected boolean process( int timeout) throws IOException
+  {
+    // wait for connection
+    if ( selector.select( timeout) == 0) return false; 
+      
+    // handle events
+    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+    while( iter.hasNext())
+    {
+      SelectionKey readyKey = iter.next();
+      iter.remove();
+      
+      if ( !readyKey.isValid()) continue;
+      
+      try
+      {
+        if ( readyKey.isReadable())
+        {
+          read( readyKey);
+        }
+        
+        if ( readyKey.isWritable())
+        {
+          write( readyKey);
+        }
+        
+        if ( readyKey.isAcceptable())
+        {
+          accept( readyKey);
+        }
+        
+        if ( readyKey.isConnectable())
+        {
+          connect( readyKey);
+        }
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
+    }
+    
+    return true;
+  }
+    
   /**
    * Create a new Connection instance for the specified channel.
    * @param channel The channel.
-   * @param ops The selector operations to register on the channel.
-   * @parma listener The listener for socket events.
+   * @param listener The listener for socket events.
    * @return Returns the new Connection.
    */
-  protected Connection createConnection( SocketChannel channel, int ops, ITcpListener listener) throws IOException
+  protected Connection createConnection( SocketChannel channel, ITcpListener listener) throws IOException
   {
-    // configure channel
-    channel.configureBlocking( false);
-    channel.register( selector, ops);
-    
-    // create connection
-    Connection connection = new Connection( this, listener);
-    connection.connected( channel);
-    connections.put( channel, connection);
-    
+    Connection connection = new Connection( this, channel, listener);
+    connections.put( connection.getChannel(), connection);
     return connection;
+  }
+  
+  /**
+   * Process a newly connected socket.
+   * @param key The selection key.
+   */
+  private void connect( SelectionKey key) throws IOException
+  {
+    Request request = pending.remove( key.channel());
+    if ( request != null)
+    {
+      SocketChannel channel = (SocketChannel)key.channel();
+      Connection connection = getConnection( channel);
+      try
+      {
+        channel.finishConnect();
+        channel.register( selector, SelectionKey.OP_READ);
+        connection.connected( channel);
+      }
+      catch( IOException e)
+      {
+        connection.close( false);
+      }
+    }
+  }
+  
+  /**
+   * Accept an incoming connection.
+   * @param key The selection key.
+   */
+  private void accept( SelectionKey key) throws IOException
+  {
+    ServerSocketChannel channel = (ServerSocketChannel)key.channel();    
+    Connection connection = createConnection( channel.accept(), listener);
+    connection.getChannel().configureBlocking( false);
+    connection.getChannel().register( selector, SelectionKey.OP_READ);
   }
   
   /**
@@ -126,14 +274,14 @@ public abstract class TcpManager
    */
   protected void write( SelectionKey key) throws IOException
   {
-    Request request = writeQueue.poll();
+    Request request = pending.remove( key.channel());
     if ( request != null)
     {
-      //log.debugf( "WRITE (%d)\n%s\n", writeQueue.size(), Util.dump( request.buffer));
+      log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
       request.channel.write( request.buffer);
       
       // disable write events if queue is empty or next request is for a different channel
-      request = writeQueue.peek();
+      request = queue.peek();
       if ( request == null || request.channel != key.channel())
       {
         key.channel().register( selector, SelectionKey.OP_READ);
@@ -163,11 +311,12 @@ public abstract class TcpManager
         // process socket events
         process( 0);
         
-        // turn on write operations if queue is not empty
-        Request request = writeQueue.peek();
+        // handle requests
+        Request request = queue.poll();
         if ( request != null) 
         {
-          request.channel.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+          pending.put( request.channel, request);
+          request.channel.register( selector, request.ops);
         }
       }
       catch( IOException e)
@@ -182,13 +331,16 @@ public abstract class TcpManager
   {
     public SocketChannel channel;
     public ByteBuffer buffer;
+    public int ops;
   }
   
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
-  
+
+  private ITcpListener listener;
   protected Selector selector;
   private Map<Channel, Connection> connections;
-  private Queue<Request> writeQueue;
+  private Queue<Request> queue;
+  private Map<Channel, Request> pending;
   private Thread thread;
   private boolean exit;
 }

@@ -10,8 +10,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
-import org.xmodel.compress.TabularCompressor;
-import org.xmodel.compress.TabularCompressor.PostCompression;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.ITcpListener;
@@ -46,7 +44,6 @@ public abstract class Protocol implements ITcpListener
 
   protected Protocol()
   {
-    this.compressor = new TabularCompressor( PostCompression.zip);
     this.timeout = 10000;
     this.responseQueue = new SynchronousQueue<byte[]>();
     
@@ -208,6 +205,7 @@ public abstract class Protocol implements ITcpListener
 
     // send and wait for response
     byte[] response = send( connection, buffer, timeout);
+    ICompressor compressor = connection.getCompressor();
     IModelObject element = compressor.decompress( response, 0);
     log.debugf( "handleAttachResponse: %s\n", element.getType());
     handleAttachResponse( connection, element);
@@ -245,6 +243,7 @@ public abstract class Protocol implements ITcpListener
   {
     log.debugf( "sendAttachResponse: %s\n", element.getType());
     initialize( buffer);
+    ICompressor compressor = connection.getCompressor();
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachResponse, bytes.length);
@@ -384,7 +383,7 @@ public abstract class Protocol implements ITcpListener
   {
     initialize( buffer);
     int length = writeString( xpath);
-    length += writeElement( element);
+    length += writeElement( connection.getCompressor(), element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
     connection.write( buffer);
@@ -966,10 +965,11 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Read an IModelObject from the message.
+   * @param compressor The compressor.
    * @param buffer The buffer.
    * @return Returns the element.
    */
-  public IModelObject readElement( ByteBuffer buffer)
+  public IModelObject readElement( ICompressor compressor, ByteBuffer buffer)
   {
     byte[] bytes = readBytes( buffer, false);
     IModelObject object = compressor.decompress( bytes, 0);
@@ -979,9 +979,10 @@ public abstract class Protocol implements ITcpListener
 
   /**
    * Write an IModelObject to the message.
+   * @param compressor The compressor;
    * @param element The element.
    */
-  public int writeElement( IModelObject element)
+  public int writeElement( ICompressor compressor, IModelObject element)
   {
     byte[] bytes = compressor.compress( element);
     return writeBytes( bytes, 0, bytes.length, false);
@@ -989,7 +990,6 @@ public abstract class Protocol implements ITcpListener
 
   private static Log log = Log.getLog(  "org.xmodel.net");
 
-  protected ICompressor compressor;
   private ByteBuffer buffer;
   private BlockingQueue<byte[]> responseQueue;
   private int timeout;

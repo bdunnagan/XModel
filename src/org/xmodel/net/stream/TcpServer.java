@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
-import java.util.Iterator;
 
 import org.xmodel.log.Log;
 
@@ -21,75 +20,24 @@ public final class TcpServer extends TcpManager
    */
   public TcpServer( String host, int port, ITcpListener listener) throws IOException
   {
-    this.listener = listener;
+    super( listener);
     
-    InetSocketAddress address = new InetSocketAddress( host, port);
     serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking( false);
-    serverChannel.socket().bind( address);
+    serverChannel.socket().bind( new InetSocketAddress( host, port));
     
     // register accept selector
     serverChannel.register( selector, SelectionKey.OP_ACCEPT);
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.TcpManager#process(int)
+   * @see org.xmodel.net.stream.TcpManager#stop()
    */
-  protected boolean process( int timeout) throws IOException
+  @Override
+  public void stop()
   {
-    // wait for connection
-    if ( selector.select( timeout) == 0) return false; 
-      
-    // handle events
-    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-    while( iter.hasNext())
-    {
-      SelectionKey readyKey = iter.next();
-      iter.remove();
-      
-      if ( !readyKey.isValid()) continue;
-      
-      try
-      {
-        if ( readyKey.isAcceptable())
-        {
-          accept( readyKey);
-        }
-        else
-        {
-          if ( readyKey.isReadable())
-          {
-            read( readyKey);
-          }
-          else if ( readyKey.isWritable())
-          {
-            write( readyKey);
-          }
-        }
-      }
-      catch( IOException e)
-      {
-        log.exception( e);
-      }
-    }
+    super.stop();
     
-    return true;
-  }
-  
-  /**
-   * Accept an incoming connection.
-   * @param key The selection key.
-   */
-  private void accept( SelectionKey key) throws IOException
-  {
-    createConnection( serverChannel.accept(), SelectionKey.OP_READ, listener);
-  }
-  
-  /**
-   * Close the server socket.
-   */
-  public void close()
-  {
     try
     {
       if ( serverChannel != null) serverChannel.close();
@@ -98,11 +46,11 @@ public final class TcpServer extends TcpManager
     {
       log.exception( e);
     }
+    
     serverChannel = null;
   }
-  
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  
   private ServerSocketChannel serverChannel;
-  private ITcpListener listener;
 }

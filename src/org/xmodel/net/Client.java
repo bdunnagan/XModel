@@ -38,7 +38,11 @@ public class Client extends Protocol
    */
   public Client( String host, int port) throws IOException
   {
-    if ( client == null) client = new TcpClient();
+    if ( client == null) 
+    {
+      client = new TcpClient();
+      client.start();
+    }
     
     this.host = host;
     this.port = port;
@@ -216,6 +220,7 @@ public class Client extends Protocol
 
   /**
    * Process an add child event in the appropriate thread.
+   * @param connection The conn
    * @param xpath The xpath of the parent.
    * @param bytes The child that was added.
    * @param index The index of insertion.
@@ -228,7 +233,7 @@ public class Client extends Protocol
     if ( parentExpr != null)
     {
       IModelObject parent = parentExpr.queryFirst( attached);
-      IModelObject child = compressor.decompress( bytes, 0);
+      IModelObject child = connection.getCompressor().decompress( bytes, 0);
       if ( parent != null) parent.addChild( decode( child), index);
     }
   }

@@ -6,7 +6,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
+import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
+import org.xmodel.compress.TabularCompressor.PostCompression;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 
@@ -18,16 +23,18 @@ public final class Connection
   /**
    * Create a new connection.
    * @param manager The TcpManager instance.
+   * @param channel The channel.
    * @param listener The TCP event listener.
    */
-  Connection( TcpManager manager, ITcpListener listener)
+  Connection( TcpManager manager, SocketChannel channel, ITcpListener listener)
   {
     this.manager = manager;
+    this.channel = channel;
     this.listener = listener;
+    this.semaphore = new Semaphore( 0);
     
     buffer = ByteBuffer.allocateDirect( 4096);
     buffer.flip();
-    largeCount = 25;
   }
   
   /**
@@ -61,9 +68,26 @@ public final class Connection
   void connected( SocketChannel channel) throws IOException
   {
     this.channel = channel;
-    
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
     if ( listener != null) listener.onConnect( this);
+    semaphore.release();
+  }
+  
+  /**
+   * Wait for the connection to be established.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns true if the connection was established.
+   */
+  boolean waitForConnect( int timeout)
+  {
+    try 
+    { 
+      return semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
+    } 
+    catch( InterruptedException e) 
+    {
+      return false;
+    }
   }
   
   /**
@@ -120,7 +144,7 @@ public final class Connection
     if ( listener != null && nread > 0) 
     {
       buffer.flip();
-      //log.debugf( "READ\n%s\n", Util.dump( buffer));
+      log.debugf( "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -148,35 +172,9 @@ public final class Connection
       buffer.flip();
       larger.put( buffer);
       buffer = larger;
-      largeCount = 25;
-      System.out.printf( "Increased buffer: %d\n", buffer.capacity());
     }
   }
 
-  /**
-   * Calculate the ongoing usage of the buffer and possibly reduce its size to save memory.
-   * TODO: This is broken.
-   */
-  private void optimizeCapacity()
-  {
-    float usage = (float)buffer.position() / buffer.limit();
-    if ( usage > 0.375f) largeCount++; else largeCount--;
-
-    // limit hysteresis of large messages
-    if ( largeCount > 1000) largeCount = 1000;
-    
-    // contract insufficiently used buffer
-    if ( largeCount == 0)
-    {
-      ByteBuffer smaller = ByteBuffer.allocateDirect( buffer.capacity() >> 1);
-      buffer.flip();
-      smaller.put( buffer);
-      buffer = smaller;
-      largeCount = 25;
-      System.out.printf( "Decreased buffer: %d\n", buffer.capacity());
-    }
-  }
-  
   /**
    * Close this connection.
    */
@@ -198,6 +196,15 @@ public final class Connection
     if ( index == null) index = new HashMap<String, IExternalReference>();
     return index;
   }
+
+  /**
+   * @return Returns the compressor for this connection.
+   */
+  public ICompressor getCompressor()
+  {
+    if ( compressor == null) compressor = new TabularCompressor( PostCompression.zip);
+    return compressor;
+  }
   
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
@@ -214,6 +221,11 @@ public final class Connection
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
-  private int largeCount;
+  
+  // connection semaphore
+  Semaphore semaphore;
+  
+  // NetworkCachingPolicy support
   private Map<String, IExternalReference> index;
+  private TabularCompressor compressor;
 }
