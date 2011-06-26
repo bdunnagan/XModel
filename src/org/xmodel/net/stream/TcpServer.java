@@ -10,7 +10,7 @@ import org.xmodel.log.Log;
 /**
  * A java.nio based Server.
  */
-public final class TcpServer extends TcpManager
+public final class TcpServer extends TcpBase
 {
   /**
    * Create a server bound to the specified host and port.

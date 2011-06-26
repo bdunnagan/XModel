@@ -22,13 +22,13 @@ public final class Connection
 {
   /**
    * Create a new connection.
-   * @param manager The TcpManager instance.
+   * @param tcp The TcpManager instance.
    * @param channel The channel.
    * @param listener The TCP event listener.
    */
-  Connection( TcpManager manager, SocketChannel channel, ITcpListener listener)
+  Connection( TcpBase tcp, SocketChannel channel, ITcpListener listener)
   {
-    this.manager = manager;
+    this.tcp = tcp;
     this.channel = channel;
     this.listener = listener;
     this.semaphore = new Semaphore( 0);
@@ -157,7 +157,7 @@ public final class Connection
    */
   public void write( ByteBuffer buffer) throws IOException
   {
-    manager.write( channel, buffer);
+    tcp.write( channel, buffer);
   }
 
   /**
@@ -216,7 +216,7 @@ public final class Connection
 
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
-  private TcpManager manager;
+  private TcpBase tcp;
   private ITcpListener listener;
   private InetSocketAddress address;
   private SocketChannel channel;

@@ -2,7 +2,7 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 
-public class TcpClient extends TcpManager
+public class TcpClient extends TcpBase
 {
   public TcpClient() throws IOException
   {

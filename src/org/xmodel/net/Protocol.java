@@ -973,7 +973,6 @@ public abstract class Protocol implements ITcpListener
   {
     byte[] bytes = readBytes( buffer, false);
     IModelObject object = compressor.decompress( bytes, 0);
-    //System.out.println( ((ModelObject)object).toXml());
     return object;
   }
 

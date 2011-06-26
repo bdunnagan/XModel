@@ -21,14 +21,14 @@ import org.xmodel.log.Log;
 /**
  * A base class for java.nio based clients and servers.
  */
-public abstract class TcpManager
+public abstract class TcpBase
 {
-  public TcpManager() throws IOException
+  public TcpBase() throws IOException
   {
     this( null);
   }
   
-  public TcpManager( ITcpListener listener) throws IOException
+  public TcpBase( ITcpListener listener) throws IOException
   {
     this.listener = listener;
     
