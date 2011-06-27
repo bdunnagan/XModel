@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
+import org.xmodel.BlockingDispatcher;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ManualDispatcher;
@@ -58,6 +60,15 @@ public class Server extends Protocol
   }
 
   /**
+   * Set the dispatcher to the model thread.
+   * @param dispatcher The dispatcher.
+   */
+  public void setDispatcher( BlockingDispatcher dispatcher)
+  {
+    this.dispatcher = dispatcher;
+  }
+  
+  /**
    * Start the server.
    */
   public void start()
@@ -80,6 +91,7 @@ public class Server extends Protocol
   public void setContext( IContext context)
   {
     this.context = context;
+    if ( dispatcher == null) dispatcher = context.getModel().getDispatcher();
   }
 
   /* (non-Javadoc)
@@ -278,7 +290,7 @@ public class Server extends Protocol
   @Override
   protected void handleAttachRequest( Connection sender, String xpath)
   {
-    context.getModel().dispatch( new AttachRunnable( sender, xpath));
+    dispatcher.execute( new AttachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -287,7 +299,7 @@ public class Server extends Protocol
   @Override
   protected void handleDetachRequest( Connection sender, String xpath)
   {
-    context.getModel().dispatch( new DetachRunnable( sender, xpath));
+    dispatcher.execute( new DetachRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -296,7 +308,7 @@ public class Server extends Protocol
   @Override
   protected void handleSyncRequest( Connection sender, String key)
   {
-    context.getModel().dispatch( new SyncRunnable( sender, key));
+    dispatcher.execute( new SyncRunnable( sender, key));
   }
   
   /* (non-Javadoc)
@@ -305,7 +317,7 @@ public class Server extends Protocol
   @Override
   protected void handleQueryRequest( Connection sender, String xpath)
   {
-    context.getModel().dispatch( new QueryRunnable( sender, xpath));
+    dispatcher.execute( new QueryRunnable( sender, xpath));
   }
 
   /* (non-Javadoc)
@@ -314,7 +326,12 @@ public class Server extends Protocol
   @Override
   protected void handleDebugStepIn( Connection sender)
   {
-    XAction.getDebugger().stepIn();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepIn();
+      }
+    });
   }
 
   /* (non-Javadoc)
@@ -323,7 +340,12 @@ public class Server extends Protocol
   @Override
   protected void handleDebugStepOut( Connection sender)
   {
-    XAction.getDebugger().stepOut();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepOut();
+      }
+    });
   }
 
   /* (non-Javadoc)
@@ -332,7 +354,12 @@ public class Server extends Protocol
   @Override
   protected void handleDebugStepOver( Connection sender)
   {
-    XAction.getDebugger().stepOver();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepOver();
+      }
+    });
   }
 
   /**
@@ -572,6 +599,7 @@ public class Server extends Protocol
   private MultiMap<Connection, Listener> listeners;
   private IContext context;
   private Random random;
+  private IDispatcher dispatcher;
   
   public static void main( String[] args) throws Exception
   {

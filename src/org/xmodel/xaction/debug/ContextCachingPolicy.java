@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.Reference;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.IExternalReference;
@@ -40,7 +39,7 @@ public class ContextCachingPolicy extends AbstractCachingPolicy
         List<IModelObject> nodes = (List<IModelObject>)scope.get( variable); 
         for( IModelObject node: nodes)
         {
-          element.addChild( new Reference( node));
+          element.addChild( node.cloneTree());
         }
       }
       break;

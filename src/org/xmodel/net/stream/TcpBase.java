@@ -194,7 +194,11 @@ public abstract class TcpBase
       }
       catch( IOException e)
       {
-        log.exception( e);
+        log.verbose( e.getMessage());
+      }
+      catch( CancelledKeyException e)
+      {
+        log.verbose( e.getMessage());
       }
     }
     

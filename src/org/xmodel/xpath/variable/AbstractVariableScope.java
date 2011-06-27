@@ -68,6 +68,7 @@ public abstract class AbstractVariableScope implements IVariableScope
   @Override
   public Collection<String> getVariables()
   {
+    if ( variables == null) return Collections.emptyList();
     return variables.keySet();
   }
 

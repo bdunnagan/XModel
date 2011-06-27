@@ -69,8 +69,8 @@ public class StartServerAction extends GuardedAction
     // start server
     try
     {
-      String host = hostExpr.evaluateString( context);
-      int port = (int)portExpr.evaluateNumber( context);
+      String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
+      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): 27700;
       
       server = new Server( host, port);
       server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);

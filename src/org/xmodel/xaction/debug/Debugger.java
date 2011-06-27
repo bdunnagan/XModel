@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
 
+import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
@@ -32,16 +33,18 @@ public class Debugger implements IDebugger
   public Debugger()
   {
     stack = new Stack<Frame>();
+    semaphore = new Semaphore( 0);
     stepFrame = 1;
-    context = new StatefulContext( new ModelObject( "debug"));
+    debugRoot = new ModelObject( "debug");
+    context = new StatefulContext( debugRoot);
+    dispatcher = new BlockingDispatcher();
   }
 
   protected static class Frame
   {
-    public Frame( IContext context, IXAction action)
+    public Frame( IContext context)
     {
       this.context = context;
-      this.action = action;
     }
     
     public IContext context;
@@ -114,6 +117,11 @@ public class Debugger implements IDebugger
     synchronized( this)
     {
       currFrame++;
+      
+      Frame frame = new Frame( context);
+      stack.push( frame);
+      
+      debugRoot.addChild( createFrameElement( frame));
     }
   }
 
@@ -125,18 +133,21 @@ public class Debugger implements IDebugger
   {
     synchronized( this)
     {
-      Frame frame = new Frame( context, action);
-      stack.push( frame);
       if ( stepFrame >= currFrame) 
       {
-        updateFrameElement( frame);
+        Frame frame = stack.peek();
+        frame.action = action;
+        
+        IModelObject element = debugRoot.getChild( debugRoot.getNumberOfChildren() - 1);
+        IModelObject revised = createFrameElement( frame);
+        XmlDiffer differ = new XmlDiffer();
+        differ.diffAndApply( element, revised);
+        
         pause( context, stack);
         block();
       }
       
       Object[] result = action.run( context);
-      stack.pop();
-      
       return result;
     }
   }
@@ -149,7 +160,11 @@ public class Debugger implements IDebugger
   {
     synchronized( this)
     {
-      context.getObject().removeChild( 0); 
+      stack.pop();
+      
+      int depth = debugRoot.getNumberOfChildren();
+      if ( depth > 0) debugRoot.removeChild( depth-1); 
+        
       currFrame--;
       if ( currFrame == 0) resume();
     }
@@ -166,6 +181,8 @@ public class Debugger implements IDebugger
       {
         server = new Server( "0.0.0.0", defaultPort);
         server.setContext( context);
+        server.setDispatcher( dispatcher);
+        server.start();
       }
       catch( Exception e)
       {
@@ -173,7 +190,11 @@ public class Debugger implements IDebugger
       }
     }
 
-    try { semaphore.acquire();} catch( InterruptedException e) {}
+    while( true)
+    {
+      dispatcher.process();
+      if ( semaphore.tryAcquire()) break;
+    }
   }
 
   /**
@@ -194,8 +215,11 @@ public class Debugger implements IDebugger
     ModelObject element = new ModelObject( "frame", Integer.toString( frame.hashCode()));
     
     // xaction
-    IModelObject xaction = frame.action.getDocument().getRoot();
-    element.getCreateChild( "action").addChild( new Reference( xaction));
+    if ( frame.action != null)
+    {
+      IModelObject xaction = frame.action.getDocument().getRoot();
+      element.getCreateChild( "action").addChild( xaction.cloneTree());
+    }
     
     // variables
     IVariableScope scope = frame.context.getScope();
@@ -213,42 +237,16 @@ public class Debugger implements IDebugger
     return element;
   }
   
-  /**
-   * Create or update the element representing the specified frame.
-   * @param frame The frame.
-   */
-  private void updateFrameElement( Frame frame)
-  {
-    IModelObject root = context.getObject();
-    IModelObject oldElement = root.getChild( "frame", Integer.toString( frame.hashCode()));
-    IModelObject newElement = createFrameElement( frame);
-    if ( oldElement != null)
-    {
-      boolean syncLock = root.getModel().getSyncLock();
-      try
-      {
-        XmlDiffer differ = new XmlDiffer();
-        differ.diffAndApply( oldElement, newElement);
-      }
-      finally
-      {
-        root.getModel().setSyncLock( syncLock);
-      }
-    }
-    else
-    {
-      root.addChild( newElement, 0);
-    }
-  }
-  
   private static Log log = Log.getLog( "org.xmodel.xaction.debug");
   
   private Stack<Frame> stack;
   private int stepFrame;
   private int currFrame;
   private StatefulContext context;
+  private IModelObject debugRoot;
   private Server server;
   private Semaphore semaphore;
+  private BlockingDispatcher dispatcher;
   
   public static void main( String[] args) throws Exception
   {
