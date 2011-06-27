@@ -287,6 +287,9 @@ public class Client extends Protocol
   {
     if ( attached == null) return;
     
+    // the empty string and null string both serialize as byte[ 0]
+    if ( attrValue == null) attrValue = "";
+    
     IExpression elementExpr = XPath.createExpression( xpath);
     if ( elementExpr != null)
     {

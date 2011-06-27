@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.Reference;
+import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
@@ -15,9 +15,6 @@ import org.xmodel.log.Log;
 import org.xmodel.net.Server;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
-import org.xmodel.xaction.XAction;
-import org.xmodel.xaction.XActionDocument;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -42,13 +39,14 @@ public class Debugger implements IDebugger
 
   protected static class Frame
   {
-    public Frame( IContext context)
+    public Frame( IContext context, ScriptAction script)
     {
       this.context = context;
+      this.script = script;
     }
     
     public IContext context;
-    public IXAction action;
+    public ScriptAction script;
   }
   
   /**
@@ -118,10 +116,10 @@ public class Debugger implements IDebugger
     {
       currFrame++;
       
-      Frame frame = new Frame( context);
+      Frame frame = new Frame( context, script);
       stack.push( frame);
       
-      debugRoot.addChild( createFrameElement( frame));
+      debugRoot.addChild( createFrameElement( frame, null));
     }
   }
 
@@ -136,11 +134,10 @@ public class Debugger implements IDebugger
       if ( stepFrame >= currFrame) 
       {
         Frame frame = stack.peek();
-        frame.action = action;
         
         IModelObject element = debugRoot.getChild( debugRoot.getNumberOfChildren() - 1);
-        IModelObject revised = createFrameElement( frame);
-        XmlDiffer differ = new XmlDiffer();
+        IModelObject revised = createFrameElement( frame, action);
+        XmlDiffer differ = new XmlDiffer( new DefaultXmlMatcher( true));
         differ.diffAndApply( element, revised);
         
         pause( context, stack);
@@ -208,26 +205,32 @@ public class Debugger implements IDebugger
   /**
    * Create an element representing the specified frame.
    * @param frame The frame.
+   * @param action The next action to be executed.
    * @return Returns the new element.
    */
-  private static IModelObject createFrameElement( Frame frame)
+  private static IModelObject createFrameElement( Frame frame, IXAction action)
   {
-    ModelObject element = new ModelObject( "frame", Integer.toString( frame.hashCode()));
+    ModelObject element = new ModelObject( "frame", Integer.toString( frame.hashCode(), 16));
     
-    // xaction
-    if ( frame.action != null)
-    {
-      IModelObject xaction = frame.action.getDocument().getRoot();
-      element.getCreateChild( "action").addChild( xaction.cloneTree());
-    }
+    // temporarily mark action
+    if ( action != null) action.getDocument().getRoot().setAttribute( "debug:next", "");
+    
+    // script
+    IModelObject scriptRoot = frame.script.getDocument().getRoot();
+    IModelObject scriptClone = scriptRoot.cloneTree();
+    scriptClone.setID( Integer.toString( frame.hashCode(), 16));
+    element.getCreateChild( "script").addChild( scriptClone);
+    
+    // remove marker
+    if ( action != null) action.getDocument().getRoot().removeAttribute( "debug:next");
     
     // variables
     IVariableScope scope = frame.context.getScope();
     Collection<String> vars = scope.getVariables();
-    IModelObject varRoot = element.getCreateChild( "vars");
+    IModelObject varRoot = element.getCreateChild( "variables");
     for( String var: vars)
     {
-      IExternalReference varElement = new ExternalReference( "var");
+      IExternalReference varElement = new ExternalReference( "variable");
       varElement.setID( var);
       varElement.setCachingPolicy( new ContextCachingPolicy( frame.context));
       varElement.setDirty( true);
@@ -247,77 +250,4 @@ public class Debugger implements IDebugger
   private Server server;
   private Semaphore semaphore;
   private BlockingDispatcher dispatcher;
-  
-  public static void main( String[] args) throws Exception
-  {
-    final String xml = "" +
-      "<script>" +
-      "  <assign name=\"x\">'1a'</assign>" +
-      "  <assign name=\"x\">'1b'</assign>" +
-      "  <invoke>$xml2</invoke>" +
-      "  <script>" +
-      "    <assign name=\"x\">'2a'</assign>" +
-      "    <assign name=\"x\">'2b'</assign>" +
-      "    <script>" +
-      "      <assign name=\"x\">'3a'</assign>" +
-      "      <assign name=\"x\">'3b'</assign>" +
-      "    </script>" +
-      "    <assign name=\"x\">'2c'</assign>" +
-      "  </script>" +
-      "  <assign name=\"x\">'1c'</assign>" +
-      "</script>";
-    
-    final String xml2 = "" +
-      "<script>" +
-      "  <assign name=\"i\">i1</assign>" +
-      "  <assign name=\"i\">i2</assign>" +
-      "</script>";
-    
-    final Debugger debugger = new Debugger() {
-      protected void pause( IContext context, Stack<Frame> stack)
-      {
-        for( int i=0; i<stack.size(); i++)
-        {
-          System.out.printf( "%d %s", i+1, stack.get( i).action);
-        }
-      }
-      protected void resume()
-      {
-        System.exit( 0);
-      }
-    };
-    
-    Thread thread = new Thread( new Runnable() {
-      public void run()
-      {
-        try
-        {
-          XAction.setDebugger( debugger);
-
-          XmlIO xmlIO = new XmlIO();
-          IModelObject node1 = xmlIO.read( xml);
-          XActionDocument doc = new XActionDocument( node1);
-          ScriptAction script = doc.createScript();
-          StatefulContext context = new StatefulContext( node1);
-          IModelObject node2 = xmlIO.read( xml2);
-          context.set( "xml2", node2);
-          script.run( context);
-        }
-        catch( Exception e)
-        {
-          e.printStackTrace( System.err);
-        }
-      }
-    });
-    
-    thread.start();
-    
-    while( true)
-    {
-      int c = System.in.read();
-      if ( c == 'i') debugger.stepIn();
-      else if ( c == 'o') debugger.stepOut();
-      else if ( c == 's') debugger.stepOver();
-    }
-  }
 }
