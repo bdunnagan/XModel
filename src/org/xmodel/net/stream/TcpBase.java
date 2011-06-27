@@ -3,6 +3,7 @@ package org.xmodel.net.stream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -315,8 +316,16 @@ public abstract class TcpBase
         Request request = queue.poll();
         if ( request != null) 
         {
-          pending.put( request.channel, request);
-          request.channel.register( selector, request.ops);
+          try
+          {
+            pending.put( request.channel, request);
+            request.channel.register( selector, request.ops);
+          }
+          catch( CancelledKeyException e)
+          {
+            pending.remove( request.channel);
+            log.exception( e);
+          }
         }
       }
       catch( IOException e)

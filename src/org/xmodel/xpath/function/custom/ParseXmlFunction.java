@@ -62,7 +62,6 @@ public class ParseXmlFunction extends Function
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
-    assertType( context, ResultType.STRING);
 
     try
     {
@@ -72,7 +71,7 @@ public class ParseXmlFunction extends Function
     }
     catch( XmlException e)
     {
-      throw new ExpressionException( this, "XML parsing error.", e);
+      throw new ExpressionException( this, "XML parsing error: "+e.getMessage(), e);
     }
   }
 

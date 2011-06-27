@@ -21,7 +21,6 @@ package org.xmodel.xml;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,6 +74,11 @@ public class XmlIO implements IXmlIO
     try
     {
       SAXParserFactory factory = SAXParserFactory.newInstance();
+      factory.setValidating(false);
+      factory.setFeature("http://xml.org/sax/features/namespaces", false);
+      factory.setFeature("http://xml.org/sax/features/validation", false);
+      factory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+      factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);      
       parser = factory.newSAXParser();
     }
     catch( SAXException e)

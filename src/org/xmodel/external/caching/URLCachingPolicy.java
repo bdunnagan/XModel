@@ -19,16 +19,18 @@
  */
 package org.xmodel.external.caching;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 
 
@@ -62,17 +64,20 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     String string = Xlate.get( reference, "url", (String)null);
     if ( string == null) return;
 
-    XmlIO xmlIO = new XmlIO();
-    xmlIO.setFactory( getFactory());
-    
     URL url = null;
     try
     {
       url = new URL( string);
-      IModelObject urlObject = reference.cloneObject();
-      IModelObject rootTag = xmlIO.read( url.openStream());
-      urlObject.addChild( rootTag);
-      update( reference, urlObject);
+      BufferedReader reader = new BufferedReader( new InputStreamReader( url.openStream()));
+      StringBuilder sb = new StringBuilder();
+      while( true)
+      {
+        String line = reader.readLine();
+        if ( line == null) break;
+        sb.append( line);
+        sb.append( "\n");
+      }
+      reference.setValue( sb.toString());
     }
     catch( Exception e)
     {
