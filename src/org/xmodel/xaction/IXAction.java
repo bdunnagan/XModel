@@ -46,10 +46,10 @@ public interface IXAction
   public void configure( XActionDocument document);
 
   /**
-   * Run the specified action given its viewmodel. If the return value is non-null then this
-   * will be the last action that is run before returning to the enclosing InvokeAction 
-   * (except for actions defined in the finally clause of TryAction).
-   * @param context The adapter context.
+   * Run the specified action. If the return value is non-null then this will be the last action 
+   * that is run before returning to the enclosing InvokeAction (except for actions defined in the 
+   * finally clause of TryAction).
+   * @param context The context.
    * @return Returns null or the return value.
    */
   public Object[] run( IContext context);

@@ -99,17 +99,31 @@ public class ScriptAction extends GuardedAction
   {
     super.configure( document);
     
+    IfAction ifAction = null;
+    
     actions = new ArrayList<IXAction>();
     for( IModelObject element: document.getRoot().getChildren())
     {
       if ( !ignore.contains( element.getType()))
       {
         IXAction action = document.getAction( element);
-        if ( action != null) actions.add( action);
+        if ( action != null) 
+        {
+          if ( ifAction != null)
+          {
+            if ( action instanceof ElseAction) ((ElseAction)action).setIf( ifAction);
+            else if ( action instanceof ElseifAction) ((ElseifAction)action).setIf( ifAction);
+            ifAction = null;
+          }
+          
+          if ( action instanceof IfAction) ifAction = (IfAction)action;
+          
+          actions.add( action);
+        }
       }
     }
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */

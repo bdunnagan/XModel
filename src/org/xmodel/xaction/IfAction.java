@@ -38,21 +38,15 @@ public class IfAction extends XAction
     condition = document.getExpression( "true", true);
     if ( condition == null)
     {
-      condition = document.getExpression( "false", true);
-      negate = true;
+      condition = document.getExpression( "test", true);
+      if ( condition == null)
+      {
+        condition = document.getExpression( "false", true);
+        negate = true;
+      }
     }
-    
-    if ( document.getRoot().getFirstChild( "then") == null)
-    {
-      thenScript = document.createScript( "true", "false", "test", "else");
-      elseScript = document.createChildScript( "else");
-    }
-    else
-    {
-      // deprecated
-      thenScript = document.createChildScript( "then");
-      elseScript = document.createChildScript( "else");
-    }
+
+    script = document.createScript( "true", "false", "test");
   }
 
   /* (non-Javadoc)
@@ -60,23 +54,14 @@ public class IfAction extends XAction
    */
   public Object[] doRun( IContext context)
   {
-    boolean test = condition.evaluateBoolean( context);
-
-    // run script
-    if ( negate ^ test) 
-    {
-      return thenScript.run( context);
-    }
-    else if ( elseScript != null)
-    {
-      return elseScript.run( context);
-    }
-    
+    test = condition.evaluateBoolean( context);
+    if ( negate ^ test) return script.run( context);
     return null;
   }
+
+  boolean test;
   
-  private IExpression condition;
-  private ScriptAction thenScript;
-  private ScriptAction elseScript;
-  private boolean negate;
+  protected IExpression condition;
+  protected ScriptAction script;
+  protected boolean negate;
 }

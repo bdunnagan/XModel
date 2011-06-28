@@ -24,18 +24,8 @@ import org.xmodel.xpath.expression.IContext;
 /**
  * An action which executes its children if the preceding IfAction or ElseIfAction test is false.
  */
-public class ElseAction extends XAction
+public class ElseifAction extends IfAction
 {
-  /* (non-Javadoc)
-   * @see org.xmodel.xaction.XAction#configure(org.xmodel.xaction.XActionDocument)
-   */
-  @Override
-  public void configure( XActionDocument document)
-  {
-    super.configure( document);
-    script = document.createScript( "true", "false", "test");
-  }
-
   /**
    * Set the IfAction with which this ElseAction pairs.
    * @param action The IfAction.
@@ -51,10 +41,17 @@ public class ElseAction extends XAction
    */
   public Object[] doRun( IContext context)
   {
-    if ( !ifScript.test) return script.run( context);
+    if ( !ifScript.test)
+    {
+      test = condition.evaluateBoolean( context);
+      if ( negate ^ test) return script.run( context);
+    }
+    else
+    {
+      test = true;
+    }
     return null;
   }
   
-  protected IfAction ifScript;
-  private IXAction script;
+  private IfAction ifScript;
 }
