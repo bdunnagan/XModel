@@ -519,10 +519,7 @@ public class Client extends Protocol
     
     public void run()
     {
-      System.out.println( "mark dirty");
       attached.setDirty( true);
-      System.out.println( "resync");
-      attached.getChildren();
     }
     
     private IExternalReference attached;
