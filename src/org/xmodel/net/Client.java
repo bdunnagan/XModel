@@ -25,9 +25,12 @@ public class Client extends Protocol
    * Create a CachingClient to connect to the specified server.
    * @param host The server host.
    * @param port The server port.
+   * @param timeout The timeout for network operations in milliseconds.
    */
-  public Client( String host, int port) throws IOException
+  public Client( String host, int port, int timeout) throws IOException
   {
+    super( timeout);
+    
     if ( client == null) 
     {
       client = new TcpClient();

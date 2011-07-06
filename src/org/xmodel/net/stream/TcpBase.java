@@ -323,7 +323,10 @@ public abstract class TcpBase
           try
           {
             pending.put( request.channel, request);
-            request.channel.register( selector, request.ops);
+            if ( request.channel != null)
+            {
+              request.channel.register( selector, request.ops);
+            }
           }
           catch( CancelledKeyException e)
           {

@@ -22,6 +22,7 @@ public class DebugAction extends GuardedAction
     
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
+    timeoutExpr = document.getExpression( "timeout", true);
     opExpr = document.getExpression( "op", true);
     if ( opExpr == null) opExpr = document.getExpression();
     
@@ -51,9 +52,10 @@ public class DebugAction extends GuardedAction
       {
         String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
         int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Debugger.defaultPort;
+        int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
         try
         {
-          clients.set( new Client( host, port));
+          clients.set( new Client( host, port, timeout));
         } 
         catch( IOException e)
         {
@@ -86,4 +88,5 @@ public class DebugAction extends GuardedAction
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression opExpr;
+  private IExpression timeoutExpr;
 }

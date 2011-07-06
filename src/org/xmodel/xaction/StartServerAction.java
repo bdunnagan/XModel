@@ -52,6 +52,7 @@ public class StartServerAction extends GuardedAction
     // get host and port
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
+    timeoutExpr = document.getExpression( "timeout", true);
     
     // get context expression
     sourceExpr = document.getExpression();
@@ -71,8 +72,9 @@ public class StartServerAction extends GuardedAction
     {
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): 27700;
+      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
       
-      server = new Server( host, port);
+      server = new Server( host, port, timeout);
       server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);
       server.start();
       
@@ -96,5 +98,6 @@ public class StartServerAction extends GuardedAction
   private String assign;
   private IExpression hostExpr;
   private IExpression portExpr;
+  private IExpression timeoutExpr;
   private IExpression sourceExpr;
 }

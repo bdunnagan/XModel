@@ -73,9 +73,11 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Port not defined in annotation: \n"+xml);
     }
     
+    int timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 15000));
+    
     try
     {
-      client = new Client( host, port);
+      client = new Client( host, port, timeout);
     }
     catch( IOException e)
     {

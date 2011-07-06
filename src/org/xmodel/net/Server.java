@@ -4,16 +4,12 @@ import java.io.IOException;
 
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.ManualDispatcher;
-import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
-import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpServer;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -41,10 +37,12 @@ public class Server extends Protocol
   
   /**
    * Create a server bound to the specified local address and port.
-   * @param model The model.
+   * @param host The local interface address.
+   * @param port The local interface port.
    */
-  public Server( String host, int port) throws IOException
+  public Server( String host, int port, int timeout) throws IOException
   {
+    super( timeout);
     server = new TcpServer( host, port, this);
   }
 
@@ -328,45 +326,4 @@ public class Server extends Protocol
 
   private TcpServer server;
   private IContext context;
-  
-  public static void main( String[] args) throws Exception
-  {
-    IModelObject parent = new ModelObject( "parent");
-
-    ManualDispatcher dispatcher = new ManualDispatcher();
-    parent.getModel().setDispatcher( dispatcher);
-    
-    Server server = new Server( "0.0.0.0", 27613);
-    server.setContext( new Context( parent));
-    server.start();
-
-    long stamp = System.currentTimeMillis();
-    while( true)
-    {
-      long time = System.currentTimeMillis();
-      long elapsed = (time - stamp);
-      boolean f = false;
-      if ( f)
-      {
-        if ( elapsed > 10000)
-        {
-          stamp = time;
-          ModelObject child = new ModelObject( "child");
-          child.setAttribute( "tstamp", time);
-          parent.addChild( child);
-        }
-        else
-        {
-          for( IModelObject child: parent.getChildren())
-          {
-            long tstamp = Xlate.get( child, "tstamp", 0L);
-            child.setValue( time - tstamp);
-          }
-        }
-      }
-      
-      dispatcher.process();
-      Thread.sleep( 1000);
-    }
-  }
 }

@@ -63,9 +63,13 @@ public abstract class Protocol implements ITcpListener
     debugStepOut
   }
 
-  protected Protocol()
+  /**
+   * Create an instance of the protocol.
+   * @param timeout The timeout for network operations in milliseconds.
+   */
+  protected Protocol( int timeout)
   {
-    this.timeout = 300000;
+    this.timeout = timeout;
     this.responseQueue = new SynchronousQueue<byte[]>();
     this.random = new Random();
     this.keys = new WeakHashMap<IModelObject, KeyRecord>();

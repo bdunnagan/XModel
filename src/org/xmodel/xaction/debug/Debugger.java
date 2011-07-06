@@ -176,7 +176,7 @@ public class Debugger implements IDebugger
     {
       try
       {
-        server = new Server( "0.0.0.0", defaultPort);
+        server = new Server( "0.0.0.0", defaultPort, 60000);
         server.setContext( context);
         server.start();
       }
