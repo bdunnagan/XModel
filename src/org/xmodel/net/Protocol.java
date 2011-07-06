@@ -1,6 +1,11 @@
 package org.xmodel.net;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -25,6 +30,7 @@ import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
+import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
@@ -485,7 +491,7 @@ public abstract class Protocol implements ITcpListener
   {
     try
     {
-      updating = true;
+      updating = connection;
       
       IModelObject attached = map.get( connection).element;
       if ( attached == null) return;
@@ -505,7 +511,7 @@ public abstract class Protocol implements ITcpListener
     }
     finally
     {
-      updating = false;
+      updating = null;
     }
   }
   
@@ -559,7 +565,7 @@ public abstract class Protocol implements ITcpListener
   {
     try
     {
-      updating = true;
+      updating = connection;
       
       IModelObject attached = map.get( connection).element;
       if ( attached == null) return;
@@ -577,7 +583,7 @@ public abstract class Protocol implements ITcpListener
     }
     finally
     {
-      updating = false;
+      updating = null;
     }    
   }
   
@@ -638,7 +644,7 @@ public abstract class Protocol implements ITcpListener
   {
     try
     {
-      updating = true;
+      updating = connection;
       
       IModelObject attached = map.get( connection).element;
       if ( attached == null) return;
@@ -655,7 +661,7 @@ public abstract class Protocol implements ITcpListener
     }
     finally
     {
-      updating = false;
+      updating = null;
     }        
   }
   
@@ -709,7 +715,7 @@ public abstract class Protocol implements ITcpListener
   {
     try
     {
-      updating = true;
+      updating = connection;
       
       IModelObject attached = map.get( connection).element;
       if ( attached == null) return;
@@ -723,7 +729,7 @@ public abstract class Protocol implements ITcpListener
     }
     finally
     {
-      updating = false;
+      updating = null;
     }    
   }
   
@@ -777,7 +783,7 @@ public abstract class Protocol implements ITcpListener
   {
     try
     {
-      updating = true;
+      updating = connection;
       
       IModelObject attached = map.get( connection).element;
       if ( attached == null) return;
@@ -795,7 +801,7 @@ public abstract class Protocol implements ITcpListener
     }
     finally
     {
-      updating = false;
+      updating = null;
     }    
   }
 
@@ -1006,8 +1012,24 @@ public abstract class Protocol implements ITcpListener
   {
     if ( object == null) return new byte[ 0];
     
-    // TODO: beef this up!
-    return object.toString().getBytes();
+    // use java serialization
+    if ( object instanceof Serializable)
+    {
+      try
+      {
+        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+        ObjectOutputStream os = new ObjectOutputStream( bs);
+        os.writeObject( object);
+        os.close();
+        return bs.toByteArray();
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+    }
+    
+    return new byte[ 0];
   }
   
   /**
@@ -1019,8 +1041,17 @@ public abstract class Protocol implements ITcpListener
   {
     if ( bytes.length == 0) return null;
     
-    // TODO: beef this up!
-    return new String( bytes);
+    // use java serialization
+    try
+    {
+      ByteArrayInputStream bs = new ByteArrayInputStream( bytes);
+      ObjectInputStream os = new ObjectInputStream( bs);
+      return os.readObject();
+    }
+    catch( Exception e)
+    {
+      throw new CachingException( "Unable to deserialize object.", e);
+    }
   }
   
   /**
@@ -1509,7 +1540,7 @@ public abstract class Protocol implements ITcpListener
     {
       super.notifyAddChild( parent, child, index);
       
-      if ( updating) return;
+      if ( updating == sender) return;
       
       try
       {
@@ -1530,7 +1561,7 @@ public abstract class Protocol implements ITcpListener
     {
       super.notifyRemoveChild( parent, child, index);
       
-      if ( updating) return;
+      if ( updating == sender) return;
       
       try
       {
@@ -1548,7 +1579,7 @@ public abstract class Protocol implements ITcpListener
     @Override
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
-      if ( updating) return;
+      if ( updating == sender) return;
 
       // make sure relative path is constructed correctly
       boolean revert = attrName.equals( "id");
@@ -1572,7 +1603,7 @@ public abstract class Protocol implements ITcpListener
     @Override
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
-      if ( updating) return;
+      if ( updating == sender) return;
       
       try
       {
@@ -1594,7 +1625,7 @@ public abstract class Protocol implements ITcpListener
       // Do not send notifications for network external references, otherwise the remote reference will
       // be marked not-dirty before a sync request is sent and the sync request will have no effect.
       //
-      if ( updating || keys.get( object) != null) return;
+      if ( updating == sender || keys.get( object) != null) return;
       
       try
       {
@@ -1676,5 +1707,5 @@ public abstract class Protocol implements ITcpListener
   protected Map<IModelObject, KeyRecord> keys;
   protected Stack<IDispatcher> dispatchers;
   protected Map<Connection, ConnectionInfo> map;
-  private boolean updating;
+  private Connection updating;
 }

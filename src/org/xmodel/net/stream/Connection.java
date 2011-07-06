@@ -7,8 +7,6 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import org.xmodel.log.Log;
-
 /**
  * A class that represents a TCP connection.
  */
@@ -92,6 +90,7 @@ public final class Connection
   {
     try 
     {
+      semaphore.release();
       if ( channel != null) channel.close();
     }
     catch( IOException e)
@@ -189,7 +188,7 @@ public final class Connection
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  //private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
   private TcpBase tcp;
   private ITcpListener listener;
