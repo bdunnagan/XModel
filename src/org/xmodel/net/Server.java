@@ -74,6 +74,20 @@ public class Server extends Protocol
     if ( dispatchers.empty()) pushDispatcher( context.getModel().getDispatcher());
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.stream.Connection)
+   */
+  @Override
+  public void onClose( Connection connection)
+  {
+    super.onClose( connection);
+    
+    ConnectionInfo info = map.get( connection);
+    if ( info != null) doDetach( connection, info.xpath);
+    
+    map.remove( connection);
+  }
+
   /**
    * Find the element on the specified xpath and attach listeners.
    * @param sender The sender.
@@ -89,6 +103,7 @@ public class Server extends Protocol
       if ( target != null)
       {
         ConnectionInfo info = new ConnectionInfo();
+        info.xpath = xpath;
         info.element = target;
         map.put( sender, info);
         

@@ -108,6 +108,7 @@ public class Client extends Protocol
       if ( dispatchers.empty()) pushDispatcher( reference.getModel().getDispatcher());
       
       ConnectionInfo info = new ConnectionInfo();
+      info.xpath = xpath;
       info.element = reference;
       map.put( connection, info);
       

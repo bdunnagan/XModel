@@ -1331,15 +1331,15 @@ public abstract class Protocol implements ITcpListener
   }
   
   /**
-   * Index the specified reference.
+   * Index the specified node.
    * @param connection The connection.
-   * @param reference The reference.
+   * @param node The node.
    * @return Returns the key.
    */
-  private String index( Connection connection, IExternalReference reference)
+  private String index( Connection connection, IModelObject node)
   {
     String key = Identifier.generate( random, 13);
-    map.get( connection).index.put( key, reference);
+    map.get( connection).index.put( key, node);
     return key;
   }
   
@@ -1365,7 +1365,7 @@ public abstract class Protocol implements ITcpListener
     
     public void run()
     {
-      IExternalReference reference = map.get( sender).index.get( key);
+      IModelObject reference = map.get( sender).index.get( key);
       if ( reference != null)
       {
         try
@@ -1648,12 +1648,13 @@ public abstract class Protocol implements ITcpListener
   {
     public ConnectionInfo()
     {
-      index = new HashMap<String, IExternalReference>();
+      index = new HashMap<String, IModelObject>();
       compressor = new TabularCompressor( PostCompression.zip);
     }
     
+    public String xpath;
     public IModelObject element;
-    public Map<String, IExternalReference> index;
+    public Map<String, IModelObject> index;
     public TabularCompressor compressor;
     public Listener listener;
   }
