@@ -282,7 +282,7 @@ public abstract class TcpBase
     Request request = pending.remove( key.channel());
     if ( request != null)
     {
-      log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
+      //log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
       request.channel.write( request.buffer);
       
       // disable write events if queue is empty or next request is for a different channel

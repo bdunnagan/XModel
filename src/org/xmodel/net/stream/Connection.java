@@ -4,15 +4,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import org.xmodel.compress.ICompressor;
-import org.xmodel.compress.TabularCompressor;
-import org.xmodel.compress.TabularCompressor.PostCompression;
-import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 
 /**
@@ -144,7 +138,7 @@ public final class Connection
     if ( listener != null && nread > 0) 
     {
       buffer.flip();
-      log.debugf( "READ\n%s\n", Util.dump( buffer));
+      //log.debugf( "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -187,25 +181,6 @@ public final class Connection
     }
   }
 
-  /**
-   * Note the violation of layering here ;)
-   * @return Returns the external reference index associated with this connection.
-   */
-  public Map<String, IExternalReference> getIndex()
-  {
-    if ( index == null) index = new HashMap<String, IExternalReference>();
-    return index;
-  }
-
-  /**
-   * @return Returns the compressor for this connection.
-   */
-  public ICompressor getCompressor()
-  {
-    if ( compressor == null) compressor = new TabularCompressor( PostCompression.zip);
-    return compressor;
-  }
-  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -224,8 +199,4 @@ public final class Connection
   
   // connection semaphore
   Semaphore semaphore;
-  
-  // NetworkCachingPolicy support
-  private Map<String, IExternalReference> index;
-  private TabularCompressor compressor;
 }

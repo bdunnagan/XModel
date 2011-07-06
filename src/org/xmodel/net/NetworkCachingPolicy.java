@@ -29,22 +29,18 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   public NetworkCachingPolicy( ICache cache)
   {
     super( cache);
-    root = true;
     setStaticAttributes( new String[] { "id"});
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
-
-  /**
-   * @return Returns a NetworkCachingPolicy for nested references.
-   */
-  public NetworkCachingPolicy getNested()
-  {
-    NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
-    cachingPolicy.root = false;
-    cachingPolicy.client = client;
-    return cachingPolicy;
-  }
   
+  /**
+   * @return Returns the client used to communicate with the remote host.
+   */
+  public Client getClient()
+  {
+    return client;
+  }
+
   /**
    * Set the static attributes.
    * @param list The list of static attribute names.
@@ -98,22 +94,13 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   {
     try
     {
-      if ( root)
+      if ( xpath == null)
       {
-        if ( xpath == null)
-        {
-          xpath = Xlate.get( reference, "xpath", (String)null);
-          if ( xpath == null) return;
-        }
-        
-        client.attach( xpath, reference);
-      }
-      else
-      {
-        client.sync( reference);
+        xpath = Xlate.get( reference, "xpath", (String)null);
+        if ( xpath == null) return;
       }
       
-      if ( error != null) throw new CachingException( error);
+      client.attach( xpath, reference);
     }
     catch( IOException e)
     {
@@ -138,8 +125,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private boolean root;
   private Client client;
   private String xpath;
-  private String error;
 }

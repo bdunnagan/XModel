@@ -386,16 +386,12 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
-    System.out.println( "TabularCompressor: writing table...");
+    //System.out.println( "TabularCompressor: writing table...");
     
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
 
-    // calculate size of table
-    int size = 0;
-    for( String key: keys) size += key.length() + 1;
-    
     // write entries
     for( String key: keys) 
     {
