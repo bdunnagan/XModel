@@ -1503,8 +1503,6 @@ public abstract class Protocol implements ITcpListener
     @Override
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
-      log.debugf( "fanout: %s", child.getType());
-      
       super.notifyAddChild( parent, child, index);
       
       if ( updating) return;
@@ -1547,10 +1545,16 @@ public abstract class Protocol implements ITcpListener
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
       if ( updating) return;
+
+      // make sure relative path is constructed correctly
+      boolean revert = attrName.equals( "id");
+      if ( revert) object.getModel().revert();
+      String xpath = createPath( root, object);
+      if ( revert) object.getModel().restore();
       
       try
       {
-        sendChangeAttribute( sender, createPath( root, object), attrName, newValue);
+        sendChangeAttribute( sender, xpath, attrName, newValue);
       } 
       catch( IOException e)
       {
