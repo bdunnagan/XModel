@@ -184,6 +184,7 @@ public class VariableExpression extends Expression
       if ( type == ResultType.STRING) 
       {
         Object value = source.getVariable( variable, context);
+        if ( value == null) return "";
         return value.toString();
       }
       return super.evaluateString( context);

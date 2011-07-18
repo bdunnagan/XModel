@@ -150,7 +150,7 @@ public class Server extends Protocol
    * @param sender The sender.
    * @param xpath The query.
    */
-  private void query( Connection sender, String xpath) throws IOException
+  private void doQuery( Connection sender, String xpath) throws IOException
   {
     try
     {
@@ -310,7 +310,7 @@ public class Server extends Protocol
     {
       try
       {
-        query( sender, xpath);
+        doQuery( sender, xpath);
       } 
       catch( IOException e)
       {

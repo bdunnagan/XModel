@@ -158,6 +158,30 @@ public class LeafValueListener extends ModelListener
   }
 
   /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals( Object object)
+  {
+    if ( object instanceof LeafValueListener)
+    {
+      LeafValueListener other = (LeafValueListener)object;
+      return this == other || (other.expression == expression && other.context == context);
+    }
+    
+    return super.equals( object);
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode()
+  {
+    return System.identityHashCode( expression) + System.identityHashCode( context);
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   @Override

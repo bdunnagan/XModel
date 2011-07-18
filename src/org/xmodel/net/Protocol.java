@@ -1605,9 +1605,15 @@ public abstract class Protocol implements ITcpListener
     {
       if ( updating == sender) return;
       
+      // make sure relative path is constructed correctly
+      boolean revert = attrName.equals( "id");
+      if ( revert) object.getModel().revert();
+      String xpath = createPath( root, object);
+      if ( revert) object.getModel().restore();
+      
       try
       {
-        sendClearAttribute( sender, createPath( root, object), attrName);
+        sendClearAttribute( sender, xpath, attrName);
       } 
       catch( IOException e)
       {

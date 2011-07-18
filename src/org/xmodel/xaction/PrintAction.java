@@ -61,8 +61,10 @@ public class PrintAction extends GuardedAction
         for( IModelObject source: sources) 
         {
           sb.append( xmlIO.write( source));
-          sb.append( "\n");
         }
+        
+        int last = sb.length() - 1;
+        if ( sb.charAt( last) == '\n') sb.setLength( last);
         break;
       
       case STRING:

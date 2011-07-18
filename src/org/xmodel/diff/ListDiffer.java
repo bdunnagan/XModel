@@ -33,6 +33,16 @@ import java.util.List;
 public class ListDiffer extends AbstractListDiffer
 {
   /* (non-Javadoc)
+   * @see org.xmodel.diff.AbstractListDiffer#diff(java.util.List, java.util.List)
+   */
+  @Override
+  public void diff( List lhs, List rhs)
+  {
+    if ( changes != null) changes.clear();
+    super.diff( lhs, rhs);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyInsert(java.util.List, int, int, java.util.List, int, int)
    */
   public void notifyInsert( List lhs, int lIndex, int lAdjust, List rhs, int rIndex, int count)
