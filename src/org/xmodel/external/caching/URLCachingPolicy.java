@@ -19,11 +19,11 @@
  */
 package org.xmodel.external.caching;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -43,9 +43,35 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   public URLCachingPolicy( ICache cache)
   {
     super( cache);
+    
     setStaticAttributes( new String[] { "id", "url"});
+
+    associations = new HashMap<String, IFileAssociation>();
+    addAssociation( csvAssociation);
+    addAssociation( txtAssociation);
+    addAssociation( xipAssociation);
+    addAssociation( xmlAssociation);
   }
 
+  /**
+   * Add the specified file association.
+   * @param association The association.
+   */
+  public void addAssociation( IFileAssociation association)
+  {
+    for( String extension: association.getExtensions())
+      associations.put( extension, association);
+  }
+  
+  /**
+   * Remove the specified file extension association.
+   * @param extension The file extension (including the dot).
+   */
+  public void removeAssociation( String extension)
+  {
+    associations.remove( extension);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
@@ -67,17 +93,17 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     URL url = null;
     try
     {
-      url = new URL( string);
-      BufferedReader reader = new BufferedReader( new InputStreamReader( url.openStream()));
-      StringBuilder sb = new StringBuilder();
-      while( true)
+      int index = string.lastIndexOf( '.');
+      if ( index >= 0)
       {
-        String line = reader.readLine();
-        if ( line == null) break;
-        sb.append( line);
-        sb.append( "\n");
+        String extension = string.substring( index);
+        IFileAssociation association = associations.get( extension);
+        if ( association != null) 
+        {
+          url = new URL( string);
+          association.apply( reference, reference.getType(), url.openStream());
+        }
       }
-      reference.setValue( sb.toString());
     }
     catch( Exception e)
     {
@@ -102,4 +128,11 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Unable to create URI for external reference: "+reference, e);
     }
   }
+  
+  private final static IFileAssociation csvAssociation = new CsvAssociation();
+  private final static IFileAssociation txtAssociation = new TxtAssociation();
+  private final static IFileAssociation xipAssociation = new XipAssociation();
+  private final static IFileAssociation xmlAssociation = new XmlAssociation();
+
+  private Map<String, IFileAssociation> associations;
 }
