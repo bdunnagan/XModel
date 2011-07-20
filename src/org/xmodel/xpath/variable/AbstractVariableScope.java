@@ -101,13 +101,6 @@ public abstract class AbstractVariableScope implements IVariableScope
     if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
     
     List<Object> list = (List<Object>)variable.value;
-    if ( list.size() > 0)
-    {
-      // verify consistency
-      Object first = list.get( 0);
-      if ( !object.getClass().equals( first.getClass())) throw new IllegalStateException( "Inconsistent type inserted into variable.");
-    }
-    
     if ( index == Integer.MAX_VALUE) index = list.size();
     
     if ( !(list instanceof ArrayList))

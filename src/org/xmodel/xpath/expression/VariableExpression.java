@@ -22,14 +22,13 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.IChangeSet;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.variable.IVariableListener;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.IVariableSource;
-import org.xmodel.xpath.variable.VariableScope;
 
 
 /**
@@ -240,7 +239,8 @@ public class VariableExpression extends Expression
     {
       source.addScope( context.getScope());
       IVariableScope scope = source.getVariableScope( variable);
-      if ( scope == null) throw new IllegalStateException( "Undefined variable: "+variable);
+      if ( scope == null) scope = context.getScope();
+      //if ( scope == null) throw new IllegalStateException( "Undefined variable: "+variable);
       scope.addListener( variable, context, listener);
       Object value = scope.get( variable, context);
       if ( value instanceof List) installValueListener( context, (List<IModelObject>)value);
@@ -269,10 +269,13 @@ public class VariableExpression extends Expression
     {
       source.addScope( context.getScope());
       IVariableScope scope = source.getVariableScope( variable);
-      if ( scope == null) throw new IllegalStateException( "Undefined variable: "+variable);
-      scope.removeListener( variable, context, listener);
-      Object value = scope.get( variable, context);
-      if ( value instanceof List) removeValueListener( context, (List<IModelObject>)value);
+      //if ( scope == null) throw new IllegalStateException( "Undefined variable: "+variable);
+      if ( scope != null)
+      {
+        scope.removeListener( variable, context, listener);
+        Object value = scope.get( variable, context);
+        if ( value instanceof List) removeValueListener( context, (List<IModelObject>)value);
+      }
     }
     catch( ExpressionException e)
     {
