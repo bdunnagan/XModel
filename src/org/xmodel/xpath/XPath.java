@@ -167,7 +167,7 @@ public class XPath extends AbstractPath implements IAxis
     }
     catch( PathSyntaxException e)
     {
-      log.warn( e.getMessage());
+      log.exception( e);
       return null;
     }
   }
@@ -194,6 +194,7 @@ public class XPath extends AbstractPath implements IAxis
       }
       catch( ParseException e)
       {
+        log.exception( e);
         return null;
       }
     }
