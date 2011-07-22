@@ -77,7 +77,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     
     try
     {
-      client = new Client( host, port, timeout);
+      client = new Client( host, port, timeout, true);
     }
     catch( IOException e)
     {

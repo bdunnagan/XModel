@@ -55,7 +55,7 @@ public class DebugAction extends GuardedAction
         int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
         try
         {
-          clients.set( new Client( host, port, timeout));
+          clients.set( new Client( host, port, timeout, true));
         } 
         catch( IOException e)
         {

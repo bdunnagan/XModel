@@ -523,6 +523,8 @@ public abstract class Protocol implements ITcpListener
    */
   public final void sendRemoveChild( Connection connection, String xpath, int index) throws IOException
   {
+    log.debugf( "sendRemoveChild: %s, %d", xpath, index);    
+    
     initialize( buffer);
     int length = writeString( xpath);
     buffer.putInt( index); length += 4;
@@ -577,6 +579,7 @@ public abstract class Protocol implements ITcpListener
         if ( parent != null) 
         {
           IModelObject removed = parent.removeChild( index);
+          log.debugf( "processRemoveChild: %s, %s", xpath, (removed != null)? removed.getType(): "null");          
           if ( removed instanceof IExternalReference) keys.remove( removed);
         }
       }

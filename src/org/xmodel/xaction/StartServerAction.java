@@ -49,7 +49,7 @@ public class StartServerAction extends GuardedAction
     // get assign
     assign = Xlate.get( document.getRoot(), "assign", (String)null);
     
-    // get host and port
+    // get expressions
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
@@ -76,7 +76,7 @@ public class StartServerAction extends GuardedAction
       
       server = new Server( host, port, timeout);
       server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);
-      server.start();
+      server.start( true);
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");

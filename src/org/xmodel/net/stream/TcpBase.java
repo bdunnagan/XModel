@@ -41,8 +41,9 @@ public abstract class TcpBase
 
   /**
    * Start the socket servicing thread.
+   * @param daemon True if servicing thread should be a daemon.
    */
-  public void start()
+  public void start( boolean daemon)
   {
     Runnable runnable = new Runnable() {
       public void run()
@@ -52,7 +53,7 @@ public abstract class TcpBase
     };
     
     thread = new Thread( runnable, getClass().getSimpleName());
-    thread.setDaemon( true);
+    thread.setDaemon( daemon);
     thread.start();
   }
   

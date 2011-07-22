@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
+import org.xmodel.ImmediateDispatcher;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
@@ -43,15 +44,17 @@ public class Server extends Protocol
   public Server( String host, int port, int timeout) throws IOException
   {
     super( timeout);
+    pushDispatcher( new ImmediateDispatcher());
     server = new TcpServer( host, port, this);
   }
 
   /**
    * Start the server.
+   * @param daemon True if the server thread should be a daemon.
    */
-  public void start()
+  public void start( boolean daemon)
   {
-    server.start();
+    server.start( daemon);
   }
   
   /**
