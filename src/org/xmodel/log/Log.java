@@ -249,7 +249,7 @@ public final class Log
    * @param level The logging level.
    * @param message The message.
    */
-  private void log( int level, String message)
+  public void log( int level, String message)
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
@@ -262,7 +262,7 @@ public final class Log
    * @param format The format.
    * @param params The format arguments.
    */
-  private void logf( int level, String format, Object... params)
+  public void logf( int level, String format, Object... params)
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
