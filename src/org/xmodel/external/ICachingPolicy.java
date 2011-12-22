@@ -88,31 +88,16 @@ public interface ICachingPolicy
   public IExternalReference createExternalTree( IModelObject local, boolean dirty, IExternalReference proto);
   
   /**
-   * Send a request to the external store to save the changes to the specified reference and unlock.
-   * @param reference The reference to be unlocked and flushed.
-   */
-  public void checkin( IExternalReference reference);
-  
-  /**
-   * Send a request to the external store to lock the specified reference for writing. When this
-   * method returns, the reference should be locked and should be up-to-date with the content in the
-   * external store.
-   * @param reference The reference to be locked.
-   */
-  public void checkout( IExternalReference reference);
-
-  /**
    * Synchronize the specified reference with its representation in the external store.
    * @param reference The reference to be synced.
    */
   public void sync( IExternalReference reference) throws CachingException;
 
   /**
-   * Flush changes made to the specified reference to the external store.
-   * @param reference The reference to be flushed.
+   * @return Returns a new transaction.
    */
-  public void flush( IExternalReference reference) throws CachingException;
-
+  public ITransaction transaction();
+  
   /**
    * Clear the cache for the specified reference and mark it dirty. If the specified reference has
    * listeners then it will be resynchronized before this method returns and the reference will not

@@ -70,11 +70,9 @@ public interface IExternalReference extends IModelObject
   public void sync() throws CachingException;
 
   /**
-   * Flush this IExternalReference using the installed ICachingPolicy. If no ICachingPolicy is
-   * installed then this method will throw a CachingException. CachingExceptions may also be thrown
-   * due to errors from IExternalStore.
+   * @return Returns a new transaction.
    */
-  public void flush() throws CachingException;
+  public ITransaction transaction();
   
   /**
    * If this reference is dirty then remove all children and mark dirty.  In addition, if this object

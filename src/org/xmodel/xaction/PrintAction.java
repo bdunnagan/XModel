@@ -64,7 +64,7 @@ public class PrintAction extends GuardedAction
         }
         
         int last = sb.length() - 1;
-        if ( sb.charAt( last) == '\n') sb.setLength( last);
+        if ( last >= 0 && sb.charAt( last) == '\n') sb.setLength( last);
         break;
       
       case STRING:

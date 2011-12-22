@@ -9,9 +9,10 @@ import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpServer;
+import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XAction;
+import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
@@ -65,16 +66,6 @@ public class Server extends Protocol
     server.stop();
   }
   
-  /**
-   * Set the context in which remote xpath expressions will be bound.
-   * @param context The context.
-   */
-  public void setContext( IContext context)
-  {
-    this.context = context;
-    if ( dispatchers.empty()) pushDispatcher( context.getModel().getDispatcher());
-  }
-
   /* (non-Javadoc)
    * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.stream.Connection)
    */
@@ -216,6 +207,25 @@ public class Server extends Protocol
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleExecuteRequest(org.xmodel.net.stream.Connection, org.xmodel.IModelObject)
+   */
+  @Override
+  protected void handleExecuteRequest( Connection connection, IModelObject script)
+  {
+    XActionDocument doc = new XActionDocument( script);
+    ScriptAction action = doc.createScript();
+    action.run( context);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#handleExecuteResponse(org.xmodel.net.stream.Connection, org.xmodel.IModelObject)
+   */
+  @Override
+  protected void handleExecuteResponse( Connection connection, IModelObject element)
+  {
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.Protocol#handleDebugStepIn(org.xmodel.net.Connection)
    */
   @Override
@@ -328,5 +338,4 @@ public class Server extends Protocol
   private static Log log = Log.getLog( "org.xmodel.net");
 
   private TcpServer server;
-  private IContext context;
 }

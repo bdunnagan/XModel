@@ -58,7 +58,9 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public String[] getStaticAttributes()
   {
-    return getCachingPolicy().getStaticAttributes();
+    ICachingPolicy cachingPolicy = getCachingPolicy();
+    if ( cachingPolicy == null) return new String[ 0];
+    return cachingPolicy.getStaticAttributes();
   }
 
   /* (non-Javadoc)
@@ -100,13 +102,14 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#flush()
+   * @see org.xmodel.external.IExternalReference#transaction()
    */
-  public void flush() throws CachingException
+  @Override
+  public ITransaction transaction()
   {
     ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy to flush entity: "+this);
-    cachingPolicy.flush( this);
+    if ( cachingPolicy == null) throw new CachingException( "No caching policy for this entity: "+this);
+    return cachingPolicy.transaction();
   }
 
   /* (non-Javadoc)

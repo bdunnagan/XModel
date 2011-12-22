@@ -255,18 +255,13 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     }
   }
 
-  /**
-   * This default implementation does not performing locking.
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ICachingPolicy#transaction()
    */
-  public void checkin( IExternalReference reference)
+  @Override
+  public ITransaction transaction()
   {
-  }
-
-  /**
-   * This default implementation does not performing locking.
-   */
-  public void checkout( IExternalReference reference)
-  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)

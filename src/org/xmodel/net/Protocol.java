@@ -38,8 +38,12 @@ import org.xmodel.log.Log;
 import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.ITcpListener;
 import org.xmodel.util.Identifier;
+import org.xmodel.xaction.ScriptAction;
+import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
@@ -64,6 +68,8 @@ public abstract class Protocol implements ITcpListener
     changeDirty,
     queryRequest,
     queryResponse,
+    executeRequest,
+    executeResponse,
     debugStepIn,
     debugStepOver,
     debugStepOut
@@ -75,6 +81,8 @@ public abstract class Protocol implements ITcpListener
    */
   protected Protocol( int timeout)
   {
+    this.context = new StatefulContext();
+    
     this.timeout = timeout;
     this.responseQueue = new SynchronousQueue<byte[]>();
     this.random = new Random();
@@ -86,6 +94,16 @@ public abstract class Protocol implements ITcpListener
     buffer.order( ByteOrder.BIG_ENDIAN);
     
     dispatchers = new Stack<IDispatcher>();
+  }
+  
+  /**
+   * Set the context in which remote xpath expressions will be bound.
+   * @param context The context.
+   */
+  public void setContext( IContext context)
+  {
+    this.context = context;
+    if ( dispatchers.empty()) pushDispatcher( context.getModel().getDispatcher());
   }
   
   /**
@@ -165,6 +183,8 @@ public abstract class Protocol implements ITcpListener
         case changeDirty:     handleChangeDirty( connection, buffer, length); return true;
         case queryRequest:    handleQueryRequest( connection, buffer, length); return true;
         case queryResponse:   handleQueryResponse( connection, buffer, length); return true;
+        case executeRequest:  handleExecuteRequest( connection, buffer, length); return true;
+        case executeResponse: handleExecuteResponse( connection, buffer, length); return true;
         case debugStepIn:     handleDebugStepIn( connection, buffer, length); return true;
         case debugStepOver:   handleDebugStepOver( connection, buffer, length); return true;
         case debugStepOut:    handleDebugStepOut( connection, buffer, length); return true;
@@ -878,6 +898,131 @@ public abstract class Protocol implements ITcpListener
    * @param bytes The serialized query result.
    */
   protected void handleQueryResponse( Connection connection, byte[] bytes)
+  {
+  }
+  
+  /**
+   * Send an execute request message.
+   * @param connection The connection.
+   * @param script The script to execute.
+   */
+  public final void sendExecuteRequest( Connection connection, IModelObject script) throws IOException
+  {
+    log.debugf( "sendExecuteRequest: %s", script.getID());
+    
+    initialize( buffer);
+    ICompressor compressor = map.get( connection).compressor;
+    byte[] bytes = compressor.compress( script);
+    buffer.put( bytes, 0, bytes.length);
+    finalize( buffer, Type.executeRequest, bytes.length);
+
+    // send and wait for response
+    byte[] response = send( connection, buffer, timeout);
+    IModelObject element = compressor.decompress( response, 0);
+    log.debugf( "handleExecuteResponse: %s\n", element.getType());
+    handleExecuteResponse( connection, element);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param connection The connection.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleExecuteRequest( Connection connection, ByteBuffer buffer, int length)
+  {
+    byte[] bytes = new byte[ length];
+    buffer.get( bytes);
+    ICompressor compressor = map.get( connection).compressor;
+    IModelObject script = compressor.decompress( bytes, 0);
+    log.debugf( "handleExecuteRequest: %s", script.getID());
+    handleExecuteRequest( connection, script);
+  }
+  
+  /**
+   * Handle an execute request.
+   * @param connection The connection.
+   * @param script The script to execute.
+   */
+  @SuppressWarnings("unchecked")
+  protected void handleExecuteRequest( Connection connection, IModelObject script)
+  {
+    ModelObject response = null;
+    
+    try
+    {
+      XActionDocument doc = new XActionDocument( script);
+      ScriptAction action = doc.createScript();
+      Object[] results = action.run( context);
+      
+      response = new ModelObject( "response");
+      if ( results != null && results.length > 0)
+      {
+        Object result = results[ 0];
+        if ( result instanceof List) 
+        {
+          Xlate.set( response, "type", IModelObject.class.getName());
+          for( IModelObject node: (List<IModelObject>)result)
+            response.addChild( node.cloneTree());
+        }
+        else
+        {
+          Xlate.set( response, "type", result.getClass().getName());
+          response.setValue( result);
+        }
+      }
+    }
+    catch( Throwable t)
+    {
+      log.exception( t);
+      response = new ModelObject( "exception");
+      Xlate.set( response, "class", t.getClass().getName());
+      Xlate.set( response, t.getMessage());
+    }
+    
+    try
+    {
+      sendExecuteResponse( connection, response);
+    } 
+    catch( IOException e)
+    {
+      log.exception( e);
+    }
+  }
+
+  /**
+   * Send an attach response message.
+   * @param connection The connection.
+   * @param element The element.
+   */
+  public final void sendExecuteResponse( Connection connection, IModelObject element) throws IOException
+  {
+    log.debugf( "sendExecuteResponse: %s", element.getType());
+    initialize( buffer);
+    ICompressor compressor = map.get( connection).compressor;
+    byte[] bytes = compressor.compress( element);
+    buffer.put( bytes, 0, bytes.length);
+    finalize( buffer, Type.executeResponse, bytes.length);
+    connection.write( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param connection The connection.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleExecuteResponse( Connection connection, ByteBuffer buffer, int length)
+  {
+    queueResponse( buffer, length);
+  }
+  
+  /**
+   * Handle an attach response.
+   * @param connection The connection.
+   * @param element The element.
+   */
+  protected void handleExecuteResponse( Connection connection, IModelObject element)
   {
   }
   
@@ -1709,6 +1854,7 @@ public abstract class Protocol implements ITcpListener
   
   private static Log log = Log.getLog( "org.xmodel.net");
 
+  protected IContext context;
   private ByteBuffer buffer;
   private BlockingQueue<byte[]> responseQueue;
   private int timeout;
