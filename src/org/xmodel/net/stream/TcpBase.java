@@ -18,6 +18,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.xmodel.log.Log;
+import org.xmodel.net.ILink;
 
 /**
  * A base class for java.nio based clients and servers.
@@ -29,7 +30,7 @@ public abstract class TcpBase
     this( null);
   }
   
-  public TcpBase( ITcpListener listener) throws IOException
+  public TcpBase( ILink.IListener listener) throws IOException
   {
     this.listener = listener;
     
@@ -83,7 +84,7 @@ public abstract class TcpBase
    * @param timeout The timeout in milliseconds.
    * @param listener The listener for socket events.
    */
-  protected Connection connect( String host, int port, int timeout, ITcpListener listener) throws IOException
+  protected Connection connect( String host, int port, int timeout, ILink.IListener listener) throws IOException
   {
     SocketChannel channel = SocketChannel.open();
     channel.configureBlocking( false);
@@ -212,7 +213,7 @@ public abstract class TcpBase
    * @param listener The listener for socket events.
    * @return Returns the new Connection.
    */
-  protected Connection createConnection( SocketChannel channel, ITcpListener listener) throws IOException
+  protected Connection createConnection( SocketChannel channel, ILink.IListener listener) throws IOException
   {
     Connection connection = new Connection( this, channel, listener);
     connections.put( connection.getChannel(), connection);
@@ -353,7 +354,7 @@ public abstract class TcpBase
   
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
-  private ITcpListener listener;
+  private ILink.IListener listener;
   protected Selector selector;
   private Map<Channel, Connection> connections;
   private Queue<Request> queue;

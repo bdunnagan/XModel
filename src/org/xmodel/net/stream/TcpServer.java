@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 
 import org.xmodel.log.Log;
+import org.xmodel.net.ILink;
 
 /**
  * A java.nio based Server.
@@ -18,7 +19,7 @@ public final class TcpServer extends TcpBase
    * @param port The port.
    * @param listener The listener for socket events.
    */
-  public TcpServer( String host, int port, ITcpListener listener) throws IOException
+  public TcpServer( String host, int port, ILink.IListener listener) throws IOException
   {
     super( listener);
     

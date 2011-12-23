@@ -2,6 +2,8 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 
+import org.xmodel.net.ILink;
+
 public class TcpClient extends TcpBase
 {
   public TcpClient() throws IOException
@@ -13,7 +15,7 @@ public class TcpClient extends TcpBase
    * @see org.xmodel.net.stream.TcpManager#connect(java.lang.String, int, int, org.xmodel.net.stream.ITcpListener)
    */
   @Override
-  public Connection connect( String host, int port, int timeout, ITcpListener listener) throws IOException
+  public Connection connect( String host, int port, int timeout, ILink.IListener listener) throws IOException
   {
     return super.connect( host, port, timeout, listener);
   }

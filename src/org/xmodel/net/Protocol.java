@@ -26,19 +26,20 @@ import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.TabularCompressor.PostCompression;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
-import org.xmodel.net.stream.Connection;
-import org.xmodel.net.stream.ITcpListener;
 import org.xmodel.util.Identifier;
 import org.xmodel.xaction.ScriptAction;
+import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -48,7 +49,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
  */
-public abstract class Protocol implements ITcpListener
+public class Protocol implements ILink.IListener
 {
   public final static int version = 1;
   
@@ -79,7 +80,7 @@ public abstract class Protocol implements ITcpListener
    * Create an instance of the protocol.
    * @param timeout The timeout for network operations in milliseconds.
    */
-  protected Protocol( int timeout)
+  public Protocol( int timeout)
   {
     this.context = new StatefulContext();
     
@@ -87,7 +88,7 @@ public abstract class Protocol implements ITcpListener
     this.responseQueue = new SynchronousQueue<byte[]>();
     this.random = new Random();
     this.keys = new WeakHashMap<IModelObject, KeyRecord>();
-    this.map = new HashMap<Connection, ConnectionInfo>();
+    this.map = new HashMap<ILink, ConnectionInfo>();
     
     // allocate less than standard mtu
     buffer = ByteBuffer.allocate( 4096);
@@ -123,42 +124,166 @@ public abstract class Protocol implements ITcpListener
     dispatchers.pop();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.stream.ITcpListener#onConnect(org.xmodel.net.stream.Connection)
+  /**
+   * Attach to the element on the specified xpath.
+   * @param link The remote link.
+   * @param xpath The XPath expression.
+   * @param reference The reference.
    */
-  @Override
-  public void onConnect( Connection connection)
+  public void attach( ILink link, String xpath, IExternalReference reference) throws IOException
   {
+    if ( link != null && link.isOpen())
+    {
+      sendVersion( link, (byte)1);
+      if ( dispatchers.empty()) pushDispatcher( reference.getModel().getDispatcher());
+      
+      ConnectionInfo info = new ConnectionInfo();
+      info.xpath = xpath;
+      info.element = reference;
+      map.put( link, info);
+      
+      sendAttachRequest( link, xpath);
+      
+      info.listener = new Listener( link, xpath, reference);
+      info.listener.install( reference);
+    }
+    else
+    {
+      throw new CachingException( "Unable to connect to server.");
+    }
   }
 
+  /**
+   * Detach from the element on the specified path.
+   * @param link The remote link.
+   * @param xpath The XPath expression.
+   * @param reference The reference.
+   */
+  public void detach( ILink link, String xpath, IExternalReference reference) throws IOException
+  {
+    try
+    {
+      sendDetachRequest( link, xpath);
+    }
+    finally
+    {
+      popDispatcher();
+    }
+  }
+  
+  /**
+   * Find the element on the specified xpath and attach listeners.
+   * @param sender The sender.
+   * @param xpath The xpath expression.
+   */
+  protected void doAttach( ILink sender, String xpath) throws IOException
+  {
+    try
+    {
+      IExpression expr = XPath.compileExpression( xpath);
+      IModelObject target = expr.queryFirst( context);
+      IModelObject copy = null;
+      if ( target != null)
+      {
+        ConnectionInfo info = new ConnectionInfo();
+        info.xpath = xpath;
+        info.element = target;
+        map.put( sender, info);
+        
+        // make sure target is synced since that is what we are requesting
+        target.getChildren();
+        copy = encode( sender, target, true);
+        
+        info.listener = new Listener( sender, xpath, target);
+        info.listener.install( target);
+      }
+      sendAttachResponse( sender, copy);
+    }
+    catch( PathSyntaxException e)
+    {
+      sendError( sender, e.getMessage());
+    }
+  }
+  
+  /**
+   * Remove listeners from the element on the specified xpath.
+   * @param sender The sender.
+   * @param xpath The xpath expression.
+   */
+  protected void doDetach( ILink sender, String xpath)
+  {
+    map.get( sender).index.clear();
+    
+    try
+    {
+      IExpression expr = XPath.compileExpression( xpath);
+      IModelObject target = expr.queryFirst( context);
+      if ( target != null)
+      {
+        Listener listener = new Listener( sender, xpath, target);
+        listener.uninstall( target);
+      }
+    }
+    catch( PathSyntaxException e)
+    {
+      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
+    }
+  }
+
+  /**
+   * Execute the specified query and return the result.
+   * @param sender The sender.
+   * @param xpath The query.
+   */
+  protected void doQuery( ILink sender, String xpath) throws IOException
+  {
+    try
+    {
+      IExpression expr = XPath.compileExpression( xpath);
+      Object result = null;
+      switch( expr.getType( context))
+      {
+        case NODES:   result = expr.evaluateNodes( context); break;
+        case STRING:  result = expr.evaluateString( context); break;
+        case NUMBER:  result = expr.evaluateNumber( context); break;
+        case BOOLEAN: result = expr.evaluateBoolean( context); break;
+      }
+      sendQueryResponse( sender, result);
+    }
+    catch( PathSyntaxException e)
+    {
+      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
+    }
+  }
+  
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.stream.Connection)
+   * @see org.xmodel.net.IConnection.IListener#onClose(org.xmodel.net.IConnection)
    */
   @Override
-  public void onClose( Connection connection)
+  public void onClose( ILink link)
   {
-    ConnectionInfo info = map.get( connection);
+    ConnectionInfo info = map.get( link);
     info.listener.uninstall();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.ITcpListener#onReceive(org.xmodel.net.stream.Connection, java.nio.ByteBuffer)
+   * @see org.xmodel.net.IConnection.IListener#onReceive(org.xmodel.net.IConnection, java.nio.ByteBuffer)
    */
   @Override
-  public void onReceive( Connection connection, ByteBuffer buffer)
+  public void onReceive( ILink link, ByteBuffer buffer)
   {
     buffer.mark();
-    while( handleMessage( connection, buffer)) buffer.mark();
+    while( handleMessage( link, buffer)) buffer.mark();
     buffer.reset();
   }
   
   /**
    * Parse and handle one message from the specified buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @return Returns true if a message was handled.
    */
-  private final boolean handleMessage( Connection connection, ByteBuffer buffer)
+  private final boolean handleMessage( ILink link, ByteBuffer buffer)
   {
     try
     {
@@ -169,25 +294,25 @@ public abstract class Protocol implements ITcpListener
       
       switch( type)
       {
-        case version:         handleVersion( connection, buffer, length); return true;
-        case error:           handleError( connection, buffer, length); return true;
-        case attachRequest:   handleAttachRequest( connection, buffer, length); return true;
-        case attachResponse:  handleAttachResponse( connection, buffer, length); return true;
-        case detachRequest:   handleDetachRequest( connection, buffer, length); return true;
-        case syncRequest:     handleSyncRequest( connection, buffer, length); return true;
-        case syncResponse:    handleSyncResponse( connection, buffer, length); return true;
-        case addChild:        handleAddChild( connection, buffer, length); return true;
-        case removeChild:     handleRemoveChild( connection, buffer, length); return true;
-        case changeAttribute: handleChangeAttribute( connection, buffer, length); return true;
-        case clearAttribute:  handleClearAttribute( connection, buffer, length); return true;
-        case changeDirty:     handleChangeDirty( connection, buffer, length); return true;
-        case queryRequest:    handleQueryRequest( connection, buffer, length); return true;
-        case queryResponse:   handleQueryResponse( connection, buffer, length); return true;
-        case executeRequest:  handleExecuteRequest( connection, buffer, length); return true;
-        case executeResponse: handleExecuteResponse( connection, buffer, length); return true;
-        case debugStepIn:     handleDebugStepIn( connection, buffer, length); return true;
-        case debugStepOver:   handleDebugStepOver( connection, buffer, length); return true;
-        case debugStepOut:    handleDebugStepOut( connection, buffer, length); return true;
+        case version:         handleVersion( link, buffer, length); return true;
+        case error:           handleError( link, buffer, length); return true;
+        case attachRequest:   handleAttachRequest( link, buffer, length); return true;
+        case attachResponse:  handleAttachResponse( link, buffer, length); return true;
+        case detachRequest:   handleDetachRequest( link, buffer, length); return true;
+        case syncRequest:     handleSyncRequest( link, buffer, length); return true;
+        case syncResponse:    handleSyncResponse( link, buffer, length); return true;
+        case addChild:        handleAddChild( link, buffer, length); return true;
+        case removeChild:     handleRemoveChild( link, buffer, length); return true;
+        case changeAttribute: handleChangeAttribute( link, buffer, length); return true;
+        case clearAttribute:  handleClearAttribute( link, buffer, length); return true;
+        case changeDirty:     handleChangeDirty( link, buffer, length); return true;
+        case queryRequest:    handleQueryRequest( link, buffer, length); return true;
+        case queryResponse:   handleQueryResponse( link, buffer, length); return true;
+        case executeRequest:  handleExecuteRequest( link, buffer, length); return true;
+        case executeResponse: handleExecuteResponse( link, buffer, length); return true;
+        case debugStepIn:     handleDebugStepIn( link, buffer, length); return true;
+        case debugStepOver:   handleDebugStepOver( link, buffer, length); return true;
+        case debugStepOut:    handleDebugStepOut( link, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
@@ -199,78 +324,79 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send the protocol version.
-   * @param connection The connection.
+   * @param link The link.
    * @param version The version.
    */
-  public final void sendVersion( Connection connection, short version) throws IOException
+  public final void sendVersion( ILink link, short version) throws IOException
   {
     log.debugf( "sendVersion: %d", version);
     initialize( buffer);
     buffer.putShort( version);
     finalize( buffer, Type.version, 2);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
    /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleVersion( Connection connection, ByteBuffer buffer, int length)
+  private final void handleVersion( ILink link, ByteBuffer buffer, int length)
   {
     int version = buffer.getShort();
     log.debugf( "handleVersion: %d", version);
     if ( version != Protocol.version)
     {
-      connection.close();
+      link.close();
     }
   }
   
   /**
    * Send an error message.
-   * @param connection The connection.
+   * @param link The link.
    * @param message The error message.
    */
-  public final void sendError( Connection connection, String message) throws IOException
+  public final void sendError( ILink link, String message) throws IOException
   {
     log.debugf( "sendError: %s", message);
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.error, bytes.length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleError( Connection connection, ByteBuffer buffer, int length)
+  private final void handleError( ILink link, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     log.debugf( "handleError: %s", new String( bytes));
-    handleError( connection, new String( bytes));
+    handleError( link, new String( bytes));
   }
   
   /**
    * Handle an error message.
-   * @param connection The connection.
+   * @param link The link.
    * @param message The message.
    */
-  protected void handleError( Connection connection, String message)
+  protected void handleError( ILink link, String message)
   {
+    log.error( message);
   }
   
   /**
    * Send an attach request message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    */
-  public final void sendAttachRequest( Connection connection, String xpath) throws IOException
+  public final void sendAttachRequest( ILink link, String xpath) throws IOException
   {
     log.debugf( "sendAttachRequest: %s", xpath);
     initialize( buffer);
@@ -279,103 +405,117 @@ public abstract class Protocol implements ITcpListener
     finalize( buffer, Type.attachRequest, bytes.length);
 
     // send and wait for response
-    byte[] response = send( connection, buffer, timeout);
-    ICompressor compressor = map.get( connection).compressor;
+    byte[] response = send( link, buffer, timeout);
+    ICompressor compressor = map.get( link).compressor;
     IModelObject element = compressor.decompress( response, 0);
     log.debugf( "handleAttachResponse: %s\n", element.getType());
-    handleAttachResponse( connection, element);
+    handleAttachResponse( link, element);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachRequest( Connection connection, ByteBuffer buffer, int length)
+  private final void handleAttachRequest( ILink link, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     log.debugf( "handleAttachRequest: %s", new String( bytes));
-    handleAttachRequest( connection, new String( bytes));
+    handleAttachRequest( link, new String( bytes));
   }
   
   /**
    * Handle an attach request.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    */
-  protected void handleAttachRequest( Connection connection, String xpath)
+  protected void handleAttachRequest( ILink link, String xpath)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new AttachRunnable( link, xpath));
   }
 
   /**
    * Send an attach response message.
-   * @param connection The connection.
+   * @param link The link.
    * @param element The element.
    */
-  public final void sendAttachResponse( Connection connection, IModelObject element) throws IOException
+  public final void sendAttachResponse( ILink link, IModelObject element) throws IOException
   {
     log.debugf( "sendAttachResponse: %s", element.getType());
     initialize( buffer);
-    ICompressor compressor = map.get( connection).compressor;
+    ICompressor compressor = map.get( link).compressor;
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachResponse, bytes.length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachResponse( Connection connection, ByteBuffer buffer, int length)
+  private final void handleAttachResponse( ILink link, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
   
   /**
    * Handle an attach response.
-   * @param connection The connection.
+   * @param link The link.
    * @param element The element.
    */
-  protected void handleAttachResponse( Connection connection, IModelObject element)
+  protected void handleAttachResponse( ILink link, IModelObject element)
   {
+    IExternalReference attached = (IExternalReference)map.get( link).element;
+    if ( attached != null)
+    {
+      ICachingPolicy cachingPolicy = attached.getCachingPolicy();
+      cachingPolicy.update( attached, decode( link, element));
+    }
   }
   
   /**
    * Send an detach request message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    */
-  public final void sendDetachRequest( Connection connection, String xpath) throws IOException
+  public final void sendDetachRequest( ILink link, String xpath) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.detachRequest, bytes.length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDetachRequest( Connection connection, ByteBuffer buffer, int length)
+  private final void handleDetachRequest( ILink link, ByteBuffer buffer, int length)
   {
+    byte[] bytes = new byte[ length];
+    buffer.get( bytes);
+    log.debugf( "handleDetachRequest: %s", new String( bytes));
+    handleDetachRequest( link, new String( bytes));
   }
   
   /**
    * Handle an attach request.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    */
-  protected void handleDetachRequest( Connection connection, String xpath)
+  protected void handleDetachRequest( ILink link, String xpath)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new DetachRunnable( link, xpath));
   }
   
   /**
@@ -394,29 +534,29 @@ public abstract class Protocol implements ITcpListener
     finalize( buffer, Type.syncRequest, bytes.length);
     
     // send and wait for response
-    send( key.connection, buffer, timeout);
-    handleSyncResponse( key.connection);
+    send( key.link, buffer, timeout);
+    handleSyncResponse( key.link);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncRequest( Connection connection, ByteBuffer buffer, int length)
+  private final void handleSyncRequest( ILink link, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleSyncRequest( connection, new String( bytes));
+    handleSyncRequest( link, new String( bytes));
   }
   
   /**
    * Handle a sync request.
-   * @param connection The connection.
+   * @param link The link.
    * @param key The reference key.
    */
-  protected void handleSyncRequest( Connection sender, String key)
+  protected void handleSyncRequest( ILink sender, String key)
   {
     log.debugf( "handleSyncRequest: %s", key);
     
@@ -426,105 +566,106 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send an sync response message.
-   * @param connection The connection.
+   * @param link The link.
    */
-  public final void sendSyncResponse( Connection connection) throws IOException
+  public final void sendSyncResponse( ILink link) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.syncResponse, 0);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncResponse( Connection connection, ByteBuffer buffer, int length)
+  private final void handleSyncResponse( ILink link, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
   
   /**
    * Handle a sync response.
-   * @param connection The connection.
+   * @param link The link.
    */
-  protected void handleSyncResponse( Connection connection)
+  protected void handleSyncResponse( ILink link)
   {
+    // Nothing to do here
   }
   
   /**
    * Send an add child message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( Connection connection, String xpath, IModelObject element, int index) throws IOException
+  public final void sendAddChild( ILink link, String xpath, IModelObject element, int index) throws IOException
   {
     log.debugf( "sendAddChild: %s, %s", xpath, element.getType());    
     
     initialize( buffer);
     int length = writeString( xpath);
-    length += writeElement( map.get( connection).compressor, element);
+    length += writeElement( map.get( link).compressor, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAddChild( Connection connection, ByteBuffer buffer, int length)
+  private final void handleAddChild( ILink link, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( connection, xpath, bytes, index);
+    handleAddChild( link, xpath, bytes, index);
   }
   
   /**
    * Handle an add child message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The path from the root to the parent.
    * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( Connection connection, String xpath, byte[] child, int index)
+  protected void handleAddChild( ILink link, String xpath, byte[] child, int index)
   {
     IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new AddChildEvent( connection, xpath, child, index));
+    dispatcher.execute( new AddChildEvent( link, xpath, child, index));
   }
   
   /**
    * Process an add child event in the appropriate thread.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath of the parent.
    * @param bytes The child that was added.
    * @param index The index of insertion.
    */
-  private void processAddChild( Connection connection, String xpath, byte[] bytes, int index)
+  private void processAddChild( ILink link, String xpath, byte[] bytes, int index)
   {
     try
     {
-      updating = connection;
+      updating = link;
       
-      IModelObject attached = map.get( connection).element;
+      IModelObject attached = map.get( link).element;
       if ( attached == null) return;
       
       IExpression parentExpr = XPath.createExpression( xpath);
       if ( parentExpr != null)
       {
         IModelObject parent = parentExpr.queryFirst( attached);
-        IModelObject child = map.get( connection).compressor.decompress( bytes, 0);
+        IModelObject child = map.get( link).compressor.decompress( bytes, 0);
         log.debugf( "processAddChild: %s, %s", xpath, child.getType());            
         if ( parent != null) 
         {
-          IModelObject childElement = decode( connection, child);
+          IModelObject childElement = decode( link, child);
           parent.addChild( childElement, index);
         }
       }
@@ -537,11 +678,11 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send an add child message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( Connection connection, String xpath, int index) throws IOException
+  public final void sendRemoveChild( ILink link, String xpath, int index) throws IOException
   {
     log.debugf( "sendRemoveChild: %s, %d", xpath, index);    
     
@@ -549,47 +690,47 @@ public abstract class Protocol implements ITcpListener
     int length = writeString( xpath);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleRemoveChild( Connection connection, ByteBuffer buffer, int length)
+  private final void handleRemoveChild( ILink link, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     int index = buffer.getInt();
-    handleRemoveChild( connection, xpath, index);
+    handleRemoveChild( link, xpath, index);
   }
   
   /**
    * Handle an remove child message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The path from the root to the parent.
    * @param index The insertion index.
    */
-  protected void handleRemoveChild( Connection connection, String xpath, int index)
+  protected void handleRemoveChild( ILink link, String xpath, int index)
   {
     IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new RemoveChildEvent( connection, xpath, index));
+    dispatcher.execute( new RemoveChildEvent( link, xpath, index));
   }
   
   /**
    * Process an remove child event in the appropriate thread.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath of the parent.
    * @param index The index of insertion.
    */
-  private void processRemoveChild( Connection connection, String xpath, int index)
+  private void processRemoveChild( ILink link, String xpath, int index)
   {
     try
     {
-      updating = connection;
+      updating = link;
       
-      IModelObject attached = map.get( connection).element;
+      IModelObject attached = map.get( link).element;
       if ( attached == null) return;
       
       IExpression parentExpr = XPath.createExpression( xpath);
@@ -612,12 +753,12 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send an change attribute message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( Connection connection, String xpath, String attrName, Object value) throws IOException
+  public final void sendChangeAttribute( ILink link, String xpath, String attrName, Object value) throws IOException
   {
     byte[] bytes = serialize( value);
     
@@ -626,50 +767,50 @@ public abstract class Protocol implements ITcpListener
     length += writeString( attrName);
     length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeAttribute( Connection connection, ByteBuffer buffer, int length)
+  private final void handleChangeAttribute( ILink link, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
     byte[] attrValue = readBytes( buffer, true);
-    handleChangeAttribute( connection, xpath, attrName, deserialize( attrValue));
+    handleChangeAttribute( link, xpath, attrName, deserialize( attrValue));
   }
   
   /**
    * Handle an attribute change message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    * @param attrValue The attribute value.
    */
-  protected void handleChangeAttribute( Connection connection, String xpath, String attrName, Object attrValue)
+  protected void handleChangeAttribute( ILink link, String xpath, String attrName, Object attrValue)
   {
     IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ChangeAttributeEvent( connection, xpath, attrName, attrValue));
+    dispatcher.execute( new ChangeAttributeEvent( link, xpath, attrName, attrValue));
   }
   
   /**
    * Process an change attribute event in the appropriate thread.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath of the element.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  private void processChangeAttribute( Connection connection, String xpath, String attrName, Object attrValue)
+  private void processChangeAttribute( ILink link, String xpath, String attrName, Object attrValue)
   {
     try
     {
-      updating = connection;
+      updating = link;
       
-      IModelObject attached = map.get( connection).element;
+      IModelObject attached = map.get( link).element;
       if ( attached == null) return;
       
       // the empty string and null string both serialize as byte[ 0]
@@ -690,57 +831,57 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send a clear attribute message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    */
-  public final void sendClearAttribute( Connection connection, String xpath, String attrName) throws IOException
+  public final void sendClearAttribute( ILink link, String xpath, String attrName) throws IOException
   {
     initialize( buffer);
     int length = writeString( xpath);
     length += writeString( attrName);
     finalize( buffer, Type.clearAttribute, length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleClearAttribute( Connection connection, ByteBuffer buffer, int length)
+  private final void handleClearAttribute( ILink link, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
-    handleClearAttribute( connection, xpath, attrName);
+    handleClearAttribute( link, xpath, attrName);
   }
   
   /**
    * Handle an attribute change message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    */
-  protected void handleClearAttribute( Connection connection, String xpath, String attrName)
+  protected void handleClearAttribute( ILink link, String xpath, String attrName)
   {
     IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ClearAttributeEvent( connection, xpath, attrName));
+    dispatcher.execute( new ClearAttributeEvent( link, xpath, attrName));
   }
 
   /**
    * Process a clear attribute event in the appropriate thread.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath of the element.
    * @param attrName The name of the attribute.
    */
-  private void processClearAttribute( Connection connection, String xpath, String attrName)
+  private void processClearAttribute( ILink link, String xpath, String attrName)
   {
     try
     {
-      updating = connection;
+      updating = link;
       
-      IModelObject attached = map.get( connection).element;
+      IModelObject attached = map.get( link).element;
       if ( attached == null) return;
       
       IExpression elementExpr = XPath.createExpression( xpath);
@@ -758,57 +899,57 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Send a change dirty message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    * @param dirty The dirty state.
    */
-  public final void sendChangeDirty( Connection connection, String xpath, boolean dirty) throws IOException
+  public final void sendChangeDirty( ILink link, String xpath, boolean dirty) throws IOException
   {
     initialize( buffer);
     int length = writeString( xpath);
     buffer.put( dirty? (byte)1: 0); length++;
     finalize( buffer, Type.changeDirty, length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeDirty( Connection connection, ByteBuffer buffer, int length)
+  private final void handleChangeDirty( ILink link, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     boolean dirty = buffer.get() != 0;
-    handleChangeDirty( connection, xpath, dirty);
+    handleChangeDirty( link, xpath, dirty);
   }
   
   /**
    * Handle a change dirty message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath from the root to the element.
    * @param dirty The dirty state.
    */
-  protected void handleChangeDirty( Connection connection, String xpath, boolean dirty)
+  protected void handleChangeDirty( ILink link, String xpath, boolean dirty)
   {
     IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ChangeDirtyEvent( connection, xpath, dirty));
+    dispatcher.execute( new ChangeDirtyEvent( link, xpath, dirty));
   }
 
   /**
    * Process a change dirty event in the appropriate thread.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath of the element.
    * @param dirty The new dirty state.
    */
-  private void processChangeDirty( Connection connection, String xpath, boolean dirty)
+  private void processChangeDirty( ILink link, String xpath, boolean dirty)
   {
     try
     {
-      updating = connection;
+      updating = link;
       
-      IModelObject attached = map.get( connection).element;
+      IModelObject attached = map.get( link).element;
       if ( attached == null) return;
       
       IExpression elementExpr = XPath.createExpression( xpath);
@@ -830,46 +971,48 @@ public abstract class Protocol implements ITcpListener
 
   /**
    * Send a query request message.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The xpath.
    */
-  public final void sendQueryRequest( Connection connection, String xpath) throws IOException
+  public final void sendQueryRequest( ILink link, String xpath) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.queryRequest, bytes.length);
-    send( connection, buffer, timeout);
+    send( link, buffer, timeout);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryRequest( Connection connection, ByteBuffer buffer, int length)
+  private final void handleQueryRequest( ILink link, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleQueryRequest( connection, new String( bytes));
+    handleQueryRequest( link, new String( bytes));
   }
   
   /**
    * Handle a query requset.
-   * @param connection The connection.
+   * @param link The link.
    * @param xpath The query.
    */
-  protected void handleQueryRequest( Connection connection, String xpath)
+  protected void handleQueryRequest( ILink link, String xpath)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new QueryRunnable( link, xpath));
   }
   
   /**
    * Send a query response message.
-   * @param connection The connection.
+   * @param link The link.
    * @param result The result.
    */
-  public final void sendQueryResponse( Connection connection, Object result) throws IOException
+  public final void sendQueryResponse( ILink link, Object result) throws IOException
   {
     initialize( buffer);
     byte[] bytes = serialize( result);
@@ -877,75 +1020,76 @@ public abstract class Protocol implements ITcpListener
     finalize( buffer, Type.queryResponse, bytes.length);
 
     // wait for response
-    byte[] response = send( connection, buffer, timeout);
-    handleQueryResponse( connection, response);
+    byte[] response = send( link, buffer, timeout);
+    handleQueryResponse( link, response);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryResponse( Connection connection, ByteBuffer buffer, int length)
+  private final void handleQueryResponse( ILink link, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
   
   /**
    * Handle a query requset.
-   * @param connection The connection.
+   * @param link The link.
    * @param bytes The serialized query result.
    */
-  protected void handleQueryResponse( Connection connection, byte[] bytes)
+  protected void handleQueryResponse( ILink link, byte[] bytes)
   {
+    // TODO: finish this
   }
   
   /**
    * Send an execute request message.
-   * @param connection The connection.
+   * @param link The link.
    * @param script The script to execute.
    */
-  public final void sendExecuteRequest( Connection connection, IModelObject script) throws IOException
+  public final void sendExecuteRequest( ILink link, IModelObject script) throws IOException
   {
     log.debugf( "sendExecuteRequest: %s", script.getID());
     
     initialize( buffer);
-    ICompressor compressor = map.get( connection).compressor;
+    ICompressor compressor = map.get( link).compressor;
     byte[] bytes = compressor.compress( script);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.executeRequest, bytes.length);
 
     // send and wait for response
-    byte[] response = send( connection, buffer, timeout);
+    byte[] response = send( link, buffer, timeout);
     IModelObject element = compressor.decompress( response, 0);
     log.debugf( "handleExecuteResponse: %s\n", element.getType());
-    handleExecuteResponse( connection, element);
+    handleExecuteResponse( link, element);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteRequest( Connection connection, ByteBuffer buffer, int length)
+  private final void handleExecuteRequest( ILink link, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    ICompressor compressor = map.get( connection).compressor;
+    ICompressor compressor = map.get( link).compressor;
     IModelObject script = compressor.decompress( bytes, 0);
     log.debugf( "handleExecuteRequest: %s", script.getID());
-    handleExecuteRequest( connection, script);
+    handleExecuteRequest( link, script);
   }
   
   /**
    * Handle an execute request.
-   * @param connection The connection.
+   * @param link The link.
    * @param script The script to execute.
    */
   @SuppressWarnings("unchecked")
-  protected void handleExecuteRequest( Connection connection, IModelObject script)
+  protected void handleExecuteRequest( ILink link, IModelObject script)
   {
     ModelObject response = null;
     
@@ -982,7 +1126,7 @@ public abstract class Protocol implements ITcpListener
     
     try
     {
-      sendExecuteResponse( connection, response);
+      sendExecuteResponse( link, response);
     } 
     catch( IOException e)
     {
@@ -992,142 +1136,163 @@ public abstract class Protocol implements ITcpListener
 
   /**
    * Send an attach response message.
-   * @param connection The connection.
+   * @param link The link.
    * @param element The element.
    */
-  public final void sendExecuteResponse( Connection connection, IModelObject element) throws IOException
+  public final void sendExecuteResponse( ILink link, IModelObject element) throws IOException
   {
     log.debugf( "sendExecuteResponse: %s", element.getType());
     initialize( buffer);
-    ICompressor compressor = map.get( connection).compressor;
+    ICompressor compressor = map.get( link).compressor;
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.executeResponse, bytes.length);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteResponse( Connection connection, ByteBuffer buffer, int length)
+  private final void handleExecuteResponse( ILink link, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
   
   /**
    * Handle an attach response.
-   * @param connection The connection.
+   * @param link The link.
    * @param element The element.
    */
-  protected void handleExecuteResponse( Connection connection, IModelObject element)
+  protected void handleExecuteResponse( ILink link, IModelObject element)
   {
   }
   
   /**
    * Send a debug step message.
-   * @param connection The connection.
+   * @param link The link.
    */
-  public final void sendDebugStepIn( Connection connection) throws IOException
+  public final void sendDebugStepIn( ILink link) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepIn, 0);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepIn( Connection connection, ByteBuffer buffer, int length)
+  private final void handleDebugStepIn( ILink link, ByteBuffer buffer, int length)
   {
-    handleDebugStepIn( connection);
+    handleDebugStepIn( link);
   }
   
   /**
    * Handle a debug step.
-   * @param connection The connection.
+   * @param link The link.
    */
-  protected void handleDebugStepIn( Connection connection)
+  protected void handleDebugStepIn( ILink link)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepIn();
+      }
+    });
   }
   
   /**
    * Send a debug step message.
-   * @param connection The connection.
+   * @param link The link.
    */
-  public final void sendDebugStepOver( Connection connection) throws IOException
+  public final void sendDebugStepOver( ILink link) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOver, 0);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepOver( Connection connection, ByteBuffer buffer, int length)
+  private final void handleDebugStepOver( ILink link, ByteBuffer buffer, int length)
   {
-    handleDebugStepOver( connection);
+    handleDebugStepOver( link);
   }
   
   /**
    * Handle a debug step.
-   * @param connection The connection.
+   * @param link The link.
    */
-  protected void handleDebugStepOver( Connection connection)
+  protected void handleDebugStepOver( ILink link)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepOver();
+      }
+    });
   }
   
   /**
    * Send a debug step message.
-   * @param connection The connection.
+   * @param link The link.
    */
-  public final void sendDebugStepOut( Connection connection) throws IOException
+  public final void sendDebugStepOut( ILink link) throws IOException
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOut, 0);
-    connection.write( buffer);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepOut( Connection connection, ByteBuffer buffer, int length)
+  private final void handleDebugStepOut( ILink link, ByteBuffer buffer, int length)
   {
-    handleDebugStepOut( connection);
+    handleDebugStepOut( link);
   }
   
   /**
    * Handle a debug step.
-   * @param connection The connection.
+   * @param link The link.
    */
-  protected void handleDebugStepOut( Connection connection)
+  protected void handleDebugStepOut( ILink link)
   {
+    IDispatcher dispatcher = dispatchers.peek();
+    dispatcher.execute( new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepOut();
+      }
+    });
   }
 
   /**
    * Send and wait for a response.
-   * @param connection The connection.
+   * @param link The link.
    * @param buffer The buffer to send.
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response buffer.
    */
-  private byte[] send( Connection connection, ByteBuffer buffer, int timeout) throws IOException
+  private byte[] send( ILink link, ByteBuffer buffer, int timeout) throws IOException
   {
     try
     {
-      connection.write( buffer);
+      link.send( buffer);
       byte[] response = responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
       if ( response != null) return response;
     }
@@ -1394,12 +1559,12 @@ public abstract class Protocol implements ITcpListener
 
   /**
    * Encode the specified element.
-   * @param connection The connection.
+   * @param link The link.
    * @param root True if the element is the root of the attachment.
    * @param element The element to be copied.
    * @return Returns the copy.
    */
-  protected IModelObject encode( Connection connection, IModelObject element, boolean root)
+  protected IModelObject encode( ILink link, IModelObject element, boolean root)
   {
     IModelObject encoded = null;
     
@@ -1409,7 +1574,7 @@ public abstract class Protocol implements ITcpListener
       encoded = new ModelObject( lRef.getType());
       
       // index reference so it can be synced remotely
-      if ( !root) encoded.setAttribute( "net:key", index( connection, lRef));
+      if ( !root) encoded.setAttribute( "net:key", index( link, lRef));
       
       // enumerate static attributes for client
       for( String attrName: lRef.getStaticAttributes())
@@ -1446,7 +1611,7 @@ public abstract class Protocol implements ITcpListener
       // copy children
       for( IModelObject child: element.getChildren())
       {
-        encoded.addChild( encode( connection, child, false));
+        encoded.addChild( encode( link, child, false));
       }
     }
     
@@ -1455,11 +1620,11 @@ public abstract class Protocol implements ITcpListener
     
   /**
    * Interpret the content of the specified server encoded subtree.
-   * @param connection The connection.
+   * @param link The link.
    * @param root The root of the encoded subtree.
    * @return Returns the decoded element.
    */
-  protected IModelObject decode( Connection connection, IModelObject root)
+  protected IModelObject decode( ILink link, IModelObject root)
   {
     //System.out.println( ((ModelObject)root).toXml());
     
@@ -1491,7 +1656,7 @@ public abstract class Protocol implements ITcpListener
         
         KeyRecord keyRecord = new KeyRecord();
         keyRecord.key = key;
-        keyRecord.connection = connection;
+        keyRecord.link = link;
         keys.put( reference, keyRecord);
         
         rNode = reference;
@@ -1515,14 +1680,14 @@ public abstract class Protocol implements ITcpListener
   
   /**
    * Index the specified node.
-   * @param connection The connection.
+   * @param link The link.
    * @param node The node.
    * @return Returns the key.
    */
-  private String index( Connection connection, IModelObject node)
+  private String index( ILink link, IModelObject node)
   {
     String key = Identifier.generate( random, 13);
-    map.get( connection).index.put( key, node);
+    map.get( link).index.put( key, node);
     return key;
   }
   
@@ -1540,7 +1705,7 @@ public abstract class Protocol implements ITcpListener
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( Connection sender, String key)
+    public SyncRunnable( ILink sender, String key)
     {
       this.sender = sender;
       this.key = key;
@@ -1563,15 +1728,15 @@ public abstract class Protocol implements ITcpListener
       }
     }
     
-    private Connection sender;
+    private ILink sender;
     private String key;
   }
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( Connection connection, String xpath, byte[] child, int index)
+    public AddChildEvent( ILink link, String xpath, byte[] child, int index)
     {
-      this.connection = connection;
+      this.link = link;
       this.xpath = xpath;
       this.child = child;
       this.index = index;
@@ -1579,10 +1744,10 @@ public abstract class Protocol implements ITcpListener
     
     public void run()
     {
-      processAddChild( connection, xpath, child, index);
+      processAddChild( link, xpath, child, index);
     }
     
-    private Connection connection;
+    private ILink link;
     private String xpath;
     private byte[] child;
     private int index;
@@ -1590,28 +1755,28 @@ public abstract class Protocol implements ITcpListener
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( Connection connection, String xpath, int index)
+    public RemoveChildEvent( ILink link, String xpath, int index)
     {
-      this.connection = connection;
+      this.link = link;
       this.xpath = xpath;
       this.index = index;
     }
     
     public void run()
     {
-      processRemoveChild( connection, xpath, index);
+      processRemoveChild( link, xpath, index);
     }
     
-    private Connection connection;
+    private ILink link;
     private String xpath;
     private int index;
   }
   
   private final class ChangeAttributeEvent implements Runnable
   {
-    public ChangeAttributeEvent( Connection connection, String xpath, String attrName, Object attrValue)
+    public ChangeAttributeEvent( ILink link, String xpath, String attrName, Object attrValue)
     {
-      this.connection = connection;
+      this.link = link;
       this.xpath = xpath;
       this.attrName = attrName;
       this.attrValue = attrValue;
@@ -1619,10 +1784,10 @@ public abstract class Protocol implements ITcpListener
     
     public void run()
     {
-      processChangeAttribute( connection, xpath, attrName, attrValue);
+      processChangeAttribute( link, xpath, attrName, attrValue);
     }
     
-    private Connection connection;
+    private ILink link;
     private String xpath;
     private String attrName;
     private Object attrValue;
@@ -1630,45 +1795,110 @@ public abstract class Protocol implements ITcpListener
   
   private final class ClearAttributeEvent implements Runnable
   {
-    public ClearAttributeEvent( Connection connection, String xpath, String attrName)
+    public ClearAttributeEvent( ILink link, String xpath, String attrName)
     {
-      this.connection = connection;
+      this.link = link;
       this.xpath = xpath;
       this.attrName = attrName;
     }
     
     public void run()
     {
-      processClearAttribute( connection, xpath, attrName);
+      processClearAttribute( link, xpath, attrName);
     }
     
-    private Connection connection;
+    private ILink link;
     private String xpath;
     private String attrName;
   }
   
   private final class ChangeDirtyEvent implements Runnable
   {
-    public ChangeDirtyEvent( Connection connection, String xpath, boolean dirty)
+    public ChangeDirtyEvent( ILink link, String xpath, boolean dirty)
     {
-      this.connection = connection;
+      this.link = link;
       this.xpath = xpath;
       this.dirty = dirty;
     }
     
     public void run()
     {
-      processChangeDirty( connection, xpath, dirty);
+      processChangeDirty( link, xpath, dirty);
     }
     
-    private Connection connection;
+    private ILink link;
     private String xpath;
     private boolean dirty;
   }
   
+  private final class AttachRunnable implements Runnable
+  {
+    public AttachRunnable( ILink sender, String xpath)
+    {
+      this.sender = sender;
+      this.xpath = xpath;
+    }
+    
+    public void run()
+    {
+      try
+      {
+        doAttach( sender, xpath);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
+    }
+
+    private ILink sender;
+    private String xpath;
+  }
+  
+  private final class DetachRunnable implements Runnable
+  {
+    public DetachRunnable( ILink sender, String xpath)
+    {
+      this.sender = sender;
+      this.xpath = xpath;
+    }
+    
+    public void run()
+    {
+      doDetach( sender, xpath);
+    }
+
+    private ILink sender;
+    private String xpath;
+  }
+  
+  private final class QueryRunnable implements Runnable
+  {
+    public QueryRunnable( ILink sender, String xpath)
+    {
+      this.sender = sender;
+      this.xpath = xpath;
+    }
+    
+    public void run()
+    {
+      try
+      {
+        doQuery( sender, xpath);
+      } 
+      catch( IOException e)
+      {
+        log.exception( e);
+      }
+    }
+    
+    private ILink sender;
+    private String xpath;
+  }
+  
   protected class Listener extends NonSyncingListener
   {
-    public Listener( Connection sender, String xpath, IModelObject root)
+    public Listener( ILink sender, String xpath, IModelObject root)
     {
       this.sender = sender;
       this.xpath = xpath;
@@ -1814,7 +2044,7 @@ public abstract class Protocol implements ITcpListener
       return sender.hashCode() + xpath.hashCode();
     }
 
-    private Connection sender;
+    private ILink sender;
     private String xpath;
     private IModelObject root;
   };
@@ -1834,7 +2064,7 @@ public abstract class Protocol implements ITcpListener
   private class KeyRecord
   {
     String key;
-    Connection connection;
+    ILink link;
   }
   
   protected class ConnectionInfo
@@ -1861,6 +2091,6 @@ public abstract class Protocol implements ITcpListener
   private Random random;
   protected Map<IModelObject, KeyRecord> keys;
   protected Stack<IDispatcher> dispatchers;
-  protected Map<Connection, ConnectionInfo> map;
-  private Connection updating;
+  protected Map<ILink, ConnectionInfo> map;
+  private ILink updating;
 }

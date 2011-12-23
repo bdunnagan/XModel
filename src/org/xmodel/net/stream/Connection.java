@@ -7,10 +7,12 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.xmodel.net.ILink;
+
 /**
  * A class that represents a TCP connection.
  */
-public final class Connection
+final class Connection implements ILink
 {
   /**
    * Create a new connection.
@@ -18,7 +20,7 @@ public final class Connection
    * @param channel The channel.
    * @param listener The TCP event listener.
    */
-  Connection( TcpBase tcp, SocketChannel channel, ITcpListener listener)
+  Connection( TcpBase tcp, SocketChannel channel, ILink.IListener listener)
   {
     this.tcp = tcp;
     this.channel = channel;
@@ -61,7 +63,6 @@ public final class Connection
   {
     this.channel = channel;
     this.address = (InetSocketAddress)channel.socket().getRemoteSocketAddress();
-    if ( listener != null) listener.onConnect( this);
     semaphore.release();
   }
   
@@ -148,7 +149,7 @@ public final class Connection
    * Synchronously write the content of the specified buffer to the connection.
    * @param buffer The buffer.
    */
-  public void write( ByteBuffer buffer) throws IOException
+  public void send( ByteBuffer buffer) throws IOException
   {
     tcp.write( channel, buffer);
   }
@@ -191,7 +192,7 @@ public final class Connection
   //private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
   private TcpBase tcp;
-  private ITcpListener listener;
+  private ILink.IListener listener;
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
