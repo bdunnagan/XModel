@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.io.IOException;
 
-import org.xmodel.IDispatcher;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.net.stream.TcpClient;
 
@@ -34,31 +33,27 @@ public class Client extends Protocol
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.IConnection)
+   * @see org.xmodel.net.Protocol#doClose(org.xmodel.net.ILink, int)
    */
   @Override
-  public void onClose( ILink link)
+  protected void doClose( ILink link, int session)
   {
-    super.onClose( link);
+    SessionInfo info = getSession( link, session);
+    if ( info != null) ((IExternalReference)info.element).setDirty( true);
     
-    IExternalReference attached = (IExternalReference)map.get( link).element;
-    if ( attached != null)
-    {
-      IDispatcher dispatcher = dispatchers.peek();
-      dispatcher.execute( new DisconnectEvent( attached));
-      attached = null;
-    }
+    super.doClose( link, session);
   }
 
   /**
    * Connect (or reconnect) to the remote host.
    */
-  public void connect( int timeout) throws IOException
+  public Session connect( int timeout) throws IOException
   {
-    if ( link == null || !link.isOpen()) 
+    if ( link == null || !link.isOpen())
     {
       link = client.connect( host, port, timeout, this);
     }
+    return openSession( link);
   }
 
   /**
@@ -75,69 +70,6 @@ public class Client extends Protocol
   public boolean isConnected()
   {
     return link != null && link.isOpen();
-  }
-  
-  /**
-   * Attach to the element on the specified xpath.
-   * @param xpath The XPath expression.
-   * @param reference The reference.
-   */
-  public void attach( String xpath, IExternalReference reference) throws IOException
-  {
-    connect( 300000);
-    attach( link, xpath, reference);
-  }
-
-  /**
-   * Detach from the element on the specified path.
-   * @param xpath The XPath expression.
-   * @param reference The reference.
-   */
-  public void detach( String xpath, IExternalReference reference) throws IOException
-  {
-    detach( link, xpath, reference);
-  }
-
-  /**
-   * Send a debugStepIn message.
-   */
-  public void sendDebugStepIn() throws IOException
-  {
-    connect( 300000);
-    sendDebugStepIn( link);
-  }
-  
-  /**
-   * Send a debugStepOver message.
-   */
-  public void sendDebugStepOver() throws IOException
-  {
-    connect( 300000);
-    sendDebugStepOver( link);
-  }
-  
-  /**
-   * Send a debugStepOut message.
-   */
-  public void sendDebugStepOut() throws IOException
-  {
-    connect( 300000);
-    sendDebugStepOut( link);
-  }
-  
-  private final class DisconnectEvent implements Runnable
-  {
-    public DisconnectEvent( IExternalReference reference)
-    {
-      this.reference = reference;
-    }
-    
-    public void run()
-    {
-      reference.setDirty( true);
-    }
-    
-    private IExternalReference reference;
   }
   
   private static TcpClient client;

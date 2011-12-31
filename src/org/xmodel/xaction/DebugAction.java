@@ -3,6 +3,7 @@ package org.xmodel.xaction;
 import java.io.IOException;
 
 import org.xmodel.net.Client;
+import org.xmodel.net.Session;
 import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -26,7 +27,7 @@ public class DebugAction extends GuardedAction
     opExpr = document.getExpression( "op", true);
     if ( opExpr == null) opExpr = document.getExpression();
     
-    if ( clients == null) clients = new ThreadLocal<Client>();
+    if ( sessions == null) sessions = new ThreadLocal<Session>();
   }
 
   /* (non-Javadoc)
@@ -48,14 +49,16 @@ public class DebugAction extends GuardedAction
     }
     else
     {
-      if ( clients.get() == null)
+      if ( sessions.get() == null)
       {
         String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
         int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Debugger.defaultPort;
         int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
         try
         {
-          clients.set( new Client( host, port, timeout, true));
+          Client client = new Client( host, port, timeout, true);
+          Session session = client.connect( timeout);
+          sessions.set( session);
         } 
         catch( IOException e)
         {
@@ -63,14 +66,12 @@ public class DebugAction extends GuardedAction
         }
       }
       
-      Client client = clients.get();
+      Session session = sessions.get();
       try
       {
-        if ( !client.isConnected()) client.connect( 30000);
-        
-        if ( op.equals( "stepin")) client.sendDebugStepIn();
-        else if ( op.equals( "stepover")) client.sendDebugStepOver();
-        else if ( op.equals( "stepout")) client.sendDebugStepOut();
+        if ( op.equals( "stepin")) session.debugStepIn();
+        else if ( op.equals( "stepover")) session.debugStepOver();
+        else if ( op.equals( "stepout")) session.debugStepOut();
         else if ( op.length() == 0) throw new XActionException( "Empty debug operation.");
         else throw new XActionException( "Undefined debug operation: "+op);
       }
@@ -83,7 +84,7 @@ public class DebugAction extends GuardedAction
     return null;
   }
   
-  private static ThreadLocal<Client> clients;
+  private static ThreadLocal<Session> sessions;
   
   private IExpression hostExpr;
   private IExpression portExpr;

@@ -476,7 +476,7 @@ public class XActionDocument
    * @param object The action configuration.
    * @return Returns null or the action.
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   protected IXAction getAction( String packageName, String className, IModelObject object)
   {
     // create fully-qualified class name

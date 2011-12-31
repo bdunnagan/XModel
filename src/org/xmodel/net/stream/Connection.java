@@ -7,6 +7,7 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.xmodel.log.Log;
 import org.xmodel.net.ILink;
 
 /**
@@ -138,7 +139,7 @@ final class Connection implements ILink
     if ( listener != null && nread > 0) 
     {
       buffer.flip();
-      //log.debugf( "READ\n%s\n", Util.dump( buffer));
+      log.debugf( "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -151,6 +152,7 @@ final class Connection implements ILink
    */
   public void send( ByteBuffer buffer) throws IOException
   {
+    log.debugf( "SEND\n%s\n", Util.dump( buffer));
     tcp.write( channel, buffer);
   }
 
@@ -189,7 +191,7 @@ final class Connection implements ILink
     return String.format( "%s:%d", getAddress(), getPort());
   }
 
-  //private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  private final static Log log = Log.getLog( "org.xmodel.net.stream");
 
   private TcpBase tcp;
   private ILink.IListener listener;

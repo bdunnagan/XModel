@@ -53,8 +53,8 @@ public class InvokeAction extends GuardedAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
+  @Override 
   @SuppressWarnings("unchecked")
-  @Override
   protected Object[] doAction( IContext context)
   {
     Object[] results = null;

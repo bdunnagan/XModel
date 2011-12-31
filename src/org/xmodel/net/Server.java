@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.io.IOException;
 
-import org.xmodel.ImmediateDispatcher;
 import org.xmodel.net.stream.TcpServer;
 
 /**
@@ -21,7 +20,6 @@ public class Server extends Protocol
   public Server( String host, int port, int timeout) throws IOException
   {
     super( timeout);
-    pushDispatcher( new ImmediateDispatcher());
     server = new TcpServer( host, port, this);
   }
 
@@ -42,19 +40,5 @@ public class Server extends Protocol
     server.stop();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.IConnection)
-   */
-  @Override
-  public void onClose( ILink link)
-  {
-    super.onClose( link);
-    
-    ConnectionInfo info = map.get( link);
-    if ( info != null) doDetach( link, info.xpath);
-    
-    map.remove( link);
-  }
-
   private TcpServer server;
 }

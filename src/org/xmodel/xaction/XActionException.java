@@ -21,8 +21,11 @@ package org.xmodel.xaction;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.IPath;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -42,9 +45,16 @@ public class XActionException extends RuntimeException
     super();
   }
 
-  public XActionException( String message, Throwable cause)
+  public XActionException( XActionDocument document, String message)
+  {
+    super( message);
+    setLocation( document);
+  }
+
+  public XActionException( XActionDocument document, String message, Throwable cause)
   {
     super( message, cause);
+    setLocation( document);
   }
 
   public XActionException( String message)
@@ -52,9 +62,30 @@ public class XActionException extends RuntimeException
     super( message);
   }
 
-  public XActionException( Throwable message)
+  public XActionException( String message, Throwable cause)
   {
-    super( message);
+    super( message, cause);
+  }
+
+  public XActionException( Throwable cause)
+  {
+    super( cause);
+  }
+  
+  public String getMessage()
+  {
+    if ( document == null) return super.getMessage();
+    IPath path = ModelAlgorithms.createIdentityPath( document.getRoot());
+    return String.format( "%s: %s", super.getMessage(), path.toString());
+  }
+  
+  /**
+   * Set the location of an XActionException.
+   * @param document The configuration document.
+   */
+  public void setLocation( XActionDocument document)
+  {
+    this.document = document;
   }
  
   /**
@@ -107,4 +138,6 @@ public class XActionException extends RuntimeException
   }
   
   private static Log log = Log.getLog( "org.xmodel.xaction");
+  
+  private XActionDocument document;
 }

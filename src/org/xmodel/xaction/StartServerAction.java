@@ -75,7 +75,7 @@ public class StartServerAction extends GuardedAction
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
       
       server = new Server( host, port, timeout);
-      server.setContext( (source != null)? new StatefulContext( context.getScope(), source): context);
+      server.setServerContext( (source != null)? new StatefulContext( context.getScope(), source): context);
       server.start( true);
       
       StatefulContext stateful = (StatefulContext)context;

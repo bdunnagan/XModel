@@ -1,7 +1,9 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
@@ -29,6 +31,9 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   public NetworkCachingPolicy( ICache cache)
   {
     super( cache);
+    
+    sessions = new HashMap<IExternalReference, Session>();
+    
     setStaticAttributes( new String[] { "id"});
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
@@ -73,7 +78,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Port not defined in annotation: \n"+xml);
     }
     
-    int timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 15000));
+    timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 15000));
     
     try
     {
@@ -81,7 +86,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( IOException e)
     {
-      throw new CachingException( "Illegal host or port specification.", e);
+      throw new CachingException( "Unable to connect to remote host.", e);
     }
     
     xpath = Xlate.get( annotation, "xpath", Xlate.childGet( annotation, "xpath", (String)null));
@@ -99,10 +104,17 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       if ( xpath == null)
       {
         xpath = Xlate.get( reference, "xpath", (String)null);
-        if ( xpath == null) return;
+        if ( xpath == null) throw new CachingException( "Query not defined.");
+      }
+     
+      Session session = sessions.get( reference);
+      if ( session == null)
+      {
+        session = client.connect( timeout);
+        sessions.put( reference, session);
       }
       
-      client.attach( xpath, reference);
+      session.attach( xpath, reference);
     }
     catch( IOException e)
     {
@@ -129,4 +141,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   
   private Client client;
   private String xpath;
+  private int timeout;
+  private Map<IExternalReference, Session> sessions;
 }

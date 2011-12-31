@@ -177,7 +177,7 @@ public class Debugger implements IDebugger
       try
       {
         server = new Server( "0.0.0.0", defaultPort, 60000);
-        server.setContext( context);
+        server.setServerContext( context);
         server.start( false);
       }
       catch( Exception e)
@@ -186,18 +186,11 @@ public class Debugger implements IDebugger
       }
     }
 
-    try
+    server.setDispatcher( dispatcher);
+    while( true)
     {
-      server.pushDispatcher( dispatcher);    
-      while( true)
-      {
-        dispatcher.process();
-        if ( semaphore.tryAcquire()) break;
-      }
-    }
-    finally
-    {
-      server.popDispatcher();
+      dispatcher.process();
+      if ( semaphore.tryAcquire()) break;
     }
   }
 

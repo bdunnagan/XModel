@@ -10,11 +10,11 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Stack;
 import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
@@ -24,6 +24,7 @@ import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
+import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
@@ -51,11 +52,13 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class Protocol implements ILink.IListener
 {
-  public final static int version = 1;
+  public final static short version = 1;
   
   public enum Type
   {
-    version,
+    sessionOpenRequest,
+    sessionOpenResponse,
+    sessionCloseRequest,
     error,
     attachRequest,
     attachResponse,
@@ -83,100 +86,167 @@ public class Protocol implements ILink.IListener
   public Protocol( int timeout)
   {
     this.context = new StatefulContext();
+    this.sessions = new HashMap<ILink, List<SessionInfo>>();
     
     this.timeout = timeout;
     this.responseQueue = new SynchronousQueue<byte[]>();
     this.random = new Random();
     this.keys = new WeakHashMap<IModelObject, KeyRecord>();
-    this.map = new HashMap<ILink, ConnectionInfo>();
     
     // allocate less than standard mtu
     buffer = ByteBuffer.allocate( 4096);
     buffer.order( ByteOrder.BIG_ENDIAN);
     
-    dispatchers = new Stack<IDispatcher>();
+    dispatcher = new ImmediateDispatcher();
   }
   
   /**
    * Set the context in which remote xpath expressions will be bound.
    * @param context The context.
    */
-  public void setContext( IContext context)
+  public void setServerContext( IContext context)
   {
     this.context = context;
-    if ( dispatchers.empty()) pushDispatcher( context.getModel().getDispatcher());
+    dispatcher = context.getModel().getDispatcher();
   }
   
   /**
-   * Push the specified dispatcher on the stack.
+   * Set the dispatcher. It is not necessary to set the dispatcher using this method if either the
+   * <code>setServerContext</code> method or <code>attach</code> method is called. 
    * @param dispatcher The dispatcher.
    */
-  public void pushDispatcher( IDispatcher dispatcher)
+  public void setDispatcher( IDispatcher dispatcher)
   {
-    dispatchers.push( dispatcher);
+    this.dispatcher = dispatcher;
+  }
+    
+  /**
+   * Open a session over the specified link and return the session.
+   * @param link The link.
+   * @return Returns the session.
+   */
+  public Session openSession( ILink link) throws IOException
+  {
+    int id = sendSessionOpenRequest( link, version);
+    
+    SessionInfo info = new SessionInfo();
+    List<SessionInfo> list = sessions.get( link);
+    if ( list == null)
+    {
+      list = new ArrayList<SessionInfo>( 1);
+      sessions.put( link, list);
+    }
+    
+    for( int i=list.size(); i<=id; i++) list.add( null);
+    list.set( id, info);
+    
+    return new Session( this, link, id);
   }
   
   /**
-   * Pop the last dispatcher off the stack.
+   * Close a session over the specified link and return session.
+   * @param link The link.
+   * @param session The session number.
    */
-  public void popDispatcher()
+  public void closeSession( ILink link, int session) throws IOException
   {
-    dispatchers.pop();
+    sendSessionCloseRequest( link, session);
   }
   
   /**
    * Attach to the element on the specified xpath.
-   * @param link The remote link.
+   * @param link The link.
+   * @param session The session number.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( ILink link, String xpath, IExternalReference reference) throws IOException
+  public void attach( ILink link, int session, String xpath, IExternalReference reference) throws IOException
   {
     if ( link != null && link.isOpen())
     {
-      sendVersion( link, (byte)1);
-      if ( dispatchers.empty()) pushDispatcher( reference.getModel().getDispatcher());
+      SessionInfo info = getSession( link, session);
+      if ( info.xpath != null) throw new IOException( "Protocol only supports one concurrent attach operation per session.");
       
-      ConnectionInfo info = new ConnectionInfo();
       info.xpath = xpath;
       info.element = reference;
-      map.put( link, info);
+      info.dispatcher = reference.getModel().getDispatcher();
       
-      sendAttachRequest( link, xpath);
+      sendAttachRequest( link, session, xpath);
       
-      info.listener = new Listener( link, xpath, reference);
+      info.listener = new Listener( link, session, xpath, reference);
       info.listener.install( reference);
     }
     else
     {
-      throw new CachingException( "Unable to connect to server.");
+      throw new IOException( "Link not open.");
     }
   }
 
   /**
    * Detach from the element on the specified path.
-   * @param link The remote link.
-   * @param xpath The XPath expression.
-   * @param reference The reference.
+   * @param link The link.
+   * @param session The session number.
    */
-  public void detach( ILink link, String xpath, IExternalReference reference) throws IOException
+  public void detach( ILink link, int session) throws IOException
   {
-    try
+    sendDetachRequest( link, session);
+    
+    SessionInfo info = getSession( link, session);
+    if ( info != null)
     {
-      sendDetachRequest( link, xpath);
-    }
-    finally
-    {
-      popDispatcher();
+      info.xpath = null;
+      info.element = null;
+      info.dispatcher = null;
     }
   }
-  
+
+  /**
+   * Perform a remote query.
+   * @param link The link.
+   * @param session The session number.
+   * @param xpath The query.
+   * @param timeout The timeout to wait for a response.
+   * @return Returns null or the response.
+   */
+  public Object query( ILink link, int session, String xpath, int timeout) throws IOException
+  {
+    if ( link != null && link.isOpen())
+    {
+      return sendQueryRequest( link, session, xpath, timeout);
+    }
+    else
+    {
+      throw new IOException( "Link not open.");
+    }
+  }
+
+  /**
+   * Perform a remote invocation of the specified script.
+   * @param link The link.
+   * @param session The session number.
+   * @param script The script to be executed.
+   * @param timeout The timeout to wait for a response.
+   * @return Returns null or the response.
+   */
+  public Object execute( ILink link, int session, IModelObject script, int timeout) throws IOException
+  {
+    if ( link != null && link.isOpen())
+    {
+      return sendExecuteRequest( link, session, script, timeout);
+    }
+    else
+    {
+      throw new IOException( "Link not open.");
+    }
+  }
+
   /**
    * Find the element on the specified xpath and attach listeners.
    * @param sender The sender.
+   * @param session The session number.
    * @param xpath The xpath expression.
    */
-  protected void doAttach( ILink sender, String xpath) throws IOException
+  protected void doAttach( ILink sender, int session, String xpath) throws IOException
   {
     try
     {
@@ -185,57 +255,56 @@ public class Protocol implements ILink.IListener
       IModelObject copy = null;
       if ( target != null)
       {
-        ConnectionInfo info = new ConnectionInfo();
+        SessionInfo info = getSession( sender, session);
         info.xpath = xpath;
         info.element = target;
-        map.put( sender, info);
         
         // make sure target is synced since that is what we are requesting
         target.getChildren();
-        copy = encode( sender, target, true);
+        copy = encode( sender, session, target, true);
         
-        info.listener = new Listener( sender, xpath, target);
+        info.listener = new Listener( sender, session, xpath, target);
         info.listener.install( target);
       }
-      sendAttachResponse( sender, copy);
+      sendAttachResponse( sender, session, copy);
     }
     catch( PathSyntaxException e)
     {
-      sendError( sender, e.getMessage());
+      sendError( sender, session, e.getMessage());
     }
   }
   
   /**
    * Remove listeners from the element on the specified xpath.
    * @param sender The sender.
-   * @param xpath The xpath expression.
+   * @param session The session number.
    */
-  protected void doDetach( ILink sender, String xpath)
+  protected void doDetach( ILink sender, int session)
   {
-    map.get( sender).index.clear();
-    
-    try
+    SessionInfo info = getSession( sender, session);
+    if ( info != null)
     {
-      IExpression expr = XPath.compileExpression( xpath);
-      IModelObject target = expr.queryFirst( context);
-      if ( target != null)
+      info.index.clear();
+      
+      if ( info.listener != null)
       {
-        Listener listener = new Listener( sender, xpath, target);
-        listener.uninstall( target);
+        info.listener.uninstall();
+        info.listener = null;
       }
-    }
-    catch( PathSyntaxException e)
-    {
-      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
+      
+      info.xpath = null;
+      info.element = null;
     }
   }
 
   /**
    * Execute the specified query and return the result.
    * @param sender The sender.
+   * @param session The session number.
    * @param xpath The query.
    */
-  protected void doQuery( ILink sender, String xpath) throws IOException
+  @SuppressWarnings("unchecked")
+  protected void doQuery( ILink sender, int session, String xpath) throws IOException
   {
     try
     {
@@ -248,12 +317,97 @@ public class Protocol implements ILink.IListener
         case NUMBER:  result = expr.evaluateNumber( context); break;
         case BOOLEAN: result = expr.evaluateBoolean( context); break;
       }
-      sendQueryResponse( sender, result);
+
+      IModelObject response = new ModelObject( "response");
+      Xlate.set( response, "type", createTypeName( result));
+      if ( result instanceof List) 
+      {
+        for( IModelObject node: (List<IModelObject>)result)
+          response.addChild( node.cloneTree());
+      }
+      else
+      {
+        response.setValue( result);
+      }
+      
+      sendQueryResponse( sender, session, response);
     }
     catch( PathSyntaxException e)
     {
-      try { sendError( sender, e.getMessage());} catch( IOException e2) {}
+      try { sendError( sender, session, e.getMessage());} catch( IOException e2) {}
     }
+  }
+  
+  /**
+   * Execute the specified script.
+   * @param sender The sender.
+   * @param session The session number.
+   * @param script The script.
+   */
+  @SuppressWarnings("unchecked")
+  protected void doExecute( ILink sender, int session, IModelObject script)
+  {
+    ModelObject response = null;
+    
+    try
+    {
+      XActionDocument doc = new XActionDocument( script);
+      ScriptAction action = doc.createScript();
+      Object[] results = action.run( context);
+      
+      response = new ModelObject( "response");
+      if ( results != null && results.length > 0)
+      {
+        Object result = results[ 0];
+        Xlate.set( response, "type", createTypeName( result));
+        if ( result instanceof List) 
+        {
+          for( IModelObject node: (List<IModelObject>)result)
+            response.addChild( node.cloneTree());
+        }
+        else
+        {
+          response.setValue( result);
+        }
+      }
+    }
+    catch( Throwable t)
+    {
+      log.exception( t);
+      response = new ModelObject( "exception");
+      Xlate.set( response, "class", t.getClass().getName());
+      Xlate.set( response, t.getMessage());
+    }
+    
+    try
+    {
+      sendExecuteResponse( sender, session, response);
+    } 
+    catch( IOException e)
+    {
+      log.exception( e);
+    }
+  }
+  
+  /**
+   * Close the specified session.
+   * @param sender The sender.
+   * @param session The session number.
+   */
+  protected void doSessionClose( ILink sender, int session)
+  {
+    deallocSession( sender, session);
+  }
+  
+  /**
+   * Close the specified session.
+   * @param link The link.
+   * @param session The session.
+   */
+  protected void doClose( ILink link, int session)
+  {
+    doDetach( link, session);
+    deallocSession( link, session);
   }
   
   /* (non-Javadoc)
@@ -262,8 +416,15 @@ public class Protocol implements ILink.IListener
   @Override
   public void onClose( ILink link)
   {
-    ConnectionInfo info = map.get( link);
-    info.listener.uninstall();
+    List<SessionInfo> list = getSessions( link);
+    for( int i=0; i<list.size(); i++)
+    {
+      SessionInfo info = list.get( i);
+      if ( info != null)
+      {
+        dispatch( info, new CloseRunnable( link, i));
+      }
+    }
   }
 
   /* (non-Javadoc)
@@ -287,32 +448,38 @@ public class Protocol implements ILink.IListener
   {
     try
     {
-      Type type = readMessageType( buffer);
+      int byte0 = buffer.get();
+      Type type = Type.values()[ byte0 & 0x3f];
       
-      int length = readMessageLength( buffer);
+      int session = readMessageSession( byte0, buffer);
+      
+      int length = readMessageLength( byte0, buffer);
       if ( length > buffer.remaining()) return false;
       
       switch( type)
       {
-        case version:         handleVersion( link, buffer, length); return true;
-        case error:           handleError( link, buffer, length); return true;
-        case attachRequest:   handleAttachRequest( link, buffer, length); return true;
-        case attachResponse:  handleAttachResponse( link, buffer, length); return true;
-        case detachRequest:   handleDetachRequest( link, buffer, length); return true;
-        case syncRequest:     handleSyncRequest( link, buffer, length); return true;
-        case syncResponse:    handleSyncResponse( link, buffer, length); return true;
-        case addChild:        handleAddChild( link, buffer, length); return true;
-        case removeChild:     handleRemoveChild( link, buffer, length); return true;
-        case changeAttribute: handleChangeAttribute( link, buffer, length); return true;
-        case clearAttribute:  handleClearAttribute( link, buffer, length); return true;
-        case changeDirty:     handleChangeDirty( link, buffer, length); return true;
-        case queryRequest:    handleQueryRequest( link, buffer, length); return true;
-        case queryResponse:   handleQueryResponse( link, buffer, length); return true;
-        case executeRequest:  handleExecuteRequest( link, buffer, length); return true;
-        case executeResponse: handleExecuteResponse( link, buffer, length); return true;
-        case debugStepIn:     handleDebugStepIn( link, buffer, length); return true;
-        case debugStepOver:   handleDebugStepOver( link, buffer, length); return true;
-        case debugStepOut:    handleDebugStepOut( link, buffer, length); return true;
+        case sessionOpenRequest:  handleSessionOpenRequest( link, buffer, length); return true;
+        case sessionOpenResponse: handleSessionOpenResponse( link, buffer, length); return true;
+        case sessionCloseRequest: handleSessionCloseRequest( link, session, buffer, length); return true;
+        
+        case error:           handleError( link, session, buffer, length); return true;
+        case attachRequest:   handleAttachRequest( link, session, buffer, length); return true;
+        case attachResponse:  handleAttachResponse( link, session, buffer, length); return true;
+        case detachRequest:   handleDetachRequest( link, session, buffer, length); return true;
+        case syncRequest:     handleSyncRequest( link, session, buffer, length); return true;
+        case syncResponse:    handleSyncResponse( link, session, buffer, length); return true;
+        case addChild:        handleAddChild( link, session, buffer, length); return true;
+        case removeChild:     handleRemoveChild( link, session, buffer, length); return true;
+        case changeAttribute: handleChangeAttribute( link, session, buffer, length); return true;
+        case clearAttribute:  handleClearAttribute( link, session, buffer, length); return true;
+        case changeDirty:     handleChangeDirty( link, session, buffer, length); return true;
+        case queryRequest:    handleQueryRequest( link, session, buffer, length); return true;
+        case queryResponse:   handleQueryResponse( link, session, buffer, length); return true;
+        case executeRequest:  handleExecuteRequest( link, session, buffer, length); return true;
+        case executeResponse: handleExecuteResponse( link, session, buffer, length); return true;
+        case debugStepIn:     handleDebugStepIn( link, session, buffer, length); return true;
+        case debugStepOver:   handleDebugStepOver( link, session, buffer, length); return true;
+        case debugStepOut:    handleDebugStepOut( link, session, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
@@ -323,57 +490,121 @@ public class Protocol implements ILink.IListener
   }
   
   /**
-   * Send the protocol version.
+   * Send an session open request.
    * @param link The link.
    * @param version The version.
+   * @return Returns the session number from the session response.
    */
-  public final void sendVersion( ILink link, short version) throws IOException
+  public final int sendSessionOpenRequest( ILink link, short version) throws IOException
   {
-    log.debugf( "sendVersion: %d", version);
+    log.debugf( "sendSessionOpenRequest: %d", version);
     initialize( buffer);
     buffer.putShort( version);
-    finalize( buffer, Type.version, 2);
-    link.send( buffer);
+    finalize( buffer, Type.sessionOpenRequest, 0, 2);
+    
+    byte[] response = send( link, buffer, timeout);
+    return ((int)response[ 0] << 24) + ((int)response[ 1] << 16) + ((int)response[ 2] << 8) + ((int)response[ 3]);
   }
   
-   /**
+  /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleVersion( ILink link, ByteBuffer buffer, int length)
+  private final void handleSessionOpenRequest( ILink link, ByteBuffer buffer, int length)
   {
     int version = buffer.getShort();
-    log.debugf( "handleVersion: %d", version);
+    log.debugf( "handleSessionOpenRequest: %d", version);
     if ( version != Protocol.version)
     {
       link.close();
+      return;
     }
+
+    try
+    {
+      sendSessionOpenResponse( link, allocSession( link));
+    }
+    catch( IOException e)
+    {
+      log.exception( e);
+    }
+  }
+  
+  /**
+   * Send the session open response.
+   * @param link The link.
+   * @param session The session id.
+   */
+  public final void sendSessionOpenResponse( ILink link, int session) throws IOException
+  {
+    log.debugf( "sendSessionOpenRequest: %d", session);
+    initialize( buffer);
+    buffer.putInt( session);
+    finalize( buffer, Type.sessionOpenResponse, 0, 4);
+    link.send( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleSessionOpenResponse( ILink link, ByteBuffer buffer, int length)
+  {
+    queueResponse( buffer, length);
+  }
+  
+  /**
+   * Send an session close request.
+   * @param link The link.
+   * @param session The session number.
+   */
+  public final void sendSessionCloseRequest( ILink link, int session) throws IOException
+  {
+    log.debugf( "sendSessionCloseRequest(%d)", session);
+    initialize( buffer);
+    finalize( buffer, Type.sessionCloseRequest, session, 0);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleSessionCloseRequest( ILink link, int session, ByteBuffer buffer, int length)
+  {
+    dispatch( getSession( link, session), new SessionCloseRunnable( link, session));
   }
   
   /**
    * Send an error message.
    * @param link The link.
+   * @param session The session number.
    * @param message The error message.
    */
-  public final void sendError( ILink link, String message) throws IOException
+  public final void sendError( ILink link, int session, String message) throws IOException
   {
     log.debugf( "sendError: %s", message);
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.error, bytes.length);
+    finalize( buffer, Type.error, session, bytes.length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleError( ILink link, ByteBuffer buffer, int length)
+  private final void handleError( ILink link, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
@@ -394,72 +625,76 @@ public class Protocol implements ILink.IListener
   /**
    * Send an attach request message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    */
-  public final void sendAttachRequest( ILink link, String xpath) throws IOException
+  public final void sendAttachRequest( ILink link, int session, String xpath) throws IOException
   {
-    log.debugf( "sendAttachRequest: %s", xpath);
+    log.debugf( "sendAttachRequest(%d): %s", session, xpath);
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.attachRequest, bytes.length);
+    finalize( buffer, Type.attachRequest, session, bytes.length);
 
     // send and wait for response
     byte[] response = send( link, buffer, timeout);
-    ICompressor compressor = map.get( link).compressor;
+    ICompressor compressor = getSession( link, session).compressor;
     IModelObject element = compressor.decompress( response, 0);
-    log.debugf( "handleAttachResponse: %s\n", element.getType());
-    handleAttachResponse( link, element);
+    log.debugf( "handleAttachResponse(%d): %s\n", session, element.getType());
+    handleAttachResponse( link, session, element);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachRequest( ILink link, ByteBuffer buffer, int length)
+  private final void handleAttachRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    log.debugf( "handleAttachRequest: %s", new String( bytes));
-    handleAttachRequest( link, new String( bytes));
+    log.debugf( "handleAttachRequest(%d): %s", session, new String( bytes));
+    handleAttachRequest( link, session, new String( bytes));
   }
   
   /**
    * Handle an attach request.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    */
-  protected void handleAttachRequest( ILink link, String xpath)
+  protected void handleAttachRequest( ILink link, int session, String xpath)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new AttachRunnable( link, xpath));
+    dispatch( getSession( link, session), new AttachRunnable( link, session, xpath));
   }
 
   /**
    * Send an attach response message.
    * @param link The link.
+   * @param session The session number.
    * @param element The element.
    */
-  public final void sendAttachResponse( ILink link, IModelObject element) throws IOException
+  public final void sendAttachResponse( ILink link, int session, IModelObject element) throws IOException
   {
-    log.debugf( "sendAttachResponse: %s", element.getType());
+    log.debugf( "sendAttachResponse(%d): %s", session, element.getType());
     initialize( buffer);
-    ICompressor compressor = map.get( link).compressor;
+    ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.attachResponse, bytes.length);
+    finalize( buffer, Type.attachResponse, session, bytes.length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachResponse( ILink link, ByteBuffer buffer, int length)
+  private final void handleAttachResponse( ILink link, int session, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
@@ -467,55 +702,52 @@ public class Protocol implements ILink.IListener
   /**
    * Handle an attach response.
    * @param link The link.
+   * @param session The session number.
    * @param element The element.
    */
-  protected void handleAttachResponse( ILink link, IModelObject element)
+  protected void handleAttachResponse( ILink link, int session, IModelObject element)
   {
-    IExternalReference attached = (IExternalReference)map.get( link).element;
+    IExternalReference attached = (IExternalReference)getSession( link, session).element;
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
-      cachingPolicy.update( attached, decode( link, element));
+      cachingPolicy.update( attached, decode( link, session, element));
     }
   }
   
   /**
    * Send an detach request message.
    * @param link The link.
-   * @param xpath The xpath.
+   * @param session The session number.
    */
-  public final void sendDetachRequest( ILink link, String xpath) throws IOException
+  public final void sendDetachRequest( ILink link, int session) throws IOException
   {
     initialize( buffer);
-    byte[] bytes = xpath.getBytes();
-    buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.detachRequest, bytes.length);
+    finalize( buffer, Type.detachRequest, session, 0);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDetachRequest( ILink link, ByteBuffer buffer, int length)
+  private final void handleDetachRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ length];
-    buffer.get( bytes);
-    log.debugf( "handleDetachRequest: %s", new String( bytes));
-    handleDetachRequest( link, new String( bytes));
+    log.debugf( "handleDetachRequest(%d)", session);
+    handleDetachRequest( link, session);
   }
   
   /**
    * Handle an attach request.
    * @param link The link.
-   * @param xpath The xpath.
+   * @param session The session number.
    */
-  protected void handleDetachRequest( ILink link, String xpath)
+  protected void handleDetachRequest( ILink link, int session)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new DetachRunnable( link, xpath));
+    dispatch( getSession( link, session), new DetachRunnable( link, session));
   }
   
   /**
@@ -524,64 +756,65 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSyncRequest( IExternalReference reference) throws IOException
   {
-    log.debugf( "sendSyncRequest: %s", reference.getType());
-    
     KeyRecord key = keys.get( reference);
+    
+    log.debugf( "sendSyncRequest(%d): %s", key.session, reference.getType());
     
     initialize( buffer);
     byte[] bytes = key.key.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.syncRequest, bytes.length);
+    finalize( buffer, Type.syncRequest, key.session, bytes.length);
     
     // send and wait for response
     send( key.link, buffer, timeout);
-    handleSyncResponse( key.link);
+    handleSyncResponse( key.link, key.session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncRequest( ILink link, ByteBuffer buffer, int length)
+  private final void handleSyncRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleSyncRequest( link, new String( bytes));
+    handleSyncRequest( link, session, new String( bytes));
   }
   
   /**
    * Handle a sync request.
    * @param link The link.
+   * @param session The session number.
    * @param key The reference key.
    */
-  protected void handleSyncRequest( ILink sender, String key)
+  protected void handleSyncRequest( ILink sender, int session, String key)
   {
-    log.debugf( "handleSyncRequest: %s", key);
-    
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new SyncRunnable( sender, key));
+    dispatch( getSession( sender, session), new SyncRunnable( sender, session, key));
   }
   
   /**
    * Send an sync response message.
    * @param link The link.
+   * @param session The session number.
    */
-  public final void sendSyncResponse( ILink link) throws IOException
+  public final void sendSyncResponse( ILink link, int session) throws IOException
   {
     initialize( buffer);
-    finalize( buffer, Type.syncResponse, 0);
+    finalize( buffer, Type.syncResponse, session, 0);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncResponse( ILink link, ByteBuffer buffer, int length)
+  private final void handleSyncResponse( ILink link, int session, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
@@ -589,8 +822,9 @@ public class Protocol implements ILink.IListener
   /**
    * Handle a sync response.
    * @param link The link.
+   * @param session The session number.
    */
-  protected void handleSyncResponse( ILink link)
+  protected void handleSyncResponse( ILink link, int session)
   {
     // Nothing to do here
   }
@@ -598,74 +832,77 @@ public class Protocol implements ILink.IListener
   /**
    * Send an add child message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( ILink link, String xpath, IModelObject element, int index) throws IOException
+  public final void sendAddChild( ILink link, int session, String xpath, IModelObject element, int index) throws IOException
   {
-    log.debugf( "sendAddChild: %s, %s", xpath, element.getType());    
+    log.debugf( "sendAddChild(%d): %s, %s", session, xpath, element.getType());    
     
     initialize( buffer);
     int length = writeString( xpath);
-    length += writeElement( map.get( link).compressor, element);
+    length += writeElement( getSession( link, session).compressor, element);
     buffer.putInt( index); length += 4;
-    finalize( buffer, Type.addChild, length);
+    finalize( buffer, Type.addChild, session, length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAddChild( ILink link, ByteBuffer buffer, int length)
+  private final void handleAddChild( ILink link, int session, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( link, xpath, bytes, index);
+    handleAddChild( link, session, xpath, bytes, index);
   }
   
   /**
    * Handle an add child message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The path from the root to the parent.
    * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( ILink link, String xpath, byte[] child, int index)
+  protected void handleAddChild( ILink link, int session, String xpath, byte[] child, int index)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new AddChildEvent( link, xpath, child, index));
+    dispatch( getSession( link, session), new AddChildEvent( link, session, xpath, child, index));
   }
   
   /**
    * Process an add child event in the appropriate thread.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath of the parent.
    * @param bytes The child that was added.
    * @param index The index of insertion.
    */
-  private void processAddChild( ILink link, String xpath, byte[] bytes, int index)
+  private void processAddChild( ILink link, int session, String xpath, byte[] bytes, int index)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = map.get( link).element;
+      IModelObject attached = getSession( link, session).element;
       if ( attached == null) return;
       
       IExpression parentExpr = XPath.createExpression( xpath);
       if ( parentExpr != null)
       {
         IModelObject parent = parentExpr.queryFirst( attached);
-        IModelObject child = map.get( link).compressor.decompress( bytes, 0);
-        log.debugf( "processAddChild: %s, %s", xpath, child.getType());            
+        IModelObject child = getSession( link, session).compressor.decompress( bytes, 0);
+        log.debugf( "processAddChild(%d): %s, %s", session, xpath, child.getType());            
         if ( parent != null) 
         {
-          IModelObject childElement = decode( link, child);
+          IModelObject childElement = decode( link, session, child);
           parent.addChild( childElement, index);
         }
       }
@@ -679,58 +916,61 @@ public class Protocol implements ILink.IListener
   /**
    * Send an add child message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( ILink link, String xpath, int index) throws IOException
+  public final void sendRemoveChild( ILink link, int session, String xpath, int index) throws IOException
   {
-    log.debugf( "sendRemoveChild: %s, %d", xpath, index);    
+    log.debugf( "sendRemoveChild(%d): %s, %d", session, xpath, index);    
     
     initialize( buffer);
     int length = writeString( xpath);
     buffer.putInt( index); length += 4;
-    finalize( buffer, Type.removeChild, length);
+    finalize( buffer, Type.removeChild, session, length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleRemoveChild( ILink link, ByteBuffer buffer, int length)
+  private final void handleRemoveChild( ILink link, int session, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     int index = buffer.getInt();
-    handleRemoveChild( link, xpath, index);
+    handleRemoveChild( link, session, xpath, index);
   }
   
   /**
    * Handle an remove child message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The path from the root to the parent.
    * @param index The insertion index.
    */
-  protected void handleRemoveChild( ILink link, String xpath, int index)
+  protected void handleRemoveChild( ILink link, int session, String xpath, int index)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new RemoveChildEvent( link, xpath, index));
+    dispatch( getSession( link, session), new RemoveChildEvent( link, session, xpath, index));
   }
   
   /**
    * Process an remove child event in the appropriate thread.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath of the parent.
    * @param index The index of insertion.
    */
-  private void processRemoveChild( ILink link, String xpath, int index)
+  private void processRemoveChild( ILink link, int session, String xpath, int index)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = map.get( link).element;
+      IModelObject attached = getSession( link, session).element;
       if ( attached == null) return;
       
       IExpression parentExpr = XPath.createExpression( xpath);
@@ -754,11 +994,12 @@ public class Protocol implements ILink.IListener
   /**
    * Send an change attribute message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( ILink link, String xpath, String attrName, Object value) throws IOException
+  public final void sendChangeAttribute( ILink link, int session, String xpath, String attrName, Object value) throws IOException
   {
     byte[] bytes = serialize( value);
     
@@ -766,51 +1007,53 @@ public class Protocol implements ILink.IListener
     int length = writeString( xpath);
     length += writeString( attrName);
     length += writeBytes( bytes, 0, bytes.length, true);
-    finalize( buffer, Type.changeAttribute, length);
+    finalize( buffer, Type.changeAttribute, session, length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeAttribute( ILink link, ByteBuffer buffer, int length)
+  private final void handleChangeAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
     byte[] attrValue = readBytes( buffer, true);
-    handleChangeAttribute( link, xpath, attrName, deserialize( attrValue));
+    handleChangeAttribute( link, session, xpath, attrName, deserialize( attrValue));
   }
   
   /**
    * Handle an attribute change message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    * @param attrValue The attribute value.
    */
-  protected void handleChangeAttribute( ILink link, String xpath, String attrName, Object attrValue)
+  protected void handleChangeAttribute( ILink link, int session, String xpath, String attrName, Object attrValue)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ChangeAttributeEvent( link, xpath, attrName, attrValue));
+    dispatch( getSession( link, session), new ChangeAttributeEvent( link, session, xpath, attrName, attrValue));
   }
   
   /**
    * Process an change attribute event in the appropriate thread.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath of the element.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  private void processChangeAttribute( ILink link, String xpath, String attrName, Object attrValue)
+  private void processChangeAttribute( ILink link, int session, String xpath, String attrName, Object attrValue)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = map.get( link).element;
+      IModelObject attached = getSession( link, session).element;
       if ( attached == null) return;
       
       // the empty string and null string both serialize as byte[ 0]
@@ -832,56 +1075,59 @@ public class Protocol implements ILink.IListener
   /**
    * Send a clear attribute message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    * @param attrName The name of the attribute.
    */
-  public final void sendClearAttribute( ILink link, String xpath, String attrName) throws IOException
+  public final void sendClearAttribute( ILink link, int session, String xpath, String attrName) throws IOException
   {
     initialize( buffer);
     int length = writeString( xpath);
     length += writeString( attrName);
-    finalize( buffer, Type.clearAttribute, length);
+    finalize( buffer, Type.clearAttribute, session, length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleClearAttribute( ILink link, ByteBuffer buffer, int length)
+  private final void handleClearAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     String attrName = readString( buffer);
-    handleClearAttribute( link, xpath, attrName);
+    handleClearAttribute( link, session, xpath, attrName);
   }
   
   /**
    * Handle an attribute change message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath from the root to the element.
    * @param attrName The name of the attribute.
    */
-  protected void handleClearAttribute( ILink link, String xpath, String attrName)
+  protected void handleClearAttribute( ILink link, int session, String xpath, String attrName)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ClearAttributeEvent( link, xpath, attrName));
+    dispatch( getSession( link, session), new ClearAttributeEvent( link, session, xpath, attrName));
   }
 
   /**
    * Process a clear attribute event in the appropriate thread.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath of the element.
    * @param attrName The name of the attribute.
    */
-  private void processClearAttribute( ILink link, String xpath, String attrName)
+  private void processClearAttribute( ILink link, int session, String xpath, String attrName)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = map.get( link).element;
+      IModelObject attached = getSession( link, session).element;
       if ( attached == null) return;
       
       IExpression elementExpr = XPath.createExpression( xpath);
@@ -900,56 +1146,59 @@ public class Protocol implements ILink.IListener
   /**
    * Send a change dirty message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
    * @param dirty The dirty state.
    */
-  public final void sendChangeDirty( ILink link, String xpath, boolean dirty) throws IOException
+  public final void sendChangeDirty( ILink link, int session, String xpath, boolean dirty) throws IOException
   {
     initialize( buffer);
     int length = writeString( xpath);
     buffer.put( dirty? (byte)1: 0); length++;
-    finalize( buffer, Type.changeDirty, length);
+    finalize( buffer, Type.changeDirty, session, length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeDirty( ILink link, ByteBuffer buffer, int length)
+  private final void handleChangeDirty( ILink link, int session, ByteBuffer buffer, int length)
   {
     String xpath = readString( buffer);
     boolean dirty = buffer.get() != 0;
-    handleChangeDirty( link, xpath, dirty);
+    handleChangeDirty( link, session, xpath, dirty);
   }
   
   /**
    * Handle a change dirty message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath from the root to the element.
    * @param dirty The dirty state.
    */
-  protected void handleChangeDirty( ILink link, String xpath, boolean dirty)
+  protected void handleChangeDirty( ILink link, int session, String xpath, boolean dirty)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new ChangeDirtyEvent( link, xpath, dirty));
+    dispatch( getSession( link, session), new ChangeDirtyEvent( link, session, xpath, dirty));
   }
 
   /**
    * Process a change dirty event in the appropriate thread.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath of the element.
    * @param dirty The new dirty state.
    */
-  private void processChangeDirty( ILink link, String xpath, boolean dirty)
+  private void processChangeDirty( ILink link, int session, String xpath, boolean dirty)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = map.get( link).element;
+      IModelObject attached = getSession( link, session).element;
       if ( attached == null) return;
       
       IExpression elementExpr = XPath.createExpression( xpath);
@@ -972,234 +1221,239 @@ public class Protocol implements ILink.IListener
   /**
    * Send a query request message.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The xpath.
+   * @param timeout The timeout in milliseconds.
    */
-  public final void sendQueryRequest( ILink link, String xpath) throws IOException
+  public final Object sendQueryRequest( ILink link, int session, String xpath, int timeout) throws IOException
   {
     initialize( buffer);
     byte[] bytes = xpath.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.queryRequest, bytes.length);
-    send( link, buffer, timeout);
+    finalize( buffer, Type.queryRequest, session, bytes.length);
+    
+    byte[] response = send( link, buffer, timeout);
+    ICompressor compressor = getSession( link, session).compressor;
+    IModelObject element = compressor.decompress( response, 0);
+    log.debugf( "handleQueryResponse(%d): %s\n", session, element.getType());
+    
+    return interpretResponse( element);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryRequest( ILink link, ByteBuffer buffer, int length)
+  private final void handleQueryRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleQueryRequest( link, new String( bytes));
+    handleQueryRequest( link, session, new String( bytes));
   }
   
   /**
    * Handle a query requset.
    * @param link The link.
+   * @param session The session number.
    * @param xpath The query.
    */
-  protected void handleQueryRequest( ILink link, String xpath)
+  protected void handleQueryRequest( ILink link, int session, String xpath)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new QueryRunnable( link, xpath));
+    dispatch( getSession( link, session), new QueryRunnable( link, session, xpath));
   }
   
   /**
    * Send a query response message.
    * @param link The link.
-   * @param result The result.
+   * @param session The session number.
+   * @param response The response.
    */
-  public final void sendQueryResponse( ILink link, Object result) throws IOException
+  public final void sendQueryResponse( ILink link, int session, IModelObject response) throws IOException
   {
     initialize( buffer);
-    byte[] bytes = serialize( result);
+    ICompressor compressor = getSession( link, session).compressor;
+    byte[] bytes = compressor.compress( response);
     buffer.put( bytes);
-    finalize( buffer, Type.queryResponse, bytes.length);
-
-    // wait for response
-    byte[] response = send( link, buffer, timeout);
-    handleQueryResponse( link, response);
+    finalize( buffer, Type.queryResponse, session, bytes.length);
+    link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryResponse( ILink link, ByteBuffer buffer, int length)
+  private final void handleQueryResponse( ILink link, int session, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
-  }
-  
-  /**
-   * Handle a query requset.
-   * @param link The link.
-   * @param bytes The serialized query result.
-   */
-  protected void handleQueryResponse( ILink link, byte[] bytes)
-  {
-    // TODO: finish this
   }
   
   /**
    * Send an execute request message.
    * @param link The link.
+   * @param session The session number.
    * @param script The script to execute.
+   * @param timeout The amount of time to wait for a response.
+   * @return Returns null or the execute response.
    */
-  public final void sendExecuteRequest( ILink link, IModelObject script) throws IOException
+  public final Object sendExecuteRequest( ILink link, int session, IModelObject script, int timeout) throws IOException
   {
-    log.debugf( "sendExecuteRequest: %s", script.getID());
+    log.debugf( "sendExecuteRequest(%d): %s", session, script.getID());
     
     initialize( buffer);
-    ICompressor compressor = map.get( link).compressor;
+    buffer.putShort( (short)version);
+    ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( script);
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.executeRequest, bytes.length);
+    finalize( buffer, Type.executeRequest, session, bytes.length);
 
-    // send and wait for response
-    byte[] response = send( link, buffer, timeout);
-    IModelObject element = compressor.decompress( response, 0);
-    log.debugf( "handleExecuteResponse: %s\n", element.getType());
-    handleExecuteResponse( link, element);
+    if ( timeout > 0)
+    {
+      byte[] response = send( link, buffer, timeout);
+      IModelObject element = compressor.decompress( response, 0);
+      log.debugf( "handleExecuteResponse: %s\n", element.getType());
+      return interpretResponse( element);
+    }
+    else
+    {
+      link.send( buffer);
+      return null;
+    }
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteRequest( ILink link, ByteBuffer buffer, int length)
+  private final void handleExecuteRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
+    if ( buffer.getShort() != version)
+    {
+      link.close();
+      return;
+    }
+    
     buffer.get( bytes);
-    ICompressor compressor = map.get( link).compressor;
+    ICompressor compressor = getSession( link, session).compressor;
     IModelObject script = compressor.decompress( bytes, 0);
-    log.debugf( "handleExecuteRequest: %s", script.getID());
-    handleExecuteRequest( link, script);
+    log.debugf( "handleExecuteRequest(%d): %s", session, script.getID());
+    handleExecuteRequest( link, session, script);
   }
   
   /**
    * Handle an execute request.
    * @param link The link.
+   * @param session The session number.
    * @param script The script to execute.
    */
-  @SuppressWarnings("unchecked")
-  protected void handleExecuteRequest( ILink link, IModelObject script)
+  protected void handleExecuteRequest( ILink link, int session, IModelObject script)
   {
-    ModelObject response = null;
+    dispatch( getSession( link, session), new ExecuteRunnable( link, session, script));
+  }
+  
+  /**
+   * Returns the type name defined for this protocol.
+   * @param result The result object.
+   * @return Returns the type name defined for this protocol.
+   */
+  private String createTypeName( Object result)
+  {
+    if ( result instanceof List) return "nodes";
+    else if ( result instanceof String) return "string";
+    else if ( result instanceof Number) return "number";
+    else if ( result instanceof Boolean) return "boolean";
     
-    try
-    {
-      XActionDocument doc = new XActionDocument( script);
-      ScriptAction action = doc.createScript();
-      Object[] results = action.run( context);
-      
-      response = new ModelObject( "response");
-      if ( results != null && results.length > 0)
-      {
-        Object result = results[ 0];
-        if ( result instanceof List) 
-        {
-          Xlate.set( response, "type", IModelObject.class.getName());
-          for( IModelObject node: (List<IModelObject>)result)
-            response.addChild( node.cloneTree());
-        }
-        else
-        {
-          Xlate.set( response, "type", result.getClass().getName());
-          response.setValue( result);
-        }
-      }
-    }
-    catch( Throwable t)
-    {
-      log.exception( t);
-      response = new ModelObject( "exception");
-      Xlate.set( response, "class", t.getClass().getName());
-      Xlate.set( response, t.getMessage());
-    }
+    throw new IllegalStateException();
+  }
+  
+  /**
+   * Interpret a response to an execute request.
+   * @param response The response element.
+   * @return Returns the interpreted response object.
+   */
+  private Object interpretResponse( IModelObject response)
+  {
+    String type = Xlate.get( response, "type", (String)null);
+    if ( type == null) return null;
     
-    try
-    {
-      sendExecuteResponse( link, response);
-    } 
-    catch( IOException e)
-    {
-      log.exception( e);
-    }
+    if ( type.equals( "nodes")) return response.getChildren();
+    else if ( type.equals( "string")) return Xlate.get( response, "");
+    else if ( type.equals( "number")) return Xlate.get( response, 0);
+    else if ( type.equals( "boolean")) return Xlate.get( response, false);
+    
+    throw new IllegalStateException();
   }
 
   /**
    * Send an attach response message.
    * @param link The link.
+   * @param session The session number.
    * @param element The element.
    */
-  public final void sendExecuteResponse( ILink link, IModelObject element) throws IOException
+  public final void sendExecuteResponse( ILink link, int session, IModelObject element) throws IOException
   {
-    log.debugf( "sendExecuteResponse: %s", element.getType());
+    log.debugf( "sendExecuteResponse(%d): %s", session, element.getType());
     initialize( buffer);
-    ICompressor compressor = map.get( link).compressor;
+    ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( element);
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.executeResponse, bytes.length);
+    finalize( buffer, Type.executeResponse, session, bytes.length);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteResponse( ILink link, ByteBuffer buffer, int length)
+  private final void handleExecuteResponse( ILink link, int session, ByteBuffer buffer, int length)
   {
     queueResponse( buffer, length);
   }
   
   /**
-   * Handle an attach response.
-   * @param link The link.
-   * @param element The element.
-   */
-  protected void handleExecuteResponse( ILink link, IModelObject element)
-  {
-  }
-  
-  /**
    * Send a debug step message.
    * @param link The link.
+   * @param session The session number.
    */
-  public final void sendDebugStepIn( ILink link) throws IOException
+  public final void sendDebugStepIn( ILink link, int session) throws IOException
   {
     initialize( buffer);
-    finalize( buffer, Type.debugStepIn, 0);
+    finalize( buffer, Type.debugStepIn, session, 0);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepIn( ILink link, ByteBuffer buffer, int length)
+  private final void handleDebugStepIn( ILink link, int session, ByteBuffer buffer, int length)
   {
-    handleDebugStepIn( link);
+    handleDebugStepIn( link, session);
   }
   
   /**
    * Handle a debug step.
    * @param link The link.
+   * @param session The session number.
    */
-  protected void handleDebugStepIn( ILink link)
+  protected void handleDebugStepIn( ILink link, int session)
   {
-    IDispatcher dispatcher = dispatchers.peek();
-    dispatcher.execute( new Runnable() {
+    dispatch( getSession( link, session), new Runnable() {
       public void run()
       {
         XAction.getDebugger().stepIn();
@@ -1210,32 +1464,34 @@ public class Protocol implements ILink.IListener
   /**
    * Send a debug step message.
    * @param link The link.
+   * @param session The session number.
    */
-  public final void sendDebugStepOver( ILink link) throws IOException
+  public final void sendDebugStepOver( ILink link, int session) throws IOException
   {
     initialize( buffer);
-    finalize( buffer, Type.debugStepOver, 0);
+    finalize( buffer, Type.debugStepOver, session, 0);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepOver( ILink link, ByteBuffer buffer, int length)
+  private final void handleDebugStepOver( ILink link, int session, ByteBuffer buffer, int length)
   {
-    handleDebugStepOver( link);
+    handleDebugStepOver( link, session);
   }
   
   /**
    * Handle a debug step.
    * @param link The link.
+   * @param session The session number.
    */
-  protected void handleDebugStepOver( ILink link)
+  protected void handleDebugStepOver( ILink link, int session)
   {
-    IDispatcher dispatcher = dispatchers.peek();
     dispatcher.execute( new Runnable() {
       public void run()
       {
@@ -1247,32 +1503,34 @@ public class Protocol implements ILink.IListener
   /**
    * Send a debug step message.
    * @param link The link.
+   * @param session The session number.
    */
-  public final void sendDebugStepOut( ILink link) throws IOException
+  public final void sendDebugStepOut( ILink link, int session) throws IOException
   {
     initialize( buffer);
-    finalize( buffer, Type.debugStepOut, 0);
+    finalize( buffer, Type.debugStepOut, session, 0);
     link.send( buffer);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
+   * @param session The session number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDebugStepOut( ILink link, ByteBuffer buffer, int length)
+  private final void handleDebugStepOut( ILink link, int session, ByteBuffer buffer, int length)
   {
-    handleDebugStepOut( link);
+    handleDebugStepOut( link, session);
   }
   
   /**
    * Handle a debug step.
    * @param link The link.
+   * @param session The session number.
    */
-  protected void handleDebugStepOut( ILink link)
+  protected void handleDebugStepOut( ILink link, int session)
   {
-    IDispatcher dispatcher = dispatchers.peek();
     dispatcher.execute( new Runnable() {
       public void run()
       {
@@ -1374,28 +1632,31 @@ public class Protocol implements ILink.IListener
   public static void initialize( ByteBuffer buffer)
   {
     buffer.clear();
-    buffer.position( 5);
+    buffer.position( 9);
   }
   
   /**
-   * Read the message type from the buffer.
+   * Read the session number from the buffer.
+   * @param byte0 The first byte of the message.
    * @param buffer The buffer.
-   * @return Returns the message type.
+   * @return Returns the session number.
    */
-  public static Type readMessageType( ByteBuffer buffer)
+  public static int readMessageSession( int byte0, ByteBuffer buffer)
   {
-    int index = buffer.get() & 0x7f;
-    return Type.values()[ index];
+    int mask = byte0 & 0x80;
+    if ( mask == 0) return buffer.get();
+    return buffer.getInt();
   }
   
   /**
    * Read the message length from the buffer.
+   * @param byte0 The first byte of the message.
    * @param buffer The buffer.
    * @return Returns the message length.
    */
-  public static int readMessageLength( ByteBuffer buffer)
+  public static int readMessageLength( int byte0, ByteBuffer buffer)
   {
-    int mask = buffer.get( buffer.position() - 1) & 0x80;
+    int mask = byte0 & 0x40;
     if ( mask == 0) return buffer.get();
     return buffer.getInt();
   }
@@ -1404,23 +1665,43 @@ public class Protocol implements ILink.IListener
    * Finalize the message by writing the header and preparing the buffer to be read.
    * @param buffer The buffer.
    * @param type The message type.
+   * @param session The session number.
    * @param length The message length.
    */
-  public static void finalize( ByteBuffer buffer, Type type, int length)
+  public static void finalize( ByteBuffer buffer, Type type, int session, int length)
   {
     buffer.limit( buffer.position());
+    
+    int mask = 0;
+    int position = 9;
     if ( length < 128)
     {
-      buffer.put( 3, (byte)type.ordinal());
-      buffer.put( 4, (byte)length);
-      buffer.position( 3);
+      position -= 1;
+      buffer.put( position, (byte)length);
     }
     else
     {
-      buffer.put( 0, (byte)(type.ordinal() | 0x80));
-      buffer.putInt( 1, length);
-      buffer.position( 0);
+      mask |= 0x40;
+      position -= 4;
+      buffer.putInt( position, length);
     }
+    
+    if ( session < 128)
+    {
+      position -= 1;
+      buffer.put( position, (byte)session);
+    }
+    else
+    {
+      mask |= 0x80;
+      position -= 4;
+      buffer.putInt( position, session);
+    }
+    
+    position -= 1;
+    buffer.put( position, (byte)(type.ordinal() | mask));
+    
+    buffer.position( position);
   }
   
   /**
@@ -1560,11 +1841,12 @@ public class Protocol implements ILink.IListener
   /**
    * Encode the specified element.
    * @param link The link.
+   * @param session The session number.
    * @param root True if the element is the root of the attachment.
    * @param element The element to be copied.
    * @return Returns the copy.
    */
-  protected IModelObject encode( ILink link, IModelObject element, boolean root)
+  protected IModelObject encode( ILink link, int session, IModelObject element, boolean root)
   {
     IModelObject encoded = null;
     
@@ -1574,7 +1856,7 @@ public class Protocol implements ILink.IListener
       encoded = new ModelObject( lRef.getType());
       
       // index reference so it can be synced remotely
-      if ( !root) encoded.setAttribute( "net:key", index( link, lRef));
+      if ( !root) encoded.setAttribute( "net:key", index( link, session, lRef));
       
       // enumerate static attributes for client
       for( String attrName: lRef.getStaticAttributes())
@@ -1611,7 +1893,7 @@ public class Protocol implements ILink.IListener
       // copy children
       for( IModelObject child: element.getChildren())
       {
-        encoded.addChild( encode( link, child, false));
+        encoded.addChild( encode( link, session, child, false));
       }
     }
     
@@ -1621,10 +1903,11 @@ public class Protocol implements ILink.IListener
   /**
    * Interpret the content of the specified server encoded subtree.
    * @param link The link.
+   * @param session The session number.
    * @param root The root of the encoded subtree.
    * @return Returns the decoded element.
    */
-  protected IModelObject decode( ILink link, IModelObject root)
+  protected IModelObject decode( ILink link, int session, IModelObject root)
   {
     //System.out.println( ((ModelObject)root).toXml());
     
@@ -1657,6 +1940,7 @@ public class Protocol implements ILink.IListener
         KeyRecord keyRecord = new KeyRecord();
         keyRecord.key = key;
         keyRecord.link = link;
+        keyRecord.session = session;
         keys.put( reference, keyRecord);
         
         rNode = reference;
@@ -1681,13 +1965,15 @@ public class Protocol implements ILink.IListener
   /**
    * Index the specified node.
    * @param link The link.
+   * @param session The session number.
    * @param node The node.
    * @return Returns the key.
    */
-  private String index( ILink link, IModelObject node)
+  private String index( ILink link, int session, IModelObject node)
   {
     String key = Identifier.generate( random, 13);
-    map.get( link).index.put( key, node);
+    System.out.printf( "index: %d: %s -> %s\n", session, node.getType(), key);
+    getSession( link, session).index.put( key, node);
     return key;
   }
   
@@ -1705,21 +1991,23 @@ public class Protocol implements ILink.IListener
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( ILink sender, String key)
+    public SyncRunnable( ILink sender, int session, String key)
     {
       this.sender = sender;
+      this.session = session;
       this.key = key;
     }
     
     public void run()
     {
-      IModelObject reference = map.get( sender).index.get( key);
+      SessionInfo info = getSession( sender, session);
+      IModelObject reference = info.index.get( key);
       if ( reference != null)
       {
         try
         {
           reference.getChildren();
-          sendSyncResponse( sender);
+          sendSyncResponse( sender, session);
         }
         catch( IOException e)
         {
@@ -1729,14 +2017,16 @@ public class Protocol implements ILink.IListener
     }
     
     private ILink sender;
+    private int session;
     private String key;
   }
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( ILink link, String xpath, byte[] child, int index)
+    public AddChildEvent( ILink link, int session, String xpath, byte[] child, int index)
     {
       this.link = link;
+      this.session = session;
       this.xpath = xpath;
       this.child = child;
       this.index = index;
@@ -1744,10 +2034,11 @@ public class Protocol implements ILink.IListener
     
     public void run()
     {
-      processAddChild( link, xpath, child, index);
+      processAddChild( link, session, xpath, child, index);
     }
     
     private ILink link;
+    private int session;
     private String xpath;
     private byte[] child;
     private int index;
@@ -1755,28 +2046,31 @@ public class Protocol implements ILink.IListener
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( ILink link, String xpath, int index)
+    public RemoveChildEvent( ILink link, int session, String xpath, int index)
     {
       this.link = link;
+      this.session = session;
       this.xpath = xpath;
       this.index = index;
     }
     
     public void run()
     {
-      processRemoveChild( link, xpath, index);
+      processRemoveChild( link, session, xpath, index);
     }
     
     private ILink link;
+    private int session;
     private String xpath;
     private int index;
   }
   
   private final class ChangeAttributeEvent implements Runnable
   {
-    public ChangeAttributeEvent( ILink link, String xpath, String attrName, Object attrValue)
+    public ChangeAttributeEvent( ILink link, int session, String xpath, String attrName, Object attrValue)
     {
       this.link = link;
+      this.session = session;
       this.xpath = xpath;
       this.attrName = attrName;
       this.attrValue = attrValue;
@@ -1784,10 +2078,11 @@ public class Protocol implements ILink.IListener
     
     public void run()
     {
-      processChangeAttribute( link, xpath, attrName, attrValue);
+      processChangeAttribute( link, session, xpath, attrName, attrValue);
     }
     
     private ILink link;
+    private int session;
     private String xpath;
     private String attrName;
     private Object attrValue;
@@ -1795,47 +2090,52 @@ public class Protocol implements ILink.IListener
   
   private final class ClearAttributeEvent implements Runnable
   {
-    public ClearAttributeEvent( ILink link, String xpath, String attrName)
+    public ClearAttributeEvent( ILink link, int session, String xpath, String attrName)
     {
       this.link = link;
+      this.session = session;
       this.xpath = xpath;
       this.attrName = attrName;
     }
     
     public void run()
     {
-      processClearAttribute( link, xpath, attrName);
+      processClearAttribute( link, session, xpath, attrName);
     }
     
     private ILink link;
+    private int session;
     private String xpath;
     private String attrName;
   }
   
   private final class ChangeDirtyEvent implements Runnable
   {
-    public ChangeDirtyEvent( ILink link, String xpath, boolean dirty)
+    public ChangeDirtyEvent( ILink link, int session, String xpath, boolean dirty)
     {
       this.link = link;
+      this.session = session;
       this.xpath = xpath;
       this.dirty = dirty;
     }
     
     public void run()
     {
-      processChangeDirty( link, xpath, dirty);
+      processChangeDirty( link, session, xpath, dirty);
     }
     
     private ILink link;
+    private int session;
     private String xpath;
     private boolean dirty;
   }
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( ILink sender, String xpath)
+    public AttachRunnable( ILink sender, int session, String xpath)
     {
       this.sender = sender;
+      this.session = session;
       this.xpath = xpath;
     }
     
@@ -1843,7 +2143,7 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        doAttach( sender, xpath);
+        doAttach( sender, session, xpath);
       } 
       catch( IOException e)
       {
@@ -1852,31 +2152,33 @@ public class Protocol implements ILink.IListener
     }
 
     private ILink sender;
+    private int session;
     private String xpath;
   }
   
   private final class DetachRunnable implements Runnable
   {
-    public DetachRunnable( ILink sender, String xpath)
+    public DetachRunnable( ILink sender, int session)
     {
       this.sender = sender;
-      this.xpath = xpath;
+      this.session = session;
     }
     
     public void run()
     {
-      doDetach( sender, xpath);
+      doDetach( sender, session);
     }
 
     private ILink sender;
-    private String xpath;
+    private int session;
   }
   
   private final class QueryRunnable implements Runnable
   {
-    public QueryRunnable( ILink sender, String xpath)
+    public QueryRunnable( ILink sender, int session, String xpath)
     {
       this.sender = sender;
+      this.session = session;
       this.xpath = xpath;
     }
     
@@ -1884,7 +2186,7 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        doQuery( sender, xpath);
+        doQuery( sender, session, xpath);
       } 
       catch( IOException e)
       {
@@ -1893,14 +2195,69 @@ public class Protocol implements ILink.IListener
     }
     
     private ILink sender;
+    private int session;
     private String xpath;
+  }
+  
+  private final class ExecuteRunnable implements Runnable
+  {
+    public ExecuteRunnable( ILink sender, int session, IModelObject script)
+    {
+      this.sender = sender;
+      this.session = session;
+      this.script = script;
+    }
+    
+    public void run()
+    {
+      doExecute( sender, session, script);
+    }
+    
+    private ILink sender;
+    private int session;
+    private IModelObject script;
+  }
+  
+  private final class SessionCloseRunnable implements Runnable
+  {
+    public SessionCloseRunnable( ILink sender, int session)
+    {
+      this.sender = sender;
+      this.session = session;
+    }
+    
+    public void run()
+    {
+      doSessionClose( sender, session);
+    }
+    
+    private ILink sender;
+    private int session;
+  }
+  
+  private final class CloseRunnable implements Runnable
+  {
+    public CloseRunnable( ILink sender, int session)
+    {
+      this.sender = sender;
+      this.session = session;
+    }
+    
+    public void run()
+    {
+      doClose( sender, session);
+    }
+    
+    private ILink sender;
+    private int session;
   }
   
   protected class Listener extends NonSyncingListener
   {
-    public Listener( ILink sender, String xpath, IModelObject root)
+    public Listener( ILink sender, int session, String xpath, IModelObject root)
     {
       this.sender = sender;
+      this.session = session;
       this.xpath = xpath;
       this.root = root;
     }
@@ -1922,8 +2279,8 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        IModelObject clone = encode( sender, child, false);
-        sendAddChild( sender, createPath( root, parent), clone, index);
+        IModelObject clone = encode( sender, session, child, false);
+        sendAddChild( sender, session, createPath( root, parent), clone, index);
       } 
       catch( IOException e)
       {
@@ -1943,7 +2300,7 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        sendRemoveChild( sender, createPath( root, parent), index);
+        sendRemoveChild( sender, session, createPath( root, parent), index);
       } 
       catch( IOException e)
       {
@@ -1967,7 +2324,7 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        sendChangeAttribute( sender, xpath, attrName, newValue);
+        sendChangeAttribute( sender, session, xpath, attrName, newValue);
       } 
       catch( IOException e)
       {
@@ -1991,7 +2348,7 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        sendClearAttribute( sender, xpath, attrName);
+        sendClearAttribute( sender, session, xpath, attrName);
       } 
       catch( IOException e)
       {
@@ -2013,7 +2370,7 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        sendChangeDirty( sender, createPath( root, object), dirty);
+        sendChangeDirty( sender, session, createPath( root, object), dirty);
       } 
       catch( IOException e)
       {
@@ -2045,6 +2402,7 @@ public class Protocol implements ILink.IListener
     }
 
     private ILink sender;
+    private int session;
     private String xpath;
     private IModelObject root;
   };
@@ -2061,20 +2419,110 @@ public class Protocol implements ILink.IListener
     return path.toString();
   }
   
+  /**
+   * Dispatch the specified Runnable using either the session dispatcher or the context dispatcher.
+   * @param info The session state object.
+   * @param runnable The runnable.
+   */
+  protected void dispatch( SessionInfo info, Runnable runnable)
+  {
+    if ( info.dispatcher != null)
+    {
+      info.dispatcher.execute( runnable);
+    }
+    else if ( dispatcher != null) 
+    {
+      dispatcher.execute( runnable);
+    }
+  }
+  
+  /**
+   * Allocate a session.
+   * @param link The link.
+   * @return Returns the session number.
+   */
+  private final int allocSession( ILink link)
+  {
+    List<SessionInfo> list = sessions.get( link);
+    if ( list == null)
+    {
+      list = new ArrayList<SessionInfo>();
+      sessions.put( link, list);
+    }
+    
+    for( int i=0; i<list.size(); i++)
+    {
+      if ( list.get( i) == null)
+      {
+        list.set( i, new SessionInfo());
+        return i;
+      }
+    }
+    
+    list.add( new SessionInfo());
+    return list.size() - 1;
+  }
+  
+  /**
+   * Deallocate a session.
+   * @param link The link.
+   * @param session The session number.
+   */
+  private final void deallocSession( ILink link, int session)
+  {
+    System.out.printf( "dealloc: %d\n", session);
+    List<SessionInfo> list = sessions.get( link);
+    if ( list != null) list.set( session, null);
+  }
+  
+  /**
+   * Returns the SessionInfo object for the specified session on the specified link.
+   * @param link The link.
+   * @param session The session.
+   * @return Returns the SessionInfo object for the specified session on the specified link.
+   */
+  protected final SessionInfo getSession( ILink link, int session)
+  {
+    List<SessionInfo> list = sessions.get( link);
+    if ( list != null) return list.get( session);
+    return null;
+  }
+  
+  /**
+   * Returns the SessionInfo objects on the specified link.
+   * @param link The link.
+   * @return Returns the SessionInfo objects on the specified link.
+   */
+  protected final List<SessionInfo> getSessions( ILink link)
+  {
+    List<SessionInfo> list = sessions.get( link);
+    if ( list == null) return Collections.emptyList();
+    
+    List<SessionInfo> result = new ArrayList<SessionInfo>();
+    for( SessionInfo info: list)
+    {
+      if ( info != null) result.add( info);
+    }
+    
+    return result;
+  }
+  
   private class KeyRecord
   {
     String key;
     ILink link;
+    int session;
   }
   
-  protected class ConnectionInfo
+  protected class SessionInfo
   {
-    public ConnectionInfo()
+    public SessionInfo()
     {
       index = new HashMap<String, IModelObject>();
       compressor = new TabularCompressor( PostCompression.zip);
     }
     
+    public IDispatcher dispatcher;
     public String xpath;
     public IModelObject element;
     public Map<String, IModelObject> index;
@@ -2084,13 +2532,13 @@ public class Protocol implements ILink.IListener
   
   private static Log log = Log.getLog( "org.xmodel.net");
 
+  protected Map<ILink, List<SessionInfo>> sessions;
   protected IContext context;
   private ByteBuffer buffer;
   private BlockingQueue<byte[]> responseQueue;
   private int timeout;
   private Random random;
   protected Map<IModelObject, KeyRecord> keys;
-  protected Stack<IDispatcher> dispatchers;
-  protected Map<ILink, ConnectionInfo> map;
+  protected IDispatcher dispatcher;
   private ILink updating;
 }
