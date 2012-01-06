@@ -81,10 +81,10 @@ public class CsvAssociation implements IFileAssociation
     {
       if ( !quoting && line.charAt( i) == ',')
       {
-        child.setValue( line.substring( index+1, i));
+        if ( index < i) child.setValue( line.substring( index, i));
         parent.addChild( child);
         child = new ModelObject( "field");
-        index = i;
+        index = i+1;
       }
       else if ( line.charAt( i) == '\"')
       {
