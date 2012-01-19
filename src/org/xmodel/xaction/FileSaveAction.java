@@ -84,9 +84,8 @@ public class FileSaveAction extends GuardedAction
       if ( compressor == null) compressor = new TabularCompressor();
       try
       {
-        byte[] compressed = compressor.compress( element);
         FileOutputStream stream = new FileOutputStream( file);
-        stream.write( compressed);
+        compressor.compress( element, stream);
         stream.close();
       }
       catch( CompressorException e)

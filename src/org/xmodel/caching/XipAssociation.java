@@ -1,7 +1,7 @@
 /*
  * JAHM - Java Advanced Hierarchical Model 
  * 
- * XmlAssociation.java
+ * XipAssociation.java
  * 
  * Copyright 2009 Robert Arvin Dunnagan
  * 
@@ -17,18 +17,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.caching;
+package org.xmodel.caching;
 
 import java.io.InputStream;
 
 import org.xmodel.IModelObject;
+import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
-import org.xmodel.xml.XmlIO;
 
 /**
- * An IFileAssociation for xml, xsd, dtd and other well-formed xml extensions.
+ * An IFileAssociation for the XModel <i>.xip</i> extension associated with the TabularCompressor.
  */
-public class XmlAssociation implements IFileAssociation
+public class XipAssociation implements IFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()
@@ -39,27 +39,21 @@ public class XmlAssociation implements IFileAssociation
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.io.File)
+   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
   public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
   {
-    int count = 0;
     try
     {
-      count = stream.available();
-      XmlIO xmlIO = new XmlIO();
-      IModelObject content = xmlIO.read( stream);
+      TabularCompressor compressor = new TabularCompressor();
+      IModelObject content = compressor.decompress( stream);
       parent.addChild( content);
     }
     catch( Exception e)
     {
-      // see if file is empty
-      if ( count == 0) return;
-      
-      // this is an xml parsing error
-      throw new CachingException( "Unable to parse xml in file: "+name, e);
+      throw new CachingException( "Unable to parse xml in compressed file: "+name, e);
     }
   }
-
-  private final static String[] extensions = { ".xml", ".xsd", ".dtd"};
+  
+  private final static String[] extensions = { ".xip"};
 }

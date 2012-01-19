@@ -20,8 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.List;
+
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -46,8 +46,8 @@ public class ForAction extends GuardedAction
     super.configure( document);
     
     // node-set iteration
-    IModelObject root = document.getRoot();
-    variable = Xlate.get( root, "assign", (String)null);    
+    IModelObject config = document.getRoot();
+    var = Conventions.getVarName( config, false, "assign");    
     sourceExpr = document.getExpression( "source", true);
 
     // OR numeric iteration
@@ -56,9 +56,9 @@ public class ForAction extends GuardedAction
     byExpr = document.getExpression( "by", true);
         
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)
-    Object when = root.removeAttribute( "when");
+    Object when = config.removeAttribute( "when");
     script = document.createScript( "source");
-    if ( when != null) root.setAttribute( "when", when);
+    if ( when != null) config.setAttribute( "when", when);
   }
 
   /* (non-Javadoc)
@@ -82,7 +82,7 @@ public class ForAction extends GuardedAction
       for( int i=0; i<nodes.size(); i++)
       {
         // store the current element in either a variable or the context
-        if ( variable != null) scope.set( variable, nodes.get( i));
+        if ( var != null) scope.set( var, nodes.get( i));
         else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
         
         Object[] result = script.run( context);
@@ -91,7 +91,7 @@ public class ForAction extends GuardedAction
     }
     
     // numeric iteration
-    if ( variable != null && fromExpr != null && toExpr != null && byExpr != null)
+    if ( var != null && fromExpr != null && toExpr != null && byExpr != null)
     {
       double from = fromExpr.evaluateNumber( context);
       double to = toExpr.evaluateNumber( context);
@@ -100,7 +100,7 @@ public class ForAction extends GuardedAction
       {
         for( double i = from; i <= to; i += by)
         {
-          scope.set( variable, i);
+          scope.set( var, i);
           Object[] result = script.run( context);
           if ( result != null) return result;
         }
@@ -109,7 +109,7 @@ public class ForAction extends GuardedAction
       {
         for( double i = from; i >= to; i += by)
         {
-          scope.set( variable, i);
+          scope.set( var, i);
           Object[] result = script.run( context);
           if ( result != null) return result;
         }
@@ -119,7 +119,7 @@ public class ForAction extends GuardedAction
     return null;
   }
 
-  private String variable;
+  private String var;
   private IExpression sourceExpr;
   private IExpression fromExpr;
   private IExpression toExpr;

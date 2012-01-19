@@ -20,7 +20,6 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -38,13 +37,13 @@ public class ProfileAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject root = getDocument().getRoot();
-    variable = Xlate.get( root, "assign", (String)null);
+    IModelObject config = getDocument().getRoot();
+    var = Conventions.getVarName( config, true, "assign");    
     
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)
-    Object when = root.removeAttribute( "when");
+    Object when = config.removeAttribute( "when");
     script = document.createScript( "source");
-    if ( when != null) root.setAttribute( "when", when);
+    if ( when != null) config.setAttribute( "when", when);
   }
 
   /* (non-Javadoc)
@@ -70,11 +69,11 @@ public class ProfileAction extends GuardedAction
           "ProfileAction context does not have a variable scope: "+this);
     }
     
-    scope.set( variable, elapsed);
+    scope.set( var, elapsed);
     
     return result;
   }
 
-  private String variable;
+  private String var;
   private ScriptAction script;
 }

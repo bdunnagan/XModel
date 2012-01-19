@@ -19,10 +19,24 @@
  */
 package org.xmodel;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.xmodel.listeners.ClimbingListener;
 import org.xmodel.log.Log;
-import org.xmodel.memento.*;
+import org.xmodel.memento.AddChildMemento;
+import org.xmodel.memento.IMemento;
+import org.xmodel.memento.MoveChildMemento;
+import org.xmodel.memento.RemoveAttributeMemento;
+import org.xmodel.memento.RemoveChildMemento;
+import org.xmodel.memento.SetAttributeMemento;
+import org.xmodel.memento.SetParentMemento;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 
@@ -1133,7 +1147,7 @@ public class ModelObject implements IModelObject
     if ( object instanceof Reference) return object.equals( this);
     return super.equals( object);
   }
-
+  
   private IModel model;
   private String type;
   private IModelObject parent;

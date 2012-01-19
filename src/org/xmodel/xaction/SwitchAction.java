@@ -19,17 +19,17 @@
  */
 package org.xmodel.xaction;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
- * An XAction which behaves like a select/case statement. *
+ * An XAction which behaves like a switch/case statement.
  */
-public class SelectAction extends GuardedAction
+public class SwitchAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.ViewModel)
@@ -43,11 +43,14 @@ public class SelectAction extends GuardedAction
     sourceExpr = document.getExpression( "source", true);
 
     // get cases
-    caseScripts = new HashMap<String, ScriptAction>();
-    for( IModelObject node: document.getRoot().getChildren( "case"))
+    List<IModelObject> caseNodes = document.getRoot().getChildren( "case");
+    caseExprs = new IExpression[ caseNodes.size()];
+    caseScripts = new ScriptAction[ caseNodes.size()];
+    for( int i=0; i<caseNodes.size(); i++)
     {
-      ScriptAction script = document.createScript( node);
-      caseScripts.put( node.getID(), script);
+      IModelObject caseNode = caseNodes.get( i);
+      caseExprs[ i] = Xlate.get( caseNode, "value", (IExpression)null);
+      caseScripts[ i] = document.createScript( caseNode);
     }
     
     // default case
@@ -62,20 +65,22 @@ public class SelectAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     String selection = sourceExpr.evaluateString( context);
-    ScriptAction action = caseScripts.get( selection);
-    if ( action != null) 
+    for( int i=0; i<caseExprs.length; i++)
     {
-      return action.run( context);
+      String value = caseExprs[ i].evaluateString( context);
+      if ( selection.equals( value))
+      {
+        return caseScripts[ i].run( context);
+      }
     }
-    else if ( defaultScript != null) 
-    {
-      return defaultScript.run( context);
-    }
+    
+    if ( defaultScript != null) return defaultScript.run( context);
     
     return null;
   }
 
   private IExpression sourceExpr;
-  private Map<String, ScriptAction> caseScripts;
+  private IExpression[] caseExprs;
+  private ScriptAction[] caseScripts;
   private ScriptAction defaultScript;
 }

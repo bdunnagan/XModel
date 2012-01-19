@@ -177,4 +177,20 @@ public interface IModel
    * @param e The exception.
    */
   public void handleException( Exception e);
+
+  /**
+   * Set the implementation of the specified feature for this model.  The feature class should be an interface
+   * implemented by the implementation.  The argument is provided so that the caller can decide how to register
+   * the implementation.
+   * @param feature The feature class.
+   * @param implementation The implementation.
+   */
+  public <T> void setFeature( Class<?> feature, T implementation);
+  
+  /**
+   * Returns null or an instance of the specified feature.
+   * @param clss The interface class.
+   * @return Returns null or an instance of the specified feature.
+   */
+  public <T> T getFeature( Class<T> clss);  
 }

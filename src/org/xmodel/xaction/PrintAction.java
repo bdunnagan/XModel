@@ -41,9 +41,11 @@ public class PrintAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    variable = Xlate.get( document.getRoot(), "assign", (String)null);
-    style = Xlate.get( document.getRoot(), "style", "printable");
-    sourceExpr = document.getExpression( document.getRoot());
+    
+    IModelObject config = document.getRoot();
+    var = Conventions.getVarName( config, false, "assign");    
+    style = Xlate.get( config, "style", "printable");
+    sourceExpr = document.getExpression( config);
   }
 
   /* (non-Javadoc)
@@ -80,9 +82,9 @@ public class PrintAction extends GuardedAction
         break;
     }
     
-    if ( variable != null && context instanceof StatefulContext)
+    if ( var != null && context instanceof StatefulContext)
     {
-      ((StatefulContext)context).set( variable, sb.toString());
+      ((StatefulContext)context).set( var, sb.toString());
     }
     else
     {
@@ -92,7 +94,7 @@ public class PrintAction extends GuardedAction
     return null;
   }
 
-  private String variable;
+  private String var;
   private String style;
   private IExpression sourceExpr;
 }

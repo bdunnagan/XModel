@@ -17,20 +17,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.caching;
+package org.xmodel.caching;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.external.CachingException;
 
 /**
- * An IFileAssociation for various text file associations including <i>.txt</i> and associations for various 
- * programming language files such as html, java, perl and python.
+ * An IFileAssociation for comma-separator value text files with the .csv extension. These
+ * files are parsed into "entry" elements with one attribute for each field. The attributes
+ * are enumerated "f1" through "fN", where N is the number of fields.
  */
-public class TxtAssociation implements IFileAssociation
+public class CsvAssociation implements IFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()
@@ -47,15 +49,17 @@ public class TxtAssociation implements IFileAssociation
   {
     try
     {
-      char[] buffer = new char[ 1 << 16];
-      StringBuilder content = new StringBuilder();
       BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
+      int lnum = 1;
       while( reader.ready())
       {
-        int count = reader.read( buffer, 0, buffer.length);
-        if ( count > 0) content.append( buffer, 0, count);
+        String line = reader.readLine();
+        
+        IModelObject object = new ModelObject( "entry", Integer.toString( lnum++));
+        parseFields( line, object);
+        
+        parent.addChild( object);
       }
-      parent.setValue( content.toString());
     }
     catch( Exception e)
     {
@@ -63,6 +67,37 @@ public class TxtAssociation implements IFileAssociation
     }
   }
   
-  private final static String[] extensions = { 
-    ".txt", ".css", ".html", ".htm", ".java", ".rtf", ".pl", ".py"};
+  /**
+   * Parse the fields in the specified line and add them to the specified parent.
+   * @param line The line.
+   * @param parent The parent.
+   */
+  private void parseFields( String line, IModelObject parent)
+  {
+    boolean quoting = false;
+    IModelObject child = new ModelObject( "field");
+    int index = 0;
+    for( int i=0; i<line.length(); i++)
+    {
+      if ( !quoting && line.charAt( i) == ',')
+      {
+        if ( index < i) child.setValue( line.substring( index, i));
+        parent.addChild( child);
+        child = new ModelObject( "field");
+        index = i+1;
+      }
+      else if ( line.charAt( i) == '\"')
+      {
+        quoting = !quoting;
+      }
+    }
+    
+    if ( index != line.length() - 1)
+    {
+      child.setValue( line.substring( index));
+      parent.addChild( child);
+    }
+  }
+  
+  private final static String[] extensions = { ".csv"};
 }

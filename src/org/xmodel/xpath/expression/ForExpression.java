@@ -588,6 +588,15 @@ class ReturnScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#clear(java.lang.String)
+   */
+  @Override
+  public void clear( String name)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#get(java.lang.String, org.xmodel.xpath.expression.IContext)
    */
   public Object get( String name, IContext context) throws ExpressionException

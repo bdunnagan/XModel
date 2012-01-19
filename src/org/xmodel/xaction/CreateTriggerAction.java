@@ -43,19 +43,19 @@ public class CreateTriggerAction extends XAction
   {
     super.configure( document);
     
-    IModelObject root = document.getRoot();
+    IModelObject config = document.getRoot();
     
     // variable to hold trigger instance
-    variable = Xlate.get( root, "assign", (String)null);
+    var = Conventions.getVarName( config, true, "assign");
     
     // trigger
-    String source = Xlate.get( root, "source", (String)null);
+    String source = Xlate.get( config, "source", (String)null);
     if ( source != null) trigger = new SourceTrigger();
     
-    String when = Xlate.get( root, "when", (String)null);
+    String when = Xlate.get( config, "when", (String)null);
     if ( when != null) trigger = new WhenTrigger();
     
-    String entity = Xlate.get( root, "entity", (String)null);
+    String entity = Xlate.get( config, "entity", (String)null);
     if ( entity != null) trigger = new EntityTrigger();
     
     trigger.configure( document);
@@ -72,13 +72,13 @@ public class CreateTriggerAction extends XAction
     {
       IModelObject holder = new ModelObject( "trigger");
       holder.setValue( trigger);
-      scope.set( variable, holder);
+      scope.set( var, holder);
     }
     
     trigger.activate( context);
     return null;
   }
 
-  private String variable;
+  private String var;
   private ITrigger trigger;
 }

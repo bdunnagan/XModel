@@ -29,7 +29,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * An XAction which executes a script and provides an exception handling script which will handle
  * exceptions thrown during processing of the script. Any type of Throwable can be handled. When
@@ -73,7 +72,7 @@ public class TryAction extends GuardedAction
         log.exception( e);
       }
       
-      catchBlock.script = new ScriptAction( document.getClassLoader(), catchElement);
+      catchBlock.script = document.createScript( catchElement);
     }
   }
 

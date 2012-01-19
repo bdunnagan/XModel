@@ -24,7 +24,6 @@ import java.io.OutputStream;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
-
 /**
  * An interface for algorithms which compress an IModelObject tree into a byte sequence.
  */
@@ -35,6 +34,12 @@ public interface ICompressor
    * @param factory The factory.
    */
   public void setFactory( IModelObjectFactory factory);
+
+  /**
+   * Set the instance of ISerializer for serializing attribute values.
+   * @param serializer The serializer.
+   */
+  public void setSerializer( ISerializer serializer);
   
   /**
    * Compress the specified tree into a byte sequence.

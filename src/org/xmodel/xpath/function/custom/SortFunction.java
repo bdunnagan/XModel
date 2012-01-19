@@ -25,7 +25,6 @@ import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.*;
 import org.xmodel.xpath.function.Function;
 
-
 /**
  * A custom XPath function which sorts a node-set according to one or more keys. The first
  * argument to the function is the node-set to be sorted. The second and subsequent arguments

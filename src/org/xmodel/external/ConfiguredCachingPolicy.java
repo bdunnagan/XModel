@@ -48,6 +48,11 @@ import org.xmodel.xpath.expression.IContext;
  */
 public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
 {
+  protected ConfiguredCachingPolicy()
+  {
+    super( new UnboundedCache());
+  }
+  
   protected ConfiguredCachingPolicy( ICache cache)
   {
     super( cache);

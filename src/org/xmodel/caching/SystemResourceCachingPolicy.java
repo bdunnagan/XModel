@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.caching;
+package org.xmodel.caching;
 
 import java.net.URL;
 import org.xmodel.IModelObject;

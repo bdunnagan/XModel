@@ -46,27 +46,20 @@ public class AssignAction extends GuardedAction
   {
     super.configure( document);
     
-    name = Xlate.get( document.getRoot(), "name", (String)null);
-    if ( name != null)
-    {
-      String text = Xlate.get( document.getRoot(), "");
-      if ( text.length() > 0) sourceExpr = document.getExpression( document.getRoot());
-    }
-    else
-    {
-      name = document.getString( "name");
-      sourceExpr = document.getExpression( "source", false);
-    }
+    IModelObject config = document.getRoot();
+    var = Conventions.getVarName( config, true, "name");
+    
+    sourceExpr = document.getExpression();
+    if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
     
     // load IModelObjectFactory class
-    IModelObject viewRoot = document.getRoot();
-    factory = getFactory( viewRoot);
+    factory = getFactory( config);
 
     // flags
-    mode = Xlate.get( document.getRoot(), "mode", "direct");
-    append = Xlate.get( document.getRoot(), "append", false);
-    replace = Xlate.get( document.getRoot(), "replace", false);
-    define = Xlate.get( document.getRoot(), "define", false);
+    mode = Xlate.get( config, "mode", "direct");
+    append = Xlate.get( config, "append", false);
+    replace = Xlate.get( config, "replace", false);
+    define = Xlate.get( config, "define", false);
   }
 
   /* (non-Javadoc)
@@ -75,20 +68,20 @@ public class AssignAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    if ( name.length() == 0)
+    if ( var.length() == 0)
       throw new IllegalArgumentException(
         "Variable name has zero length in AssignAction: "+this);
     
-    IVariableScope scope = findScope( name, context, replace);
+    IVariableScope scope = findScope( var, context, replace);
     if ( scope == null) return null;
 
     if ( sourceExpr == null)
     {
-      scope.set( name, context.getObject());
+      scope.set( var, context.getObject());
     }
     else if ( define)
     {
-      scope.define( name, sourceExpr);
+      scope.define( var, sourceExpr);
     }
     else
     {
@@ -140,9 +133,9 @@ public class AssignAction extends GuardedAction
         }
         break;
         
-        case STRING:  scope.set( name, sourceExpr.evaluateString( context)); break;
-        case NUMBER:  scope.set( name, sourceExpr.evaluateNumber( context)); break;
-        case BOOLEAN: scope.set( name, sourceExpr.evaluateBoolean( context)); break;
+        case STRING:  scope.set( var, sourceExpr.evaluateString( context)); break;
+        case NUMBER:  scope.set( var, sourceExpr.evaluateNumber( context)); break;
+        case BOOLEAN: scope.set( var, sourceExpr.evaluateBoolean( context)); break;
         case UNDEFINED: throw new XActionException( "Expression type is undefined: "+sourceExpr);
       }
     }
@@ -161,12 +154,12 @@ public class AssignAction extends GuardedAction
     if ( append)
     {
       List<IModelObject> newList = new ArrayList<IModelObject>();
-      newList.addAll( (List<IModelObject>)scope.get( name));
+      newList.addAll( (List<IModelObject>)scope.get( var));
       newList.addAll( list);
     }
     else
     {
-      scope.set( name, list);
+      scope.set( var, list);
     }
   }
   
@@ -194,7 +187,7 @@ public class AssignAction extends GuardedAction
     return context.getScope();
   }
 
-  private String name;
+  private String var;
   private String mode;
   private boolean append;
   private boolean replace;

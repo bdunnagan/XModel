@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.caching;
+package org.xmodel.caching;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -39,7 +39,6 @@ import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-
 
 /**
  * A class which performs the destructive caching policy annotation transform. This transform
@@ -274,7 +273,7 @@ public class AnnotationTransform
    * @param packageName The package name.
    * @param className The class name.
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private ConfiguredCachingPolicy createCachingPolicy( ICache cache, String packageName, String className)
   {
     if ( packageName != null) className = packageName+"."+className;

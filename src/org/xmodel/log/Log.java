@@ -39,6 +39,25 @@ public final class Log
     }
     return null;
   }
+
+  /**
+   * Returns the logging level given the case-insensitive name of the level.
+   * @param name The name of the logging level.
+   * @return Returns the logging level given the case-insensitive name of the level.
+   */
+  public final static int getLevelIndex( String name)
+  {
+    if ( name.equalsIgnoreCase( "verbose")) return Log.verbose;
+    if ( name.equalsIgnoreCase( "debug")) return Log.debug;
+    if ( name.equalsIgnoreCase( "info")) return Log.info;
+    if ( name.equalsIgnoreCase( "warn")) return Log.warn;
+    if ( name.equalsIgnoreCase( "error")) return Log.error;
+    if ( name.equalsIgnoreCase( "severe")) return Log.severe;
+    if ( name.equalsIgnoreCase( "fatal")) return Log.fatal;
+    if ( name.equalsIgnoreCase( "exception")) return Log.exception;
+    
+    throw new IllegalArgumentException( String.format( "Invalid log level name, %s.", name));
+  }
     
   /**
    * Returns the log with the specified name.

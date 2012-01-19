@@ -25,7 +25,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * An XAction which performs a bidirectional transform. When this action is invoked, the direction of
  * the transform must either be specified in the <i>direction</i> element, or it must be defined in 

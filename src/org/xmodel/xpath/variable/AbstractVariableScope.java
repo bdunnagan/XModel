@@ -283,6 +283,15 @@ public abstract class AbstractVariableScope implements IVariableScope
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.variable.IVariableScope#clear(java.lang.String)
+   */
+  @Override
+  public void clear( String name)
+  {
+    if ( variables != null) variables.remove( name);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#copyFrom(org.xmodel.xpath.variable.IVariableScope)
    */
   public void copyFrom( IVariableScope scope)

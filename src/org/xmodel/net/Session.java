@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * A class that represents a protocol session. 
@@ -36,14 +38,28 @@ public final class Session
   }
 
   /**
+   * Perform a remote query.
+   * @param context The local context.
+   * @param query The query.
+   * @param timeout The timeout.
+   * @return Returns the query result.
+   */
+  public Object query( IContext context, String query, int timeout) throws IOException
+  {
+    return protocol.query( link, session, context, query, timeout);
+  }
+  
+  /**
    * Perform a remote invocation of the specified script.
+   * @param context The local execution context.
+   * @param variables The variables to be passed.
    * @param script The script to be executed.
    * @param timeout The timeout to wait for a response.
    * @return Returns null or the response.
    */
-  public Object execute( IModelObject script, int timeout) throws IOException
+  public Object[] execute( StatefulContext context, String[] variables, IModelObject script, int timeout) throws IOException
   {
-    return protocol.execute( link, session, script, timeout);
+    return protocol.execute( link, session, context, variables, script, timeout);
   }
   
   /**

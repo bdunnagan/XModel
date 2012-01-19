@@ -166,6 +166,12 @@ public interface IVariableScope
   public Object get( String name, IContext context) throws ExpressionException;
 
   /**
+   * Clear the specified variable so that it appears undefined.  This operation does not perform any notification.
+   * @param name The name of the variable.
+   */
+  public void clear( String name);
+  
+  /**
    * Returns the names of all variables defined in this scope.
    * @return Returns the names of all variables defined in this scope.
    */

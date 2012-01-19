@@ -19,10 +19,9 @@
  */
 package org.xmodel;
 
-import java.util.*;
-import org.xmodel.path.IListenerChainLink;
-import org.xmodel.xpath.expression.LeafValueListener;
-
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * An implementation of IModelListener which contains IModelListener children and forwards listener
@@ -233,47 +232,47 @@ public class ModelListenerList implements IModelListener
     }        
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
-  public String toString()
-  {
-    StringBuilder sb = new StringBuilder();
+//  /* (non-Javadoc)
+//   * @see java.lang.Object#toString()
+//   */
+//  public String toString()
+//  {
+//    StringBuilder sb = new StringBuilder();
+//
+//    // sort by hashCode
+//    List<IModelListener> listeners = new ArrayList<IModelListener>( set.size());
+//    listeners.addAll( set.keySet());
+//    Collections.sort( listeners, new Comparator<IModelListener>() {
+//      public int compare( IModelListener o1, IModelListener o2)
+//      {
+//        if ( o1.hashCode() < o2.hashCode()) return -1;
+//        if ( o1.hashCode() > o2.hashCode()) return 1;
+//        return 0;
+//      }
+//    });
+//    
+//    // serialize
+//    for( IModelListener listener: listeners)
+//    {
+//      sb.append( listener.getClass().getSimpleName());
+//      sb.append( ", "); sb.append( listener.hashCode());
+//      if ( listener instanceof LeafValueListener)
+//      {
+//        LeafValueListener cast = (LeafValueListener)listener;
+//        sb.append( ", "); sb.append( cast.getExpression());
+//        sb.append( ", "); sb.append( cast.getContext());
+//      }
+//      if ( listener instanceof IListenerChainLink)
+//      {
+//        IListenerChainLink cast = (IListenerChainLink)listener;
+//        sb.append( ", "); sb.append( cast.getListenerChain()); 
+//      }
+//      sb.append( '\n');
+//    }
+//    
+//    return sb.toString();
+//  }
 
-    // sort by hashCode
-    List<IModelListener> listeners = new ArrayList<IModelListener>( set.size());
-    listeners.addAll( set.keySet());
-    Collections.sort( listeners, new Comparator<IModelListener>() {
-      public int compare( IModelListener o1, IModelListener o2)
-      {
-        if ( o1.hashCode() < o2.hashCode()) return -1;
-        if ( o1.hashCode() > o2.hashCode()) return 1;
-        return 0;
-      }
-    });
-    
-    // serialize
-    for( IModelListener listener: listeners)
-    {
-      sb.append( listener.getClass().getSimpleName());
-      sb.append( ", "); sb.append( listener.hashCode());
-      if ( listener instanceof LeafValueListener)
-      {
-        LeafValueListener cast = (LeafValueListener)listener;
-        sb.append( ", "); sb.append( cast.getExpression());
-        sb.append( ", "); sb.append( cast.getContext());
-      }
-      if ( listener instanceof IListenerChainLink)
-      {
-        IListenerChainLink cast = (IListenerChainLink)listener;
-        sb.append( ", "); sb.append( cast.getListenerChain()); 
-      }
-      sb.append( '\n');
-    }
-    
-    return sb.toString();
-  }
-
-  private static IModelListener[] proto = new IModelListener[ 0];
+  private final static IModelListener[] proto = new IModelListener[ 0];
   private Map<IModelListener, IModelListener> set;
 }

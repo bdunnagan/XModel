@@ -35,6 +35,8 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 
@@ -61,6 +63,8 @@ import org.xmodel.Xlate;
  * simplified schema. In the latter case, the schema is traversed and indices are assigned to each
  * element in the schema. Therefore, two compressor instances which reference the same schema can
  * compress and decompress the stream without the need for the stream to contain the tag table.
+ * <p>
+ * Due to optimizations, elements may not contain more than 127 attributes.
  */
 public class TabularCompressor extends AbstractCompressor
 {
@@ -236,15 +240,42 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void readAttributes( DataInputStream stream, IModelObject node) throws IOException, CompressorException
   {
-    // read count
-    int count = readValue( stream);
+    boolean useJavaSerialization = false;
     
-    // read attributes
-    for( int i=0; i<count; i++)
+    // read count
+    int count = stream.read();
+    if ( count > 127)
     {
-      String attrName = readHash( stream);
-      String attrValue = readText( stream);
-      node.setAttribute( attrName, attrValue);
+      count -= 128;
+      useJavaSerialization = true;
+    }
+
+    // read attributes
+    if ( useJavaSerialization)
+    {
+      for( int i=0; i<count; i++)
+      {
+        String attrName = readHash( stream);
+        try
+        {
+          Object attrValue = readObject( stream);
+          node.setAttribute( attrName, attrValue);
+        }
+        catch( ClassNotFoundException e)
+        {
+          throw new CompressorException( String.format(
+            "Unable to deserialize attribute, %s.", attrName), e);
+        }
+      }
+    }
+    else
+    {
+      for( int i=0; i<count; i++)
+      {
+        String attrName = readHash( stream);
+        String attrValue = readText( stream);
+        node.setAttribute( attrName, attrValue);
+      }
     }
   }
   
@@ -273,15 +304,50 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void writeAttributes( DataOutputStream stream, IModelObject node) throws IOException, CompressorException
   {
-    // write count
     Collection<String> attrNames = node.getAttributeNames();
-    writeValue( stream, attrNames.size());
+    boolean useJavaSerialization = false;
+    int count = attrNames.size();
     
-    // write attributes
+    if ( count > 127)
+    {
+      IPath path = ModelAlgorithms.createIdentityPath( node);
+      throw new CompressorException( String.format(
+        "Element has more than 127 attributes, %s.", path.toString()));
+    }
+    
     for( String attrName: attrNames)
     {
-      writeHash( stream, attrName);
-      writeText( stream, Xlate.get( node, attrName, ""));
+      Object attrValue = node.getAttribute( attrName);
+      if ( !(attrValue instanceof CharSequence))
+      {
+        useJavaSerialization = true;
+        break;
+      }
+    }
+      
+    if ( useJavaSerialization)
+    {
+      // write count
+      stream.write( count + 128);
+      
+      // write attributes
+      for( String attrName: attrNames)
+      {
+        writeHash( stream, attrName);
+        writeObject( stream, node.getAttribute( attrName));
+      }
+    }
+    else
+    {
+      // write count
+      stream.write( count);
+      
+      // write attributes
+      for( String attrName: attrNames)
+      {
+        writeHash( stream, attrName);
+        writeText( stream, Xlate.get( node, attrName, ""));
+      }
     }
   }
   
@@ -354,6 +420,26 @@ public class TabularCompressor extends AbstractCompressor
     writeValue( stream, text.length());
     stream.writeBytes( text);
   }
+  
+  /**
+   * Deserialize a Java Object from the stream.
+   * @return Returns the object.
+   */
+  private Object readObject( DataInputStream stream) throws IOException, ClassNotFoundException
+  {
+    return serializer.readObject( stream);
+  }
+  
+  /**
+   * Serialize a Java Object to the stream.
+   * @param stream The stream.
+   * @param object The object.
+   * @return Returns the number of bytes written.
+   */
+  private int writeObject( DataOutputStream stream, Object object) throws IOException
+  {
+    return serializer.writeObject( stream, object);
+  }
 
   /**
    * Read the hash table from the stream.
@@ -386,8 +472,6 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
-    //System.out.println( "TabularCompressor: writing table...");
-    
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
@@ -408,9 +492,9 @@ public class TabularCompressor extends AbstractCompressor
   private int readValue( DataInputStream stream) throws IOException
   {
     int b1 = stream.readUnsignedByte();
-    if ( (b1 & 0x00000080) != 0)
+    if ( (b1 & 0x80) != 0)
     {
-      b1 &= 0x0000007f;
+      b1 &= 0x7f;
       int b2 = stream.readUnsignedByte();
       int b3 = stream.readUnsignedByte();
       int b4 = stream.readUnsignedByte();

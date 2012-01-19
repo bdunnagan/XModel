@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.caching;
+package org.xmodel.caching;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,7 +31,10 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 
 public class URLCachingPolicy extends ConfiguredCachingPolicy
@@ -79,6 +82,9 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
     super.configure( context, annotation);
+    
+    urlExpr = Xlate.get( annotation, "url", (IExpression)null);
+    if ( urlExpr == null) urlExpr = defaultUrlExpr;
   }
 
   /* (non-Javadoc)
@@ -87,7 +93,7 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    String string = Xlate.get( reference, "url", (String)null);
+    String string = urlExpr.evaluateString( new StatefulContext( reference));
     if ( string == null) return;
 
     URL url = null;
@@ -134,5 +140,8 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   private final static IFileAssociation xipAssociation = new XipAssociation();
   private final static IFileAssociation xmlAssociation = new XmlAssociation();
 
+  private final static IExpression defaultUrlExpr = XPath.createExpression( "@url");
+  
+  private IExpression urlExpr;
   private Map<String, IFileAssociation> associations;
 }

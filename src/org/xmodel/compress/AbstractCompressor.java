@@ -24,18 +24,31 @@ import java.io.ByteArrayOutputStream;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
-
 /**
  * Abstract base implementation with get/set for compression level.
  */
 public abstract class AbstractCompressor implements ICompressor
 {
+  protected AbstractCompressor()
+  {
+    serializer = new DefaultSerializer();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#setFactory(org.xmodel.IModelObjectFactory)
    */
   public void setFactory( IModelObjectFactory factory)
   {
     this.factory = factory;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#setSerializer(org.xmodel.compress.ISerializer)
+   */
+  @Override
+  public void setSerializer( ISerializer serializer)
+  {
+    this.serializer = serializer;
   }
 
   /* (non-Javadoc)
@@ -60,4 +73,5 @@ public abstract class AbstractCompressor implements ICompressor
   }
   
   protected IModelObjectFactory factory;
+  protected ISerializer serializer;
 }

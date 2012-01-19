@@ -19,11 +19,13 @@
  */
 package org.xmodel.xaction;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.CompressorException;
@@ -48,7 +50,7 @@ public class FileLoadAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    variable = Xlate.get( document.getRoot(), "assign", (String)null);
+    var = Conventions.getVarName( document.getRoot(), false, "assign");
     targetExpr = document.getExpression( "target", true);
     fileExpr = document.getExpression( "file", true);
     if ( fileExpr == null) fileExpr = document.getExpression();
@@ -65,7 +67,7 @@ public class FileLoadAction extends GuardedAction
     
     // initialize variable
     IVariableScope scope = context.getScope();
-    if ( scope != null) scope.set( variable, new ArrayList<IModelObject>( 0));
+    if ( scope != null) scope.set( var, new ArrayList<IModelObject>( 0));
     
     // get file
     File file = new File( fileExpr.evaluateString( context));
@@ -105,7 +107,7 @@ public class FileLoadAction extends GuardedAction
       try
       {
         if ( compressor == null) compressor = new TabularCompressor();
-        element = compressor.decompress( content, 0);
+        element = compressor.decompress( new ByteArrayInputStream( content));
       }
       catch( CompressorException e)
       {
@@ -114,7 +116,7 @@ public class FileLoadAction extends GuardedAction
     }
     
     // set variable if defined
-    if ( scope != null) scope.set( variable, element);
+    if ( scope != null) scope.set( var, element);
     
     // add to parent
     if ( parent != null) parent.addChild( element);
@@ -124,7 +126,7 @@ public class FileLoadAction extends GuardedAction
 
   private XmlIO xmlIO;
   private ICompressor compressor;
-  private String variable;
+  private String var;
   private IExpression targetExpr;
   private IExpression fileExpr;
 }

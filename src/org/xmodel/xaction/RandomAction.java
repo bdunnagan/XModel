@@ -26,7 +26,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * An XAction which generates a random floating point number.
  */
@@ -39,12 +38,13 @@ public class RandomAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    IModelObject root = document.getRoot();
+    
+    IModelObject config = document.getRoot();
     minExpr = document.getExpression( "min", true);
     maxExpr = document.getExpression( "max", true);
     decimal = Xlate.get( document.getRoot(), "decimal", false);
-    radix = Xlate.get( root, "radix", -1);
-    variable = Xlate.get( document.getRoot(), "assign", (String)null); 
+    radix = Xlate.get( config, "radix", -1);
+    var = Conventions.getVarName( config, false, "assign");    
     targetExpr = document.getExpression();
     random = new Random();
   }
@@ -64,10 +64,10 @@ public class RandomAction extends GuardedAction
     if ( radix != -1)
     {
       String value = convert( number, radix);
-      if ( variable != null)
+      if ( var != null)
       {
         IVariableScope scope = context.getScope();
-        scope.set( variable, value);
+        scope.set( var, value);
       }
       if ( targetExpr != null)
       {
@@ -77,10 +77,10 @@ public class RandomAction extends GuardedAction
     }
     else
     {
-      if ( variable != null)
+      if ( var != null)
       {
         IVariableScope scope = context.getScope();
-        scope.set( variable, number);
+        scope.set( var, number);
       }
       if ( targetExpr != null)
       {
@@ -142,7 +142,7 @@ public class RandomAction extends GuardedAction
   private Random random;
   private boolean decimal;
   private int radix;
-  private String variable;
+  private String var;
   private IExpression targetExpr;
   private IExpression minExpr;
   private IExpression maxExpr;

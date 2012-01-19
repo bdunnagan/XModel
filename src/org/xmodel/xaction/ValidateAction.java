@@ -21,15 +21,14 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xsd.Schema;
 import org.xmodel.xsd.check.SchemaError;
-
 
 /**
  * An action which validates an element against its simplified schema.
@@ -43,8 +42,10 @@ public class ValidateAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    factory = getFactory( document.getRoot());
-    variable = Xlate.get( document.getRoot(), "assign", (String)null);
+    
+    IModelObject config = document.getRoot();
+    factory = getFactory( config);
+    var = Conventions.getVarName( config, true, "assign");    
     sourceExpr = document.getExpression( "source", false);
     schemaRootExpr = document.getExpression( "schema", false);
   }
@@ -77,13 +78,13 @@ public class ValidateAction extends GuardedAction
       throw new IllegalArgumentException(
         "Action executed in scope which does not support variable assignment: "+this);
     
-    scope.set( variable, result);
+    scope.set( var, result);
     
     return null;
   }
   
   private IModelObjectFactory factory;
-  private String variable;
+  private String var;
   private IExpression sourceExpr;
   private IExpression schemaRootExpr;
 }

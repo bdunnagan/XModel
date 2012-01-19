@@ -23,9 +23,9 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
+import java.util.Collections;
+
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
@@ -34,7 +34,6 @@ import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
-
 
 /**
  * An XAction which loads an element from a URL in compressed or uncompressed form.
@@ -48,7 +47,8 @@ public class UrlLoadAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    variable = Xlate.get( document.getRoot(), "assign", (String)null);
+    
+    var = Conventions.getVarName( document.getRoot(), false, "assign");    
     targetExpr = document.getExpression( "target", true);
     urlExpr = document.getExpression( "url", true);
     if ( urlExpr == null) urlExpr = document.getExpression();
@@ -65,7 +65,7 @@ public class UrlLoadAction extends GuardedAction
     
     // initialize variable
     IVariableScope scope = context.getScope();
-    if ( scope != null) scope.set( variable, new ArrayList<IModelObject>( 0));
+    if ( var != null) scope.set( var, Collections.emptyList());
     
     // get url
     String urlSpec = urlExpr.evaluateString( context);
@@ -118,7 +118,7 @@ public class UrlLoadAction extends GuardedAction
       }
       
       // set variable if defined
-      if ( scope != null) scope.set( variable, element);
+      if ( var != null) scope.set( var, element);
       
       // add to parent
       if ( parent != null) parent.addChild( element);
@@ -133,7 +133,7 @@ public class UrlLoadAction extends GuardedAction
 
   private XmlIO xmlIO;
   private ICompressor compressor;
-  private String variable;
+  private String var;
   private IExpression targetExpr;
   private IExpression urlExpr;
 }

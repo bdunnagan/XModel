@@ -46,10 +46,11 @@ public class IdAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    
-    variable = Xlate.get( document.getRoot(), "assign", (String)null);
-    targetExpr = Xlate.get( document.getRoot(), (IExpression)null);
-    length = Xlate.get( document.getRoot(), "length", 10);
+
+    IModelObject config = document.getRoot();
+    variable = Conventions.getVarName( config, false, "assign");    
+    targetExpr = Xlate.get( config, (IExpression)null);
+    length = Xlate.get( config, "length", 10);
   }
 
   /* (non-Javadoc)

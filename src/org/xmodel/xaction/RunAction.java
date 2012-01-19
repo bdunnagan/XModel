@@ -1,7 +1,7 @@
 /*
  * JAHM - Java Advanced Hierarchical Model 
  * 
- * RunAction.java
+ * InvokeAction.java
  * 
  * Copyright 2009 Robert Arvin Dunnagan
  * 
@@ -17,56 +17,100 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+  /*
+ * XModel (XML Application Data Modeling Framework)
+ * Author: Bob Dunnagan (bdunnagan@nc.rr.com)
+ * Copyright Bob Dunnagan 2009. All rights reserved.
+ */
 package org.xmodel.xaction;
 
-import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.variable.IVariableScope;
 
 /**
- * An XAction which executes zero or more XActions identified by an XPath expression. Each element
- * returned by the expression is compiled into an XAction and executed.
+ * An XAction that executes a script identified by an expression.
  */
 public class RunAction extends GuardedAction
 {
   /* (non-Javadoc)
-   * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#configure(
-   * com.stonewall.cornerstone.cpmi.xaction.XActionDocument)
+   * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
   @Override
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    actionExpr = document.getExpression( document.getRoot());
+
+    var = Conventions.getVarName( document.getRoot(), false, "assign");    
+    contextExpr = document.getExpression( "context", true);
+    scriptExpr = document.getExpression();
   }
 
   /* (non-Javadoc)
-   * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  @Override
+  @Override 
+  @SuppressWarnings("unchecked")
   protected Object[] doAction( IContext context)
   {
-    StatefulContext docContext = new StatefulContext( context, document.getRoot());
+    Object[] results = null;
 
-    List<IXAction> actions = new ArrayList<IXAction>( 1);
-    List<IModelObject> elements = actionExpr.query( docContext, null);
-    for( IModelObject element: elements)
+    IXAction script = null;
+    IModelObject node = scriptExpr.queryFirst( context);
+    if ( node != null)
     {
-      IXAction action = document.getAction( element);
-      if ( action != null) actions.add( action);
+      CompiledAttribute attribute = (node != null)? (CompiledAttribute)node.getAttribute( "compiled"): null;
+      if ( attribute != null) script = attribute.script;
+      if ( script == null)
+      {
+        script = document.createScript( node);
+        node.setAttribute( "compiled", new CompiledAttribute( script));
+      }
+    }
+        
+    if ( script == null) return null;
+    
+    if ( contextExpr != null)
+    {
+      for( IModelObject localNode: contextExpr.query( context, null))
+      {
+        StatefulContext local = new StatefulContext( context, localNode);
+        results = script.run( local);
+      }
+    }
+    else
+    {
+      results = script.run( context);
     }
     
-    for( IXAction action: actions)
+    if ( var != null && results != null && results.length > 0)
     {
-      Object[] result = action.run( context);
-      if ( result != null) return result;
+      Object result = results[ 0];
+      IVariableScope scope = context.getScope();
+      if ( result instanceof List) scope.set( var, (List<IModelObject>)result);
+      else if ( result instanceof String) scope.set( var, result.toString());
+      else if ( result instanceof Number) scope.set( var, (Number)result);
+      else if ( result instanceof Boolean) scope.set( var, (Boolean)result);
     }
     
     return null;
   }
   
-  private IExpression actionExpr;
+  private final static class CompiledAttribute
+  {
+    public CompiledAttribute( IXAction script)
+    {
+      this.script = script;
+    }
+    
+    public IXAction script;
+  }
+
+  private String var;
+  private IExpression contextExpr;
+  private IExpression scriptExpr;
 }

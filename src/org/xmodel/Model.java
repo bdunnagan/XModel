@@ -21,13 +21,14 @@ package org.xmodel;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.xmodel.log.Log;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
-
 
 /**
  * Base implementation of IModel.
@@ -287,6 +288,27 @@ public class Model implements IModel
     log.exception( e);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#setFeature(java.lang.Class, java.lang.Object)
+   */
+  @Override
+  public <T> void setFeature( Class<?> feature, T implementation)
+  {
+    if ( features == null) features = new HashMap<Class<?>, Object>();
+    features.put( feature, implementation);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#getFeature(java.lang.Class)
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getFeature( Class<T> clss)
+  {
+    if ( features != null) return (T)features.get( clss);
+    return null;
+  }
+
   private static Log log = Log.getLog( "org.xmodel");
   
   private MultiMap<String, IModelObject> collections;
@@ -296,4 +318,5 @@ public class Model implements IModel
   private int counter;
   private IDispatcher dispatcher;
   private boolean syncLock;
+  private Map<Class<?>, Object> features;
 }

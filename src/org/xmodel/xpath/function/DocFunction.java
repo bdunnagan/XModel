@@ -28,7 +28,6 @@ import org.xmodel.external.CachingException;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 
-
 /**
  * An implementation of the XPath 2.0 fn:doc function. This function is backed by the <code>query</code> method
  * of the <code>IModel</code> interface which takes a URI. The URI schemes which are handled by this method are

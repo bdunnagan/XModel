@@ -23,18 +23,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
-import org.xmodel.external.caching.AnnotationTransform;
+import org.xmodel.caching.AnnotationTransform;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xsd.Schema;
@@ -56,33 +56,19 @@ public class CreateAction extends GuardedAction
   {
     super.configure( document);
     
-    // get optional variable to assign
-    IModelObject root = document.getRoot();
-    variable = Xlate.get( root, "assign", (String)null);
-    if ( variable == null) variable = Xlate.childGet( root, "assign", (String)null);
+    IModelObject config = document.getRoot();
+    var = Conventions.getVarName( config, false, "assign");
     
-    // get optional collection to which new elements will be added
-    collection = Xlate.get( document.getRoot(), "collection", (String)null);
-    
-    // get optional parent
-    parentExpr = document.getExpression( "parent", true);
-    
-    // name and value expressions
-    nameExpr = document.getExpression( "name", true);
-    valueExpr = document.getExpression( "value", true);
-    
-    // treat the value of root as an expression prototype
-    if ( root.getNumberOfChildren() == 0)
-      createExpr = document.getExpression( root);
+    collection = Xlate.get( config, "collection", (String)null);
+    parentExpr = Xlate.get( config, "parent", (IExpression)null);
+    nameExpr = Xlate.get( config, "name", (IExpression)null);
+    schemaExpr = Xlate.get( config, "schema", (IExpression)null);
     
     // get the factory used to create elements
-    factory = getFactory( root);
+    factory = getFactory( config);
 
-    // create the script
-    script = document.createScript( "parent", "name", "template", "attribute", "schema", "value");
-    
     // if annotated then preprocess template
-    annotated = Xlate.get( root.getFirstChild( "template"), "annotated", false);
+    annotatedExpr = Xlate.get( config, "annotated", (IExpression)null);
   }
 
   /* (non-Javadoc)
@@ -91,14 +77,7 @@ public class CreateAction extends GuardedAction
   public Object[] doAction( IContext context)
   {
     XActionDocument document = getDocument();
-    
-    // handle the zero child form
-    if ( createExpr != null)
-    {
-      ModelAlgorithms.createPathSubtree( context, createExpr, factory, null);
-      return null;
-    }
-    
+
     // get parent
     IModelObject parent = (parentExpr != null)? parentExpr.queryFirst( context): null;
 
@@ -114,7 +93,6 @@ public class CreateAction extends GuardedAction
     }
     
     // create element from schema
-    IExpression schemaExpr = document.getExpression( "schema", false);
     if ( schemaExpr != null)
     {
       IModelObject schema = schemaExpr.queryFirst( context);
@@ -122,51 +100,16 @@ public class CreateAction extends GuardedAction
       elements.add( Schema.createDocument( schema, factory, optional));
     }
     
-    // create element from template
-    IModelObject template = document.getRoot().getFirstChild( "template");
-    if ( template != null) 
+    // create children
+    for( IModelObject child: document.getRoot().getChildren())
     {
-      // process template expressions
-      for( IModelObject child: template.getChildren())
-      {
-        IModelObject element = ModelAlgorithms.cloneTree( child, factory);
-        replaceTemplateExpressions( context, element);
-        elements.add( element);
-      }
-    }
-    
-    // create attributes
-    List<IModelObject> attributes = document.getRoot().getChildren( "attribute");
-    for( IModelObject attribute: attributes)
-    {
-      IExpression nameExpr = Xlate.get( attribute, "name", (IExpression)null);
-      String name = nameExpr.evaluateString( context);
-      IExpression valueExpr = document.getExpression( attribute);
-      String value = valueExpr.evaluateString( context);
-      for( IModelObject element: elements) element.setAttribute( name, value);
-    }
-    
-    // populate the values 
-    if ( valueExpr != null)
-    {
-      String value = valueExpr.evaluateString( context);
-      for( IModelObject element: elements) element.setValue( value);
-    }
-
-    // return value
-    Object[] result = null;
-    
-    // process actions
-    int count = elements.size();
-    for( int i=0; i<count; i++)
-    {
-      StatefulContext actionContext = new StatefulContext( context, elements.get( i), i+1, count);
-      result = script.run( actionContext);
-      if ( result != null) break;
+      IModelObject element = ModelAlgorithms.cloneTree( child, factory);
+      replaceTemplateExpressions( context, element);
+      elements.add( element);
     }
     
     // process annotations
-    if ( annotated)
+    if ( annotatedExpr == null || annotatedExpr.evaluateBoolean( context))
     {
       for( int i=0; i<elements.size(); i++)
       {
@@ -181,16 +124,10 @@ public class CreateAction extends GuardedAction
     }
     
     // set variable if defined
-    IVariableScope scope = context.getScope();
-    if ( variable != null)
+    if ( var != null) 
     {
-      if ( scope == null)
-      {
-        throw new IllegalArgumentException( 
-          "Unable to assign variable: "+variable+" in: "+this);
-      }
-      
-      scope.set( variable, elements);
+      IVariableScope scope = context.getScope();
+      if ( scope != null) scope.set( var, elements);
     }
     
     // add to parent if not null
@@ -206,7 +143,7 @@ public class CreateAction extends GuardedAction
         model.addRoot( collection, element);
     }
     
-    return result;
+    return null;
   }
   
   /**
@@ -305,16 +242,13 @@ public class CreateAction extends GuardedAction
     }
   }
   
-  private final Pattern expressionPattern = Pattern.compile(
-    "[{]([^}]+)[}]");
+  private final Pattern expressionPattern = Pattern.compile( "[{]([^}]+)[}]");
   
   private IModelObjectFactory factory;
-  private String variable;
+  private String var;
   private String collection;
-  private IExpression createExpr;
   private IExpression parentExpr;
   private IExpression nameExpr;
-  private IExpression valueExpr;
-  private ScriptAction script;
-  private boolean annotated;
+  private IExpression schemaExpr;
+  private IExpression annotatedExpr;
 }

@@ -35,7 +35,7 @@ import org.xmodel.xpath.expression.IExpression;
 
 public class XActionDocument
 {
-  protected XActionDocument()
+  public XActionDocument()
   {
     this( null, XActionDocument.class.getClassLoader());
   }
@@ -129,8 +129,8 @@ public class XActionDocument
    */
   public void addPackage( String packageName)
   {  
-    if ( !packages.contains( packageName))
-      packages.add( 0, packageName);
+    packages.remove( packageName);
+    packages.add( 0, packageName);
   }
 
   /**
@@ -418,15 +418,6 @@ public class XActionDocument
   {
     if ( object == null) return null;
 
-    // function call type 1
-    String functionName = Xlate.get( object, "function", (String)null);
-    if ( functionName != null) return findFunction( object, functionName);
-    
-    // function call type 2
-    functionName = object.getType();
-    IXAction function = findFunction( object, functionName);
-    if ( function != null) return function;
-
     // load class using element name
     String className = Xlate.get( object, "class", (String)null);
     if ( className == null || !className.endsWith( "Action"))
@@ -580,20 +571,6 @@ public class XActionDocument
     return result;
   }
 
-  /**
-   * Returns the action corresponding to the named function.
-   * @param locus The locus where the search begins.
-   * @param name The name of the function.
-   * @return Returns the function action.
-   */
-  private IXAction findFunction( IModelObject locus, String name)
-  {
-    functionFinder.setVariable( "name", name);
-    IModelObject declaration = functionFinder.queryFirst( locus);
-    if ( declaration == null) return null;
-    return new ScriptAction( getClassLoader(), declaration);
-  }
-
   /* (non-Javadoc)
    * @see org.xmodel.xaction.XActionDocument#error(java.lang.String, java.lang.Exception)
    */
@@ -668,9 +645,6 @@ public class XActionDocument
 
   private static Log log = Log.getLog( "org.xmodel.xaction");
   
-  private final IPath functionFinder = XPath.createPath( 
-    "ancestor-or-self::*/functions/function[ @name = $name]");
-
   private final String cachedExpressionAttribute = 
     "xm:compiled";
   

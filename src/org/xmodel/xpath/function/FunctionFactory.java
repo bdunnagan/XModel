@@ -32,7 +32,7 @@ import static java.lang.System.err;
  */
 public class FunctionFactory implements IFunctionFactory
 {
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   private void addBaseFunctions()
   {
     Class[] classes = {
@@ -51,6 +51,7 @@ public class FunctionFactory implements IFunctionFactory
       EvaluateFunction.class,
       FalseFunction.class,
       FloorFunction.class,
+      FormatFunction.class,
       IDFunction.class,
       HashCodeFunction.class,
       IndexOfFunction.class,
@@ -123,7 +124,7 @@ public class FunctionFactory implements IFunctionFactory
   /* (non-Javadoc)
    * @see org.xmodel.xpath.function.IFunctionFactory#createFunction(java.lang.String)
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   public IExpression createFunction( String functionName)
   {
     // trim default namespace
@@ -199,6 +200,6 @@ public class FunctionFactory implements IFunctionFactory
   private static ThreadLocal<FunctionFactory> instance = new ThreadLocal<FunctionFactory>();
   private Hashtable<String, Function> objectRegistry;
   
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings("rawtypes")
   private Hashtable<String, Class> classRegistry;
 }
