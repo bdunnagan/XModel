@@ -42,6 +42,25 @@ public class ScriptAction extends GuardedAction
   
   /**
    * Create a ScriptAction which will execute the children of the specified element.
+   * @param element The root of the script.
+   */
+  public ScriptAction( IModelObject element)
+  {
+    this( ScriptAction.class.getClassLoader(), element);
+  }
+  
+  /**
+   * Create a ScriptAction which will execute the children of the specified element except those in the ignore array.
+   * @param root The root of the script.
+   * @param ignore The element names to ignore.
+   */
+  public ScriptAction( IModelObject root, String... ignore)
+  {
+    this( ScriptAction.class.getClassLoader(), root, ignore);
+  }
+  
+  /**
+   * Create a ScriptAction which will execute the children of the specified element.
    * @param loader The class loader.
    * @param element The root of the script.
    */

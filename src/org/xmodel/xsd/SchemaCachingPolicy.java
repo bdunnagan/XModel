@@ -73,14 +73,6 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
    */

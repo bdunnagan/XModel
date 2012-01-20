@@ -4,9 +4,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import org.xmodel.compress.serial.BooleanSerializer;
+import org.xmodel.compress.serial.NumberSerializer;
+import org.xmodel.compress.serial.StringSerializer;
 
 /**
  * An implementation of ISerializer that provides a mechanism for registering delegates per class.
@@ -15,8 +17,12 @@ public class DefaultSerializer implements ISerializer
 {
   public DefaultSerializer()
   {
-    list = new ArrayList<ISerializer>();
-    map = new HashMap<Class<?>, Integer>();
+    classes = new ArrayList<Class<?>>();
+    serializers = new ArrayList<ISerializer>();
+    
+    register( Boolean.class, new BooleanSerializer());
+    register( Number.class, new NumberSerializer());
+    register( CharSequence.class, new StringSerializer());
   }
   
   /**
@@ -26,8 +32,8 @@ public class DefaultSerializer implements ISerializer
    */
   public void register( Class<?> clazz, ISerializer serializer)
   {
-    map.put( clazz, list.size());
-    list.add( serializer);
+    classes.add( clazz);
+    serializers.add( serializer);
   }
   
   /* (non-Javadoc)
@@ -39,13 +45,13 @@ public class DefaultSerializer implements ISerializer
     int classID = input.readByte();
     if ( classID < 0) classID = 127 - classID;
     
-    if ( classID >= list.size()) 
+    if ( classID >= serializers.size()) 
     {
       throw new ClassNotFoundException( 
         String.format( "Class identifier out of range, %d.", classID));
     }
     
-    ISerializer serializer = list.get( classID);
+    ISerializer serializer = serializers.get( classID);
     return serializer.readObject( input);
   }
 
@@ -55,17 +61,33 @@ public class DefaultSerializer implements ISerializer
   @Override
   public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
-    Integer classID = map.get( object.getClass());
-    if ( classID == null)
+    int classID = findSerializerClassID( object);   
+    if ( classID < 0)
     {
       throw new CompressorException( String.format(
         "Class not supported, %s.", object.getClass().getName()));
     }
     
-    ISerializer serializer = list.get( classID);
+    ISerializer serializer = serializers.get( classID);
     return serializer.writeObject( output, object);
   }
   
-  private List<ISerializer> list;
-  private Map<Class<?>, Integer> map;
+  /**
+   * Searches the registered serializer classes in reverse order for a class to which the specified object can be assigned.
+   * @param object The object.
+   * @return Returns -1 or the index of the first matching class.
+   */
+  private final int findSerializerClassID( Object object)
+  {
+    Class<?> clazz = object.getClass();
+    for( int i=classes.size() - 1; i >= 0; i--)
+    {
+      if ( classes.get( i).isAssignableFrom( clazz))
+        return i;
+    }
+    return -1;
+  }
+
+  private List<Class<?>> classes;
+  private List<ISerializer> serializers;
 }

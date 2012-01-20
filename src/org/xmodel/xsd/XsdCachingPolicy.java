@@ -72,12 +72,4 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Unable to sync url: "+url, e);
     }
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
 }

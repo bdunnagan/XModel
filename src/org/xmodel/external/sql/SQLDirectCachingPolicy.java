@@ -253,14 +253,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
    */
@@ -589,14 +581,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       System.err.println( "Syncing row: "+reference.getID());
       IModelObject object = createRowPrototype( reference);
       update( reference, object);
-    }
-
-    /* (non-Javadoc)
-     * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-     */
-    public void flush( IExternalReference reference) throws CachingException
-    {
-      throw new UnsupportedOperationException();
     }
 
     /* (non-Javadoc)

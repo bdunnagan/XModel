@@ -168,9 +168,9 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#flushImpl(org.xmodel.external.IExternalReference)
    */
-  public void flush( IExternalReference reference) throws CachingException
+  public void flushImpl( IExternalReference reference) throws CachingException
   {
     File path = new File( Xlate.get( reference, "path", ""));
     if ( path.isDirectory())

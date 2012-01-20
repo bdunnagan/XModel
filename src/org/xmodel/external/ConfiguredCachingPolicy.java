@@ -21,7 +21,10 @@ package org.xmodel.external;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.xaction.ScriptAction;
+import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /** 
  * A further refinement of AbstractCachingPolicy which provides built-in support for secondary caching
@@ -76,6 +79,12 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
         staticAttributes[ i] = staticAttributes[ i].trim();
       setStaticAttributes( staticAttributes);
     }
+    
+    // scripts
+    XActionDocument doc = new XActionDocument( annotation);
+    onSync = doc.createChildScript( "onSync");
+    onFlush = doc.createChildScript( "onFlush");
+    onError = doc.createChildScript( "onError");
   }
     
   /* (non-Javadoc)
@@ -83,7 +92,48 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    */
   public void sync( IExternalReference reference) throws CachingException
   {
-    syncImpl( reference);
+    if ( onError == null)
+    {
+      syncImpl( reference);
+      if ( onSync != null) onSync( reference);
+    }
+    else
+    {
+      try
+      {
+        syncImpl( reference);
+        onSync( reference);
+      }
+      catch( CachingException e)
+      {
+        onError( reference, e.getMessage());
+      }
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#flush(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public final void flush( IExternalReference reference) throws CachingException
+  {
+    if ( onError == null)
+    {
+      flushImpl( reference);
+      if ( onFlush != null) onFlush( reference);
+    }
+    else
+    {
+      try
+      {
+        flushImpl( reference);
+        onFlush( reference);
+      }
+      catch( CachingException e)
+      {
+        onError( reference, e.getMessage());
+      }
+    }
   }
 
   /**
@@ -92,5 +142,57 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    */
   protected abstract void syncImpl( IExternalReference reference) throws CachingException;
   
-  protected IContext context;
+  /**
+   * Called to flush the reference.
+   * @param reference The reference.
+   */
+  protected void flushImpl( IExternalReference reference) throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * @return Returns the configuration context.
+   */
+  protected IContext getContext()
+  {
+    return context;
+  }
+
+  /**
+   * Called just after the implementation of sync.
+   * @param reference The reference for which the error occurred.
+   */
+  protected void onSync( IExternalReference reference)
+  {
+    StatefulContext context = new StatefulContext( this.context, reference);
+    onSync.run( context);
+  }
+  
+  /**
+   * Called just before the implementation of flush.
+   * @param reference The reference for which the error occurred.
+   */
+  protected void onFlush( IExternalReference reference)
+  {
+    StatefulContext context = new StatefulContext( this.context, reference);
+    onFlush.run( context);
+  }
+  
+  /**
+   * Called when an exception is caught during synchronization or flushing.
+   * @param reference The reference for which the error occurred.
+   * @param error The error message to be set in $error.
+   */
+  protected void onError( IExternalReference reference, String error)
+  {
+    StatefulContext context = new StatefulContext( this.context, reference);
+    context.set( "error", error);
+    onError.run( context);
+  }
+  
+  private IContext context;
+  private ScriptAction onSync;
+  private ScriptAction onFlush;
+  private ScriptAction onError;
 }

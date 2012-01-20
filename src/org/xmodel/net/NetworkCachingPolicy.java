@@ -12,6 +12,7 @@ import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -74,7 +75,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Port not defined in annotation: \n"+xml);
     }
     
-    timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30 * 60 * 1000));
+    timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", reconnectDelay));
     
     try
     {
@@ -95,21 +96,30 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    try
+    if ( xpath == null)
     {
-      if ( xpath == null)
+      xpath = Xlate.get( reference, "xpath", (String)null);
+      if ( xpath == null) throw new CachingException( "Query not defined.");
+    }
+    
+    Session session = null;
+    while( session == null)
+    {
+      try { session = client.connect( timeout);} catch( Exception e) { log.error( e.getMessage());}
+      try { Thread.sleep( reconnectDelay);} catch( InterruptedException e) { break;}
+      if ( session != null)
       {
-        xpath = Xlate.get( reference, "xpath", (String)null);
-        if ( xpath == null) throw new CachingException( "Query not defined.");
+        try { session.attach( xpath, reference);} catch( Exception e) { log.error( e.getMessage());}
       }
-     
-      Session session = client.connect( timeout);
-      session.attach( xpath, reference);
     }
-    catch( IOException e)
-    {
-      throw new CachingException( "Unable to sync reference: "+reference, e);
-    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#flushImpl(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  protected void flushImpl( IExternalReference reference) throws CachingException
+  {
   }
 
   /**
@@ -128,6 +138,9 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( message, e);
     }
   }
+
+  private final static Log log = Log.getLog( NetworkCachingPolicy.class);
+  private final static int reconnectDelay = 1000;
   
   private Client client;
   private String xpath;

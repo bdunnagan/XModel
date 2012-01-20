@@ -26,7 +26,6 @@ import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 
-
 /**
  * A caching policy which converts the system environment variables into elements. Each environment
  * variable is stored in a <i>property</i> element which has a <i>name</i> attribute and whose value
@@ -54,13 +53,6 @@ public class EnvironmentCachingPolicy extends ConfiguredCachingPolicy
       property.setValue( properties.get( key));
       reference.addChild( property);
     }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
   }
 
   /* (non-Javadoc)

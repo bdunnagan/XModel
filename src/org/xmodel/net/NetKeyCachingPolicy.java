@@ -53,5 +53,13 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
     }
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#flush(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public void flush( IExternalReference reference) throws CachingException
+  {
+  }
+
   private Protocol protocol;
 }

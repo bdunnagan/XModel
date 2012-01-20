@@ -72,6 +72,16 @@ public final class Log
     return log;
   }
   
+  /**
+   * Returns the log with the fully-qualified name of the specified class.
+   * @param clazz The class.
+   * @return Returns the log with the fully-qualified name of the specified class.
+   */
+  public static Log getLog( Class<?> clazz)
+  {
+    return getLog( clazz.getName());
+  }
+  
   public Log( String name)
   {
     this.name = name;

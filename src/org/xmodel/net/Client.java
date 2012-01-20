@@ -32,6 +32,22 @@ public class Client extends Protocol
     this.port = port;
   }
 
+  /**
+   * @return Returns the remote host.
+   */
+  public String getHost()
+  {
+    return host;
+  }
+  
+  /**
+   * @return Returns the remote port.
+   */
+  public int getPort()
+  {
+    return port;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.Protocol#doClose(org.xmodel.net.ILink, int)
    */

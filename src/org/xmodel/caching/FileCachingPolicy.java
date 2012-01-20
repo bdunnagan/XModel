@@ -38,7 +38,6 @@ import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-
 /**
  * An implementation of ICachingPolicy for files containing XML documents.
  */
@@ -108,10 +107,9 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(
-   * org.xmodel.external.IExternalReference)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#flushImpl(org.xmodel.external.IExternalReference)
    */
-  public void flush( IExternalReference reference) throws CachingException
+  public void flushImpl( IExternalReference reference) throws CachingException
   {
     if ( reference.isDirty()) return;
     
