@@ -37,7 +37,7 @@ final class Connection implements ILink
    */
   public String getAddress()
   {
-    return address.getAddress().getHostAddress();
+    return (address != null)? address.getAddress().getHostAddress(): null;
   }
   
   /**
@@ -45,7 +45,7 @@ final class Connection implements ILink
    */
   public int getPort()
   {
-    return address.getPort();
+    return (address != null)? address.getPort(): 0;
   }
   
   /**
@@ -72,16 +72,9 @@ final class Connection implements ILink
    * @param timeout The timeout in milliseconds.
    * @return Returns true if the connection was established.
    */
-  boolean waitForConnect( int timeout)
+  boolean waitForConnect( int timeout) throws InterruptedException
   {
-    try 
-    { 
-      return semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
-    } 
-    catch( InterruptedException e) 
-    {
-      return false;
-    }
+    return semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
   }
   
   /**
@@ -97,8 +90,13 @@ final class Connection implements ILink
     }
     catch( IOException e)
     {
+      log.exception( e);
     }
-    channel = null;
+    finally
+    {
+      channel = null;
+      address = null;
+    }
     
     if ( listener != null) listener.onClose( this);
   }
@@ -108,7 +106,7 @@ final class Connection implements ILink
    */
   public boolean isOpen()
   {
-    return channel != null;
+    return address != null;
   }
 
   /**
@@ -198,7 +196,5 @@ final class Connection implements ILink
   private InetSocketAddress address;
   private SocketChannel channel;
   private ByteBuffer buffer;
-  
-  // connection semaphore
-  Semaphore semaphore;
+  private Semaphore semaphore;
 }
