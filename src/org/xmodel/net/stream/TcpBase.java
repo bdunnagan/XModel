@@ -93,13 +93,19 @@ public abstract class TcpBase
     Connection connection = createConnection( channel, listener);
     
     Request request = new Request();
-    request.channel = connection.getChannel();
+    request.channel = channel;
     request.buffer = null;
     request.ops = SelectionKey.OP_CONNECT;
     
     enqueue( request);
     
-    if ( !connection.waitForConnect( timeout)) return null; 
+    try
+    {
+      if ( !connection.waitForConnect( timeout)) return null;
+    }
+    catch( InterruptedException e)
+    {
+    }
     
     return connection;
   }
@@ -120,8 +126,16 @@ public abstract class TcpBase
     request.ops = SelectionKey.OP_CONNECT;
     
     enqueue( request);
+  
+    try
+    {
+      return connection.waitForConnect( timeout);
+    }
+    catch( InterruptedException e)
+    {
+    }
     
-    return connection.waitForConnect( timeout);
+    return false;
   }
 
   
@@ -174,25 +188,10 @@ public abstract class TcpBase
       
       try
       {
-        if ( readyKey.isReadable())
-        {
-          read( readyKey);
-        }
-        
-        if ( readyKey.isWritable())
-        {
-          write( readyKey);
-        }
-        
-        if ( readyKey.isAcceptable())
-        {
-          accept( readyKey);
-        }
-        
-        if ( readyKey.isConnectable())
-        {
-          connect( readyKey);
-        }
+        if ( readyKey.isReadable()) read( readyKey);
+        if ( readyKey.isWritable()) write( readyKey);
+        if ( readyKey.isAcceptable()) accept( readyKey);
+        if ( readyKey.isConnectable()) connect( readyKey);
       }
       catch( IOException e)
       {
