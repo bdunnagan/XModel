@@ -65,6 +65,8 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    */
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
+    this.context = context;
+    
     // static attributes
     String list = Xlate.childGet( annotation, "static", (String)null);
     if ( list != null)
@@ -89,4 +91,6 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    * @param reference The reference.
    */
   protected abstract void syncImpl( IExternalReference reference) throws CachingException;
+  
+  protected IContext context;
 }
