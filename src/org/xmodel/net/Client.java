@@ -46,6 +46,7 @@ public class Client extends Protocol
 
   /**
    * Connect (or reconnect) to the remote host.
+   * @return Returns a connected session or null on timeout.
    */
   public Session connect( int timeout) throws IOException
   {
@@ -53,7 +54,7 @@ public class Client extends Protocol
     {
       link = client.connect( host, port, timeout, this);
     }
-    return openSession( link);
+    return (link != null)? openSession( link): null;
   }
 
   /**

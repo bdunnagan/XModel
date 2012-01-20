@@ -48,7 +48,7 @@ public class IdAction extends GuardedAction
     super.configure( document);
 
     IModelObject config = document.getRoot();
-    variable = Conventions.getVarName( config, false, "assign");    
+    var = Conventions.getVarName( config, false, "assign");    
     targetExpr = Xlate.get( config, (IExpression)null);
     length = Xlate.get( config, "length", 10);
   }
@@ -64,10 +64,10 @@ public class IdAction extends GuardedAction
       for ( IModelObject node: targetExpr.query( context, null))
         node.setValue( generate( length));
     }
-    else if ( variable != null)
+    else if ( var != null)
     {
       IVariableScope scope = context.getScope();
-      if ( scope != null) scope.set( variable, generate( length));
+      if ( scope != null) scope.set( var, generate( length));
     }
     else
     {
@@ -88,7 +88,7 @@ public class IdAction extends GuardedAction
   }
   
   private Random random;
-  private String variable;
+  private String var;
   private IExpression targetExpr;
   private int length;
   

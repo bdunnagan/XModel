@@ -23,7 +23,6 @@ import java.io.IOException;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
@@ -46,8 +45,8 @@ public class StartServerAction extends GuardedAction
     
     factory = getFactory( document.getRoot());
     
-    // get assign
-    assign = Xlate.get( document.getRoot(), "assign", (String)null);
+    // variable
+    var = Conventions.getVarName( document.getRoot(), true, "assign");
     
     // get expressions
     hostExpr = document.getExpression( "host", true);
@@ -81,7 +80,7 @@ public class StartServerAction extends GuardedAction
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");
       object.setValue( server);
-      stateful.set( assign, object);
+      stateful.set( var, object);
     }
     catch( IOException e)
     {
@@ -95,7 +94,7 @@ public class StartServerAction extends GuardedAction
   
   private IModelObjectFactory factory;
   private Server server;
-  private String assign;
+  private String var;
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;

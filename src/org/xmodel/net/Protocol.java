@@ -181,6 +181,7 @@ public class Protocol implements ILink.IListener
       
       info.xpath = xpath;
       info.element = reference;
+      info.isAttachClient = true;
       info.dispatcher = reference.getModel().getDispatcher();
       
       sendAttachRequest( link, session, xpath);
@@ -408,8 +409,15 @@ public class Protocol implements ILink.IListener
    */
   protected void doClose( ILink link, int session)
   {
+    IExternalReference reference = null;
+    
+    SessionInfo info = getSession( link, session);
+    if ( info != null && info.isAttachClient) reference = (IExternalReference)info.element;
+    
     doDetach( link, session);
     deallocSession( link, session);
+    
+    if ( reference != null) reference.setDirty( true);
   }
   
   /* (non-Javadoc)
@@ -2595,6 +2603,7 @@ public class Protocol implements ILink.IListener
     public IDispatcher dispatcher;
     public String xpath;
     public IModelObject element;
+    public boolean isAttachClient;
     public Map<String, IModelObject> index;
     public TabularCompressor compressor;
     public Listener listener;

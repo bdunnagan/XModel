@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
@@ -116,7 +115,7 @@ public class FileLoadAction extends GuardedAction
     }
     
     // set variable if defined
-    if ( scope != null) scope.set( var, element);
+    if ( var != null && scope != null) scope.set( var, element);
     
     // add to parent
     if ( parent != null) parent.addChild( element);

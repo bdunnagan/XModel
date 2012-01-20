@@ -6,6 +6,8 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.xpath.AttributeNode;
+import org.xmodel.xpath.TextNode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -134,7 +136,16 @@ public class ExecutionProtocol
         if ( scope.getType( variable, context) == ResultType.NODES)
         {
           for( IModelObject node: (List<IModelObject>)object)
-            assignment.addChild( node.cloneTree());
+          {
+            if ( node instanceof TextNode || node instanceof AttributeNode)
+            {
+              assignment.setValue( node.getValue());
+            }
+            else
+            {
+              assignment.addChild( node.cloneTree());
+            }
+          }
         }
         else
         {
