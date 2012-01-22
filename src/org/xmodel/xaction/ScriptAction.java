@@ -147,7 +147,7 @@ public class ScriptAction extends GuardedAction
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public Object[] doAction( IContext context)
+  protected Object[] doAction( IContext context)
   {
     if ( !debugging)
     {
@@ -174,6 +174,7 @@ public class ScriptAction extends GuardedAction
       {
         debugger.pop();
       }
+      
       return null;
     }
   }

@@ -46,7 +46,7 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   public URLCachingPolicy( ICache cache)
   {
     super( cache);
-    
+   
     setStaticAttributes( new String[] { "id", "url"});
 
     associations = new HashMap<String, IFileAssociation>();
@@ -54,6 +54,9 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     addAssociation( txtAssociation);
     addAssociation( xipAssociation);
     addAssociation( xmlAssociation);
+    
+    // default behavior when not configured
+    urlExpr = defaultUrlExpr;
   }
 
   /**

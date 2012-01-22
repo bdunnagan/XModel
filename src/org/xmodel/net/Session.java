@@ -65,6 +65,22 @@ public final class Session
   /**
    * Send a debug step message.
    */
+  public final void debugGo() throws IOException
+  {
+    protocol.sendDebugGo( link, session);
+  }
+  
+  /**
+   * Send a debug step message.
+   */
+  public final void debugStop() throws IOException
+  {
+    protocol.sendDebugStop( link, session);
+  }
+  
+  /**
+   * Send a debug step message.
+   */
   public final void debugStepIn() throws IOException
   {
     protocol.sendDebugStepIn( link, session);

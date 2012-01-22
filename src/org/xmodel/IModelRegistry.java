@@ -23,7 +23,6 @@ import java.net.URI;
 import java.util.List;
 import org.xmodel.external.IExternalSpace;
 
-
 /**
  * An interface for adding, removing and accessing documents of collections and for accessing the
  * IModel associated with the current thread.  Each thread which manages an xmodel has its own

@@ -86,8 +86,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Problem creating client.", e);
     }
     
-    xpath = Xlate.get( annotation, "xpath", Xlate.childGet( annotation, "xpath", (String)null));
-    if ( xpath != null) validate( xpath);
+    query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", (String)null));
+    if ( query != null) validate( query);
   }
   
   /* (non-Javadoc)
@@ -96,20 +96,38 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    if ( xpath == null)
+    if ( query == null)
     {
-      xpath = Xlate.get( reference, "xpath", (String)null);
-      if ( xpath == null) throw new CachingException( "Query not defined.");
+      query = Xlate.get( reference, "query", (String)null);
+      if ( query == null) throw new CachingException( "Query not defined.");
     }
     
     Session session = null;
     while( session == null)
     {
-      try { session = client.connect( timeout);} catch( Exception e) { log.error( e.getMessage());}
+      try 
+      { 
+        session = client.connect( timeout);
+        break;
+      } 
+      catch( Exception e) 
+      { 
+        log.error( e.getMessage());
+      }
+      
       try { Thread.sleep( reconnectDelay);} catch( InterruptedException e) { break;}
-      if ( session != null)
+    }
+    
+    if ( session != null) 
+    {
+      try
       {
-        try { session.attach( xpath, reference);} catch( Exception e) { log.error( e.getMessage());}
+        session.attach( query, reference);
+      }
+      catch( IOException e)
+      {
+        throw new CachingException( String.format( 
+          "Unable to attach to xpath, %s.", query), e);
       }
     }
   }
@@ -143,6 +161,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private final static int reconnectDelay = 1000;
   
   private Client client;
-  private String xpath;
+  private String query;
   private int timeout;
 }

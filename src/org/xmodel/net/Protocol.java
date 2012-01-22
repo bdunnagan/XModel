@@ -43,6 +43,7 @@ import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
+import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -75,6 +76,8 @@ public class Protocol implements ILink.IListener
     queryResponse,
     executeRequest,
     executeResponse,
+    debugGo,
+    debugStop,
     debugStepIn,
     debugStepOver,
     debugStepOut
@@ -108,8 +111,28 @@ public class Protocol implements ILink.IListener
    */
   public void setServerContext( IContext context)
   {
+    if ( debugEnabled) 
+    {
+      this.context.getScope().clear( "debug");
+      context.set( "debug", new ModelObject( "debug"));
+    }
+    
     this.context = context;
     dispatcher = context.getModel().getDispatcher();
+  }
+  
+  /**
+   * Enable or disable debugging via this server instance.
+   * @param enable True if debugging should be enabled.
+   */
+  public void setEnableDebugging( boolean enable)
+  {
+    debugEnabled = enable;
+    
+    if ( debugEnabled && context != null) 
+    {
+      context.set( "debug", new ModelObject( "debug"));
+    }
   }
   
   /**
@@ -284,7 +307,7 @@ public class Protocol implements ILink.IListener
       }
       sendAttachResponse( sender, session, copy);
     }
-    catch( PathSyntaxException e)
+    catch( Exception e)
     {
       sendError( sender, session, e.getMessage());
     }
@@ -487,9 +510,11 @@ public class Protocol implements ILink.IListener
         case queryResponse:   handleQueryResponse( link, session, buffer, length); return true;
         case executeRequest:  handleExecuteRequest( link, session, buffer, length); return true;
         case executeResponse: handleExecuteResponse( link, session, buffer, length); return true;
-        case debugStepIn:     handleDebugStepIn( link, session, buffer, length); return true;
-        case debugStepOver:   handleDebugStepOver( link, session, buffer, length); return true;
-        case debugStepOut:    handleDebugStepOut( link, session, buffer, length); return true;
+        case debugGo:         if ( debugEnabled) handleDebugGo( link, session, buffer, length); return true;
+        case debugStop:       if ( debugEnabled) handleDebugStop( link, session, buffer, length); return true;
+        case debugStepIn:     if ( debugEnabled) handleDebugStepIn( link, session, buffer, length); return true;
+        case debugStepOver:   if ( debugEnabled) handleDebugStepOver( link, session, buffer, length); return true;
+        case debugStepOut:    if ( debugEnabled) handleDebugStepOut( link, session, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
@@ -1435,6 +1460,85 @@ public class Protocol implements ILink.IListener
    * @param link The link.
    * @param session The session number.
    */
+  public final void sendDebugGo( ILink link, int session) throws IOException
+  {
+    initialize( buffer);
+    finalize( buffer, Type.debugGo, session, 0);
+    link.send( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleDebugGo( ILink link, int session, ByteBuffer buffer, int length)
+  {
+    handleDebugGo( link, session);
+  }
+  
+  /**
+   * Handle a debug step.
+   * @param link The link.
+   * @param session The session number.
+   */
+  protected void handleDebugGo( ILink link, int session)
+  {
+    dispatch( getSession( link, session), new Runnable() {
+      public void run()
+      {
+        XAction.getDebugger().stepOut();
+        XAction.setDebugger( null);
+      }
+    });
+  }
+  
+  /**
+   * Send a debug step message.
+   * @param link The link.
+   * @param session The session number.
+   */
+  public final void sendDebugStop( ILink link, int session) throws IOException
+  {
+    initialize( buffer);
+    finalize( buffer, Type.debugStop, session, 0);
+    link.send( buffer);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleDebugStop( ILink link, int session, ByteBuffer buffer, int length)
+  {
+    handleDebugStop( link, session);
+  }
+  
+  /**
+   * Handle a debug step.
+   * @param link The link.
+   * @param session The session number.
+   */
+  protected void handleDebugStop( ILink link, int session)
+  {
+    dispatch( getSession( link, session), new Runnable() {
+      public void run()
+      {
+        XAction.setDebugger( new Debugger( Protocol.this, context));
+      }
+    });
+  }
+  
+  /**
+   * Send a debug step message.
+   * @param link The link.
+   * @param session The session number.
+   */
   public final void sendDebugStepIn( ILink link, int session) throws IOException
   {
     initialize( buffer);
@@ -1909,7 +2013,7 @@ public class Protocol implements ILink.IListener
    * @param element The element to be copied.
    * @return Returns the copy.
    */
-  protected IModelObject encode( ILink link, int session, IModelObject element, boolean root)
+  protected IModelObject encode1( ILink link, int session, IModelObject element, boolean root)
   {
     IModelObject encoded = null;
     
@@ -1964,6 +2068,73 @@ public class Protocol implements ILink.IListener
   }
     
   /**
+   * Encode the specified element.
+   * @param link The link.
+   * @param session The session number.
+   * @param isRoot True if the element is the root of the attachment.
+   * @param element The element to be copied.
+   * @return Returns the copy.
+   */
+  protected IModelObject encode( ILink link, int session, IModelObject element, boolean isRoot)
+  {
+    element.getModel().setSyncLock( true);
+    
+    Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
+    try
+    {
+      DepthFirstIterator iter = new DepthFirstIterator( element);
+      while( iter.hasNext())
+      {
+        IModelObject lNode = iter.next();
+        IModelObject rNode = map.get( lNode);
+        IModelObject rParent = map.get( lNode.getParent());
+        
+        rNode = new ModelObject( lNode.getType());
+        
+        if ( lNode instanceof IExternalReference)
+        {
+          IExternalReference lRef = (IExternalReference)element;
+          if ( !isRoot || rNode != element) Xlate.set( rNode, "net:key", index( link, session, lRef));
+          
+          // enumerate static attributes for client
+          for( String attrName: lRef.getStaticAttributes())
+          {
+            IModelObject entry = new ModelObject( "net:static");
+            entry.setValue( attrName);
+            rNode.addChild( entry);
+          }
+          
+          // copy only static attributes if reference is dirty
+          if ( lNode.isDirty())
+          {
+            Xlate.set( rNode, "net:dirty", true);
+            
+            // copy static attributes
+            for( String attrName: lRef.getStaticAttributes())
+            {
+              Object attrValue = element.getAttribute( attrName);
+              if ( attrValue != null) rNode.setAttribute( attrName, attrValue);
+            }
+          }
+        }
+        else
+        {
+          ModelAlgorithms.copyAttributes( lNode, rNode);
+        }
+        
+        map.put( lNode, rNode);
+        if ( rParent != null) rParent.addChild( rNode);
+      }
+    }
+    finally
+    {
+      element.getModel().setSyncLock( false);
+    }
+    
+    return map.get( element);
+  }
+  
+  /**
    * Interpret the content of the specified server encoded subtree.
    * @param link The link.
    * @param session The session number.
@@ -1972,54 +2143,57 @@ public class Protocol implements ILink.IListener
    */
   protected IModelObject decode( ILink link, int session, IModelObject root)
   {
-    //System.out.println( ((ModelObject)root).toXml());
+    root.getModel().setSyncLock( true);
     
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
-    DepthFirstIterator iter = new DepthFirstIterator( root);
-    while( iter.hasNext())
+    try
     {
-      IModelObject lNode = iter.next();
-      if ( lNode.isType( "net:static")) continue;
-      
-      IModelObject rNode = map.get( lNode);
-      IModelObject rParent = map.get( lNode.getParent());
-      
-      String key = Xlate.get( lNode, "net:key", (String)null);
-      if ( key != null)
+      DepthFirstIterator iter = new DepthFirstIterator( root);
+      while( iter.hasNext())
       {
-        ExternalReference reference = new ExternalReference( lNode.getType());
-        ModelAlgorithms.copyAttributes( lNode, reference);
-        reference.removeAttribute( "net:key");
-        reference.removeChildren( "net:static");
+        IModelObject lNode = iter.next();
+        if ( lNode.isType( "net:static")) continue;
         
-        NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( this);
-        cachingPolicy.setStaticAttributes( getStaticAttributes( lNode));
-        reference.setCachingPolicy( cachingPolicy);
+        IModelObject rNode = map.get( lNode);
+        IModelObject rParent = map.get( lNode.getParent());
         
-        boolean dirty = Xlate.get( reference, "net:dirty", false);
-        reference.removeAttribute( "net:dirty");
-        reference.setDirty( dirty);
+        String key = Xlate.get( lNode, "net:key", (String)null);
+        if ( key != null)
+        {
+          ExternalReference reference = new ExternalReference( lNode.getType());
+          ModelAlgorithms.copyAttributes( lNode, reference);
+          reference.removeAttribute( "net:key");
+          reference.removeChildren( "net:static");
+          
+          NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( this);
+          cachingPolicy.setStaticAttributes( getStaticAttributes( lNode));
+          reference.setCachingPolicy( cachingPolicy);
+          
+          boolean dirty = Xlate.get( reference, "net:dirty", false);
+          reference.removeAttribute( "net:dirty");
+          reference.setDirty( dirty);
+          
+          KeyRecord keyRecord = new KeyRecord();
+          keyRecord.key = key;
+          keyRecord.link = link;
+          keyRecord.session = session;
+          keys.put( reference, keyRecord);
+          
+          rNode = reference;
+        }
+        else
+        {
+          rNode = new ModelObject( lNode.getType());
+          ModelAlgorithms.copyAttributes( lNode, rNode);
+        }
         
-        KeyRecord keyRecord = new KeyRecord();
-        keyRecord.key = key;
-        keyRecord.link = link;
-        keyRecord.session = session;
-        keys.put( reference, keyRecord);
-        
-        rNode = reference;
+        map.put( lNode, rNode);
+        if ( rParent != null) rParent.addChild( rNode);
       }
-      else if ( lNode == root)
-      {
-        rNode = new ModelObject( root.getType());
-        ModelAlgorithms.copyAttributes( lNode, rNode);
-      }
-      else
-      {
-        rNode = lNode;
-      }
-      
-      map.put( lNode, rNode);
-      if ( rParent != null) rParent.addChild( rNode);
+    }
+    finally
+    {
+      root.getModel().setSyncLock( false);
     }
     
     return map.get( root);
@@ -2621,4 +2795,5 @@ public class Protocol implements ILink.IListener
   private IDispatcher dispatcher;
   private List<String> packageNames;
   private ILink updating;
+  private boolean debugEnabled;
 }

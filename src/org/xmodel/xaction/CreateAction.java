@@ -59,7 +59,7 @@ public class CreateAction extends GuardedAction
     IModelObject config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");
     
-    collection = Xlate.get( config, "collection", (String)null);
+    collectionExpr = Xlate.get( config, "collection", (IExpression)null);
     parentExpr = Xlate.get( config, "parent", (IExpression)null);
     nameExpr = Xlate.get( config, "name", (IExpression)null);
     schemaExpr = Xlate.get( config, "schema", (IExpression)null);
@@ -136,6 +136,7 @@ public class CreateAction extends GuardedAction
         parent.addChild( element);
     
     // add element to collection if not null
+    String collection = (collectionExpr != null)? collectionExpr.evaluateString( context): null;
     if ( collection != null && elements.size() > 0)
     {
       IModel model = elements.get( 0).getModel();
@@ -246,7 +247,7 @@ public class CreateAction extends GuardedAction
   
   private IModelObjectFactory factory;
   private String var;
-  private String collection;
+  private IExpression collectionExpr;
   private IExpression parentExpr;
   private IExpression nameExpr;
   private IExpression schemaExpr;

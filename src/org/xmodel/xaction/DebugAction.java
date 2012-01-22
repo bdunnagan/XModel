@@ -39,46 +39,37 @@ public class DebugAction extends GuardedAction
     String op = opExpr.evaluateString( context);
     op = op.trim().toLowerCase();
     
-    if ( op.equals( "start"))
+    if ( sessions.get() == null)
     {
-      XAction.setDebugger( new Debugger());
-    }
-    else if ( op.equals( "stop"))
-    {
-      XAction.setDebugger( null);
-    }
-    else
-    {
-      if ( sessions.get() == null)
-      {
-        String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
-        int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Debugger.defaultPort;
-        int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
-        try
-        {
-          Client client = new Client( host, port, timeout, true);
-          Session session = client.connect( timeout);
-          sessions.set( session);
-        } 
-        catch( IOException e)
-        {
-          throw new XActionException( String.format( "Unable to connect to %s:%d.", host, port), e);
-        }
-      }
-      
-      Session session = sessions.get();
+      String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
+      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Debugger.defaultPort;
+      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       try
       {
-        if ( op.equals( "stepin")) session.debugStepIn();
-        else if ( op.equals( "stepover")) session.debugStepOver();
-        else if ( op.equals( "stepout")) session.debugStepOut();
-        else if ( op.length() == 0) throw new XActionException( "Empty debug operation.");
-        else throw new XActionException( "Undefined debug operation: "+op);
-      }
+        Client client = new Client( host, port, timeout, true);
+        Session session = client.connect( timeout);
+        sessions.set( session);
+      } 
       catch( IOException e)
       {
-        throw new XActionException( "Unable to execute debug operation.", e);
+        throw new XActionException( String.format( "Unable to connect to %s:%d.", host, port), e);
       }
+    }
+    
+    Session session = sessions.get();
+    try
+    {
+      if ( op.equals( "go")) session.debugGo();
+      else if ( op.equals( "stop")) session.debugStop();
+      else if ( op.equals( "stepin")) session.debugStepIn();
+      else if ( op.equals( "stepover")) session.debugStepOver();
+      else if ( op.equals( "stepout")) session.debugStepOut();
+      else if ( op.length() == 0) throw new XActionException( "Empty debug operation.");
+      else throw new XActionException( "Undefined debug operation: "+op);
+    }
+    catch( IOException e)
+    {
+      throw new XActionException( "Unable to execute debug operation.", e);
     }
     
     return null;

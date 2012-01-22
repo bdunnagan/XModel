@@ -51,7 +51,9 @@ public class ModelObjectFactory implements IModelObjectFactory
    */
   public IModelObject createClone( IModelObject object)
   {
-    return object.cloneObject();
+    IModelObject clone = new ModelObject( object.getType());
+    ModelAlgorithms.copyAttributes( object, clone);
+    return clone;
   }
 
   /* (non-Javadoc)

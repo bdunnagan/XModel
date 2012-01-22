@@ -71,7 +71,11 @@ public class ExternalReference extends ModelObject implements IExternalReference
     // 050109: added this back during xidget tree development
     boolean wasDirty = this.dirty;
     this.dirty = dirty;
-    if ( wasDirty != dirty) notifyDirty( dirty);
+    if ( wasDirty != dirty) 
+    {
+      if ( dirty == true) clearCache();
+      notifyDirty( dirty);
+    }
   }
 
   /* (non-Javadoc)

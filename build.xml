@@ -29,12 +29,15 @@
           <class classes="protected" methods="protected" fields="protected">
             <patternset>
               <include name="org.xmodel.**.*"/>
-            	<include name="org.xmodel.Xlate"/>
+              <include name="org.xmodel.Xlate"/>
+              <include name="org.xmodel.IModel"/>
+              <include name="org.xmodel.Model"/>
+              <include name="org.xmodel.ModelRegistry"/>
+              <include name="org.xmodel.IDispatcher"/>
               <exclude name="org.xmodel.AbstractPath"/>
               <exclude name="org.xmodel.IPathElement"/>
               <exclude name="org.xmodel.IPredicate"/>
               <include name="org.xmodel.IModelObject"/>
-              <exclude name="org.xmodel.Model"/>
               <exclude name="org.xmodel.ModelListenerList"/>
               <exclude name="org.xmodel.PathListenerList"/>
               <exclude name="org.xmodel.Update"/>
@@ -74,10 +77,13 @@
           <class classes="protected" methods="protected" fields="protected">
           	<patternset>
               <include name="org.xmodel.**.*"/>
+              <include name="org.xmodel.IModel"/>
+              <include name="org.xmodel.Model"/>
+              <include name="org.xmodel.ModelRegistry"/>
+              <include name="org.xmodel.IDispatcher"/>
               <exclude name="org.xmodel.AbstractPath"/>
               <exclude name="org.xmodel.IPathElement"/>
               <exclude name="org.xmodel.IPredicate"/>
-              <exclude name="org.xmodel.Model"/>
               <exclude name="org.xmodel.ModelListenerList"/>
               <exclude name="org.xmodel.PathListenerList"/>
               <exclude name="org.xmodel.Update"/>

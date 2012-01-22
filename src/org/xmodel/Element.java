@@ -33,7 +33,6 @@ import org.xmodel.memento.IMemento;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 
-
 /**
  * An implementation of IModelObject which does not provide listener semantics. Although this implementation
  * is not thread-safe, a fragment containing Element instances may be operated on by different threads in 

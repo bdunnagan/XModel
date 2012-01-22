@@ -19,10 +19,11 @@ public class DefaultSerializer implements ISerializer
   {
     classes = new ArrayList<Class<?>>();
     serializers = new ArrayList<ISerializer>();
-    
+
+    register( Object.class, new StringSerializer());
     register( Boolean.class, new BooleanSerializer());
     register( Number.class, new NumberSerializer());
-    register( CharSequence.class, new StringSerializer());
+    //register( File.class, new FileSerializer());
   }
   
   /**
@@ -42,9 +43,7 @@ public class DefaultSerializer implements ISerializer
   @Override
   public Object readObject( DataInput input) throws IOException, ClassNotFoundException, CompressorException
   {
-    int classID = input.readByte();
-    if ( classID < 0) classID = 127 - classID;
-    
+    int classID = input.readShort() & 0xFFFF;
     if ( classID >= serializers.size()) 
     {
       throw new ClassNotFoundException( 
@@ -67,9 +66,14 @@ public class DefaultSerializer implements ISerializer
       throw new CompressorException( String.format(
         "Class not supported, %s.", object.getClass().getName()));
     }
+   
+    int total = 2;
+    output.writeShort( classID);
     
     ISerializer serializer = serializers.get( classID);
-    return serializer.writeObject( output, object);
+    total += serializer.writeObject( output, object);
+    
+    return total;
   }
   
   /**

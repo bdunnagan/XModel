@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.io.IOException;
 
-import org.xmodel.external.IExternalReference;
 import org.xmodel.net.stream.TcpClient;
 
 /**
@@ -48,18 +47,6 @@ public class Client extends Protocol
     return port;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#doClose(org.xmodel.net.ILink, int)
-   */
-  @Override
-  protected void doClose( ILink link, int session)
-  {
-    SessionInfo info = getSession( link, session);
-    if ( info != null) ((IExternalReference)info.element).setDirty( true);
-    
-    super.doClose( link, session);
-  }
-
   /**
    * Connect (or reconnect) to the remote host.
    * @return Returns a connected session or null on timeout.

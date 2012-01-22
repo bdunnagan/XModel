@@ -11,12 +11,12 @@ import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.log.Log;
-import org.xmodel.net.Server;
+import org.xmodel.net.Protocol;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
+import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -27,14 +27,17 @@ public class Debugger implements IDebugger
 {
   public final static int defaultPort = 27700;
   
-  public Debugger()
+  public Debugger( Protocol protocol, IContext context)
   {
+    this.protocol = protocol;
+    
     stack = new Stack<Frame>();
     semaphore = new Semaphore( 0);
     stepFrame = 1;
-    debugRoot = new ModelObject( "debug");
-    context = new StatefulContext( debugRoot);
     dispatcher = new BlockingDispatcher();
+    
+    IExpression debugExpr = XPath.createExpression( "$debug");
+    debugRoot = debugExpr.queryFirst( context);
   }
 
   protected static class Frame
@@ -47,24 +50,6 @@ public class Debugger implements IDebugger
     
     public IContext context;
     public ScriptAction script;
-  }
-  
-  /**
-   * Called when execution is paused.
-   * @param context The execution context.
-   * @param stack The stack.
-   */
-  protected void pause( IContext context, Stack<Frame> stack)
-  {
-    log.info( "debugger: pausing ...");
-  }
-  
-  /**
-   * Called when the current script is complete.
-   */
-  protected void resume()
-  {
-    log.info( "debugger: resuming ...");
   }
   
   /* (non-Javadoc)
@@ -140,7 +125,6 @@ public class Debugger implements IDebugger
         XmlDiffer differ = new XmlDiffer( new DefaultXmlMatcher( true));
         differ.diffAndApply( element, revised);
         
-        pause( context, stack);
         block();
       }
       
@@ -163,7 +147,6 @@ public class Debugger implements IDebugger
       if ( depth > 0) debugRoot.removeChild( depth-1); 
         
       currFrame--;
-      if ( currFrame == 0) resume();
     }
   }
   
@@ -172,21 +155,7 @@ public class Debugger implements IDebugger
    */
   private void block()
   {
-    if ( server == null)
-    {
-      try
-      {
-        server = new Server( "0.0.0.0", defaultPort, 60000);
-        server.setServerContext( context);
-        server.start( false);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
-
-    server.setDispatcher( dispatcher);
+    protocol.setDispatcher( dispatcher);
     while( true)
     {
       dispatcher.process();
@@ -240,14 +209,11 @@ public class Debugger implements IDebugger
     return element;
   }
   
-  private static Log log = Log.getLog( "org.xmodel.xaction.debug");
-  
+  private Protocol protocol;
   private Stack<Frame> stack;
   private int stepFrame;
   private int currFrame;
-  private StatefulContext context;
   private IModelObject debugRoot;
-  private Server server;
   private Semaphore semaphore;
   private BlockingDispatcher dispatcher;
 }

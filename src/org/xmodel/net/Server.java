@@ -16,10 +16,13 @@ public class Server extends Protocol
    * Create a server bound to the specified local address and port.
    * @param host The local interface address.
    * @param port The local interface port.
+   * @param timeout The timeout for message response.
+   * @param debug True if debugging is enabled on this server.
    */
-  public Server( String host, int port, int timeout) throws IOException
+  public Server( String host, int port, int timeout, boolean debug) throws IOException
   {
     super( timeout);
+    setEnableDebugging( debug);
     server = new TcpServer( host, port, this);
   }
 
