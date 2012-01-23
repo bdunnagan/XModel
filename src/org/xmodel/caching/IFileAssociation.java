@@ -20,9 +20,9 @@
 package org.xmodel.caching;
 
 import java.io.InputStream;
-
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
 
 
 /**
@@ -37,6 +37,14 @@ public interface IFileAssociation
    * @return Returns the extensions handled by this association.
    */
   public String[] getExtensions();
+  
+  /**
+   * Returns null or an implementation of ICachingPolicy to associate with the file reference.
+   * @param parent The parent caching policy.
+   * @param name The name of the file.
+   * @return Returns null or an implementation of ICachingPolicy.
+   */
+  public ICachingPolicy getCachingPolicy( ICachingPolicy parent, String name) throws CachingException;
   
   /**
    * Read the specified file content and apply it to the specified parent file element.

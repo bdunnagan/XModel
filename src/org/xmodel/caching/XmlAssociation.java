@@ -20,7 +20,6 @@
 package org.xmodel.caching;
 
 import java.io.InputStream;
-
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
 import org.xmodel.xml.XmlIO;
@@ -28,7 +27,7 @@ import org.xmodel.xml.XmlIO;
 /**
  * An IFileAssociation for xml, xsd, dtd and other well-formed xml extensions.
  */
-public class XmlAssociation implements IFileAssociation
+public class XmlAssociation extends AbstractFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()

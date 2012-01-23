@@ -19,13 +19,6 @@
  */
 package org.xmodel;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.xmodel.external.DefaultSpace;
-import org.xmodel.external.IExternalSpace;
-
 /**
  * An implementation of IModelRegistry which allows IModel instances to be associated with threads
  * an accessed via thread-local data.
@@ -35,8 +28,6 @@ public class ModelRegistry implements IModelRegistry
   public ModelRegistry()
   {
     instance = new ThreadLocal<ModelRegistry>();
-    register( new DefaultSpace());
-    //register( new ExternalSpace());
   }
   
   /* (non-Javadoc)
@@ -64,42 +55,6 @@ public class ModelRegistry implements IModelRegistry
     return root;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelRegistry#register(org.xmodel.external.IExternalSpace)
-   */
-  public void register( IExternalSpace externalSpace)
-  {
-    if ( externalSpaces == null) externalSpaces = new ArrayList<IExternalSpace>();
-    externalSpaces.add( externalSpace);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelRegistry#unregister(org.xmodel.external.IExternalSpace)
-   */
-  public void unregister( IExternalSpace externalSpace)
-  {
-    if ( externalSpaces == null) return;
-    externalSpaces.remove( externalSpace);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelRegistry#query(java.net.URI)
-   */
-  public List<IModelObject> query( URI uri)
-  {
-    if ( externalSpaces != null)
-    {
-      for( int i = externalSpaces.size() - 1; i >= 0; i--)
-      {
-        IExternalSpace externalSpace = externalSpaces.get( i);
-        if ( externalSpace.contains( uri))
-          return externalSpace.query( uri);
-      }
-    }
-    
-    return null;
-  }
-
   /**
    * Returns the singleton.
    * @return Returns the singleton.
@@ -117,6 +72,4 @@ public class ModelRegistry implements IModelRegistry
   
   private static ThreadLocal<ModelRegistry> instance = new ThreadLocal<ModelRegistry>();
   private static ThreadLocal<IModel> threadModel;
-  
-  private List<IExternalSpace> externalSpaces;
 }

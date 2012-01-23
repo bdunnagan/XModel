@@ -19,12 +19,15 @@
  */
 package org.xmodel.xpath.function;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.external.CachingException;
+import org.xmodel.xml.IXmlIO;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 
@@ -36,6 +39,11 @@ import org.xmodel.xpath.expression.IContext;
 public class DocFunction extends Function
 {
   public final static String name = "doc";
+  
+  public DocFunction()
+  {
+    xmlIO = new XmlIO();
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getName()
@@ -65,7 +73,7 @@ public class DocFunction extends Function
     {
       String spec = getArgument( 0).evaluateString( context);
       URI uri = new URI( spec);
-      List<IModelObject> result = context.getModel().query( uri);
+      List<IModelObject> result = query( uri);
       if ( result != null) return result;
       return Collections.emptyList();
     }
@@ -78,4 +86,29 @@ public class DocFunction extends Function
       throw new ExpressionException( this, "Unable to evaluate doc function:", e);
     }
   }
+  
+  /**
+   * Load the content from the specified URI and convert into zero or more documents.
+   * @param uri The URI.
+   * @return Returns the documents.
+   */
+  private List<IModelObject> query( URI uri) throws ExpressionException
+  {
+    try
+    {
+      IModelObject element = xmlIO.read( uri.toURL().openStream());
+      return Collections.singletonList( element);
+    }
+    catch( MalformedURLException e)
+    {
+      throw new ExpressionException( this, String.format( 
+        "Unable to perform query, %s.", this), e);
+    }
+    catch( Exception e)
+    {
+      return Collections.emptyList();
+    }
+  }
+  
+  private IXmlIO xmlIO;
 }

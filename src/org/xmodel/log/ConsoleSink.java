@@ -9,7 +9,7 @@ public final class ConsoleSink implements ILogSink
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */
   @Override
-  public void log( Log log, int level, String message)
+  public void log( Log log, int level, Object message)
   {
     System.out.println( message);
   }
@@ -27,7 +27,7 @@ public final class ConsoleSink implements ILogSink
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String, java.lang.Throwable)
    */
   @Override
-  public void log( Log log, int level, String message, Throwable throwable)
+  public void log( Log log, int level, Object message, Throwable throwable)
   {
     System.out.println( message);
     System.out.println( throwable.toString());

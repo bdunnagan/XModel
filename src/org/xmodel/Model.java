@@ -19,13 +19,11 @@
  */
 package org.xmodel;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.xmodel.log.Log;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
@@ -84,14 +82,6 @@ public class Model implements IModel
   public Set<String> getCollections()
   {
     return collections.keySet();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#query(java.net.URI)
-   */
-  public List<IModelObject> query( URI uri)
-  {
-    return ModelRegistry.getInstance().query( uri);
   }
 
   /**

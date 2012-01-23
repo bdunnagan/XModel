@@ -24,7 +24,7 @@ public class NetTest
       {
         try
         {
-          Server server = new Server( "127.0.0.1", port, 100000);
+          Server server = new Server( "127.0.0.1", port, 100000, true);
           server.start( true);
           
           ExternalReference serverModel = new ExternalReference( "server");

@@ -118,9 +118,6 @@
         </keep>
       </rename>
 		</yguard>	 
-
-		<delete dir="jars/xmodel_ob"/>
-		<unzip src="jars/xmodel_ob.jar" dest="jars/xmodel_ob"/>
 	</target>
 	
   <target name="javadoc">

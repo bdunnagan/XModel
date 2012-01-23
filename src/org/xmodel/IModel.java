@@ -19,7 +19,6 @@
  */
 package org.xmodel;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -64,15 +63,6 @@ public interface IModel
    */
   public List<IModelObject> getRoots( String collection);
 
-  /**
-   * Query the specified URI specification and return the matching element. This method calls
-   * the <code>contains</code> method of each registered IExternalSpace implementation and uses
-   * the first match to resolve the query.
-   * @param uri The URI specification.
-   * @return Returns the result of the query.
-   */
-  public List<IModelObject> query( URI uri);
-  
   /**
    * Revert the current update (see Update for more information). This method may be called
    * even when there are no updates to be reverted.  In this case, it is a noop.

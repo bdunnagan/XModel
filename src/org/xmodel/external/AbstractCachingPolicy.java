@@ -504,7 +504,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   {
     if ( attribute == null)
     {
-      return staticAttributes.length > 0 && staticAttributes[ 0].equals( "*");
+      return false;
+      // null means all attributes including text()
+      //return staticAttributes.length > 0 && staticAttributes[ 0].equals( "*");
     }
     else
     {

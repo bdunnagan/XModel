@@ -19,15 +19,13 @@
  */
 package org.xmodel.caching;
 
-import java.io.InputStream;
-import org.xmodel.IModelObject;
-import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
 
 /**
- * An IFileAssociation for the XModel <i>.xip</i> extension associated with the TabularCompressor.
+ * An IFileAssociation for zip files with the <i>.zip</i> extension.
  */
-public class XipAssociation extends AbstractFileAssociation
+public class ZipAssociation extends AbstractFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()
@@ -38,21 +36,13 @@ public class XipAssociation extends AbstractFileAssociation
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
+   * @see org.xmodel.caching.AbstractFileAssociation#getCachingPolicy(org.xmodel.external.ICachingPolicy, java.lang.String)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  @Override
+  public ICachingPolicy getCachingPolicy( ICachingPolicy parent, String name) throws CachingException
   {
-    try
-    {
-      TabularCompressor compressor = new TabularCompressor();
-      IModelObject content = compressor.decompress( stream);
-      parent.addChild( content);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( "Unable to parse xml in compressed file: "+name, e);
-    }
+    return new ZipCachingPolicy();
   }
-  
-  private final static String[] extensions = { ".xip"};
+
+  private final static String[] extensions = { ".zip"};
 }

@@ -21,7 +21,7 @@ public final class FormatSink implements ILogSink
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */
   @Override
-  public void log( Log log, int level, String message)
+  public void log( Log log, int level, Object message)
   {
     StringBuilder sb = new StringBuilder();
     sb.append( Log.getLevelName( level)); sb.append( ' ');
@@ -44,8 +44,9 @@ public final class FormatSink implements ILogSink
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String, java.lang.Throwable)
    */
   @Override
-  public void log( Log log, int level, String message, Throwable throwable)
+  public void log( Log log, int level, Object object, Throwable throwable)
   {
+    String message = object.toString();
     String levelName = Log.getLevelName( level);
     
     String date = dateFormat.format( new Date());

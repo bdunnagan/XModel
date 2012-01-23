@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Yet another logging facility.
  */
-public final class Log
+public class Log
 {
   public final static int exception = 0x80;
   public final static int verbose = 0x40;
@@ -117,12 +117,33 @@ public final class Log
   }
   
   /**
+   * Returns true if the specified logging level is enabled.
+   * @param level The logging level.
+   * @return Returns true if the specified logging level is enabled.
+   */
+  public boolean isLevelEnabled( int level)
+  {
+    if ( mask < 0) configure();
+    return (mask & level) != 0;
+  }
+  
+  /**
    * Log a verbose message.
    * @param message The message.
    */
-  public void verbose( String message)
+  public void verbose( Object message)
   {
     log( verbose, message);
+  }
+  
+  /**
+   * Log a verbose message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void verbose( Object message, Throwable throwable)
+  {
+    log( verbose, message, throwable);
   }
   
   /**
@@ -139,9 +160,19 @@ public final class Log
    * Log a debug message.
    * @param message The message.
    */
-  public void debug( String message)
+  public void debug( Object message)
   {
     log( debug, message);
+  }
+  
+  /**
+   * Log a debug message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void debug( Object message, Throwable throwable)
+  {
+    log( debug, message, throwable);
   }
   
   /**
@@ -158,9 +189,19 @@ public final class Log
    * Log an information message.
    * @param message The message.
    */
-  public void info( String message)
+  public void info( Object message)
   {
     log( info, message);
+  }
+  
+  /**
+   * Log a info message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void info( Object message, Throwable throwable)
+  {
+    log( info, message, throwable);
   }
   
   /**
@@ -177,9 +218,19 @@ public final class Log
    * Log a warning message.
    * @param message The message.
    */
-  public void warn( String message)
+  public void warn( Object message)
   {
     log( warn, message);
+  }
+  
+  /**
+   * Log a warning message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void warn( Object message, Throwable throwable)
+  {
+    log( warn, message, throwable);
   }
   
   /**
@@ -196,9 +247,19 @@ public final class Log
    * Log an error message.
    * @param message The message.
    */
-  public void error( String message)
+  public void error( Object message)
   {
     log( error, message);
+  }
+  
+  /**
+   * Log an error message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void error( Object message, Throwable throwable)
+  {
+    log( error, message, throwable);
   }
   
   /**
@@ -215,9 +276,19 @@ public final class Log
    * Log a severe message.
    * @param message The message.
    */
-  public void severe( String message)
+  public void severe( Object message)
   {
     log( severe, message);
+  }
+  
+  /**
+   * Log a severe message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void severe( Object message, Throwable throwable)
+  {
+    log( severe, message, throwable);
   }
   
   /**
@@ -234,9 +305,19 @@ public final class Log
    * Log a fatal message.
    * @param message The message.
    */
-  public void fatal( String message)
+  public void fatal( Object message)
   {
     log( fatal, message);
+  }
+  
+  /**
+   * Log a fatal message with a caught exception.
+   * @param message The message.
+   * @param Throwable The throwable that was caught.
+   */
+  public void fatal( Object message, Throwable throwable)
+  {
+    log( fatal, message, throwable);
   }
   
   /**
@@ -278,11 +359,24 @@ public final class Log
    * @param level The logging level.
    * @param message The message.
    */
-  public void log( int level, String message)
+  public void log( int level, Object message)
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
     sink.log( this, level, message);
+  }
+  
+  /**
+   * Log a message with a caught exception.
+   * @param level The logging level.
+   * @param message The message.
+   * @param throwable The throwable that was caught.
+   */
+  public void log( int level, Object message, Throwable throwable)
+  {
+    if ( mask < 0) configure();
+    if ( (mask & level) == 0) return;
+    sink.log( this, level, message, throwable);
   }
   
   /**
@@ -303,7 +397,7 @@ public final class Log
    */
   private void configure()
   {
-    mask = all;
+    mask = 0x9F;
     try
     {
       sink = new MultiSink( new FormatSink( new ConsoleSink()), new FormatSink( new SyslogSink()));

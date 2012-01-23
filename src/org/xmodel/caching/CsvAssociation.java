@@ -22,7 +22,6 @@ package org.xmodel.caching;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.external.CachingException;
@@ -32,7 +31,7 @@ import org.xmodel.external.CachingException;
  * files are parsed into "entry" elements with one attribute for each field. The attributes
  * are enumerated "f1" through "fN", where N is the number of fields.
  */
-public class CsvAssociation implements IFileAssociation
+public class CsvAssociation extends AbstractFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()

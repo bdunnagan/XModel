@@ -25,12 +25,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.xml.XmlException;
@@ -67,6 +67,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     addAssociation( txtAssociation);
     addAssociation( xipAssociation);
     addAssociation( xmlAssociation);
+    addAssociation( zipAssociation);
   }
 
   /**
@@ -103,15 +104,21 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    
     // just in case
     reference.removeChildren();
-    
+
     // sync
     File path = new File( Xlate.get( reference, "path", ""));
+
     if ( path.isDirectory())
     {
       for( String member: path.list())
       {
+        int index = member.lastIndexOf( '.');
+        String extension = (index >= 0)? member.substring( index): (String)null;
+        IFileAssociation association = associations.get( extension);
+        ICachingPolicy cachingPolicy = (association != null)? association.getCachingPolicy( this, member): null;
+        if ( cachingPolicy == null) cachingPolicy = this;
         IExternalReference child = (IExternalReference)reference.createObject( member);
-        child.setCachingPolicy( this);
+        child.setCachingPolicy( cachingPolicy);
         child.setDirty( true);
         reference.addChild( child);
         child.setAttribute( "path", buildChildPath( child));
@@ -121,22 +128,19 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     {
       String name = path.getName();
       int index = name.lastIndexOf( '.');
-      if ( index >= 0)
+      String extension = (index >= 0)? name.substring( index): (String)null;
+      IFileAssociation association = associations.get( extension);
+      if ( association != null) 
       {
-        String extension = name.substring( index);
-        IFileAssociation association = associations.get( extension);
-        if ( association != null) 
+        try
         {
-          try
-          {
-            FileInputStream stream = new FileInputStream( path);
-            association.apply( reference, path.getPath(), stream);
-            stream.close();
-          }
-          catch( IOException e)
-          {
-            throw new CachingException( "Unable to read file: "+path, e);
-          }
+          FileInputStream stream = new FileInputStream( path);
+          association.apply( reference, path.getPath(), stream);
+          stream.close();
+        }
+        catch( IOException e)
+        {
+          throw new CachingException( "Unable to read file: "+path, e);
         }
       }
     }
@@ -201,6 +205,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();
   private final static IFileAssociation xmlAssociation = new XmlAssociation();
+  private final static IFileAssociation zipAssociation = new ZipAssociation();
 
   private IExternalReference fileSystemRoot;
   private Map<String, IFileAssociation> associations;

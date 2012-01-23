@@ -30,7 +30,7 @@ import org.xmodel.external.CachingException;
  * An IFileAssociation for various text file associations including <i>.txt</i> and associations for various 
  * programming language files such as html, java, perl and python.
  */
-public class TxtAssociation implements IFileAssociation
+public class TxtAssociation extends AbstractFileAssociation
 {
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#getAssociations()

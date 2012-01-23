@@ -11,7 +11,7 @@ public interface ILogSink
    * @param level The log level.
    * @param message The message.
    */
-  public void log( Log log, int level, String message);
+  public void log( Log log, int level, Object message);
   
   /**
    * Log an exception.
@@ -28,5 +28,5 @@ public interface ILogSink
    * @param message The message.
    * @param throwable The throwable.
    */
-  public void log( Log log, int level, String message, Throwable throwable);
+  public void log( Log log, int level, Object message, Throwable throwable);
 }

@@ -83,6 +83,7 @@ public class DefaultSerializer implements ISerializer
    */
   private final int findSerializerClassID( Object object)
   {
+    System.out.println( object.getClass().getName());
     Class<?> clazz = object.getClass();
     for( int i=classes.size() - 1; i >= 0; i--)
     {
