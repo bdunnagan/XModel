@@ -15,12 +15,16 @@
     <jar destfile="${jars}/xmodel.jar">
       <fileset dir="${bin}"/>
     </jar> 
+    <jar destfile="${jars}/xmodel-src.jar">
+      <fileset dir="${bin}"/>
+      <fileset dir="${src}"/>
+    </jar> 
   </target>
 	
 	<target name="obfuscate" depends="jar">
 		<taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="lib/yguard.jar"/>		
 		<yguard>
-      <inoutpair in="jars/xmodel.jar" out="jars/xmodel_ob.jar"/>
+      <inoutpair in="jars/xmodel.jar" out="jars/xmodel-ob.jar"/>
       
       <attribute name="Deprecated"/>
       

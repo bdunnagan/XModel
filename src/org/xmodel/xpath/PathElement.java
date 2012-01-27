@@ -23,12 +23,24 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.zip.CRC32;
-import org.xmodel.*;
+import org.xmodel.BreadthFirstIterator;
+import org.xmodel.FollowingIterator;
+import org.xmodel.IAxis;
+import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.IPathElement;
+import org.xmodel.IPredicate;
+import org.xmodel.PrecedingIterator;
 import org.xmodel.log.Log;
 import org.xmodel.util.Fifo;
-import org.xmodel.xpath.expression.*;
+import org.xmodel.xpath.expression.Context;
+import org.xmodel.xpath.expression.ExpressionException;
+import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
+import org.xmodel.xpath.expression.LiteralExpression;
+import org.xmodel.xpath.expression.NullContext;
+import org.xmodel.xpath.expression.SubContext;
 
 
 /**
@@ -201,11 +213,8 @@ public class PathElement implements IPathElement, IAxis
    */
   public int hashCode()
   {
-    CRC32 hash = new CRC32();
-    hash.update( axis);
-    hash.update( predicate.hashCode());
-    if ( type != null) hash.update( type.getBytes());
-    return (int)hash.getValue();
+    if ( type != null) return axis + predicate.hashCode() + type.hashCode();
+    return axis + predicate.hashCode();
   }
   
   /**

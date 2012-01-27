@@ -19,7 +19,6 @@ import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -119,6 +118,15 @@ public class Protocol implements ILink.IListener
     
     this.context = context;
     dispatcher = context.getModel().getDispatcher();
+  }
+  
+  /**
+   * Set the execution privilege (null disables execution restrictions).
+   * @param privilege The privilege.
+   */
+  public void setExecutePrivilege( ExecutePrivilege privilege)
+  {
+    this.privilege = privilege;
   }
   
   /**
@@ -1419,6 +1427,20 @@ public class Protocol implements ILink.IListener
    */
   protected void handleExecuteRequest( ILink link, int session, IContext context, IModelObject script)
   {
+    // check privilege
+    if ( privilege != null && !privilege.isPermitted( context, script))
+    {
+      try
+      {
+        sendError( link, session, "Script contains restricted opertaions.");
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+    }
+    
+    // dispatch
     dispatch( getSession( link, session), new ExecuteRunnable( link, session, context, script));
   }
   
@@ -2795,5 +2817,6 @@ public class Protocol implements ILink.IListener
   private IDispatcher dispatcher;
   private List<String> packageNames;
   private ILink updating;
+  private ExecutePrivilege privilege;
   private boolean debugEnabled;
 }

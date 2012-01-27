@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='org'>
+  <!-- Specify the paths for translatable code                    -->
+  <source path="xmodel"/>
+  <source path='xmodel/concurrent'/>
+  <source path='xmodel/diff'/>
+  <source path='xmodel/external'/>
+  <source path='xmodel/listeners'/>
+  <source path='xmodel/memento'/>
+  <source path='xmodel/path'/>
+  <source path='xmodel/record'/>
+  <source path='xmodel/util'/>
+  <source path='xmodel/xml'/>
+  <source path='xmodel/xpath'/>
+  <source path='xmodel/xpath/expression'/>
+  <source path='xmodel/xpath/function'/>
+  <source path='xmodel/xpath/function/custom'/>
+  <source path='xmodel/xpath/parser'/>
+  <source path='xmodel/xpath/parser/generated'/>
+  <source path='xmodel/xpath/variable'/>
+</module>
