@@ -19,9 +19,6 @@
  */
 package org.xmodel.compress;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,30 +28,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-
+import org.xmodel.gwt.ByteArrayOutputStream;
+import org.xmodel.gwt.DataInputStream;
+import org.xmodel.gwt.DataOutputStream;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
- * element tag can be replaced by the table index. If the size of the content of the message exceeds
- * a certain limit, then the entire message (except for a single header byte) is compressed using
- * the ZIP or BZIP2 compression algorithms (BZip2 is provided by the org.apache.tools.bzip2
- * library). This implementation provides only slightly better compression than the BZip2 library
- * compressing XML text. However, it appears to be significantly faster than serializing to XML and
- * then performing post compression because redundant tags are serialized to the output stream as
- * small numbers before compression.
- * <p>
- * For fastest operation, turn post-compression off. There are still significant savings in space
- * with post-compression turned off especially if predefined tables are used. For best compression,
- * use BZIP2 post-compression. ZIP compression is only slightly slower than no compression and
- * substantially reduces the size.
+ * element tag can be replaced by the table index.
  * <p>
  * The tag table used by the compressor can be predefined. In this mode of operation the table is
  * not included in the output of the compressor and the same instance of the compressor will be able
@@ -68,8 +53,6 @@ import org.xmodel.Xlate;
  */
 public class TabularCompressor extends AbstractCompressor
 {
-  public static enum PostCompression { none, zip, bzip2};
-  
   /**
    * Create a TabularCompressor and use ZIP post compression. This provides a good tradeoff
    * between speed and size. For faster operation, turn post compression off. For somewhat
@@ -77,16 +60,6 @@ public class TabularCompressor extends AbstractCompressor
    */
   public TabularCompressor()
   {
-    this( PostCompression.zip);
-  }
-  
-  /**
-   * Create a TabularCompressor and specify the type of post compression to use.
-   * @param post The type of post compression.
-   */
-  public TabularCompressor( PostCompression post)
-  {
-    this.post = post;
     this.factory = new ModelObjectFactory();
     this.map = new LinkedHashMap<String, Integer>();
     this.table = new ArrayList<String>();
@@ -129,18 +102,14 @@ public class TabularCompressor extends AbstractCompressor
     {
       // create content and decide if compression is required
       writeElement( contentOut, element);
-      boolean compress = contentArrayOut.size() > compressionThreshold;
       
       // write header
       byte header = 0;
-      if ( compress && post == PostCompression.zip) header |= 0x80;
-      if ( compress && post == PostCompression.bzip2) header |= 0x40;
       if ( predefined) header |= 0x20;
       finalArrayOut.write( header);
       
       // optionally compress everything but header
       OutputStream rawOut = finalArrayOut;
-      if ( compress && post == PostCompression.zip) rawOut = new DeflaterOutputStream( finalArrayOut);
       
       // write table
       if ( !predefined)
@@ -176,13 +145,10 @@ public class TabularCompressor extends AbstractCompressor
       byte header = (byte)rawArrayIn.read();
       boolean predefined = (header & 0x20) != 0;
       
-      PostCompression post = PostCompression.none;
-      if ( (header & 0x80) != 0) post = PostCompression.zip;
-      if ( (header & 0x40) != 0) post = PostCompression.bzip2;
+      if ( (header & 0xC0) != 0) throw new CompressorException( "Post compression not supported!");
 
       // optionally decompress everything but header
       InputStream rawIn = rawArrayIn;
-      if ( post == PostCompression.zip) rawIn = new InflaterInputStream( rawArrayIn);
       DataInputStream dataIn = new DataInputStream( rawIn);
       
       // read table
@@ -524,11 +490,8 @@ public class TabularCompressor extends AbstractCompressor
     }
   }
     
-  private final static int compressionThreshold = 256;
-  
   private List<String> table;
   private Map<String, Integer> map;
   private int hashIndex;
   private boolean predefined;
-  private PostCompression post;
 }

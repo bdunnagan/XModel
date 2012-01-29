@@ -24,10 +24,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.xaction.debug.IDebugger;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An action that executes its children.
@@ -118,8 +119,13 @@ public class ScriptAction extends GuardedAction
   {
     super.configure( document);
     
+    // optionally create local variable context
+    privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
+        
+    // special handling of <if>
     IfAction ifAction = null;
     
+    // create script operations
     actions = new ArrayList<IXAction>();
     for( IModelObject element: document.getRoot().getChildren())
     {
@@ -149,6 +155,8 @@ public class ScriptAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    if ( privateScope) context = new StatefulContext( context);
+    
     if ( !debugging)
     {
       for( IXAction action: actions)
@@ -187,7 +195,8 @@ public class ScriptAction extends GuardedAction
     "package",
     "when",
   };
-  
+
+  private boolean privateScope;
   private Set<String> ignore;
   private List<IXAction> actions;
 }

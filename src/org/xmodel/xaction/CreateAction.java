@@ -21,9 +21,6 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -32,12 +29,9 @@ import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.caching.AnnotationTransform;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.variable.IVariableScope;
-import org.xmodel.xsd.Schema;
 
 /**
  * An XAction which creates an element using a variety of mechanisms.  The element can be
@@ -62,7 +56,6 @@ public class CreateAction extends GuardedAction
     collectionExpr = Xlate.get( config, "collection", (IExpression)null);
     parentExpr = Xlate.get( config, "parent", (IExpression)null);
     nameExpr = Xlate.get( config, "name", (IExpression)null);
-    schemaExpr = Xlate.get( config, "schema", (IExpression)null);
     
     // get the factory used to create elements
     factory = getFactory( config);
@@ -91,15 +84,7 @@ public class CreateAction extends GuardedAction
       if ( type.length() == 0) throw new IllegalArgumentException( "Element type name is empty: "+this);
       elements.add( factory.createObject( parent, type));
     }
-    
-    // create element from schema
-    if ( schemaExpr != null)
-    {
-      IModelObject schema = schemaExpr.queryFirst( context);
-      boolean optional = Xlate.get( document.getRoot().getFirstChild( "schema"), "optional", false);
-      elements.add( Schema.createDocument( schema, factory, optional));
-    }
-    
+        
     // create children
     for( IModelObject child: document.getRoot().getChildren())
     {
@@ -175,50 +160,22 @@ public class CreateAction extends GuardedAction
    */
   private Object replaceTemplateExpressions( IContext context, String input)
   {
-    StringBuilder result = new StringBuilder();
-    Matcher matcher = expressionPattern.matcher( input);
-    int index = 0;
-    while( matcher.find())
+    if ( input.length() == 0) 
     {
-      int start = matcher.start();
-      int end = matcher.end();
-
-      // check for non-escaped expression token
-      if ( start > 0 && input.charAt( start-1) == '\\')
-      {
-        // append non-matching material between end of previous match and this match (skip escape character)
-        result.append( input, index, start-1);
-        
-        // append escaped expression token material
-        result.append( input, start, end);
-      }
-      else
-      {
-        // append non-matching material between end of previous match and this match
-        result.append( input, index, start);
-        
-        // append replacement for expression
-        try
-        {
-          // get single object replacement candidate
-          Object object = getExpressionResult( context, matcher.group( 1));
-          result.append( object);
-        }
-        catch( ExpressionException e)
-        {
-          getDocument().error( "Syntax error in template expression: "+matcher.group(), e);
-        }
-      }
-      
-      // update index
-      index = end;
+      return input;
+    }
+    else if ( input.charAt( 0) == '{')
+    {
+      if ( input.charAt( input.length() - 1) != '}') return input;
+      return getExpressionResult( context, input.substring( 1, input.length() - 1));
+    }
+    else if ( input.charAt( 0) == '\\')
+    {
+      if ( input.length() > 1 && input.charAt( 1) == '\\') return input;
+      return input.substring( 1);
     }
     
-    // append remaining non-matching material
-    result.append( input, index, input.length());
-    
-    // return result
-    return result.toString();
+    return input;
   }
   
   /**
@@ -232,24 +189,29 @@ public class CreateAction extends GuardedAction
   private Object getExpressionResult( IContext context, String spec)
   {
     IExpression expression = XPath.createExpression( spec);
-    if ( expression.getType( context) == ResultType.NODES)
+    switch( expression.getType( context))
     {
-      IModelObject node = expression.queryFirst( context);
-      return (node != null)? node.getValue(): "";
+      case NODES:
+        IModelObject node = expression.queryFirst( context);
+        return (node != null)? node.getValue(): null;
+        
+      case NUMBER:
+        return expression.evaluateNumber( context);
+        
+      case STRING:
+        return expression.evaluateString( context);
+        
+      case BOOLEAN:
+        return expression.evaluateBoolean( context);
     }
-    else
-    {
-      return expression.evaluateString( context);
-    }
+    
+    return null;
   }
-  
-  private final Pattern expressionPattern = Pattern.compile( "[{]([^}]+)[}]");
   
   private IModelObjectFactory factory;
   private String var;
   private IExpression collectionExpr;
   private IExpression parentExpr;
   private IExpression nameExpr;
-  private IExpression schemaExpr;
   private IExpression annotatedExpr;
 }

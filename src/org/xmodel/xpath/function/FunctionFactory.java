@@ -22,7 +22,6 @@ package org.xmodel.xpath.function;
 import java.util.Hashtable;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.custom.*;
-import org.xmodel.xsd.SchemaFunction;
 
 import static java.lang.System.err;
 
@@ -68,7 +67,6 @@ public class FunctionFactory implements IFunctionFactory
       ReplaceFunction.class,
       ReverseFunction.class,
       RoundFunction.class,
-      SchemaFunction.class,
       SortFunction.class,
       StartsWithFunction.class,
       StaticFunction.class,

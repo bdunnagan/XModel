@@ -91,11 +91,11 @@ public class ForAction extends GuardedAction
     }
     
     // numeric iteration
-    if ( var != null && fromExpr != null && toExpr != null && byExpr != null)
+    if ( var != null && fromExpr != null && toExpr != null)
     {
       double from = fromExpr.evaluateNumber( context);
       double to = toExpr.evaluateNumber( context);
-      double by = byExpr.evaluateNumber( context);
+      double by = (byExpr != null)? byExpr.evaluateNumber( context): 1;
       if ( by >= 0)
       {
         for( double i = from; i <= to; i += by)

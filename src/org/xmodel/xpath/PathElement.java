@@ -38,8 +38,6 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
-import org.xmodel.xpath.expression.LiteralExpression;
-import org.xmodel.xpath.expression.NullContext;
 import org.xmodel.xpath.expression.SubContext;
 
 
@@ -682,29 +680,26 @@ public class PathElement implements IPathElement, IAxis
     {
       // FIXME: need a method on IPredicate for filtering entire node-sets so that PredicateExpression
       //        can contain this logic.
-      if ( argument.getType() == ResultType.NUMBER)
+      if ( argument.getType( parent) == ResultType.NUMBER)
       {
-        if ( argument instanceof LiteralExpression)
+        try
         {
-          try
+          int position = (int)argument.evaluateNumber( parent) - 1 + start;
+          if ( position < start) throw new ExpressionException( argument, "position values begin with 1");
+          if ( position < nodeSet.size())
           {
-            int position = (int)argument.evaluateNumber( NullContext.getInstance()) - 1 + start;
-            if ( position < start) throw new ExpressionException( argument, "position values begin with 1");
-            if ( position < nodeSet.size())
-            {
-              IModelObject node = nodeSet.get( position);
-              nodeSet.clear(); nodeSet.add( node);
-            }
-            else
-            {
-              nodeSet.clear();
-            }
+            IModelObject node = nodeSet.get( position);
+            nodeSet.clear(); nodeSet.add( node);
           }
-          catch( ExpressionException e) 
+          else
           {
-            log.exception( e);
             nodeSet.clear();
           }
+        }
+        catch( ExpressionException e) 
+        {
+          log.exception( e);
+          nodeSet.clear();
         }
       }
       else

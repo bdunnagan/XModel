@@ -400,7 +400,7 @@ public class Log
     mask = 0x9F;
     try
     {
-      sink = new MultiSink( new FormatSink( new ConsoleSink()), new FormatSink( new SyslogSink()));
+      sink = new FormatSink( new ConsoleSink());
     }
     catch( Exception e)
     {

@@ -30,7 +30,6 @@ import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.compress.TabularCompressor.PostCompression;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.ICachingPolicy;
@@ -2792,7 +2791,7 @@ public class Protocol implements ILink.IListener
     {
       responseQueue = new SynchronousQueue<byte[]>();
       index = new HashMap<String, IModelObject>();
-      compressor = new TabularCompressor( PostCompression.zip);
+      compressor = new TabularCompressor();
     }
     
     public BlockingQueue<byte[]> responseQueue;
