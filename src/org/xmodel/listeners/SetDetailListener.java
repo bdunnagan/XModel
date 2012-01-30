@@ -31,18 +31,6 @@ public class SetDetailListener extends ExpressionListener
   }
   
   /**
-   * Add a detail listener.
-   * @param expression The detail expression.
-   * @param listener The listener.
-   * @param initialNotify True if initial notification should be performed.
-   * @param finalNotify True if final notification should be performed.
-   */
-  public void addDetail( IExpression expression, IExpressionListener listener, boolean initialNotify, boolean finalNotify)
-  {
-    details.add( new Detail( expression, listener, initialNotify, finalNotify));
-  }
-  
-  /**
    * Remove a detail listener.
    * @param expression The detail expression.
    */
@@ -117,15 +105,8 @@ public class SetDetailListener extends ExpressionListener
   {
     public Detail( IExpression expression, IExpressionListener listener)
     {
-      this( expression, listener, true, false);
-    }
-    
-    public Detail( IExpression expression, IExpressionListener listener, boolean initialNotify, boolean finalNotify)
-    {
       this.expression = expression;
       this.listener = listener;
-      this.initialNotify = initialNotify;
-      this.finalNotify = finalNotify;
     }
     
     /**
@@ -134,14 +115,7 @@ public class SetDetailListener extends ExpressionListener
      */
     public void install( StatefulContext context)
     {
-      if ( initialNotify)
-      {
-        expression.addNotifyListener( context, listener);
-      }
-      else
-      {
-        expression.addListener( context, listener);
-      }
+      expression.addNotifyListener( context, listener);
     }
     
     /**
@@ -150,20 +124,11 @@ public class SetDetailListener extends ExpressionListener
      */
     public void remove( StatefulContext context)
     {
-      if ( finalNotify)
-      {
-        expression.removeNotifyListener( context, listener);
-      }
-      else
-      {
-        expression.removeListener( context, listener);
-      }
+      expression.removeListener( context, listener);
     }
     
     public IExpression expression;
     public IExpressionListener listener;
-    public boolean initialNotify;
-    public boolean finalNotify;
   }
   
   private List<Detail> details;
