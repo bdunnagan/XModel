@@ -64,7 +64,7 @@ public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
       
       int index = thisEntry.getName().lastIndexOf( ".");
       String extension = thisEntry.getName().substring( index);
-      System.out.println( "ext="+extension);
+      //System.out.println( "ext="+extension);
       
       ZipCachingPolicy cachingPolicy = (ZipCachingPolicy)zipReference.getCachingPolicy();
       IFileAssociation association = cachingPolicy.getAssociation( extension);

@@ -83,7 +83,7 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
     // scripts
     XActionDocument doc = new XActionDocument( annotation);
     onSync = doc.createChildScript( "onSync");
-    onFlush = doc.createChildScript( "onFlush");
+    onStore = doc.createChildScript( "onStore");
     onError = doc.createChildScript( "onError");
   }
     
@@ -111,46 +111,12 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.AbstractCachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  public final void flush( IExternalReference reference) throws CachingException
-  {
-    if ( onError == null)
-    {
-      flushImpl( reference);
-      if ( onFlush != null) onFlush( reference);
-    }
-    else
-    {
-      try
-      {
-        flushImpl( reference);
-        onFlush( reference);
-      }
-      catch( CachingException e)
-      {
-        onError( reference, e.getMessage());
-      }
-    }
-  }
-
   /**
    * Called to synchronize the reference.
    * @param reference The reference.
    */
   protected abstract void syncImpl( IExternalReference reference) throws CachingException;
   
-  /**
-   * Called to flush the reference.
-   * @param reference The reference.
-   */
-  protected void flushImpl( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
   /**
    * @return Returns the configuration context.
    */
@@ -173,10 +139,10 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    * Called just before the implementation of flush.
    * @param reference The reference for which the error occurred.
    */
-  protected void onFlush( IExternalReference reference)
+  protected void onStore( IExternalReference reference)
   {
     StatefulContext context = new StatefulContext( this.context, reference);
-    onFlush.run( context);
+    onStore.run( context);
   }
   
   /**
@@ -193,6 +159,6 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
   
   private IContext context;
   private ScriptAction onSync;
-  private ScriptAction onFlush;
+  private ScriptAction onStore;
   private ScriptAction onError;
 }

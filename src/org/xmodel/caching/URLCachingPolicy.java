@@ -19,12 +19,9 @@
  */
 package org.xmodel.caching;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -120,24 +117,6 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  public URI getURI( IExternalReference reference) throws CachingException
-  {
-    try
-    {
-      String url = Xlate.get( reference, "url", (String)null);
-      if ( url == null) throw new CachingException( "External reference does not have a url attribute: "+reference); 
-      return new URI( url);
-    }
-    catch( URISyntaxException e)
-    {
-      throw new CachingException( "Unable to create URI for external reference: "+reference, e);
-    }
-  }
-  
   private final static IFileAssociation csvAssociation = new CsvAssociation();
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();

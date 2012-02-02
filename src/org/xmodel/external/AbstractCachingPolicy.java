@@ -19,7 +19,6 @@
  */
 package org.xmodel.external;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModel;
@@ -31,9 +30,6 @@ import org.xmodel.ModelObjectFactory;
 import org.xmodel.ModelRegistry;
 import org.xmodel.diff.IXmlDiffer;
 import org.xmodel.diff.XmlDiffer;
-import org.xmodel.xml.IXmlIO;
-import org.xmodel.xml.XmlException;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -59,7 +55,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   protected AbstractCachingPolicy( ICache cache)
   {
     this.cache = cache;
-    xmlIO = new XmlIO();
     differ = new XmlDiffer();
     staticAttributes = new String[] { "id"};
     factory = new ModelObjectFactory();
@@ -306,62 +301,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#flush(org.xmodel.external.IExternalReference)
-   */
-  public void flush( IExternalReference reference) throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
-   * java.lang.String, boolean)
-   */
-  public void insert( IExternalReference parent, String xml, int index, boolean dirty) throws CachingException
-  {
-    try
-    {
-      insert( parent, xmlIO.read( xml), -1, dirty);
-    }
-    catch( XmlException e)
-    {
-      throw new CachingException( "Unable to insert entity: "+xml, e);
-    } 
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
-   * java.lang.String)
-   */
-  public void remove( IExternalReference parent, String xml) throws CachingException
-  {
-    try
-    {
-      remove( parent, xmlIO.read( xml));
-    }
-    catch( XmlException e)
-    {
-      throw new CachingException( "Unable to remove entity: "+xml, e);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#update(org.xmodel.external.IExternalReference, 
-   * java.lang.String)
-   */
-  public void update( IExternalReference reference, String xml) throws CachingException
-  {
-    try
-    {
-      update( reference, xmlIO.read( xml));
-    }
-    catch( XmlException e)
-    {
-      throw new CachingException( "Unable to update entity: "+xml, e);
-    }
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, int, boolean)
    */
@@ -476,14 +415,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     if ( reference.isDirty()) internal_sync( reference);
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#getURI(org.xmodel.external.IExternalReference)
-   */
-  public URI getURI( IExternalReference reference) throws CachingException
-  {
-    return null;
-  }
-
   /**
    * Specify the names of attributes which should not cause synchronization. Two types of 
    * wildcards can be used. An asterisk by itself means <i>all attributes</i>. A prefix 
@@ -611,7 +542,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
   
   private ICache cache;
-  private IXmlIO xmlIO;
   private IXmlDiffer differ;
   private String[] staticAttributes;
   private List<NextStage> dynamicStages;

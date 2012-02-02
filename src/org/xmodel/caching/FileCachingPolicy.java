@@ -23,8 +23,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.net.URI;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -148,19 +146,6 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     throw new UnsupportedOperationException();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  public URI getURI( IExternalReference reference) throws CachingException
-  {
-    String path = pathExpr.evaluateString( new Context( parentContext, reference));
-    if ( path == null) throw new CachingException( "File reference path not defined.");
-    
-    File file = new File( path);
-    return file.toURI();
-  }
-
   private final IExpression defaultPathExpr = XPath.createExpression( "@path");
 
   private IContext parentContext;

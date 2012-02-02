@@ -132,14 +132,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#flushImpl(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  protected void flushImpl( IExternalReference reference) throws CachingException
-  {
-  }
-
   /**
    * Validate the specified expression.
    * @param xpath The xpath expression.

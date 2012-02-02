@@ -19,7 +19,6 @@
  */
 package org.xmodel.external;
 
-import java.net.URI;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.xpath.expression.IExpression;
@@ -107,17 +106,6 @@ public interface ICachingPolicy
   public void clear( IExternalReference reference) throws CachingException;
 
   /**
-   * Insert a new IExternalReference which has the content specified in the xml argument. If the
-   * dirty argument is true then the content is assumed to be the partial reference schema and a
-   * dirty reference is inserted into the tree.
-   * @param parent The parent reference where the child will be added.
-   * @param xml A string containing a well-formed xml document.
-   * @param index The insertion index.
-   * @param dirty True if a dirty reference should be inserted.
-   */
-  public void insert( IExternalReference parent, String xml, int index, boolean dirty) throws CachingException;
-
-  /**
    * Insert a new IExternalReference which has the content in the specified subtree. If the dirty
    * argument is true then the content is assumed to be the partial reference schema and a dirty
    * reference is inserted into the tree.
@@ -129,25 +117,11 @@ public interface ICachingPolicy
   public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException;
   
   /**
-   * Find the reference which correlates with the content in the specified xml argument and update it.
-   * @param reference The reference to be updated.
-   * @param xml A string containing a well-formed xml document.
-   */
-  public void update( IExternalReference reference, String xml) throws CachingException;
-
-  /**
    * Find the reference which correlates with the content in the specified subtree and update it.
    * @param reference The reference to be updated.
    * @param element The root of the source subtree.
    */
   public void update( IExternalReference reference, IModelObject object) throws CachingException;
-  
-  /**
-   * Find the reference which correlates with the content in the specified xml argument and remove it.
-   * @param parent The parent reference where the child will be added.
-   * @param xml A string containing a well-formed xml document.
-   */
-  public void remove( IExternalReference parent, String xml) throws CachingException;
   
   /**
    * Find the reference which correlates with the content in the specified subtree and remove it.
@@ -192,16 +166,6 @@ public interface ICachingPolicy
    */
   public void writeChildrenAccess( IExternalReference reference);
 
-  /**
-   * Returns the URI of the data-source for the specified reference. The URI schema is implementation
-   * dependent and this contract does not guarantee that a method for resolving the URI exists. If the URI
-   * can be resolved then it resolves to an XML stream which can be loaded by the <code>XmlIO</code> class.  
-   * @param reference The reference.
-   * @return Returns null or the URI of the reference data-source.
-   * @throws CachingException When the implementation should return a non-null URI but cannot create it.
-   */
-  public URI getURI( IExternalReference reference) throws CachingException;
-  
   /**
    * Create a string representation with the specified indentation.
    * @param indent The indentation (usually spaces).

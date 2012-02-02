@@ -22,7 +22,6 @@ package org.xmodel.caching;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import org.xmodel.IModelObject;
@@ -191,16 +190,6 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.external.AbstractCachingPolicy#getURI(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  public URI getURI( IExternalReference reference) throws CachingException
-  {
-    File path = new File( Xlate.get( reference, "path", ""));
-    return path.toURI();
-  }
-
   private final static IFileAssociation csvAssociation = new CsvAssociation();
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();

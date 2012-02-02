@@ -27,7 +27,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.Function;
 
-
 /**
  * A custom XPath function which provides formatted text output similar to String.format(). The
  * function performs Java-like escape expansions on the format string returned by the
