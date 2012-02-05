@@ -1,8 +1,8 @@
 package org.xmodel.net;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -175,7 +175,15 @@ public class ExecutionProtocol
       else
       {
         Object value = assignment.getValue();
-        scope.set( variable, value);
+        if ( value != null) 
+        {
+          scope.set( variable, value); 
+        }
+        else 
+        {
+          // null value means empty list
+          scope.set( variable, Collections.emptyList());
+        }
       }
     }
   }

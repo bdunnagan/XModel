@@ -396,6 +396,7 @@ public class Protocol implements ILink.IListener
           "Unable to resolve IXAction class: %s.", script.getType()));
       }
       
+      context.set( "session", session);
       results = action.run( context);
     }
     catch( Throwable t)
@@ -495,6 +496,8 @@ public class Protocol implements ILink.IListener
       
       int length = readMessageLength( byte0, buffer);
       if ( length > buffer.remaining()) return false;
+      
+      if ( log.isLevelEnabled( Log.debug)) log.debugf( "recv: session=%d length=%d: %s", org.xmodel.net.stream.Util.dump( buffer));
       
       switch( type)
       {
@@ -1458,6 +1461,16 @@ public class Protocol implements ILink.IListener
     
     ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( response);
+    
+    int required = buffer.position() + bytes.length;
+    if ( required >= buffer.limit())
+    {
+      buffer.flip();
+      ByteBuffer larger = ByteBuffer.allocate( (int)(required * 1.5));
+      larger.put( buffer);
+      buffer = larger;
+    }
+    
     buffer.put( bytes);
     
     finalize( buffer, Type.executeResponse, session, bytes.length);

@@ -31,6 +31,11 @@ import static java.lang.System.err;
  */
 public class FunctionFactory implements IFunctionFactory
 {
+  protected FunctionFactory()
+  {
+    addBaseFunctions();
+  }
+  
   @SuppressWarnings("rawtypes")
   private void addBaseFunctions()
   {
@@ -83,7 +88,7 @@ public class FunctionFactory implements IFunctionFactory
       UppercaseFunction.class
     };
     
-    classRegistry = new Hashtable<String, Class>();
+    classRegistry = new Hashtable<String, Class<?>>();
     for ( int i=0; i<classes.length; i++)
     {
       try
@@ -185,19 +190,21 @@ public class FunctionFactory implements IFunctionFactory
    */
   static public FunctionFactory getInstance()
   {
-    FunctionFactory factory = instance.get();
-    if ( factory == null) 
-    {
-      factory = new FunctionFactory();
-      factory.addBaseFunctions();
-      instance.set( factory);
-    }
-    return factory;
+//    FunctionFactory factory = instance.get();
+//    if ( factory == null) 
+//    {
+//      factory = new FunctionFactory();
+//      factory.addBaseFunctions();
+//      instance.set( factory);
+//    }
+//    return factory;
+
+    if ( instance == null) instance = new FunctionFactory();
+    return instance;
   }
   
-  private static ThreadLocal<FunctionFactory> instance = new ThreadLocal<FunctionFactory>();
+  //private static ThreadLocal<FunctionFactory> instance = new ThreadLocal<FunctionFactory>();
+  private static FunctionFactory instance;
   private Hashtable<String, Function> objectRegistry;
-  
-  @SuppressWarnings("rawtypes")
-  private Hashtable<String, Class> classRegistry;
+  private Hashtable<String, Class<?>> classRegistry;
 }

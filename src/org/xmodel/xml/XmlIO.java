@@ -829,7 +829,6 @@ public class XmlIO implements IXmlIO
   
   private static Log log = Log.getLog( "org.xmodel.xml");
   
-  @SuppressWarnings("unused")
   public static void main( String[] args) throws Exception
   {
     String html = 

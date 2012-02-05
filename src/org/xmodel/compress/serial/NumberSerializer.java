@@ -73,11 +73,13 @@ public class NumberSerializer implements ISerializer
     {
       output.writeByte( 0x13);
       output.writeFloat( (Float)object);
+      return 5;
     }
     else if ( object instanceof Double) 
     {
       output.writeByte( 0x14);
       output.writeDouble( (Double)object);
+      return 9;
     }
     else if ( object instanceof BigDecimal) 
     {
@@ -88,26 +90,31 @@ public class NumberSerializer implements ISerializer
       output.writeByte( (byte)unscaledBytes.length);
       output.write( unscaledBytes);
       output.writeInt( value.scale());
+      return 1 + unscaledBytes.length + 4;
     }
     else if ( object instanceof Byte) 
     {
       output.writeByte( 0x01);
       output.writeByte( (Byte)object);
+      return 2;
     }
     else if ( object instanceof Short) 
     {
       output.writeByte( 0x02);
       output.writeShort( (Short)object);
+      return 3;
     }
     else if ( object instanceof Integer) 
     {
       output.writeByte( 0x03);
       output.writeInt( (Integer)object);
+      return 5;
     }
     else if ( object instanceof Long) 
     {
       output.writeByte( 0x04);
       output.writeLong( (Long)object);
+      return 9;
     }
     else if ( object instanceof BigInteger) 
     {
@@ -116,8 +123,11 @@ public class NumberSerializer implements ISerializer
       byte[] bytes = value.toByteArray();
       output.writeByte( (byte)bytes.length);
       output.write( bytes);
+      return 1 + bytes.length;
     }
-    
-    throw new IllegalArgumentException();
+    else
+    {
+      throw new IllegalArgumentException( object.getClass().getName());
+    }
   }
 }

@@ -78,6 +78,21 @@ public abstract class AbstractVariableScope implements IVariableScope
   @Override
   public Object set( String name, Object value)
   {
+    if ( value instanceof IModelObject) return set( name, (IModelObject)value);
+    
+    if ( value instanceof List)
+    {
+      List<?> list = (List<?>)value;
+      if ( list.size() > 0)
+      {
+        Object object = list.get( 0);
+        if ( object instanceof IModelObject)
+        {
+          return set( name, (List<IModelObject>)value);
+        }
+      }
+    }
+    
     return internal_set( name, value);
   }
 

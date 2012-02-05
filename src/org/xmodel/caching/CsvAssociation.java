@@ -80,7 +80,10 @@ public class CsvAssociation extends AbstractFileAssociation
     {
       if ( !quoting && line.charAt( i) == ',')
       {
-        if ( index < i) child.setValue( line.substring( index, i));
+        String field = line.substring( index, i);
+        if ( field.length() > 0 && field.charAt( 0) == '"' && field.charAt( field.length() - 1) == '"') 
+          field = field.substring( 1, field.length() - 1);
+        if ( index < i) child.setValue( field);
         parent.addChild( child);
         child = new ModelObject( "field");
         index = i+1;
