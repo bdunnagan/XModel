@@ -23,10 +23,11 @@ public final class FormatSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message)
   {
+    String date = dateFormat.format( new Date());
     StringBuilder sb = new StringBuilder();
-    sb.append( Log.getLevelName( level)); sb.append( ' ');
-    sb.append( log.getName()); sb.append( ' ');
-    sb.append( dateFormat.format( new Date())); sb.append( ' ');
+    sb.append( date); sb.append( ' ');
+    sb.append( Log.getLevelName( level));
+    sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
     sb.append( message);
     delegate.log( log, level, sb.toString());
   }
@@ -54,17 +55,17 @@ public final class FormatSink implements ILogSink
     
     if ( message.length() > 0)
     {
-      sb.append( levelName); sb.append( ' ');
-      sb.append( log.getName()); sb.append( ' ');
       sb.append( date); sb.append( ' ');
+      sb.append( levelName);
+      sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
       sb.append( message);
       delegate.log( log, level, sb.toString());
     }
     
     sb.setLength( 0);
-    sb.append( levelName); sb.append( ' ');
-    sb.append( log.getName()); sb.append( ' ');
     sb.append( date); sb.append( ' ');
+    sb.append( levelName);
+    sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
     sb.append( throwable.getClass().getSimpleName());
     sb.append( ": ");
     sb.append( throwable.getMessage());
@@ -74,9 +75,9 @@ public final class FormatSink implements ILogSink
     for( StackTraceElement element: stack)
     {
       sb.setLength( 0);
-      sb.append( levelName); sb.append( ' ');
-      sb.append( log.getName()); sb.append( ' ');
       sb.append( date); sb.append( ' ');
+      sb.append( levelName);
+      sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
       sb.append( element.toString());
       delegate.log( log, level, sb.toString());
     }

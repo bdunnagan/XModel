@@ -8,6 +8,23 @@ import java.util.Map;
  */
 public class Log
 {
+//  public enum Level
+//  {
+//    fatal( 0x01),
+//    severe( 0x02),
+//    error( 0x04),
+//    warn( 0x08),
+//    info( 0x10),
+//    debug( 0x20),
+//    verbose( 0x40),
+//    exception( 0x80),
+//    problems( 0x8F),
+//    all( 0xFF);
+//    
+//    private Level( int mask) { this.mask = mask;}
+//    public final int mask;
+//  }
+  
   public final static int exception = 0x80;
   public final static int verbose = 0x40;
   public final static int debug = 0x20;
@@ -18,7 +35,7 @@ public class Log
   public final static int fatal = 0x01;
   public final static int problems = exception | warn | error | severe | fatal;
   public final static int all = 0xff;
-  
+
   /**
    * Returns the name of the specified logging level.
    * @param level The logging level.
@@ -411,6 +428,6 @@ public class Log
   private static Map<String, Log> logs = new HashMap<String, Log>();
 
   private String name;
-  private int mask;
-  private ILogSink sink;
+  private volatile int mask;
+  private volatile ILogSink sink;
 }
