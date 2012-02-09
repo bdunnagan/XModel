@@ -1,7 +1,11 @@
 package org.xmodel.log;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Yet another logging facility.
@@ -87,6 +91,25 @@ public class Log
     if ( log == null) log = new Log( name);
     logs.put( name, log);
     return log;
+  }
+  
+  /**
+   * Returns the names of all logs that match the specified regex.
+   * @param regex The regular expression to match.
+   * @return Returns the names of all logs that match the specified regex.
+   */
+  public static List<Log> getLogs( String regex)
+  {
+    Pattern pattern = Pattern.compile( regex);
+
+    List<Log> result = new ArrayList<Log>();
+    for( Log log: logs.values())
+    {
+      Matcher matcher = pattern.matcher( log.getName());
+      if ( matcher.matches()) result.add( log);
+    }
+    
+    return result;
   }
   
   /**

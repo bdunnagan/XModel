@@ -26,7 +26,6 @@ public class LogAction extends GuardedAction
     logName = createLogName( document.getRoot());
     logNameExpr = document.getExpression( "name", true);
     levelExpr = document.getExpression( "level", true);
-    setExpr = document.getExpression( "set", true);
     messageExpr = document.getExpression();
   }
   
@@ -54,22 +53,24 @@ public class LogAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    int level = Log.getLevelIndex( levelExpr.evaluateString( context));
     if ( logNameExpr != null) logName = logNameExpr.evaluateString( context);
     
-    Log log = Log.getLog( logName);
-    
-    int level = Log.getLevelIndex( levelExpr.evaluateString( context));
-    if ( setExpr == null)
+    if ( messageExpr == null)
     {
+      for( Log log: Log.getLogs( logName))
+      {
+        log.setLevel( level);
+      }
+    }
+    else
+    {
+      Log log = Log.getLog( logName);
       if ( log.isLevelEnabled( level))
       {
         String message = messageExpr.evaluateString( context);
         log.log( level, message);
       }
-    }
-    else
-    {
-      log.setLevel( level);
     }
     
     return null;
@@ -78,6 +79,5 @@ public class LogAction extends GuardedAction
   private String logName;
   private IExpression logNameExpr;
   private IExpression levelExpr;
-  private IExpression setExpr;
   private IExpression messageExpr;
 }
