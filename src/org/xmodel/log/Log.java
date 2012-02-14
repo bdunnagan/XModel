@@ -68,16 +68,29 @@ public class Log
    */
   public final static int getLevelIndex( String name)
   {
-    if ( name.equalsIgnoreCase( "verbose")) return Log.verbose;
-    if ( name.equalsIgnoreCase( "debug")) return Log.debug;
-    if ( name.equalsIgnoreCase( "info")) return Log.info;
-    if ( name.equalsIgnoreCase( "warn")) return Log.warn;
-    if ( name.equalsIgnoreCase( "error")) return Log.error;
-    if ( name.equalsIgnoreCase( "severe")) return Log.severe;
-    if ( name.equalsIgnoreCase( "fatal")) return Log.fatal;
-    if ( name.equalsIgnoreCase( "exception")) return Log.exception;
+    int level = 0;
+    int i = 0;
+    while( i < name.length())
+    {
+      int j = name.indexOf( ',');
+      if ( j < 0) j = name.length();
+
+      String part = name.substring( i, j).trim();
+      if ( part.equalsIgnoreCase( "verbose")) level |= Log.verbose;
+      if ( part.equalsIgnoreCase( "debug")) level |= Log.debug;
+      if ( part.equalsIgnoreCase( "info")) level |= Log.info;
+      if ( part.equalsIgnoreCase( "warn")) level |= Log.warn;
+      if ( part.equalsIgnoreCase( "error")) level |= Log.error;
+      if ( part.equalsIgnoreCase( "severe")) level |= Log.severe;
+      if ( part.equalsIgnoreCase( "fatal")) level |= Log.fatal;
+      if ( part.equalsIgnoreCase( "exception")) level |= Log.exception;
+      if ( part.equalsIgnoreCase( "problems")) level |= Log.problems;
+      if ( part.equalsIgnoreCase( "all")) level |= Log.all;
+      
+      i = j+1;
+    }
     
-    throw new IllegalArgumentException( String.format( "Invalid log level name, %s.", name));
+    return level;
   }
     
   /**
@@ -403,7 +416,14 @@ public class Log
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
-    sink.log( this, level, message);
+    try
+    {
+      sink.log( this, level, message);
+    }
+    catch( Exception e)
+    {
+      log( error, String.format( "Caught exception in log event for message, '%s'", message), e);
+    }
   }
   
   /**
@@ -416,7 +436,14 @@ public class Log
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
-    sink.log( this, level, message, throwable);
+    try
+    {
+      sink.log( this, level, message, throwable);
+    }
+    catch( Exception e)
+    {
+      log( error, e.getMessage());
+    }
   }
   
   /**
@@ -429,7 +456,14 @@ public class Log
   {
     if ( mask < 0) configure();
     if ( (mask & level) == 0) return;
-    sink.log( this, level, String.format( format, params));
+    try
+    {
+      sink.log( this, level, String.format( format, params));
+    }
+    catch( Exception e)
+    {
+      log( error, String.format( "Caught exception in log event for message with format, '%s'", format), e);
+    }
   }
   
   /**

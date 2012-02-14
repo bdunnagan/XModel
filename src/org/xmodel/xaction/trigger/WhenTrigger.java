@@ -48,7 +48,7 @@ public class WhenTrigger extends AbstractTrigger
     script = document.createScript( "initialize", "finalize", "source", "when");
     
     // get flags
-    initialize = Xlate.get( document.getRoot(), "initialize", false);
+    initialize = Xlate.get( document.getRoot(), "initialize", true);
     finalize = Xlate.get( document.getRoot(), "finalize", false);
     
     // backwards compatability

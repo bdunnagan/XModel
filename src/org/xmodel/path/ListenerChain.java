@@ -55,7 +55,7 @@ public class ListenerChain implements IListenerChain
  }
   
   /**
-   * Create a listener chain with listeners at the specified priority.
+   * Create a listener chain.
    * @param path The path.
    * @param context The context.
    * @param listener The path listener.
