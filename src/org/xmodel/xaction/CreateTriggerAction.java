@@ -31,7 +31,7 @@ import org.xmodel.xpath.variable.IVariableScope;
 
 /**
  * An action which creates and activates a trigger. The trigger remains active
- * until it is deactived by a calling the <i>cancelTrigger</i> action.
+ * until it is deactivated by a calling the <i>cancelTrigger</i> action.
  */
 public class CreateTriggerAction extends XAction
 {

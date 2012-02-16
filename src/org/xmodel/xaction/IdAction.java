@@ -59,19 +59,28 @@ public class IdAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    String first = null;
+    
     if ( targetExpr != null)
     {
       for ( IModelObject node: targetExpr.query( context, null))
-        node.setValue( generate( length));
+      {
+        String id = generate( length);
+        if ( first == null) first = id;
+        node.setValue( id);
+      }
     }
-    else if ( var != null)
+    
+    if ( var != null)
     {
+      if ( first == null) first = generate( length);
       IVariableScope scope = context.getScope();
-      if ( scope != null) scope.set( var, generate( length));
+      if ( scope != null) scope.set( var, first);
     }
     else
     {
-      context.getObject().setValue( generate( length));
+      if ( first == null) first = generate( length);
+      context.getObject().setValue( first);
     }
     
     return null;

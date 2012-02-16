@@ -42,6 +42,8 @@ import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xaction.debug.Debugger;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -54,6 +56,9 @@ public class Protocol implements ILink.IListener
 {
   public final static short version = 1;
   
+  /**
+   * Message type field (must be less than 32).
+   */
   public enum Type
   {
     sessionOpenRequest,
@@ -89,7 +94,7 @@ public class Protocol implements ILink.IListener
   {
     this.context = new StatefulContext();
     this.sessions = Collections.synchronizedMap( new HashMap<ILink, List<SessionInfo>>());
-    this.sessionInitQueues = Collections.synchronizedMap( new HashMap<String, BlockingQueue<byte[]>>());
+    this.sessionInitQueues = Collections.synchronizedMap( new HashMap<String, BlockingQueue<Response>>());
     this.keys = Collections.synchronizedMap( new WeakHashMap<IModelObject, KeyRecord>());      
     
     this.timeout = timeout;
@@ -101,6 +106,8 @@ public class Protocol implements ILink.IListener
     
     dispatcher = new ImmediateDispatcher();
     packageNames = new ArrayList<String>();
+    
+    log.setLevel( Log.debug);
   }
   
   /**
@@ -290,9 +297,10 @@ public class Protocol implements ILink.IListener
    * Find the element on the specified xpath and attach listeners.
    * @param sender The sender.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param xpath The xpath expression.
    */
-  protected void doAttach( ILink sender, int session, String xpath) throws IOException
+  protected void doAttach( ILink sender, int session, int correlation, String xpath) throws IOException
   {
     try
     {
@@ -312,11 +320,11 @@ public class Protocol implements ILink.IListener
         info.listener = new Listener( sender, session, xpath, target);
         info.listener.install( target);
       }
-      sendAttachResponse( sender, session, copy);
+      sendAttachResponse( sender, session, correlation, copy);
     }
     catch( Exception e)
     {
-      sendError( sender, session, e.getMessage());
+      sendError( sender, session, correlation, e.getMessage());
     }
   }
   
@@ -347,9 +355,10 @@ public class Protocol implements ILink.IListener
    * Execute the specified query and return the result.
    * @param sender The sender.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param request The query request.
    */
-  protected void doQuery( ILink sender, int session, IModelObject request) throws IOException
+  protected void doQuery( ILink sender, int session, int correlation, IModelObject request) throws IOException
   {
     try
     {
@@ -364,11 +373,11 @@ public class Protocol implements ILink.IListener
         case BOOLEAN: result = query.evaluateBoolean( context); break;
       }
 
-      sendQueryResponse( sender, session, result);
+      sendQueryResponse( sender, session, correlation, result);
     }
     catch( PathSyntaxException e)
     {
-      try { sendError( sender, session, e.getMessage());} catch( IOException e2) {}
+      try { sendError( sender, session, correlation, e.getMessage());} catch( IOException e2) {}
     }
   }
   
@@ -376,10 +385,11 @@ public class Protocol implements ILink.IListener
    * Execute the specified script.
    * @param sender The sender.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param context The execution context.
    * @param script The script.
    */
-  protected void doExecute( ILink sender, int session, IContext context, IModelObject script)
+  protected void doExecute( ILink sender, int session, int correlation, IContext context, IModelObject script)
   {
     XActionDocument doc = new XActionDocument( script);
     for( String packageName: packageNames)
@@ -401,11 +411,12 @@ public class Protocol implements ILink.IListener
     }
     catch( Throwable t)
     {
+      log.errorf( "Execution failed for script: %s", XmlIO.write( Style.compact, script));
       log.exception( t);
       
       try
       {
-        sendError( sender, session, String.format( "%s: %s", t.getClass().getName(), t.getMessage()));
+        sendError( sender, session, correlation, String.format( "%s: %s", t.getClass().getName(), t.getMessage()));
       }
       catch( IOException e)
       {
@@ -415,10 +426,11 @@ public class Protocol implements ILink.IListener
     
     try
     {
-      sendExecuteResponse( sender, session, context, results);
+      sendExecuteResponse( sender, session, correlation, context, results);
     } 
     catch( IOException e)
     {
+      log.errorf( "Unable to send execution response for script: %s", XmlIO.write( Style.compact, script));
       log.exception( e);
     }
   }
@@ -490,14 +502,19 @@ public class Protocol implements ILink.IListener
     try
     {
       int byte0 = buffer.get();
-      Type type = Type.values()[ byte0 & 0x3f];
+      Type type = Type.values()[ byte0 & 0x1f];
       
       int session = readMessageSession( byte0, buffer);
+      int correlation = readMessageCorrelation( byte0, buffer);
       
       int length = readMessageLength( byte0, buffer);
       if ( length > buffer.remaining()) return false;
       
-      if ( log.isLevelEnabled( Log.debug)) log.debugf( "recv: session=%d length=%d: %s", org.xmodel.net.stream.Util.dump( buffer));
+      if ( log.isLevelEnabled( Log.verbose)) 
+      {
+        String bytes = org.xmodel.net.stream.Util.dump( buffer);
+        log.verbosef( "recv: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+      }
       
       switch( type)
       {
@@ -506,20 +523,20 @@ public class Protocol implements ILink.IListener
         case sessionCloseRequest: handleSessionCloseRequest( link, session, buffer, length); return true;
         
         case error:           handleError( link, session, buffer, length); return true;
-        case attachRequest:   handleAttachRequest( link, session, buffer, length); return true;
-        case attachResponse:  handleAttachResponse( link, session, buffer, length); return true;
+        case attachRequest:   handleAttachRequest( link, session, correlation, buffer, length); return true;
+        case attachResponse:  handleAttachResponse( link, session, correlation, buffer, length); return true;
         case detachRequest:   handleDetachRequest( link, session, buffer, length); return true;
-        case syncRequest:     handleSyncRequest( link, session, buffer, length); return true;
-        case syncResponse:    handleSyncResponse( link, session, buffer, length); return true;
+        case syncRequest:     handleSyncRequest( link, session, correlation, buffer, length); return true;
+        case syncResponse:    handleSyncResponse( link, session, correlation, buffer, length); return true;
         case addChild:        handleAddChild( link, session, buffer, length); return true;
         case removeChild:     handleRemoveChild( link, session, buffer, length); return true;
         case changeAttribute: handleChangeAttribute( link, session, buffer, length); return true;
         case clearAttribute:  handleClearAttribute( link, session, buffer, length); return true;
         case changeDirty:     handleChangeDirty( link, session, buffer, length); return true;
-        case queryRequest:    handleQueryRequest( link, session, buffer, length); return true;
-        case queryResponse:   handleQueryResponse( link, session, buffer, length); return true;
-        case executeRequest:  handleExecuteRequest( link, session, buffer, length); return true;
-        case executeResponse: handleExecuteResponse( link, session, buffer, length); return true;
+        case queryRequest:    handleQueryRequest( link, session, correlation, buffer, length); return true;
+        case queryResponse:   handleQueryResponse( link, session, correlation, buffer, length); return true;
+        case executeRequest:  handleExecuteRequest( link, session, correlation, buffer, length); return true;
+        case executeResponse: handleExecuteResponse( link, session, correlation, buffer, length); return true;
         case debugGo:         if ( debugEnabled) handleDebugGo( link, session, buffer, length); return true;
         case debugStop:       if ( debugEnabled) handleDebugStop( link, session, buffer, length); return true;
         case debugStepIn:     if ( debugEnabled) handleDebugStepIn( link, session, buffer, length); return true;
@@ -547,14 +564,17 @@ public class Protocol implements ILink.IListener
     //
     String client = Identifier.generate( random, 15);
     
-    log.debugf( "sendSessionOpenRequest: %d, %s", version, client);
     initialize( buffer);
     buffer.putShort( version);
     writeString( client);
     finalize( buffer, Type.sessionOpenRequest, 0, 2);
     
-    byte[] response = send( link, client, buffer, timeout);
-    return ((int)response[ 0] << 24) + ((int)response[ 1] << 16) + ((int)response[ 2] << 8) + ((int)response[ 3]);
+    // log
+    log.debugf( "Send Session Open Request: version=%d, client=%s", version, client);
+    
+    Response response = send( link, client, buffer, timeout);
+    byte[] bytes = response.bytes;
+    return ((int)bytes[ 0] << 24) + ((int)bytes[ 1] << 16) + ((int)bytes[ 2] << 8) + ((int)bytes[ 3]);
   }
   
   /**
@@ -567,7 +587,6 @@ public class Protocol implements ILink.IListener
   {
     int version = buffer.getShort();
     String client = readString( buffer);
-    log.debugf( "handleSessionOpenRequest: %d, %s", version, client);
     if ( version != Protocol.version)
     {
       link.close();
@@ -592,12 +611,15 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSessionOpenResponse( ILink link, int session, String client) throws IOException
   {
-    log.debugf( "sendSessionOpenResponse: %d, %s", session, client);
     initialize( buffer);
     writeString( client);
     buffer.putInt( session);
     finalize( buffer, Type.sessionOpenResponse, 0, 4);
-    link.send( buffer);
+    
+    // log
+    log.debugf( "Send Session Open Response: session=%d, client=%s", session, client);
+    
+    send( link, buffer, session);
   }
   
   /**
@@ -619,7 +641,8 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSessionCloseRequest( ILink link, int session) throws IOException
   {
-    log.debugf( "sendSessionCloseRequest(%d)", session);
+    log.debugf( "Send Session Close Request: session=%d", session);
+    
     initialize( buffer);
     finalize( buffer, Type.sessionCloseRequest, session, 0);
   }
@@ -642,14 +665,17 @@ public class Protocol implements ILink.IListener
    * @param session The session number.
    * @param message The error message.
    */
-  public final void sendError( ILink link, int session, String message) throws IOException
+  public final void sendError( ILink link, int session, int correlation, String message) throws IOException
   {
-    log.debugf( "sendError: %s", message);
     initialize( buffer);
     byte[] bytes = message.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.error, session, bytes.length);
-    link.send( buffer);
+    finalize( buffer, Type.error, session, correlation, bytes.length);
+
+    // log
+    log.debugf( "Send Error: session=%d, correlation=%d, message=%s", session, correlation, message);
+    
+    send( link, buffer, session);
   }
   
   /**
@@ -663,7 +689,6 @@ public class Protocol implements ILink.IListener
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    log.debugf( "handleError: %s", new String( bytes));
     handleError( link, new String( bytes));
   }
   
@@ -681,80 +706,96 @@ public class Protocol implements ILink.IListener
    * Send an attach request message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param query The query.
    */
-  public final void sendAttachRequest( ILink link, int session, String xpath) throws IOException
+  public final void sendAttachRequest( ILink link, int session, String query) throws IOException
   {
-    log.debugf( "sendAttachRequest(%d): %s", session, xpath);
+    SessionInfo info = getSession( link, session);
+    
     initialize( buffer);
-    byte[] bytes = xpath.getBytes();
+    byte[] bytes = query.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.attachRequest, session, bytes.length);
+    finalize( buffer, Type.attachRequest, session, ++info.correlation, bytes.length);
 
+    // log
+    log.debugf( "Attach Request: session=%d, correlation=%d, query=%s", session, info.correlation, query);
+    
     // send and wait for response
-    byte[] response = send( link, session, buffer, timeout);
-    ICompressor compressor = getSession( link, session).compressor;
-    IModelObject element = compressor.decompress( new ByteArrayInputStream( response));
-    log.debugf( "handleAttachResponse(%d): %s\n", session, element.getType());
-    handleAttachResponse( link, session, element);
+    byte[] response = send( link, session, info.correlation, buffer, timeout);
+    if ( response != null)
+    {
+      ICompressor compressor = info.compressor;
+      IModelObject element = compressor.decompress( new ByteArrayInputStream( bytes));
+      handleAttachResponse( link, session, element);
+    }
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachRequest( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleAttachRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    log.debugf( "handleAttachRequest(%d): %s", session, new String( bytes));
-    handleAttachRequest( link, session, new String( bytes));
+    handleAttachRequest( link, session, correlation, new String( bytes));
   }
   
   /**
    * Handle an attach request.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param xpath The xpath.
    */
-  protected void handleAttachRequest( ILink link, int session, String xpath)
+  protected void handleAttachRequest( ILink link, int session, int correlation, String xpath)
   {
-    dispatch( getSession( link, session), new AttachRunnable( link, session, xpath));
+    dispatch( getSession( link, session), new AttachRunnable( link, session, correlation, xpath));
   }
 
   /**
    * Send an attach response message.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param element The element.
    */
-  public final void sendAttachResponse( ILink link, int session, IModelObject element) throws IOException
+  public final void sendAttachResponse( ILink link, int session, int correlation, IModelObject element) throws IOException
   {
-    log.debugf( "sendAttachResponse(%d): %s", session, element.getType());
     initialize( buffer);
     
     ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( element);
     ByteBuffer content = ByteBuffer.wrap( bytes);
     
-    finalize( buffer, Type.attachResponse, session, bytes.length);
-    link.send( buffer);
-    link.send( content);
+    finalize( buffer, Type.attachResponse, session, correlation, bytes.length);
+
+    // log
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, element);
+      log.debugf( "Send Attach Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+    }
+    
+    send( link, buffer, session);
+    send( link, content, session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachResponse( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleAttachResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    queueResponse( link, session, buffer, length);
+    queueResponse( link, session, correlation, buffer, length);
   }
   
   /**
@@ -782,7 +823,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.detachRequest, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -794,7 +835,6 @@ public class Protocol implements ILink.IListener
    */
   private final void handleDetachRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
-    log.debugf( "handleDetachRequest(%d)", session);
     handleDetachRequest( link, session);
   }
   
@@ -815,66 +855,80 @@ public class Protocol implements ILink.IListener
   public final void sendSyncRequest( IExternalReference reference) throws IOException
   {
     KeyRecord key = keys.get( reference);
-    
-    log.debugf( "sendSyncRequest(%d): %s", key.session, reference.getType());
+    SessionInfo info = getSession( key.link, key.session);
     
     initialize( buffer);
     byte[] bytes = key.key.getBytes();
     buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.syncRequest, key.session, bytes.length);
+    finalize( buffer, Type.syncRequest, key.session, ++info.correlation, bytes.length);
+    
+    // log
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, reference);
+      log.debugf( "Send Sync Request: session=%d, reference=%s", key.session, info.correlation, xml);
+    }
     
     // send and wait for response
-    send( key.link, key.session, buffer, timeout);
-    handleSyncResponse( key.link, key.session);
+    byte[] response = send( key.link, key.session, info.correlation, buffer, timeout);
+    if ( response != null) handleSyncResponse( key.link, key.session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncRequest( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleSyncRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    handleSyncRequest( link, session, new String( bytes));
+    handleSyncRequest( link, session, correlation, new String( bytes));
   }
   
   /**
    * Handle a sync request.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param key The reference key.
    */
-  protected void handleSyncRequest( ILink sender, int session, String key)
+  protected void handleSyncRequest( ILink sender, int session, int correlation, String key)
   {
-    dispatch( getSession( sender, session), new SyncRunnable( sender, session, key));
+    dispatch( getSession( sender, session), new SyncRunnable( sender, session, correlation, key));
   }
   
   /**
    * Send an sync response message.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    */
-  public final void sendSyncResponse( ILink link, int session) throws IOException
+  public final void sendSyncResponse( ILink link, int session, int correlation) throws IOException
   {
     initialize( buffer);
-    finalize( buffer, Type.syncResponse, session, 0);
-    link.send( buffer);
+    finalize( buffer, Type.syncResponse, session, correlation, 0);
+    
+    // log
+    log.debugf( "Send Sync Response: session=%d, correlation=%d", session, correlation);
+    
+    send( link, buffer, session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncResponse( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleSyncResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    queueResponse( link, session, buffer, length);
+    queueResponse( link, session, correlation, buffer, length);
   }
   
   /**
@@ -891,20 +945,19 @@ public class Protocol implements ILink.IListener
    * Send an add child message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param path The path of the element.
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( ILink link, int session, String xpath, IModelObject element, int index) throws IOException
+  public final void sendAddChild( ILink link, int session, String path, IModelObject element, int index) throws IOException
   {
-    log.debugf( "sendAddChild(%d): %s, %s", session, xpath, element.getType());    
-    
     initialize( buffer);
-    int length = writeString( xpath);
+    int length = writeString( path);
     length += writeElement( getSession( link, session).compressor, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, session, length);
-    link.send( buffer);
+    
+    send( link, buffer, session);
   }
   
   /**
@@ -957,7 +1010,6 @@ public class Protocol implements ILink.IListener
       {
         IModelObject parent = parentExpr.queryFirst( attached);
         IModelObject child = getSession( link, session).compressor.decompress( bytes, 0);
-        log.debugf( "processAddChild(%d): %s, %s", session, xpath, child.getType());            
         if ( parent != null) 
         {
           IModelObject childElement = decode( link, session, child);
@@ -975,18 +1027,17 @@ public class Protocol implements ILink.IListener
    * Send an add child message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param path The path of the element.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( ILink link, int session, String xpath, int index) throws IOException
+  public final void sendRemoveChild( ILink link, int session, String path, int index) throws IOException
   {
-    log.debugf( "sendRemoveChild(%d): %s, %d", session, xpath, index);    
-    
     initialize( buffer);
-    int length = writeString( xpath);
+    int length = writeString( path);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, session, length);
-    link.send( buffer);
+    
+    send( link, buffer, session);
   }
   
   /**
@@ -1038,7 +1089,6 @@ public class Protocol implements ILink.IListener
         if ( parent != null) 
         {
           IModelObject removed = parent.removeChild( index);
-          log.debugf( "processRemoveChild: %s, %s", xpath, (removed != null)? removed.getType(): "null");          
           if ( removed instanceof IExternalReference) keys.remove( removed);
         }
       }
@@ -1066,7 +1116,7 @@ public class Protocol implements ILink.IListener
     length += writeString( attrName);
     length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, session, length);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1143,7 +1193,7 @@ public class Protocol implements ILink.IListener
     int length = writeString( xpath);
     length += writeString( attrName);
     finalize( buffer, Type.clearAttribute, session, length);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1214,7 +1264,7 @@ public class Protocol implements ILink.IListener
     int length = writeString( xpath);
     buffer.put( dirty? (byte)1: 0); length++;
     finalize( buffer, Type.changeDirty, session, length);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1286,30 +1336,36 @@ public class Protocol implements ILink.IListener
    */
   public final Object sendQueryRequest( ILink link, int session, IContext context, String query, int timeout) throws IOException
   {
+    SessionInfo info = getSession( link, session);
+    
     initialize( buffer);
-
+    
     IModelObject request = QueryProtocol.buildRequest( context, query);
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = info.compressor;
     byte[] bytes = compressor.compress( request);
     buffer.put( bytes);
     
-    finalize( buffer, Type.queryRequest, session, bytes.length);
+    finalize( buffer, Type.queryRequest, session, ++info.correlation, bytes.length);
     
-    byte[] content = send( link, session, buffer, timeout);
-    ModelObject response = (ModelObject)compressor.decompress( content, 0);
-    log.debugf( "handleQueryResponse(%d):%s\n", session, response.toXml());
+    byte[] content = send( link, session, info.correlation, buffer, timeout);
+    if ( content != null)
+    {
+      ModelObject response = (ModelObject)compressor.decompress( content, 0);
+      return QueryProtocol.readResponse( response);
+    }
     
-    return QueryProtocol.readResponse( response);
+    return null;
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryRequest( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleQueryRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
@@ -1317,27 +1373,29 @@ public class Protocol implements ILink.IListener
     ICompressor compressor = getSession( link, session).compressor;
     ModelObject request = (ModelObject)compressor.decompress( bytes, 0);
     
-    handleQueryRequest( link, session, request);
+    handleQueryRequest( link, session, correlation, request);
   }
   
   /**
    * Handle a query requset.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param request The query request.
    */
-  protected void handleQueryRequest( ILink link, int session, IModelObject request)
+  protected void handleQueryRequest( ILink link, int session, int correlation, IModelObject request)
   {
-    dispatch( getSession( link, session), new QueryRunnable( link, session, request));
+    dispatch( getSession( link, session), new QueryRunnable( link, session, correlation, request));
   }
   
   /**
    * Send a query response message.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param result The query result.
    */
-  public final void sendQueryResponse( ILink link, int session, Object object) throws IOException
+  public final void sendQueryResponse( ILink link, int session, int correlation, Object object) throws IOException
   {
     initialize( buffer);
 
@@ -1346,20 +1404,21 @@ public class Protocol implements ILink.IListener
     byte[] bytes = compressor.compress( response);
     buffer.put( bytes);
     
-    finalize( buffer, Type.queryResponse, session, bytes.length);
-    link.send( buffer);
+    finalize( buffer, Type.queryResponse, session, correlation, bytes.length);
+    send( link, buffer, session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryResponse( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleQueryResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    queueResponse( link, session, buffer, length);
+    queueResponse( link, session, correlation, buffer, length);
   }
   
   /**
@@ -1374,67 +1433,85 @@ public class Protocol implements ILink.IListener
    */
   public final Object[] sendExecuteRequest( ILink link, int session, StatefulContext context, String[] variables, IModelObject script, int timeout) throws IOException
   {
+    SessionInfo info = getSession( link, session);
+    
     initialize( buffer);
     
-    ModelObject request = (ModelObject)ExecutionProtocol.buildRequest( context, variables, script);
-    log.debugf( "sendExecuteRequest(%d):\n%s", session, request.toXml());
-    ICompressor compressor = getSession( link, session).compressor;
+    IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
+    ICompressor compressor = info.compressor;
     byte[] bytes = compressor.compress( request);
     buffer.put( bytes);
     
-    finalize( buffer, Type.executeRequest, session, bytes.length);
+    finalize( buffer, Type.executeRequest, session, ++info.correlation, bytes.length);
 
+    // log
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, request);
+      log.debugf( "Send Execute Request: session=%d, correlation=%d, request=%s", session, info.correlation, xml);
+    }
+    
     if ( timeout > 0)
     {
-      byte[] content = send( link, session, buffer, timeout);
-      ModelObject response = (ModelObject)compressor.decompress( content, 0);
-      log.debugf( "handleExecuteResponse(%d):\n%s", session, response.toXml());
-      return ExecutionProtocol.readResponse( response, context);
+      byte[] response = send( link, session, info.correlation, buffer, timeout);
+      if ( response != null)
+      {
+        ModelObject element = (ModelObject)compressor.decompress( response, 0);
+        return ExecutionProtocol.readResponse( element, context);
+      }
     }
     else
     {
-      link.send( buffer);
-      return null;
+      send( link, buffer, session);
     }
+    
+    return null;
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteRequest( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleExecuteRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] content = new byte[ length];
     buffer.get( content);
     
     ICompressor compressor = getSession( link, session).compressor;
-    ModelObject request = (ModelObject)compressor.decompress( content, 0);
-    log.debugf( "handleExecuteRequest(%d):\n%s", session, request.toXml());
+    IModelObject request = compressor.decompress( content, 0);
+    
+    // log
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, request);
+      log.debugf( "Handle Execute Request: session=%d, correlation=%d, request=%s", session, correlation, xml);
+    }
     
     StatefulContext context = new StatefulContext( this.context);
     IModelObject script = ExecutionProtocol.readRequest( request, context);
-    
-    handleExecuteRequest( link, session, context, script);
+    handleExecuteRequest( link, session, correlation, context, script);
   }
   
   /**
    * Handle an execute request.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param context The execution context.
    * @param script The script to execute.
    */
-  protected void handleExecuteRequest( ILink link, int session, IContext context, IModelObject script)
+  protected void handleExecuteRequest( ILink link, int session, int correlation, IContext context, IModelObject script)
   {
     // check privilege
     if ( privilege != null && !privilege.isPermitted( context, script))
     {
       try
       {
-        sendError( link, session, "Script contains restricted opertaions.");
+        sendError( link, session, correlation, "Script contains restricted opertaions.");
       }
       catch( Exception e)
       {
@@ -1443,22 +1520,21 @@ public class Protocol implements ILink.IListener
     }
     
     // dispatch
-    dispatch( getSession( link, session), new ExecuteRunnable( link, session, context, script));
+    dispatch( getSession( link, session), new ExecuteRunnable( link, session, correlation, context, script));
   }
   
   /**
    * Send an attach response message.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param element The element.
    */
-  public final void sendExecuteResponse( ILink link, int session, IContext context, Object[] results) throws IOException
+  public final void sendExecuteResponse( ILink link, int session, int correlation, IContext context, Object[] results) throws IOException
   {
     initialize( buffer);
     
-    ModelObject response = (ModelObject)ExecutionProtocol.buildResponse( context, results);
-    log.debugf( "sendExecuteResponse(%d):\n%s", session, response.toXml());
-    
+    IModelObject response = ExecutionProtocol.buildResponse( context, results);
     ICompressor compressor = getSession( link, session).compressor;
     byte[] bytes = compressor.compress( response);
     
@@ -1472,21 +1548,29 @@ public class Protocol implements ILink.IListener
     }
     
     buffer.put( bytes);
+    finalize( buffer, Type.executeResponse, session, correlation, bytes.length);
     
-    finalize( buffer, Type.executeResponse, session, bytes.length);
-    link.send( buffer);
+    // log
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, response);
+      log.debugf( "Send Execute Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+    }
+    
+    send( link, buffer, session);
   }
   
   /**
    * Handle the specified message buffer.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteResponse( ILink link, int session, ByteBuffer buffer, int length)
+  private final void handleExecuteResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    queueResponse( link, session, buffer, length);
+    queueResponse( link, session, correlation, buffer, length);
   }
   
   /**
@@ -1498,7 +1582,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugGo, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1538,7 +1622,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStop, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1577,7 +1661,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepIn, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1616,7 +1700,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOver, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1655,7 +1739,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     finalize( buffer, Type.debugStepOut, session, 0);
-    link.send( buffer);
+    send( link, buffer, session);
   }
   
   /**
@@ -1689,17 +1773,31 @@ public class Protocol implements ILink.IListener
    * Send and wait for a response.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer to send.
    * @param timeout The timeout in milliseconds.
-   * @return Returns null or the response buffer.
+   * @return Returns null or the response bytes.
    */
-  private byte[] send( ILink link, int session, ByteBuffer buffer, int timeout) throws IOException
+  private byte[] send( ILink link, int session, int correlation, ByteBuffer buffer, int timeout) throws IOException
   {
+    if ( log.isLevelEnabled( Log.verbose)) 
+    {
+      String bytes = org.xmodel.net.stream.Util.dump( buffer);
+      log.verbosef( "send: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+    }
+    
     try
     {
-      link.send( buffer);
-      byte[] response = getSession( link, session).responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
-      if ( response != null) return response;
+      send( link, buffer, session);
+      SessionInfo info = getSession( link, session);
+      
+      // TODO: timeout is incorrect if responses with wrong correlation numbers are dropped
+      Response response = info.responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
+      while( response != null)
+      {
+        if ( response.correlation == correlation) return response.bytes;
+        response = info.responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
+      } 
     }
     catch( InterruptedException e)
     {
@@ -1710,20 +1808,26 @@ public class Protocol implements ILink.IListener
   }
   
   /**
-   * Send and wait for a response.
+   * Send a session open request and wait for a response.
    * @param link The link.
    * @param client The session initialization client identifier.
    * @param buffer The buffer to send.
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response buffer.
    */
-  private byte[] send( ILink link, String client, ByteBuffer buffer, int timeout) throws IOException
+  private Response send( ILink link, String client, ByteBuffer buffer, int timeout) throws IOException
   {
+    if ( log.isLevelEnabled( Log.verbose)) 
+    {
+      String bytes = org.xmodel.net.stream.Util.dump( buffer);
+      log.verbosef( "send: length=%d, bytes=%s", buffer.limit(), bytes);
+    }
+    
     try
     {
-      sessionInitQueues.put( client, new SynchronousQueue<byte[]>());
-      link.send( buffer);
-      byte[] response = sessionInitQueues.get( client).poll( timeout, TimeUnit.MILLISECONDS);
+      sessionInitQueues.put( client, new SynchronousQueue<Response>());
+      send( link, buffer, -1);
+      Response response = sessionInitQueues.get( client).poll( timeout, TimeUnit.MILLISECONDS);
       sessionInitQueues.remove( client);
       if ( response != null) return response;
     }
@@ -1736,20 +1840,41 @@ public class Protocol implements ILink.IListener
   }
   
   /**
+   * Send the specified buffer to the specified link.
+   * @param link The link.
+   * @param buffer The buffer.
+   * @param session The session number.
+   */
+  private void send( ILink link, ByteBuffer buffer, int session) throws IOException
+  {
+    if ( log.isLevelEnabled( Log.verbose)) 
+    {
+      String bytes = org.xmodel.net.stream.Util.dump( buffer);
+      log.verbosef( "send: session=%d, length=%d, bytes=%s", session, buffer.limit(), bytes);
+    }
+    
+    link.send( buffer);
+  }
+  
+  /**
    * Queue a synchronous response.
    * @param link The link.
    * @param session The session number.
+   * @param correlation The correlation number.
    * @param buffer The buffer containing the response.
    * @param length The length of the response.
    */
-  private void queueResponse( ILink link, int session, ByteBuffer buffer, int length)
+  private void queueResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     try 
     {
       SessionInfo info = getSession( link, session);
-      if ( info != null) info.responseQueue.put( bytes);
+      if ( info != null) 
+      {
+        info.responseQueue.put( new Response( correlation, bytes));
+      }
     } 
     catch( InterruptedException e) 
     {
@@ -1769,8 +1894,8 @@ public class Protocol implements ILink.IListener
     buffer.get( bytes);
     try 
     {
-      BlockingQueue<byte[]> queue = sessionInitQueues.get( client);
-      if ( queue != null) queue.put( bytes);
+      BlockingQueue<Response> queue = sessionInitQueues.get( client);
+      if ( queue != null) queue.put( new Response( 0, bytes));
     } 
     catch( InterruptedException e) 
     {
@@ -1835,7 +1960,7 @@ public class Protocol implements ILink.IListener
   public static void initialize( ByteBuffer buffer)
   {
     buffer.clear();
-    buffer.position( 9);
+    buffer.position( 13);
   }
   
   /**
@@ -1865,7 +1990,7 @@ public class Protocol implements ILink.IListener
   }
   
   /**
-   * Finalize the message by writing the header and preparing the buffer to be read.
+   * Finalize the message by writing the header (without correlation) and preparing the buffer to be read.
    * @param buffer The buffer.
    * @param type The message type.
    * @param session The session number.
@@ -1873,10 +1998,23 @@ public class Protocol implements ILink.IListener
    */
   public static void finalize( ByteBuffer buffer, Type type, int session, int length)
   {
+    finalize( buffer, type, session, Integer.MIN_VALUE, length);
+  }
+  
+  /**
+   * Finalize the message by writing the header and preparing the buffer to be read.
+   * @param buffer The buffer.
+   * @param type The message type.
+   * @param session The session number.
+   * @param correlation The correlation number (Integer.MIN_VALUE to opt out).
+   * @param length The message length.
+   */
+  public static void finalize( ByteBuffer buffer, Type type, int session, int correlation, int length)
+  {
     buffer.limit( buffer.position());
     
     int mask = 0;
-    int position = 9;
+    int position = 13;
     if ( length < 128)
     {
       position -= 1;
@@ -1887,6 +2025,13 @@ public class Protocol implements ILink.IListener
       mask |= 0x40;
       position -= 4;
       buffer.putInt( position, length);
+    }
+    
+    if ( correlation != Integer.MIN_VALUE)
+    {
+      mask |= 0x20;
+      position -= 4;
+      buffer.putInt( position, correlation);
     }
     
     if ( session >= 0 && session < 128)
@@ -1905,6 +2050,19 @@ public class Protocol implements ILink.IListener
     buffer.put( position, (byte)(type.ordinal() | mask));
     
     buffer.position( position);
+  }
+  
+  /**
+   * Read the correlation number from the specified buffer. This value is meaningless
+   * if it equals Integer.MIN_VALUE. 
+   * @param byte0 The first byte of the message.
+   * @param buffer The buffer.
+   * @return Returns the correlation number.
+   */
+  private static int readMessageCorrelation( int byte0, ByteBuffer buffer)
+  {
+    if ( (byte0 & 0x20) != 0) return buffer.getInt();
+    return Integer.MIN_VALUE;
   }
   
   /**
@@ -2262,7 +2420,7 @@ public class Protocol implements ILink.IListener
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( ILink sender, int session, String key)
+    public SyncRunnable( ILink sender, int session, int correlation, String key)
     {
       this.sender = sender;
       this.session = session;
@@ -2278,7 +2436,7 @@ public class Protocol implements ILink.IListener
         try
         {
           reference.getChildren();
-          sendSyncResponse( sender, session);
+          sendSyncResponse( sender, session, correlation);
         }
         catch( IOException e)
         {
@@ -2289,6 +2447,7 @@ public class Protocol implements ILink.IListener
     
     private ILink sender;
     private int session;
+    private int correlation;
     private String key;
   }
   
@@ -2403,10 +2562,11 @@ public class Protocol implements ILink.IListener
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( ILink sender, int session, String xpath)
+    public AttachRunnable( ILink sender, int session, int correlation, String xpath)
     {
       this.sender = sender;
       this.session = session;
+      this.correlation = correlation;
       this.xpath = xpath;
     }
     
@@ -2414,7 +2574,7 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        doAttach( sender, session, xpath);
+        doAttach( sender, session, correlation, xpath);
       } 
       catch( IOException e)
       {
@@ -2424,6 +2584,7 @@ public class Protocol implements ILink.IListener
 
     private ILink sender;
     private int session;
+    private int correlation;
     private String xpath;
   }
   
@@ -2446,10 +2607,11 @@ public class Protocol implements ILink.IListener
   
   private final class QueryRunnable implements Runnable
   {
-    public QueryRunnable( ILink sender, int session, IModelObject request)
+    public QueryRunnable( ILink sender, int session, int correlation, IModelObject request)
     {
       this.sender = sender;
       this.session = session;
+      this.correlation = correlation;
       this.request = request;
     }
     
@@ -2457,7 +2619,7 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        doQuery( sender, session, request);
+        doQuery( sender, session, correlation, request);
       } 
       catch( IOException e)
       {
@@ -2467,26 +2629,29 @@ public class Protocol implements ILink.IListener
     
     private ILink sender;
     private int session;
+    private int correlation;
     private IModelObject request;
   }
   
   private final class ExecuteRunnable implements Runnable
   {
-    public ExecuteRunnable( ILink sender, int session, IContext context, IModelObject script)
+    public ExecuteRunnable( ILink sender, int session, int correlation, IContext context, IModelObject script)
     {
       this.sender = sender;
       this.session = session;
+      this.correlation = correlation;
       this.context = context;
       this.script = script;
     }
     
     public void run()
     {
-      doExecute( sender, session, context, script);
+      doExecute( sender, session, correlation, context, script);
     }
     
     private ILink sender;
     private int session;
+    private int correlation;
     private IContext context;
     private IModelObject script;
   }
@@ -2802,12 +2967,13 @@ public class Protocol implements ILink.IListener
   {
     public SessionInfo()
     {
-      responseQueue = new SynchronousQueue<byte[]>();
+      responseQueue = new SynchronousQueue<Response>();
       index = new HashMap<String, IModelObject>();
       compressor = new TabularCompressor();
     }
-    
-    public BlockingQueue<byte[]> responseQueue;
+
+    public int correlation;
+    public BlockingQueue<Response> responseQueue;
     public IDispatcher dispatcher;
     public String xpath;
     public IModelObject element;
@@ -2817,10 +2983,22 @@ public class Protocol implements ILink.IListener
     public Listener listener;
   }
   
+  protected class Response
+  {
+    public Response( int correlation, byte[] bytes)
+    {
+      this.correlation = correlation;
+      this.bytes = bytes;
+    }
+    
+    public int correlation;
+    public byte[] bytes;
+  }
+  
   private static Log log = Log.getLog( "org.xmodel.net");
 
   private Map<ILink, List<SessionInfo>> sessions;
-  private Map<String, BlockingQueue<byte[]>> sessionInitQueues;
+  private Map<String, BlockingQueue<Response>> sessionInitQueues;
   private Map<IModelObject, KeyRecord> keys;
   private IContext context;
   private ByteBuffer buffer;

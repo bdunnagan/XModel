@@ -152,7 +152,7 @@ public class NamespaceTransform implements IModelObjectFactory
    * @param type The element name.
    * @return Returns the prefix, which may be "".
    */
-  private String getPrefix( String type)
+  public static String getPrefix( String type)
   {
     int index = type.indexOf( ":");
     return (index >= 0)? type.substring( 0, index): "";

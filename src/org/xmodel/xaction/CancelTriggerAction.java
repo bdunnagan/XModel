@@ -50,7 +50,11 @@ public class CancelTriggerAction extends GuardedAction
     for( IModelObject holder: instanceExpr.query( context, null))
     {
       ITrigger trigger = (ITrigger)holder.getValue();
-      if ( trigger != null) trigger.deactivate( context);
+      if ( trigger != null) 
+      {
+        holder.setValue( null);
+        trigger.deactivate( context);
+      }
     }
     
     return null;

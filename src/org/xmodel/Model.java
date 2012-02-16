@@ -110,6 +110,9 @@ public class Model implements IModel
     // there may not be a current update if this is an initial or final notification
     Update update = getCurrentUpdate();
     if ( update != null) update.revert();
+
+    // flag it
+    isReverted = true;
   }
   
   /* (non-Javadoc)
@@ -121,6 +124,18 @@ public class Model implements IModel
     
     // reenable syncing
     setSyncLock( false);
+    
+    // flag it
+    isReverted = false;
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#isReverted()
+   */
+  @Override
+  public boolean isReverted()
+  {
+    return isReverted;
   }
 
   /* (non-Javadoc)
@@ -250,7 +265,8 @@ public class Model implements IModel
    */
   public void dispatch( Runnable runnable)
   {
-    if ( dispatcher == null) throw new IllegalStateException( "Dispatcher is not defined.");
+    if ( dispatcher == null) 
+      throw new IllegalStateException( "Dispatcher is not defined.");
     dispatcher.execute( runnable);
   }
 
@@ -309,4 +325,5 @@ public class Model implements IModel
   private IDispatcher dispatcher;
   private boolean syncLock;
   private Map<Class<?>, Object> features;
+  private boolean isReverted;
 }

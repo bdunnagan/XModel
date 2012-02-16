@@ -60,14 +60,22 @@ public class SetAction extends GuardedAction
 
     // handle java.lang.Object transfer correctly
     Object value = null;
-    if ( sourceExpr.getType( context) == ResultType.NODES)
+    if ( sourceExpr != null)
     {
-      IModelObject node = sourceExpr.queryFirst( context);
-      if ( node != null) value = node.getValue();
-    }
-    else
-    {
-      value = sourceExpr.evaluateString( context);
+      ResultType type = sourceExpr.getType( context);
+      switch( type)
+      {
+        case NODES:
+        {
+          IModelObject node = sourceExpr.queryFirst( context);
+          if ( node != null) value = node.getValue();
+          break;
+        }
+        
+        case BOOLEAN: value = sourceExpr.evaluateBoolean( context); break;
+        case STRING:  value = sourceExpr.evaluateString( context); break;
+        case NUMBER:  value = sourceExpr.evaluateNumber( context); break;
+      }
     }
     
     targets = targetExpr.query( context, null);

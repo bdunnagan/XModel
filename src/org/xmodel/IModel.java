@@ -76,6 +76,11 @@ public interface IModel
   public void restore();  
   
   /**
+   * @return Returns true if the model is currently reverted.
+   */
+  public boolean isReverted();
+  
+  /**
    * Lock the specified object so that its updates are deferred. This method is used by IModelObject
    * implementations to ensure that all listeners for an atomic update see the same state for the
    * one, two or three objects which are part of the atomic update. Locking should always be performed

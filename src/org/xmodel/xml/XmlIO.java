@@ -91,6 +91,19 @@ public class XmlIO implements IXmlIO
     }
   }
   
+  /**
+   * Write the specified element using the specified style.
+   * @param style The style.
+   * @param element The element.
+   * @return Returns the xml.
+   */
+  public static String write( Style style, IModelObject element)
+  {
+    XmlIO xmlIO = new XmlIO();
+    xmlIO.setOutputStyle( style);
+    return xmlIO.write( element);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#setWhitespace(org.xmodel.xml.IXmlIO.Whitespace)
    */
