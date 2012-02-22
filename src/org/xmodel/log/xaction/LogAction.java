@@ -58,10 +58,8 @@ public class LogAction extends GuardedAction
     
     if ( messageExpr == null)
     {
-      for( Log log: Log.getLogs( logName))
-      {
-        log.setLevel( level);
-      }
+      Log log = Log.getLog( logName);
+      log.setLevel( level);
     }
     else
     {

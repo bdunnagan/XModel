@@ -1,8 +1,6 @@
 package org.xmodel.log;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 
 /**
  * An implementation of Log.ISink performs basic formatting and delegates logging.
@@ -12,20 +10,18 @@ public final class FormatSink implements ILogSink
   public FormatSink( ILogSink delegate)
   {
     this.delegate = delegate;
-    calendar = Calendar.getInstance();
-    dateFormat = new SimpleDateFormat( "yyyy-MM-dd HH:mm:ss.SSS");
-    dateFormat.setCalendar( calendar);
   }
-  
+
   /* (non-Javadoc)
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */
   @Override
   public void log( Log log, int level, Object message)
   {
-    String date = dateFormat.format( new Date());
+    String thread = Thread.currentThread().getName();
     StringBuilder sb = new StringBuilder();
-    sb.append( date); sb.append( ' ');
+    formatDate( Calendar.getInstance(), sb);
+    sb.append( " ["); sb.append( thread); sb.append( "] ");
     sb.append( Log.getLevelName( level));
     sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
     sb.append( message);
@@ -49,8 +45,10 @@ public final class FormatSink implements ILogSink
   {
     String message = object.toString();
     String levelName = Log.getLevelName( level);
+
+    StringBuilder date = new StringBuilder();
+    formatDate( Calendar.getInstance(), date);
     
-    String date = dateFormat.format( new Date());
     StringBuilder sb = new StringBuilder();
     
     if ( message.length() > 0)
@@ -83,7 +81,31 @@ public final class FormatSink implements ILogSink
     }
   }
 
+  /**
+   * Format the specified absolute time into the specified message.
+   * @param calendar The calendar instance.
+   * @param message The message.
+   */
+  private void formatDate( Calendar calendar, StringBuilder message)
+  {
+    int year = calendar.get( Calendar.YEAR);
+    int month = calendar.get( Calendar.MONTH);
+    int day = calendar.get( Calendar.DAY_OF_MONTH);
+    
+    int hour = calendar.get( Calendar.HOUR);
+    int min = calendar.get( Calendar.MINUTE);
+    int sec = calendar.get( Calendar.SECOND);
+    int msec = calendar.get( Calendar.MILLISECOND);
+    
+    message.append( Integer.toString( year)); message.append( '/');
+    message.append( Integer.toString( month)); message.append( '/');
+    message.append( Integer.toString( day)); message.append( ' ');
+    
+    message.append( Integer.toString( hour)); message.append( ':');
+    message.append( Integer.toString( min)); message.append( ':');
+    message.append( Integer.toString( sec)); message.append( '.');
+    message.append( Integer.toString( msec));
+  }
+  
   private ILogSink delegate;
-  private Calendar calendar;
-  private SimpleDateFormat dateFormat;
 }

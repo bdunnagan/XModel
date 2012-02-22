@@ -53,7 +53,11 @@ public abstract class TcpBase
       }
     };
     
-    thread = new Thread( runnable, getClass().getSimpleName());
+    int id = 0;
+    synchronized( this) { id = ++counter;}
+    
+    String name = String.format( "%s-%d", getClass().getSimpleName(), id);
+    thread = new Thread( runnable, name);
     thread.setDaemon( daemon);
     thread.start();
   }
@@ -352,6 +356,7 @@ public abstract class TcpBase
   }
   
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  private static int counter = 0;
 
   private ILink.IListener listener;
   protected Selector selector;

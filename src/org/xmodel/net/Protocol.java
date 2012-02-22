@@ -19,6 +19,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
+
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -36,6 +37,7 @@ import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.util.Identifier;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XAction;
@@ -106,8 +108,6 @@ public class Protocol implements ILink.IListener
     
     dispatcher = new ImmediateDispatcher();
     packageNames = new ArrayList<String>();
-    
-    log.setLevel( Log.debug);
   }
   
   /**
@@ -411,8 +411,8 @@ public class Protocol implements ILink.IListener
     }
     catch( Throwable t)
     {
-      log.errorf( "Execution failed for script: %s", XmlIO.write( Style.compact, script));
-      log.exception( t);
+      SLog.errorf( this, "Execution failed for script: %s", XmlIO.write( Style.compact, script));
+      SLog.exception( this, t);
       
       try
       {
@@ -420,7 +420,7 @@ public class Protocol implements ILink.IListener
       }
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
     
@@ -430,8 +430,8 @@ public class Protocol implements ILink.IListener
     } 
     catch( IOException e)
     {
-      log.errorf( "Unable to send execution response for script: %s", XmlIO.write( Style.compact, script));
-      log.exception( e);
+      SLog.errorf( this, "Unable to send execution response for script: %s", XmlIO.write( Style.compact, script));
+      SLog.exception( this, e);
     }
   }
   
@@ -510,10 +510,10 @@ public class Protocol implements ILink.IListener
       int length = readMessageLength( byte0, buffer);
       if ( length > buffer.remaining()) return false;
       
-      if ( log.isLevelEnabled( Log.verbose)) 
+      if ( SLog.isLevelEnabled( this, Log.verbose)) 
       {
         String bytes = org.xmodel.net.stream.Util.dump( buffer);
-        log.verbosef( "recv: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+        SLog.verbosef( this, "recv: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
       }
       
       switch( type)
@@ -570,7 +570,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.sessionOpenRequest, 0, 2);
     
     // log
-    log.debugf( "Send Session Open Request: version=%d, client=%s", version, client);
+    SLog.debugf( this, "Send Session Open Request: version=%d, client=%s", version, client);
     
     Response response = send( link, client, buffer, timeout);
     byte[] bytes = response.bytes;
@@ -599,7 +599,7 @@ public class Protocol implements ILink.IListener
     }
     catch( IOException e)
     {
-      log.exception( e);
+      SLog.exception( this, e);
     }
   }
   
@@ -617,7 +617,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.sessionOpenResponse, 0, 4);
     
     // log
-    log.debugf( "Send Session Open Response: session=%d, client=%s", session, client);
+    SLog.debugf( this, "Send Session Open Response: session=%d, client=%s", session, client);
     
     send( link, buffer, session);
   }
@@ -641,7 +641,7 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSessionCloseRequest( ILink link, int session) throws IOException
   {
-    log.debugf( "Send Session Close Request: session=%d", session);
+    SLog.debugf( this, "Send Session Close Request: session=%d", session);
     
     initialize( buffer);
     finalize( buffer, Type.sessionCloseRequest, session, 0);
@@ -673,7 +673,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.error, session, correlation, bytes.length);
 
     // log
-    log.debugf( "Send Error: session=%d, correlation=%d, message=%s", session, correlation, message);
+    SLog.debugf( this, "Send Error: session=%d, correlation=%d, message=%s", session, correlation, message);
     
     send( link, buffer, session);
   }
@@ -699,7 +699,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleError( ILink link, String message)
   {
-    log.error( message);
+    SLog.error( this, message);
   }
   
   /**
@@ -718,14 +718,14 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.attachRequest, session, ++info.correlation, bytes.length);
 
     // log
-    log.debugf( "Attach Request: session=%d, correlation=%d, query=%s", session, info.correlation, query);
+    SLog.debugf( this, "Attach Request: session=%d, correlation=%d, query=%s", session, info.correlation, query);
     
     // send and wait for response
     byte[] response = send( link, session, info.correlation, buffer, timeout);
     if ( response != null)
     {
       ICompressor compressor = info.compressor;
-      IModelObject element = compressor.decompress( new ByteArrayInputStream( bytes));
+      IModelObject element = compressor.decompress( new ByteArrayInputStream( response));
       handleAttachResponse( link, session, element);
     }
   }
@@ -775,10 +775,10 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.attachResponse, session, correlation, bytes.length);
 
     // log
-    if ( log.isLevelEnabled( Log.debug))
+    if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, element);
-      log.debugf( "Send Attach Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      SLog.debugf( this, "Send Attach Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
     }
     
     send( link, buffer, session);
@@ -863,10 +863,10 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.syncRequest, key.session, ++info.correlation, bytes.length);
     
     // log
-    if ( log.isLevelEnabled( Log.debug))
+    if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, reference);
-      log.debugf( "Send Sync Request: session=%d, reference=%s", key.session, info.correlation, xml);
+      SLog.debugf( this, "Send Sync Request: session=%d, reference=%s", key.session, info.correlation, xml);
     }
     
     // send and wait for response
@@ -913,7 +913,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.syncResponse, session, correlation, 0);
     
     // log
-    log.debugf( "Send Sync Response: session=%d, correlation=%d", session, correlation);
+    SLog.debugf( this, "Send Sync Response: session=%d, correlation=%d", session, correlation);
     
     send( link, buffer, session);
   }
@@ -956,6 +956,13 @@ public class Protocol implements ILink.IListener
     length += writeElement( getSession( link, session).compressor, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, session, length);
+    
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, element);
+      SLog.debugf( this, "Send Add Child: session=%d, parent=%s, index=%d, element=%s", session, path, index, xml);
+    }
     
     send( link, buffer, session);
   }
@@ -1037,6 +1044,12 @@ public class Protocol implements ILink.IListener
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, session, length);
     
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      SLog.debugf( this, "Send Remove Child: session=%d, parent=%s, index=%d", session, path, index);
+    }
+    
     send( link, buffer, session);
   }
   
@@ -1116,6 +1129,10 @@ public class Protocol implements ILink.IListener
     length += writeString( attrName);
     length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, session, length);
+    
+    // log
+    SLog.debugf( this, "Send Change Attribute: session=%d, path=%s, attr=%s, value=%s", session, xpath, attrName, value);
+    
     send( link, buffer, session);
   }
   
@@ -1193,6 +1210,10 @@ public class Protocol implements ILink.IListener
     int length = writeString( xpath);
     length += writeString( attrName);
     finalize( buffer, Type.clearAttribute, session, length);
+    
+    // log
+    SLog.debugf( this, "Send Clear Attribute: session=%d, path=%s, attr=%s", session, xpath, attrName);
+    
     send( link, buffer, session);
   }
   
@@ -1264,6 +1285,10 @@ public class Protocol implements ILink.IListener
     int length = writeString( xpath);
     buffer.put( dirty? (byte)1: 0); length++;
     finalize( buffer, Type.changeDirty, session, length);
+    
+    // log
+    SLog.debugf( this, "Send Change Dirty: session=%d, path=%s, dirty=%s", session, xpath, Boolean.toString( dirty));
+    
     send( link, buffer, session);
   }
   
@@ -1347,6 +1372,9 @@ public class Protocol implements ILink.IListener
     
     finalize( buffer, Type.queryRequest, session, ++info.correlation, bytes.length);
     
+    // log
+    SLog.debugf( this, "Send Query Request: session=%d, query=%s", session, query);
+    
     byte[] content = send( link, session, info.correlation, buffer, timeout);
     if ( content != null)
     {
@@ -1398,13 +1426,19 @@ public class Protocol implements ILink.IListener
   public final void sendQueryResponse( ILink link, int session, int correlation, Object object) throws IOException
   {
     initialize( buffer);
-
     ICompressor compressor = getSession( link, session).compressor;
     IModelObject response = QueryProtocol.buildResponse( object);
     byte[] bytes = compressor.compress( response);
     buffer.put( bytes);
-    
     finalize( buffer, Type.queryResponse, session, correlation, bytes.length);
+    
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, response);
+      SLog.debugf( this, "Send Query Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+    }
+    
     send( link, buffer, session);
   }
   
@@ -1445,10 +1479,10 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.executeRequest, session, ++info.correlation, bytes.length);
 
     // log
-    if ( log.isLevelEnabled( Log.debug))
+    if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, request);
-      log.debugf( "Send Execute Request: session=%d, correlation=%d, request=%s", session, info.correlation, xml);
+      SLog.debugf( this, "Send Execute Request: session=%d, correlation=%d, request=%s", session, info.correlation, xml);
     }
     
     if ( timeout > 0)
@@ -1485,10 +1519,10 @@ public class Protocol implements ILink.IListener
     IModelObject request = compressor.decompress( content, 0);
     
     // log
-    if ( log.isLevelEnabled( Log.debug))
+    if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, request);
-      log.debugf( "Handle Execute Request: session=%d, correlation=%d, request=%s", session, correlation, xml);
+      SLog.debugf( this, "Handle Execute Request: session=%d, correlation=%d, request=%s", session, correlation, xml);
     }
     
     StatefulContext context = new StatefulContext( this.context);
@@ -1515,7 +1549,7 @@ public class Protocol implements ILink.IListener
       }
       catch( Exception e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
     
@@ -1551,10 +1585,10 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.executeResponse, session, correlation, bytes.length);
     
     // log
-    if ( log.isLevelEnabled( Log.debug))
+    if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, response);
-      log.debugf( "Send Execute Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      SLog.debugf( this, "Send Execute Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
     }
     
     send( link, buffer, session);
@@ -1780,10 +1814,10 @@ public class Protocol implements ILink.IListener
    */
   private byte[] send( ILink link, int session, int correlation, ByteBuffer buffer, int timeout) throws IOException
   {
-    if ( log.isLevelEnabled( Log.verbose)) 
+    if ( SLog.isLevelEnabled( this, Log.verbose)) 
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      log.verbosef( "send: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+      SLog.verbosef( this, "send: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
     }
     
     try
@@ -1817,10 +1851,10 @@ public class Protocol implements ILink.IListener
    */
   private Response send( ILink link, String client, ByteBuffer buffer, int timeout) throws IOException
   {
-    if ( log.isLevelEnabled( Log.verbose)) 
+    if ( SLog.isLevelEnabled( this, Log.verbose)) 
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      log.verbosef( "send: length=%d, bytes=%s", buffer.limit(), bytes);
+      SLog.verbosef( this, "send: length=%d, bytes=%s", buffer.limit(), bytes);
     }
     
     try
@@ -1847,10 +1881,10 @@ public class Protocol implements ILink.IListener
    */
   private void send( ILink link, ByteBuffer buffer, int session) throws IOException
   {
-    if ( log.isLevelEnabled( Log.verbose)) 
+    if ( SLog.isLevelEnabled( this, Log.verbose)) 
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      log.verbosef( "send: session=%d, length=%d, bytes=%s", session, buffer.limit(), bytes);
+      SLog.verbosef( this, "send: session=%d, length=%d, bytes=%s", session, buffer.limit(), bytes);
     }
     
     link.send( buffer);
@@ -1924,7 +1958,7 @@ public class Protocol implements ILink.IListener
       }
       catch( Exception e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
     
@@ -2440,7 +2474,7 @@ public class Protocol implements ILink.IListener
         }
         catch( IOException e)
         {
-          log.exception( e);
+          SLog.exception( this, e);
         }
       }
     }
@@ -2578,7 +2612,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
 
@@ -2623,7 +2657,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
     
@@ -2722,7 +2756,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
 
@@ -2742,7 +2776,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
 
@@ -2766,7 +2800,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
 
@@ -2790,7 +2824,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
     
@@ -2812,7 +2846,7 @@ public class Protocol implements ILink.IListener
       } 
       catch( IOException e)
       {
-        log.exception( e);
+        SLog.exception( this, e);
       }
     }
 
@@ -2867,10 +2901,12 @@ public class Protocol implements ILink.IListener
     if ( info.dispatcher != null)
     {
       info.dispatcher.execute( runnable);
+      System.out.print( "~");
     }
     else if ( dispatcher != null) 
     {
       dispatcher.execute( runnable);
+      System.out.print( "@");
     }
   }
   
@@ -2995,8 +3031,6 @@ public class Protocol implements ILink.IListener
     public byte[] bytes;
   }
   
-  private static Log log = Log.getLog( "org.xmodel.net");
-
   private Map<ILink, List<SessionInfo>> sessions;
   private Map<String, BlockingQueue<Response>> sessionInitQueues;
   private Map<IModelObject, KeyRecord> keys;

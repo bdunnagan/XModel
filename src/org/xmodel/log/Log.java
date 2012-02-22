@@ -1,34 +1,14 @@
 package org.xmodel.log;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Yet another logging facility.
  */
-public class Log
+public final class Log
 {
-//  public enum Level
-//  {
-//    fatal( 0x01),
-//    severe( 0x02),
-//    error( 0x04),
-//    warn( 0x08),
-//    info( 0x10),
-//    debug( 0x20),
-//    verbose( 0x40),
-//    exception( 0x80),
-//    problems( 0x8F),
-//    all( 0xFF);
-//    
-//    private Level( int mask) { this.mask = mask;}
-//    public final int mask;
-//  }
-  
   public final static int exception = 0x80;
   public final static int verbose = 0x40;
   public final static int debug = 0x20;
@@ -107,32 +87,44 @@ public class Log
   }
   
   /**
-   * Returns the names of all logs that match the specified regex.
-   * @param regex The regular expression to match.
-   * @return Returns the names of all logs that match the specified regex.
-   */
-  public static List<Log> getLogs( String regex)
-  {
-    Pattern pattern = Pattern.compile( regex);
-
-    List<Log> result = new ArrayList<Log>();
-    for( Log log: logs.values())
-    {
-      Matcher matcher = pattern.matcher( log.getName());
-      if ( matcher.matches()) result.add( log);
-    }
-    
-    return result;
-  }
-  
-  /**
-   * Returns the log with the fully-qualified name of the specified class.
+   * Returns the log with the name of the package in which the specified class is declared..
    * @param clazz The class.
-   * @return Returns the log with the fully-qualified name of the specified class.
+   * @return The log.
    */
   public static Log getLog( Class<?> clazz)
   {
-    return getLog( clazz.getName());
+    String name = clazz.getName();
+    int index = name.lastIndexOf( '.');
+    if ( index < 0) return getLog( name);
+    return getLog( name.substring( 0, index));
+  }
+  
+  /**
+   * Returns a unique Log for the package in which the specified object is defined.
+   * @param object The object.
+   * @return The unique Log for the object.
+   */
+  public static Log getLog( Object object)
+  {
+    if ( object instanceof String)
+      throw new IllegalArgumentException(
+          "Illegal to log on behalf of String class.");
+    
+    Map<Object, Log> map = threadLogs.get();
+    if ( map == null)
+    {
+      map = new HashMap<Object, Log>();
+      threadLogs.set( map);
+    }
+    
+    Log log = map.get( object);
+    if ( log == null)
+    {
+      log = getLog( object.getClass());
+      map.put( object, log);
+    }
+    
+    return log;
   }
   
   public Log( String name)
@@ -179,7 +171,7 @@ public class Log
     if ( mask < 0) configure();
     return (mask & level) != 0;
   }
-  
+
   /**
    * Log a verbose message.
    * @param message The message.
@@ -471,18 +463,12 @@ public class Log
    */
   private void configure()
   {
-    mask = 0x9F;
-    try
-    {
-      sink = new FormatSink( new ConsoleSink());
-    }
-    catch( Exception e)
-    {
-      sink = new FormatSink( new ConsoleSink());
-    }
+    mask = problems;
+    sink = new FormatSink( new ConsoleSink());
   }
   
-  private static Map<String, Log> logs = new HashMap<String, Log>();
+  private static Map<String, Log> logs = Collections.synchronizedMap( new HashMap<String, Log>());
+  private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
 
   private String name;
   private volatile int mask;

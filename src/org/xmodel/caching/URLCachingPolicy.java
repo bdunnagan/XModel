@@ -22,12 +22,14 @@ package org.xmodel.caching;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.external.UnboundedCache;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -36,6 +38,11 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class URLCachingPolicy extends ConfiguredCachingPolicy
 {
+  public URLCachingPolicy()
+  {
+    this( new UnboundedCache());
+  }
+  
   /**
    * Create a URLCachingPolicy which uses the specified cache.
    * @param cache The cache.

@@ -120,6 +120,7 @@ public class Model implements IModel
    */
   public void restore()
   {
+    //System.out.printf( "restore: %s\n", Thread.currentThread().getName());
     for( Update update: updateStack) update.restore();
     
     // reenable syncing
@@ -176,6 +177,8 @@ public class Model implements IModel
    */
   public Update startUpdate()
   {
+    //System.out.printf( "startUpdate: %s\n", Thread.currentThread().getName());
+    
     // current update cannot be in the reverted state
     int stackSize = updateStack.size();
     if ( stackSize > 0)
