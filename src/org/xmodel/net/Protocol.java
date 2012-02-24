@@ -2,9 +2,9 @@ package org.xmodel.net;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -29,7 +29,9 @@ import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
+import org.xmodel.compress.DefaultSerializer;
 import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.ISerializer;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ExternalReference;
@@ -96,7 +98,7 @@ public class Protocol implements ILink.IListener
   {
     this.context = new StatefulContext();
     this.sessions = Collections.synchronizedMap( new HashMap<ILink, List<SessionInfo>>());
-    this.sessionInitQueues = Collections.synchronizedMap( new HashMap<String, BlockingQueue<Response>>());
+    this.sessionInitQueues = Collections.synchronizedMap( new HashMap<Long, BlockingQueue<Response>>());
     this.keys = Collections.synchronizedMap( new WeakHashMap<IModelObject, KeyRecord>());      
     
     this.timeout = timeout;
@@ -107,7 +109,10 @@ public class Protocol implements ILink.IListener
     buffer.order( ByteOrder.BIG_ENDIAN);
     
     dispatcher = new ImmediateDispatcher();
+    serializer = new DefaultSerializer();
     packageNames = new ArrayList<String>();
+    
+    //Log.getLog( Protocol.class).setLevel( Log.all);
   }
   
   /**
@@ -157,6 +162,15 @@ public class Protocol implements ILink.IListener
   public void setDispatcher( IDispatcher dispatcher)
   {
     this.dispatcher = dispatcher;
+  }
+  
+  /**
+   * Set the serializer.
+   * @param serializer The serializer.
+   */
+  public void setSerializer( ISerializer serializer)
+  {
+    this.serializer = serializer;
   }
 
   /**
@@ -214,12 +228,20 @@ public class Protocol implements ILink.IListener
     if ( link != null && link.isOpen())
     {
       SessionInfo info = getSession( link, session);
-      if ( info.xpath != null) throw new IOException( "Protocol only supports one concurrent attach operation per session.");
+      if ( info.xpath != null) 
+      {
+        throw new IOException( "Protocol only supports one concurrent attach operation per session.");
+      }
       
       info.xpath = xpath;
       info.element = reference;
       info.isAttachClient = true;
       info.dispatcher = reference.getModel().getDispatcher();
+      
+      if ( info.dispatcher == null) 
+      {
+        throw new IllegalStateException( "Client must define dispatcher.");
+      }
       
       sendAttachRequest( link, session, xpath);
       
@@ -512,8 +534,8 @@ public class Protocol implements ILink.IListener
       
       if ( SLog.isLevelEnabled( this, Log.verbose)) 
       {
-        String bytes = org.xmodel.net.stream.Util.dump( buffer);
-        SLog.verbosef( this, "recv: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+        String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+        SLog.verbosef( this, "recv: session=%d, correlation=%d, content-length=%d\n%s", session, correlation, length, bytes);
       }
       
       switch( type)
@@ -562,19 +584,18 @@ public class Protocol implements ILink.IListener
     //
     // Create large random client identifier for demultiplexing session open responses.
     //
-    String client = Identifier.generate( random, 15);
+    long client = random.nextLong();
     
     initialize( buffer);
     buffer.putShort( version);
-    writeString( client);
-    finalize( buffer, Type.sessionOpenRequest, 0, 2);
+    buffer.putLong( client);
+    finalize( buffer, Type.sessionOpenRequest, 0, 10);
     
     // log
-    SLog.debugf( this, "Send Session Open Request: version=%d, client=%s", version, client);
+    SLog.debugf( this, "Send Session Open Request: version=%d, client=%X", version, client);
     
     Response response = send( link, client, buffer, timeout);
-    byte[] bytes = response.bytes;
-    return ((int)bytes[ 0] << 24) + ((int)bytes[ 1] << 16) + ((int)bytes[ 2] << 8) + ((int)bytes[ 3]);
+    return response.correlation;
   }
   
   /**
@@ -586,7 +607,7 @@ public class Protocol implements ILink.IListener
   private final void handleSessionOpenRequest( ILink link, ByteBuffer buffer, int length)
   {
     int version = buffer.getShort();
-    String client = readString( buffer);
+    long client = buffer.getLong();
     if ( version != Protocol.version)
     {
       link.close();
@@ -609,15 +630,14 @@ public class Protocol implements ILink.IListener
    * @param session The session id.
    * @param client The client identifier.
    */
-  public final void sendSessionOpenResponse( ILink link, int session, String client) throws IOException
+  public final void sendSessionOpenResponse( ILink link, int session, long client) throws IOException
   {
     initialize( buffer);
-    writeString( client);
-    buffer.putInt( session);
-    finalize( buffer, Type.sessionOpenResponse, 0, 4);
+    buffer.putLong( client);
+    finalize( buffer, Type.sessionOpenResponse, session, 8);
     
     // log
-    SLog.debugf( this, "Send Session Open Response: session=%d, client=%s", session, client);
+    SLog.debugf( this, "Send Session Open Response: session=%d, client=%X", session, client);
     
     send( link, buffer, session);
   }
@@ -630,8 +650,8 @@ public class Protocol implements ILink.IListener
    */
   private final void handleSessionOpenResponse( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String client = readString( buffer);
-    queueResponse( link, client, buffer, length);
+    long client = buffer.getLong();
+    queueResponse( link, client, session, buffer, length - 8);
   }
   
   /**
@@ -1816,8 +1836,9 @@ public class Protocol implements ILink.IListener
   {
     if ( SLog.isLevelEnabled( this, Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      SLog.verbosef( this, "send: session=%d, correlation=%d, length=%d, bytes=%s", session, correlation, buffer.limit(), bytes);
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+      int length = buffer.limit() - buffer.position();
+      SLog.verbosef( this, "send: session=%d, correlation=%d, total-length=%d\n%s", session, correlation, length, bytes);
     }
     
     try
@@ -1849,19 +1870,16 @@ public class Protocol implements ILink.IListener
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response buffer.
    */
-  private Response send( ILink link, String client, ByteBuffer buffer, int timeout) throws IOException
+  private Response send( ILink link, long client, ByteBuffer buffer, int timeout) throws IOException
   {
-    if ( SLog.isLevelEnabled( this, Log.verbose)) 
-    {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      SLog.verbosef( this, "send: length=%d, bytes=%s", buffer.limit(), bytes);
-    }
-    
     try
     {
-      sessionInitQueues.put( client, new SynchronousQueue<Response>());
+      SynchronousQueue<Response> queue = new SynchronousQueue<Response>();      
+      sessionInitQueues.put( client, queue);
+      
       send( link, buffer, -1);
-      Response response = sessionInitQueues.get( client).poll( timeout, TimeUnit.MILLISECONDS);
+      
+      Response response = queue.poll( timeout, TimeUnit.MILLISECONDS);
       sessionInitQueues.remove( client);
       if ( response != null) return response;
     }
@@ -1883,8 +1901,9 @@ public class Protocol implements ILink.IListener
   {
     if ( SLog.isLevelEnabled( this, Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer);
-      SLog.verbosef( this, "send: session=%d, length=%d, bytes=%s", session, buffer.limit(), bytes);
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+      int length = buffer.limit() - buffer.position();
+      SLog.verbosef( this, "send: session=%d, total-length=%d\n%s", session, length, bytes);
     }
     
     link.send( buffer);
@@ -1918,18 +1937,19 @@ public class Protocol implements ILink.IListener
   /**
    * Queue a synchronous response.
    * @param link The link.
+   * @param client The client identifier.
    * @param session The session number.
    * @param buffer The buffer containing the response.
    * @param length The length of the response.
    */
-  private void queueResponse( ILink link, String client, ByteBuffer buffer, int length)
+  private void queueResponse( ILink link, long client, int session, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     try 
     {
       BlockingQueue<Response> queue = sessionInitQueues.get( client);
-      if ( queue != null) queue.put( new Response( 0, bytes));
+      if ( queue != null) queue.put( new Response( session, bytes));
     } 
     catch( InterruptedException e) 
     {
@@ -1951,9 +1971,9 @@ public class Protocol implements ILink.IListener
       try
       {
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        ObjectOutputStream os = new ObjectOutputStream( bs);
-        os.writeObject( object);
-        os.close();
+        DataOutputStream ds = new DataOutputStream( bs);
+        serializer.writeObject( ds, object);
+        ds.close();
         return bs.toByteArray();
       }
       catch( Exception e)
@@ -1978,8 +1998,8 @@ public class Protocol implements ILink.IListener
     try
     {
       ByteArrayInputStream bs = new ByteArrayInputStream( bytes);
-      ObjectInputStream os = new ObjectInputStream( bs);
-      return os.readObject();
+      DataInputStream ds = new DataInputStream( bs);
+      return serializer.readObject( ds);
     }
     catch( Exception e)
     {
@@ -1998,6 +2018,19 @@ public class Protocol implements ILink.IListener
   }
   
   /**
+   * Read the correlation number from the specified buffer. This value is meaningless
+   * if it equals Integer.MIN_VALUE. 
+   * @param byte0 The first byte of the message.
+   * @param buffer The buffer.
+   * @return Returns the correlation number.
+   */
+  private static int readMessageCorrelation( int byte0, ByteBuffer buffer)
+  {
+    if ( (byte0 & correlationHeaderMask) != 0) return buffer.getInt();
+    return Integer.MIN_VALUE;
+  }
+  
+  /**
    * Read the session number from the buffer.
    * @param byte0 The first byte of the message.
    * @param buffer The buffer.
@@ -2005,8 +2038,8 @@ public class Protocol implements ILink.IListener
    */
   public static int readMessageSession( int byte0, ByteBuffer buffer)
   {
-    int mask = byte0 & 0x80;
-    if ( mask == 0) return buffer.get();
+    int mask = byte0 & sessionHeaderMask;
+    if ( mask == 0) return ((int)buffer.get()) & 0xFF;
     return buffer.getInt();
   }
   
@@ -2018,8 +2051,8 @@ public class Protocol implements ILink.IListener
    */
   public static int readMessageLength( int byte0, ByteBuffer buffer)
   {
-    int mask = byte0 & 0x40;
-    if ( mask == 0) return buffer.get();
+    int mask = byte0 & lengthHeaderMask;
+    if ( mask == 0) return ((int)buffer.get()) & 0xFF;
     return buffer.getInt();
   }
   
@@ -2049,33 +2082,33 @@ public class Protocol implements ILink.IListener
     
     int mask = 0;
     int position = 13;
-    if ( length < 128)
+    if ( length < 256)
     {
       position -= 1;
       buffer.put( position, (byte)length);
     }
     else
     {
-      mask |= 0x40;
+      mask |= lengthHeaderMask;
       position -= 4;
       buffer.putInt( position, length);
     }
     
     if ( correlation != Integer.MIN_VALUE)
     {
-      mask |= 0x20;
+      mask |= correlationHeaderMask;
       position -= 4;
       buffer.putInt( position, correlation);
     }
     
-    if ( session >= 0 && session < 128)
+    if ( session < 256)
     {
       position -= 1;
       buffer.put( position, (byte)session);
     }
     else
     {
-      mask |= 0x80;
+      mask |= sessionHeaderMask;
       position -= 4;
       buffer.putInt( position, session);
     }
@@ -2084,19 +2117,6 @@ public class Protocol implements ILink.IListener
     buffer.put( position, (byte)(type.ordinal() | mask));
     
     buffer.position( position);
-  }
-  
-  /**
-   * Read the correlation number from the specified buffer. This value is meaningless
-   * if it equals Integer.MIN_VALUE. 
-   * @param byte0 The first byte of the message.
-   * @param buffer The buffer.
-   * @return Returns the correlation number.
-   */
-  private static int readMessageCorrelation( int byte0, ByteBuffer buffer)
-  {
-    if ( (byte0 & 0x20) != 0) return buffer.getInt();
-    return Integer.MIN_VALUE;
   }
   
   /**
@@ -2435,7 +2455,7 @@ public class Protocol implements ILink.IListener
   private String index( ILink link, int session, IModelObject node)
   {
     String key = Identifier.generate( random, 13);
-    System.out.printf( "index: %d: %s -> %s\n", session, node.getType(), key);
+    SLog.verbosef( this, "index: %d: %s -> %s\n", session, node.getType(), key);
     getSession( link, session).index.put( key, node);
     return key;
   }
@@ -2901,12 +2921,10 @@ public class Protocol implements ILink.IListener
     if ( info.dispatcher != null)
     {
       info.dispatcher.execute( runnable);
-      System.out.print( "~");
     }
     else if ( dispatcher != null) 
     {
       dispatcher.execute( runnable);
-      System.out.print( "@");
     }
   }
   
@@ -3031,14 +3049,19 @@ public class Protocol implements ILink.IListener
     public byte[] bytes;
   }
   
+  private final static int lengthHeaderMask = 0x20;
+  private final static int sessionHeaderMask = 0x40;
+  private final static int correlationHeaderMask = 0x80;
+  
   private Map<ILink, List<SessionInfo>> sessions;
-  private Map<String, BlockingQueue<Response>> sessionInitQueues;
+  private Map<Long, BlockingQueue<Response>> sessionInitQueues;
   private Map<IModelObject, KeyRecord> keys;
   private IContext context;
   private ByteBuffer buffer;
   private int timeout;
   private Random random;
   private IDispatcher dispatcher;
+  private ISerializer serializer;
   private List<String> packageNames;
   private ILink updating;
   private ExecutePrivilege privilege;

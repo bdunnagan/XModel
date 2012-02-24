@@ -20,8 +20,11 @@ public class TestClient
     annotation.setAttribute( "timeout", Integer.MAX_VALUE);
     annotation.setAttribute( "query", ".");
     
-    NetworkCachingPolicy cachingPolicy = new NetworkCachingPolicy();
-    cachingPolicy.configure( new StatefulContext(), annotation);
+    if ( cachingPolicy == null)
+    {
+      cachingPolicy = new NetworkCachingPolicy();
+      cachingPolicy.configure( new StatefulContext(), annotation);
+    }
     
     ExternalReference clientModel = new ExternalReference( "client");
     clientModel.setCachingPolicy( cachingPolicy);
@@ -29,4 +32,6 @@ public class TestClient
     
     return clientModel;
   }
+  
+  private static NetworkCachingPolicy cachingPolicy;
 }

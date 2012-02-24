@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ManualDispatcher;
+import org.xmodel.ModelRegistry;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.Protocol;
 import org.xmodel.net.Server;
 
@@ -12,7 +15,7 @@ public class NetTest
 {
   public void test1() throws Exception
   {
-    int count = 10;
+    int count = 100;
     
     TestServer server = new TestServer( TestServer.buildConcurrentModificationModel( count));
     server.start();
@@ -28,12 +31,15 @@ public class NetTest
     
     for( int i=0; i<count; i++)
     {
+      long t0 = System.nanoTime();
       IModelObject clientModel = clientModels.get( i);
       clientModel.getChildren();
+      long t1 = System.nanoTime();
+      SLog.infof( this, "attach: %6.3fms", ((t1-t0) / 1000000f));
     }    
 
     // each client updates a different child
-    for( int i=0; i<1000; i++)
+    for( int i=1; i<100; i++)
     {
       for( int j=0; j<count; j++)
       {
@@ -43,7 +49,7 @@ public class NetTest
       }
     }
     
-    log.info( "Test completed successfully.");
+    SLog.info( this, "Test completed successfully.");
   }
   
   public static void main( String[] args) throws Exception
@@ -52,9 +58,10 @@ public class NetTest
     Log.getLog( Protocol.class).setLevel( Log.info);
     Log.getLog( NetTest.class).setLevel( Log.info);
     
+    ManualDispatcher dispatcher = new ManualDispatcher();
+    ModelRegistry.getInstance().getModel().setDispatcher( dispatcher);
+    
     NetTest test = new NetTest();
     test.test1();
   }
-
-  public static Log log = Log.getLog( NetTest.class);
 }

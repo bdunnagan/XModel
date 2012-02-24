@@ -7,12 +7,13 @@ public class Util
   /**
    * Dump the content of the specified buffer.
    * @param buffer The buffer.
+   * @param indent The indentation before each line.
    * @return Returns a string containing the dump.
    */
-  public final static String dump( ByteBuffer buffer)
+  public final static String dump( ByteBuffer buffer, String indent)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( String.format( "[%d, %d] ", buffer.position(), buffer.limit()));
+    sb.append( String.format( "%s[%d, %d] ", indent, buffer.position(), buffer.limit()));
     
     int n=0;
     for( int i=buffer.position(); i<buffer.limit(); i++, n++)
@@ -21,7 +22,7 @@ public class Util
       if ( n == 16) sb.append( "  ");
       if ( n == 32) 
       { 
-        sb.append( String.format( "\n[%d, %d] ", i, buffer.limit()));
+        sb.append( String.format( "\n%s[%d, %d] ", indent, i, buffer.limit()));
         n=0;
       }
       
@@ -34,7 +35,6 @@ public class Util
       }
     }
     
-    sb.append( "\n");
     return sb.toString();
   }
 }

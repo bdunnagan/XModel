@@ -12,7 +12,7 @@ import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
-import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -112,7 +112,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       } 
       catch( Exception e) 
       { 
-        log.error( e.getMessage());
+        SLog.error( this, e.getMessage());
       }
       
       try { Thread.sleep( reconnectDelay);} catch( InterruptedException e) { break;}
@@ -149,7 +149,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  private final static Log log = Log.getLog( NetworkCachingPolicy.class);
   private final static int reconnectDelay = 1000;
   
   private Client client;

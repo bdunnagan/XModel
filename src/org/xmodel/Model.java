@@ -20,11 +20,14 @@
 package org.xmodel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
 
@@ -42,6 +45,9 @@ public class Model implements IModel
 
     // counter must start at one because 0 has meaning
     counter = 1;
+    
+    // thread-access debugging
+    if ( debugMap != null) debugMap.put( this, Thread.currentThread());
   }
   
   /* (non-Javadoc)
@@ -177,7 +183,15 @@ public class Model implements IModel
    */
   public Update startUpdate()
   {
-    //System.out.printf( "startUpdate: %s\n", Thread.currentThread().getName());
+    if ( debugMap != null)
+    {
+      Thread currentThread = Thread.currentThread();
+      Thread correctThread = debugMap.get( this);
+      if ( correctThread != currentThread)
+      {
+        SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), correctThread.getName());
+      }
+    }
     
     // current update cannot be in the reverted state
     int stackSize = updateStack.size();
@@ -319,6 +333,11 @@ public class Model implements IModel
   }
 
   private static Log log = Log.getLog( "org.xmodel");
+  
+  private static final boolean debug = true;
+  private static Map<Model, Thread> debugMap = debug? 
+      Collections.synchronizedMap( new HashMap<Model, Thread>()):
+      null;
   
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;

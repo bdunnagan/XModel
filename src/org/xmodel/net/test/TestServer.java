@@ -21,7 +21,7 @@ public class TestServer
     Thread thread = new Thread( "Test Server Model") {
       public void run()
       {
-        model = buildConcurrentModificationModel( 10);
+        model = model.cloneTree();
         
         try
         {

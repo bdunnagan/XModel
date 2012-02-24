@@ -137,7 +137,6 @@ final class Connection implements ILink
     if ( listener != null && nread > 0) 
     {
       buffer.flip();
-      SLog.debugf( this, "READ\n%s\n", Util.dump( buffer));
       listener.onReceive( this, buffer);
     }
     
@@ -150,7 +149,6 @@ final class Connection implements ILink
    */
   public void send( ByteBuffer buffer) throws IOException
   {
-    SLog.debugf( this, "SEND\n%s\n", Util.dump( buffer));
     tcp.write( channel, buffer);
   }
 

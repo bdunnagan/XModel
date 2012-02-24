@@ -97,14 +97,11 @@ public final class FormatSink implements ILogSink
     int sec = calendar.get( Calendar.SECOND);
     int msec = calendar.get( Calendar.MILLISECOND);
     
-    message.append( Integer.toString( year)); message.append( '/');
-    message.append( Integer.toString( month)); message.append( '/');
-    message.append( Integer.toString( day)); message.append( ' ');
+//    message.append( Integer.toString( year)); message.append( '/');
+//    message.append( Integer.toString( month)); message.append( '/');
+//    message.append( Integer.toString( day)); message.append( ' ');
     
-    message.append( Integer.toString( hour)); message.append( ':');
-    message.append( Integer.toString( min)); message.append( ':');
-    message.append( Integer.toString( sec)); message.append( '.');
-    message.append( Integer.toString( msec));
+    message.append( String.format( "%02d:%02d:%02d.%03d", hour, min, sec, msec));
   }
   
   private ILogSink delegate;
