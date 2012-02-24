@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.IPath;
 import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -40,7 +38,6 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.util.Identifier;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
@@ -99,7 +96,6 @@ public class Protocol implements ILink.IListener
     this.context = new StatefulContext();
     this.sessions = Collections.synchronizedMap( new HashMap<ILink, List<SessionInfo>>());
     this.sessionInitQueues = Collections.synchronizedMap( new HashMap<Long, BlockingQueue<Response>>());
-    this.keys = Collections.synchronizedMap( new WeakHashMap<IModelObject, KeyRecord>());      
     
     this.timeout = timeout;
     this.random = new Random();
@@ -360,7 +356,8 @@ public class Protocol implements ILink.IListener
     SessionInfo info = getSession( sender, session);
     if ( info != null)
     {
-      info.index.clear();
+      info.recvMap.clear();
+      info.sendMap.clear();
       
       if ( info.listener != null)
       {
@@ -870,28 +867,29 @@ public class Protocol implements ILink.IListener
   
   /**
    * Send an sync request message.
+   * @param link The link.
+   * @param session The session number.
+   * @param key The key assigned to this reference.
    * @param reference The local reference.
    */
-  public final void sendSyncRequest( IExternalReference reference) throws IOException
+  public final void sendSyncRequest( ILink link, int session, Long key, IExternalReference reference) throws IOException
   {
-    KeyRecord key = keys.get( reference);
-    SessionInfo info = getSession( key.link, key.session);
+    SessionInfo info = getSession( link, session);
     
     initialize( buffer);
-    byte[] bytes = key.key.getBytes();
-    buffer.put( bytes, 0, bytes.length);
-    finalize( buffer, Type.syncRequest, key.session, ++info.correlation, bytes.length);
+    buffer.putInt( key.intValue());
+    finalize( buffer, Type.syncRequest, session, ++info.correlation, 4);
     
     // log
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, reference);
-      SLog.debugf( this, "Send Sync Request: session=%d, reference=%s", key.session, info.correlation, xml);
+      SLog.debugf( this, "Send Sync Request: session=%d, reference=%s", session, info.correlation, xml);
     }
     
     // send and wait for response
-    byte[] response = send( key.link, key.session, info.correlation, buffer, timeout);
-    if ( response != null) handleSyncResponse( key.link, key.session);
+    byte[] response = send( link, session, info.correlation, buffer, timeout);
+    if ( response != null) handleSyncResponse( link, session);
   }
   
   /**
@@ -904,9 +902,8 @@ public class Protocol implements ILink.IListener
    */
   private final void handleSyncRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ length];
-    buffer.get( bytes);
-    handleSyncRequest( link, session, correlation, new String( bytes));
+    long key = buffer.getInt();
+    handleSyncRequest( link, session, correlation, key);
   }
   
   /**
@@ -916,7 +913,7 @@ public class Protocol implements ILink.IListener
    * @param correlation The correlation number.
    * @param key The reference key.
    */
-  protected void handleSyncRequest( ILink sender, int session, int correlation, String key)
+  protected void handleSyncRequest( ILink sender, int session, int correlation, long key)
   {
     dispatch( getSession( sender, session), new SyncRunnable( sender, session, correlation, key));
   }
@@ -965,14 +962,15 @@ public class Protocol implements ILink.IListener
    * Send an add child message.
    * @param link The link.
    * @param session The session number.
-   * @param path The path of the element.
+   * @param key The remote node key.
    * @param element The element.
    * @param index The insertion index.
    */
-  public final void sendAddChild( ILink link, int session, String path, IModelObject element, int index) throws IOException
+  public final void sendAddChild( ILink link, int session, long key, IModelObject element, int index) throws IOException
   {
     initialize( buffer);
-    int length = writeString( path);
+    int length = 4;
+    buffer.putInt( (int)key);
     length += writeElement( getSession( link, session).compressor, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, session, length);
@@ -981,7 +979,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, element);
-      SLog.debugf( this, "Send Add Child: session=%d, parent=%s, index=%d, element=%s", session, path, index, xml);
+      SLog.debugf( this, "Send Add Child: session=%d, parent=%X, index=%d, element=%s", session, key, index, xml);
     }
     
     send( link, buffer, session);
@@ -996,52 +994,49 @@ public class Protocol implements ILink.IListener
    */
   private final void handleAddChild( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String xpath = readString( buffer);
+    long key = buffer.getInt();
     byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( link, session, xpath, bytes, index);
+    handleAddChild( link, session, key, bytes, index);
   }
   
   /**
    * Handle an add child message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The path from the root to the parent.
+   * @param key The remote node key.
    * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( ILink link, int session, String xpath, byte[] child, int index)
+  protected void handleAddChild( ILink link, int session, long key, byte[] child, int index)
   {
-    dispatch( getSession( link, session), new AddChildEvent( link, session, xpath, child, index));
+    dispatch( getSession( link, session), new AddChildEvent( link, session, key, child, index));
   }
   
   /**
    * Process an add child event in the appropriate thread.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath of the parent.
+   * @param key The remote node key.
    * @param bytes The child that was added.
    * @param index The index of insertion.
    */
-  private void processAddChild( ILink link, int session, String xpath, byte[] bytes, int index)
+  private void processAddChild( ILink link, int session, long key, byte[] bytes, int index)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = getSession( link, session).element;
+      SessionInfo info = getSession( link, session);
+      IModelObject attached = info.element;
       if ( attached == null) return;
       
-      IExpression parentExpr = XPath.createExpression( xpath);
-      if ( parentExpr != null)
+      IModelObject parent = info.recvMap.get( key);
+      IModelObject child = info.compressor.decompress( bytes, 0);
+      if ( parent != null) 
       {
-        IModelObject parent = parentExpr.queryFirst( attached);
-        IModelObject child = getSession( link, session).compressor.decompress( bytes, 0);
-        if ( parent != null) 
-        {
-          IModelObject childElement = decode( link, session, child);
-          parent.addChild( childElement, index);
-        }
+        IModelObject childElement = decode( link, session, child);
+        parent.addChild( childElement, index);
       }
     }
     finally
@@ -1054,20 +1049,21 @@ public class Protocol implements ILink.IListener
    * Send an add child message.
    * @param link The link.
    * @param session The session number.
-   * @param path The path of the element.
+   * @param key The remote node key.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( ILink link, int session, String path, int index) throws IOException
+  public final void sendRemoveChild( ILink link, int session, long key, int index) throws IOException
   {
     initialize( buffer);
-    int length = writeString( path);
+    int length = 4;
+    buffer.putInt( (int)key);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.removeChild, session, length);
     
     // log
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
-      SLog.debugf( this, "Send Remove Child: session=%d, parent=%s, index=%d", session, path, index);
+      SLog.debugf( this, "Send Remove Child: session=%d, parent=%X, index=%d", session, key, index);
     }
     
     send( link, buffer, session);
@@ -1082,49 +1078,42 @@ public class Protocol implements ILink.IListener
    */
   private final void handleRemoveChild( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String xpath = readString( buffer);
+    long key = buffer.getInt();
     int index = buffer.getInt();
-    handleRemoveChild( link, session, xpath, index);
+    handleRemoveChild( link, session, key, index);
   }
   
   /**
    * Handle an remove child message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The path from the root to the parent.
+   * @param key The remote node key.
    * @param index The insertion index.
    */
-  protected void handleRemoveChild( ILink link, int session, String xpath, int index)
+  protected void handleRemoveChild( ILink link, int session, long key, int index)
   {
-    dispatch( getSession( link, session), new RemoveChildEvent( link, session, xpath, index));
+    dispatch( getSession( link, session), new RemoveChildEvent( link, session, key, index));
   }
   
   /**
    * Process an remove child event in the appropriate thread.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath of the parent.
+   * @param key The remote node key.
    * @param index The index of insertion.
    */
-  private void processRemoveChild( ILink link, int session, String xpath, int index)
+  private void processRemoveChild( ILink link, int session, long key, int index)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = getSession( link, session).element;
+      SessionInfo info = getSession( link, session);
+      IModelObject attached = info.element;
       if ( attached == null) return;
       
-      IExpression parentExpr = XPath.createExpression( xpath);
-      if ( parentExpr != null)
-      {
-        IModelObject parent = parentExpr.queryFirst( attached);
-        if ( parent != null) 
-        {
-          IModelObject removed = parent.removeChild( index);
-          if ( removed instanceof IExternalReference) keys.remove( removed);
-        }
-      }
+      IModelObject parent = info.recvMap.get( key);
+      if ( parent != null) parent.removeChild( index);
     }
     finally
     {
@@ -1136,22 +1125,23 @@ public class Protocol implements ILink.IListener
    * Send an change attribute message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  public final void sendChangeAttribute( ILink link, int session, String xpath, String attrName, Object value) throws IOException
+  public final void sendChangeAttribute( ILink link, int session, Long key, String attrName, Object value) throws IOException
   {
     byte[] bytes = serialize( value);
     
     initialize( buffer);
-    int length = writeString( xpath);
+    int length = 4;
+    buffer.putInt( key.intValue());
     length += writeString( attrName);
     length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, session, length);
     
     // log
-    SLog.debugf( this, "Send Change Attribute: session=%d, path=%s, attr=%s, value=%s", session, xpath, attrName, value);
+    SLog.debugf( this, "Send Change Attribute: session=%d, object=%X, attr=%s, value=%s", session, key, attrName, value);
     
     send( link, buffer, session);
   }
@@ -1165,51 +1155,48 @@ public class Protocol implements ILink.IListener
    */
   private final void handleChangeAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String xpath = readString( buffer);
+    long key = buffer.getInt();
     String attrName = readString( buffer);
     byte[] attrValue = readBytes( buffer, true);
-    handleChangeAttribute( link, session, xpath, attrName, deserialize( attrValue));
+    handleChangeAttribute( link, session, key, attrName, deserialize( attrValue));
   }
   
   /**
    * Handle an attribute change message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath from the root to the element.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    * @param attrValue The attribute value.
    */
-  protected void handleChangeAttribute( ILink link, int session, String xpath, String attrName, Object attrValue)
+  protected void handleChangeAttribute( ILink link, int session, long key, String attrName, Object attrValue)
   {
-    dispatch( getSession( link, session), new ChangeAttributeEvent( link, session, xpath, attrName, attrValue));
+    dispatch( getSession( link, session), new ChangeAttributeEvent( link, session, key, attrName, attrValue));
   }
   
   /**
    * Process an change attribute event in the appropriate thread.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath of the element.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    * @param attrValue The new value.
    */
-  private void processChangeAttribute( ILink link, int session, String xpath, String attrName, Object attrValue)
+  private void processChangeAttribute( ILink link, int session, long key, String attrName, Object attrValue)
   {
     try
     {
       updating = link;
-      
-      IModelObject attached = getSession( link, session).element;
+
+      SessionInfo info = getSession( link, session);
+      IModelObject attached = info.element;
       if ( attached == null) return;
       
       // the empty string and null string both serialize as byte[ 0]
       if ( attrValue == null) attrValue = "";
-      
-      IExpression elementExpr = XPath.createExpression( xpath);
-      if ( elementExpr != null)
-      {
-        IModelObject element = elementExpr.queryFirst( attached);
-        if ( element != null) element.setAttribute( attrName, attrValue);
-      }
+
+      IModelObject element = info.recvMap.get( key);
+      if ( element != null) element.setAttribute( attrName, attrValue);
     }
     finally
     {
@@ -1221,18 +1208,19 @@ public class Protocol implements ILink.IListener
    * Send a clear attribute message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    */
-  public final void sendClearAttribute( ILink link, int session, String xpath, String attrName) throws IOException
+  public final void sendClearAttribute( ILink link, int session, long key, String attrName) throws IOException
   {
     initialize( buffer);
-    int length = writeString( xpath);
+    int length = 4;
+    buffer.putInt( (int)key);
     length += writeString( attrName);
     finalize( buffer, Type.clearAttribute, session, length);
     
     // log
-    SLog.debugf( this, "Send Clear Attribute: session=%d, path=%s, attr=%s", session, xpath, attrName);
+    SLog.debugf( this, "Send Clear Attribute: session=%d, object=%X, attr=%s", session, key, attrName);
     
     send( link, buffer, session);
   }
@@ -1246,45 +1234,42 @@ public class Protocol implements ILink.IListener
    */
   private final void handleClearAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String xpath = readString( buffer);
+    long key = buffer.getInt();
     String attrName = readString( buffer);
-    handleClearAttribute( link, session, xpath, attrName);
+    handleClearAttribute( link, session, key, attrName);
   }
   
   /**
    * Handle an attribute change message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath from the root to the element.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    */
-  protected void handleClearAttribute( ILink link, int session, String xpath, String attrName)
+  protected void handleClearAttribute( ILink link, int session, long key, String attrName)
   {
-    dispatch( getSession( link, session), new ClearAttributeEvent( link, session, xpath, attrName));
+    dispatch( getSession( link, session), new ClearAttributeEvent( link, session, key, attrName));
   }
 
   /**
    * Process a clear attribute event in the appropriate thread.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath of the element.
+   * @param key The remote node key.
    * @param attrName The name of the attribute.
    */
-  private void processClearAttribute( ILink link, int session, String xpath, String attrName)
+  private void processClearAttribute( ILink link, int session, long key, String attrName)
   {
     try
     {
       updating = link;
       
-      IModelObject attached = getSession( link, session).element;
+      SessionInfo info = getSession( link, session);
+      IModelObject attached = info.element;
       if ( attached == null) return;
       
-      IExpression elementExpr = XPath.createExpression( xpath);
-      if ( elementExpr != null)
-      {
-        IModelObject element = elementExpr.queryFirst( attached);
-        if ( element != null) element.removeAttribute( attrName);
-      }
+      IModelObject element = info.recvMap.get( key);
+      if ( element != null) element.removeAttribute( attrName);
     }
     finally
     {
@@ -1296,18 +1281,19 @@ public class Protocol implements ILink.IListener
    * Send a change dirty message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath.
+   * @param key The remote node key.
    * @param dirty The dirty state.
    */
-  public final void sendChangeDirty( ILink link, int session, String xpath, boolean dirty) throws IOException
+  public final void sendChangeDirty( ILink link, int session, long key, boolean dirty) throws IOException
   {
     initialize( buffer);
-    int length = writeString( xpath);
+    int length = 4;
+    buffer.putInt( (int)key);
     buffer.put( dirty? (byte)1: 0); length++;
     finalize( buffer, Type.changeDirty, session, length);
     
     // log
-    SLog.debugf( this, "Send Change Dirty: session=%d, path=%s, dirty=%s", session, xpath, Boolean.toString( dirty));
+    SLog.debugf( this, "Send Change Dirty: session=%d, object=%X, dirty=%s", session, key, Boolean.toString( dirty));
     
     send( link, buffer, session);
   }
@@ -1321,48 +1307,45 @@ public class Protocol implements ILink.IListener
    */
   private final void handleChangeDirty( ILink link, int session, ByteBuffer buffer, int length)
   {
-    String xpath = readString( buffer);
+    long key = buffer.getInt();
     boolean dirty = buffer.get() != 0;
-    handleChangeDirty( link, session, xpath, dirty);
+    handleChangeDirty( link, session, key, dirty);
   }
   
   /**
    * Handle a change dirty message.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath from the root to the element.
+   * @param key The remote node key.
    * @param dirty The dirty state.
    */
-  protected void handleChangeDirty( ILink link, int session, String xpath, boolean dirty)
+  protected void handleChangeDirty( ILink link, int session, long key, boolean dirty)
   {
-    dispatch( getSession( link, session), new ChangeDirtyEvent( link, session, xpath, dirty));
+    dispatch( getSession( link, session), new ChangeDirtyEvent( link, session, key, dirty));
   }
 
   /**
    * Process a change dirty event in the appropriate thread.
    * @param link The link.
    * @param session The session number.
-   * @param xpath The xpath of the element.
+   * @param key The remote node key.
    * @param dirty The new dirty state.
    */
-  private void processChangeDirty( ILink link, int session, String xpath, boolean dirty)
+  private void processChangeDirty( ILink link, int session, long key, boolean dirty)
   {
     try
     {
       updating = link;
-      
-      IModelObject attached = getSession( link, session).element;
+
+      SessionInfo info = getSession( link, session);
+      IModelObject attached = info.element;
       if ( attached == null) return;
       
-      IExpression elementExpr = XPath.createExpression( xpath);
-      if ( elementExpr != null)
+      IModelObject element = info.recvMap.get( key);
+      if ( element != null)
       {
-        IModelObject element = elementExpr.queryFirst( attached);
-        if ( element != null)
-        {
-          IExternalReference reference = (IExternalReference)element;
-          reference.setDirty( dirty);
-        }
+        IExternalReference reference = (IExternalReference)element;
+        reference.setDirty( dirty);
       }
     }
     finally
@@ -2255,68 +2238,6 @@ public class Protocol implements ILink.IListener
    * Encode the specified element.
    * @param link The link.
    * @param session The session number.
-   * @param root True if the element is the root of the attachment.
-   * @param element The element to be copied.
-   * @return Returns the copy.
-   */
-  protected IModelObject encode1( ILink link, int session, IModelObject element, boolean root)
-  {
-    IModelObject encoded = null;
-    
-    if ( element instanceof IExternalReference)
-    {
-      IExternalReference lRef = (IExternalReference)element;
-      encoded = new ModelObject( lRef.getType());
-      
-      // index reference so it can be synced remotely
-      if ( !root) encoded.setAttribute( "net:key", index( link, session, lRef));
-      
-      // enumerate static attributes for client
-      for( String attrName: lRef.getStaticAttributes())
-      {
-        IModelObject entry = new ModelObject( "net:static");
-        entry.setValue( attrName);
-        encoded.addChild( entry);
-      }
-      
-      // copy only static attributes if reference is dirty
-      if ( element.isDirty())
-      {
-        Xlate.set( encoded, "net:dirty", true);
-        
-        // copy static attributes
-        for( String attrName: lRef.getStaticAttributes())
-        {
-          Object attrValue = element.getAttribute( attrName);
-          if ( attrValue != null) encoded.setAttribute( attrName, attrValue);
-        }
-      }
-    }
-    else
-    {
-      encoded = new ModelObject( element.getType());
-    }
-    
-    // copy all attributes and children
-    if ( !(element instanceof IExternalReference) || !element.isDirty())
-    {
-      // copy attributes
-      ModelAlgorithms.copyAttributes( element, encoded);
-      
-      // copy children
-      for( IModelObject child: element.getChildren())
-      {
-        encoded.addChild( encode( link, session, child, false));
-      }
-    }
-    
-    return encoded;
-  }
-    
-  /**
-   * Encode the specified element.
-   * @param link The link.
-   * @param session The session number.
    * @param isRoot True if the element is the root of the attachment.
    * @param element The element to be copied.
    * @return Returns the copy.
@@ -2324,7 +2245,8 @@ public class Protocol implements ILink.IListener
   protected IModelObject encode( ILink link, int session, IModelObject element, boolean isRoot)
   {
     element.getModel().setSyncLock( true);
-    
+
+    SessionInfo info = getSession( link, session);
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     try
     {
@@ -2337,10 +2259,13 @@ public class Protocol implements ILink.IListener
         
         rNode = new ModelObject( lNode.getType());
         
+        long key = System.identityHashCode( lNode);
+        rNode.setAttribute( "net:key", key);
+        info.recvMap.put( key, lNode);
+        
         if ( lNode instanceof IExternalReference)
         {
           IExternalReference lRef = (IExternalReference)element;
-          if ( !isRoot || rNode != element) Xlate.set( rNode, "net:key", index( link, session, lRef));
           
           // enumerate static attributes for client
           for( String attrName: lRef.getStaticAttributes())
@@ -2351,10 +2276,9 @@ public class Protocol implements ILink.IListener
           }
           
           // copy only static attributes if reference is dirty
+          Xlate.set( rNode, "net:dirty", lNode.isDirty()? "1": "0");
           if ( lNode.isDirty())
           {
-            Xlate.set( rNode, "net:dirty", true);
-            
             // copy static attributes
             for( String attrName: lRef.getStaticAttributes())
             {
@@ -2391,6 +2315,7 @@ public class Protocol implements ILink.IListener
   {
     root.getModel().setSyncLock( true);
     
+    SessionInfo info = getSession( link, session);
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     try
     {
@@ -2403,27 +2328,22 @@ public class Protocol implements ILink.IListener
         IModelObject rNode = map.get( lNode);
         IModelObject rParent = map.get( lNode.getParent());
         
-        String key = Xlate.get( lNode, "net:key", (String)null);
-        if ( key != null)
+        Long key = (Long)lNode.getAttribute( "net:key");
+        Object dirty = lNode.getAttribute( "net:dirty");
+        
+        if ( dirty != null)
         {
           ExternalReference reference = new ExternalReference( lNode.getType());
           ModelAlgorithms.copyAttributes( lNode, reference);
           reference.removeAttribute( "net:key");
           reference.removeChildren( "net:static");
           
-          NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( this);
+          NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( this, link, session, key);
           cachingPolicy.setStaticAttributes( getStaticAttributes( lNode));
           reference.setCachingPolicy( cachingPolicy);
           
-          boolean dirty = Xlate.get( reference, "net:dirty", false);
           reference.removeAttribute( "net:dirty");
-          reference.setDirty( dirty);
-          
-          KeyRecord keyRecord = new KeyRecord();
-          keyRecord.key = key;
-          keyRecord.link = link;
-          keyRecord.session = session;
-          keys.put( reference, keyRecord);
+          reference.setDirty( dirty.equals( "1"));
           
           rNode = reference;
         }
@@ -2432,6 +2352,8 @@ public class Protocol implements ILink.IListener
           rNode = new ModelObject( lNode.getType());
           ModelAlgorithms.copyAttributes( lNode, rNode);
         }
+        
+        info.sendMap.put( rNode, key);
         
         map.put( lNode, rNode);
         if ( rParent != null) rParent.addChild( rNode);
@@ -2443,21 +2365,6 @@ public class Protocol implements ILink.IListener
     }
     
     return map.get( root);
-  }
-  
-  /**
-   * Index the specified node.
-   * @param link The link.
-   * @param session The session number.
-   * @param node The node.
-   * @return Returns the key.
-   */
-  private String index( ILink link, int session, IModelObject node)
-  {
-    String key = Identifier.generate( random, 13);
-    SLog.verbosef( this, "index: %d: %s -> %s\n", session, node.getType(), key);
-    getSession( link, session).index.put( key, node);
-    return key;
   }
   
   /**
@@ -2474,7 +2381,7 @@ public class Protocol implements ILink.IListener
   
   private final class SyncRunnable implements Runnable
   {
-    public SyncRunnable( ILink sender, int session, int correlation, String key)
+    public SyncRunnable( ILink sender, int session, int correlation, long key)
     {
       this.sender = sender;
       this.session = session;
@@ -2484,7 +2391,7 @@ public class Protocol implements ILink.IListener
     public void run()
     {
       SessionInfo info = getSession( sender, session);
-      IModelObject reference = info.index.get( key);
+      IModelObject reference = info.recvMap.get( key);
       if ( reference != null)
       {
         try
@@ -2502,115 +2409,115 @@ public class Protocol implements ILink.IListener
     private ILink sender;
     private int session;
     private int correlation;
-    private String key;
+    private long key;
   }
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( ILink link, int session, String xpath, byte[] child, int index)
+    public AddChildEvent( ILink link, int session, long key, byte[] child, int index)
     {
       this.link = link;
       this.session = session;
-      this.xpath = xpath;
+      this.key = key;
       this.child = child;
       this.index = index;
     }
     
     public void run()
     {
-      processAddChild( link, session, xpath, child, index);
+      processAddChild( link, session, key, child, index);
     }
     
     private ILink link;
     private int session;
-    private String xpath;
+    private long key;
     private byte[] child;
     private int index;
   }
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( ILink link, int session, String xpath, int index)
+    public RemoveChildEvent( ILink link, int session, long key, int index)
     {
       this.link = link;
       this.session = session;
-      this.xpath = xpath;
+      this.key = key;
       this.index = index;
     }
     
     public void run()
     {
-      processRemoveChild( link, session, xpath, index);
+      processRemoveChild( link, session, key, index);
     }
     
     private ILink link;
     private int session;
-    private String xpath;
+    private long key;
     private int index;
   }
   
   private final class ChangeAttributeEvent implements Runnable
   {
-    public ChangeAttributeEvent( ILink link, int session, String xpath, String attrName, Object attrValue)
+    public ChangeAttributeEvent( ILink link, int session, long key, String attrName, Object attrValue)
     {
       this.link = link;
       this.session = session;
-      this.xpath = xpath;
+      this.key = key;
       this.attrName = attrName;
       this.attrValue = attrValue;
     }
     
     public void run()
     {
-      processChangeAttribute( link, session, xpath, attrName, attrValue);
+      processChangeAttribute( link, session, key, attrName, attrValue);
     }
     
     private ILink link;
     private int session;
-    private String xpath;
+    private long key;
     private String attrName;
     private Object attrValue;
   }
   
   private final class ClearAttributeEvent implements Runnable
   {
-    public ClearAttributeEvent( ILink link, int session, String xpath, String attrName)
+    public ClearAttributeEvent( ILink link, int session, long key, String attrName)
     {
       this.link = link;
       this.session = session;
-      this.xpath = xpath;
+      this.key = key;
       this.attrName = attrName;
     }
     
     public void run()
     {
-      processClearAttribute( link, session, xpath, attrName);
+      processClearAttribute( link, session, key, attrName);
     }
     
     private ILink link;
     private int session;
-    private String xpath;
+    private long key;
     private String attrName;
   }
   
   private final class ChangeDirtyEvent implements Runnable
   {
-    public ChangeDirtyEvent( ILink link, int session, String xpath, boolean dirty)
+    public ChangeDirtyEvent( ILink link, int session, long key, boolean dirty)
     {
       this.link = link;
       this.session = session;
-      this.xpath = xpath;
+      this.key = key;
       this.dirty = dirty;
     }
     
     public void run()
     {
-      processChangeDirty( link, session, xpath, dirty);
+      processChangeDirty( link, session, key, dirty);
     }
     
     private ILink link;
     private int session;
-    private String xpath;
+    private long key;
     private boolean dirty;
   }
   
@@ -2772,7 +2679,8 @@ public class Protocol implements ILink.IListener
       try
       {
         IModelObject clone = encode( sender, session, child, false);
-        sendAddChild( sender, session, createPath( root, parent), clone, index);
+        long key = System.identityHashCode( parent);
+        sendAddChild( sender, session, key, clone, index);
       } 
       catch( IOException e)
       {
@@ -2792,7 +2700,8 @@ public class Protocol implements ILink.IListener
       
       try
       {
-        sendRemoveChild( sender, session, createPath( root, parent), index);
+        long key = System.identityHashCode( parent);
+        sendRemoveChild( sender, session, key, index);
       } 
       catch( IOException e)
       {
@@ -2808,15 +2717,10 @@ public class Protocol implements ILink.IListener
     {
       if ( updating == sender) return;
 
-      // make sure relative path is constructed correctly
-      boolean revert = attrName.equals( "id");
-      if ( revert) object.getModel().revert();
-      String xpath = createPath( root, object);
-      if ( revert) object.getModel().restore();
-      
       try
       {
-        sendChangeAttribute( sender, session, xpath, attrName, newValue);
+        long key = System.identityHashCode( object);
+        sendChangeAttribute( sender, session, key, attrName, newValue);
       } 
       catch( IOException e)
       {
@@ -2832,15 +2736,10 @@ public class Protocol implements ILink.IListener
     {
       if ( updating == sender) return;
       
-      // make sure relative path is constructed correctly
-      boolean revert = attrName.equals( "id");
-      if ( revert) object.getModel().revert();
-      String xpath = createPath( root, object);
-      if ( revert) object.getModel().restore();
-      
       try
       {
-        sendClearAttribute( sender, session, xpath, attrName);
+        long key = System.identityHashCode( object);
+        sendClearAttribute( sender, session, key, attrName);
       } 
       catch( IOException e)
       {
@@ -2858,11 +2757,16 @@ public class Protocol implements ILink.IListener
       // Do not send notifications for network external references, otherwise the remote reference will
       // be marked not-dirty before a sync request is sent and the sync request will have no effect.
       //
-      if ( updating == sender || keys.get( object) != null) return;
+      ICachingPolicy cachingPolicy = ((IExternalReference)object).getCachingPolicy();
+      if ( cachingPolicy instanceof NetworkCachingPolicy) return;
+      if ( cachingPolicy instanceof NetKeyCachingPolicy) return;
+      
+      if ( updating == sender) return;
       
       try
       {
-        sendChangeDirty( sender, session, createPath( root, object), dirty);
+        long key = System.identityHashCode( object);
+        sendChangeDirty( sender, session, key, dirty);
       } 
       catch( IOException e)
       {
@@ -2898,18 +2802,6 @@ public class Protocol implements ILink.IListener
     private String xpath;
     private IModelObject root;
   };
-  
-  /**
-   * Create a relative xpath from the specified root to the specified element.
-   * @param root The root.
-   * @param element The element.
-   * @return Returns the xpath string.
-   */
-  private final String createPath( IModelObject root, IModelObject element)
-  {
-    IPath path = ModelAlgorithms.createRelativePath( root, element);
-    return path.toString();
-  }
   
   /**
    * Dispatch the specified Runnable using either the session dispatcher or the context dispatcher.
@@ -3010,20 +2902,14 @@ public class Protocol implements ILink.IListener
     }
   }
   
-  private class KeyRecord
-  {
-    String key;
-    ILink link;
-    int session;
-  }
-  
   protected class SessionInfo
   {
     public SessionInfo()
     {
       responseQueue = new SynchronousQueue<Response>();
-      index = new HashMap<String, IModelObject>();
       compressor = new TabularCompressor();
+      recvMap = new HashMap<Long, IModelObject>();
+      sendMap = new HashMap<IModelObject, Long>();
     }
 
     public int correlation;
@@ -3032,12 +2918,13 @@ public class Protocol implements ILink.IListener
     public String xpath;
     public IModelObject element;
     public boolean isAttachClient;
-    public Map<String, IModelObject> index;
+    public Map<Long, IModelObject> recvMap;
+    public Map<IModelObject, Long> sendMap;
     public TabularCompressor compressor;
     public Listener listener;
   }
   
-  protected class Response
+  protected final class Response
   {
     public Response( int correlation, byte[] bytes)
     {
@@ -3045,8 +2932,8 @@ public class Protocol implements ILink.IListener
       this.bytes = bytes;
     }
     
-    public int correlation;
-    public byte[] bytes;
+    public final int correlation;
+    public final byte[] bytes;
   }
   
   private final static int lengthHeaderMask = 0x20;
@@ -3055,7 +2942,6 @@ public class Protocol implements ILink.IListener
   
   private Map<ILink, List<SessionInfo>> sessions;
   private Map<Long, BlockingQueue<Response>> sessionInitQueues;
-  private Map<IModelObject, KeyRecord> keys;
   private IContext context;
   private ByteBuffer buffer;
   private int timeout;

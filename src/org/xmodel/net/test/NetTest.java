@@ -15,7 +15,7 @@ public class NetTest
 {
   public void test1() throws Exception
   {
-    int count = 100;
+    int count = 1;
     
     TestServer server = new TestServer( TestServer.buildConcurrentModificationModel( count));
     server.start();
@@ -54,9 +54,9 @@ public class NetTest
   
   public static void main( String[] args) throws Exception
   {
-    Log.getLog( Server.class).setLevel( Log.info);
-    Log.getLog( Protocol.class).setLevel( Log.info);
-    Log.getLog( NetTest.class).setLevel( Log.info);
+    Log.getLog( Server.class).setLevel( Log.all);
+    Log.getLog( Protocol.class).setLevel( Log.all);
+    Log.getLog( NetTest.class).setLevel( Log.all);
     
     ManualDispatcher dispatcher = new ManualDispatcher();
     ModelRegistry.getInstance().getModel().setDispatcher( dispatcher);
