@@ -6,16 +6,13 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelRegistry;
-import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.Protocol;
-import org.xmodel.net.Server;
 
 public class NetTest
 {
   public void test1() throws Exception
   {
-    int count = 1;
+    int count = 100;
     
     TestServer server = new TestServer( TestServer.buildConcurrentModificationModel( count));
     server.start();
@@ -38,8 +35,10 @@ public class NetTest
       SLog.infof( this, "attach: %6.3fms", ((t1-t0) / 1000000f));
     }    
 
+    System.exit( 0);
+    
     // each client updates a different child
-    for( int i=1; i<100; i++)
+    for( int i=1; i<1; i++)
     {
       for( int j=0; j<count; j++)
       {
@@ -54,9 +53,9 @@ public class NetTest
   
   public static void main( String[] args) throws Exception
   {
-    Log.getLog( Server.class).setLevel( Log.all);
-    Log.getLog( Protocol.class).setLevel( Log.all);
-    Log.getLog( NetTest.class).setLevel( Log.all);
+//    Log.getLog( Server.class).setLevel( Log.all);
+//    Log.getLog( Protocol.class).setLevel( Log.all);
+//    Log.getLog( NetTest.class).setLevel( Log.all);
     
     ManualDispatcher dispatcher = new ManualDispatcher();
     ModelRegistry.getInstance().getModel().setDispatcher( dispatcher);
