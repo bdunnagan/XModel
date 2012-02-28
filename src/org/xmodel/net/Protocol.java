@@ -15,10 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -2607,7 +2607,7 @@ public class Protocol implements ILink.IListener
     
     public void run()
     {
-      doExecute( sender, session, correlation, context, script);
+      doExecute( sender, session, correlation, context, script.cloneTree());
     }
     
     private ILink sender;
@@ -2909,7 +2909,7 @@ public class Protocol implements ILink.IListener
       responseQueue = new SynchronousQueue<Response>();
       compressor = new TabularCompressor();
       recvMap = new HashMap<Long, IModelObject>();
-      sendMap = new HashMap<IModelObject, Long>();
+      sendMap = new WeakHashMap<IModelObject, Long>();
     }
 
     public int correlation;
