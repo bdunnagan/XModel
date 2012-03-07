@@ -115,26 +115,11 @@ public abstract class AbstractVariableScope implements IVariableScope
     if ( variable.value == null) variable.value = new ArrayList<IModelObject>();
     if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
     
-    List<Object> list = (List<Object>)variable.value;
+    List<Object> list = new ArrayList<Object>( (List<Object>)variable.value);
     if ( index == Integer.MAX_VALUE) index = list.size();
     
-    if ( !(list instanceof ArrayList))
-    {
-      list = new ArrayList<Object>();
-      variable.value = list;
-    }
-    
     list.add( index, object);
-
-    List<IModelObject> inserted = Collections.singletonList( (IModelObject)object);
-    if ( variable.bindings != null)
-    {
-      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
-      for( Binding binding: bindings)
-      {
-        binding.listener.notifyAdd( name, this, binding.context, inserted);
-      }
-    }
+    internal_set( name, list);
   }
 
   /* (non-Javadoc)
@@ -146,19 +131,10 @@ public abstract class AbstractVariableScope implements IVariableScope
     Variable variable = variables.get( name);
     if ( variable == null) return;
     if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
-    
-    List<IModelObject> removed = Collections.singletonList( (IModelObject)object);
-    if ( variable.bindings != null)
-    {
-      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
-      for( Binding binding: bindings)
-      {
-        binding.listener.notifyRemove( name, this, binding.context, removed);
-      }
-    }
-    
-    List<Object> list = (List<Object>)variable.value;
+        
+    List<Object> list = new ArrayList<Object>( (List<Object>)variable.value);
     list.remove( object);
+    internal_set( name, list);
   }
 
   /* (non-Javadoc)
@@ -171,18 +147,9 @@ public abstract class AbstractVariableScope implements IVariableScope
     if ( variable == null) return;
     if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
     
-    List<Object> list = (List<Object>)variable.value;
-    Object object = list.remove( index);
-
-    List<IModelObject> removed = Collections.singletonList( (IModelObject)object);
-    if ( variable.bindings != null)
-    {
-      Binding[] bindings = variable.bindings.toArray( new Binding[ 0]);
-      for( Binding binding: bindings)
-      {
-        binding.listener.notifyRemove( name, this, binding.context, removed);
-      }
-    }
+    List<Object> list = new ArrayList<Object>( (List<Object>)variable.value);
+    list.remove( index);
+    internal_set( name, list);
   }
 
   /* (non-Javadoc)
