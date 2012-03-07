@@ -20,6 +20,7 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.trigger.ITrigger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -54,6 +55,7 @@ public class CancelTriggerAction extends GuardedAction
       {
         holder.setValue( null);
         trigger.deactivate( context);
+        SLog.debug( this, trigger);
       }
     }
     

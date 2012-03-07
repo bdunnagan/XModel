@@ -20,6 +20,7 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -58,8 +59,13 @@ public abstract class GuardedAction extends XAction
    */
   public final Object[] doRun( IContext context)
   {
-    if ( condition == null || condition.evaluateBoolean( context)) return doAction( context);
-    return null;
+    if ( condition != null)
+    {
+      boolean result = condition.evaluateBoolean( context);
+      SLog.debugf( this, "(%s) returned (%s)", condition, result);
+      if ( !result) return null;
+    }
+    return doAction( context);
   }
 
   /**

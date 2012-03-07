@@ -304,6 +304,15 @@ public class SourceTrigger extends AbstractTrigger
     boolean newValue;
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.trigger.AbstractTrigger#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return String.format( "SourceTrigger: %s", triggerExpr);
+  }
+
   private IExpression triggerExpr;
   private ScriptAction script;
   private boolean initialize;

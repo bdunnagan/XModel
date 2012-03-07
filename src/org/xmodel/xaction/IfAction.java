@@ -19,6 +19,7 @@
  */
 package org.xmodel.xaction;
 
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -55,6 +56,7 @@ public class IfAction extends XAction
   public Object[] doRun( IContext context)
   {
     test = condition.evaluateBoolean( context);
+    SLog.debugf( this, "%s(%s) returned (%s)", (negate? "!": ""), condition, test ^ negate);
     if ( negate ^ test) return script.run( context);
     return null;
   }

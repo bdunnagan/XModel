@@ -22,6 +22,7 @@ package org.xmodel.xaction;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.trigger.EntityTrigger;
 import org.xmodel.xaction.trigger.ITrigger;
 import org.xmodel.xaction.trigger.SourceTrigger;
@@ -74,6 +75,8 @@ public class CreateTriggerAction extends XAction
       holder.setValue( trigger);
       scope.set( var, holder);
     }
+    
+    SLog.debug( this, trigger);
     
     trigger.activate( context);
     return null;

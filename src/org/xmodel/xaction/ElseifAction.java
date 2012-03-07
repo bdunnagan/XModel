@@ -19,6 +19,7 @@
  */
 package org.xmodel.xaction;
 
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -44,6 +45,7 @@ public class ElseifAction extends IfAction
     if ( !ifScript.test)
     {
       test = condition.evaluateBoolean( context);
+      SLog.debugf( this, "%s(%s) returned (%s)", (negate? "!": ""), condition, test ^ negate);
       if ( negate ^ test) return script.run( context);
     }
     else

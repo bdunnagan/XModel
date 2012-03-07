@@ -9,6 +9,12 @@ import java.nio.ByteBuffer;
 public interface ILink
 {
   /**
+   * Send the specified bytes over the link.
+   * @param bytes The bytes to send.
+   */
+  public void send( byte[] bytes) throws IOException;
+  
+  /**
    * Send the specified buffer over the link.
    * @param buffer The buffer.
    */

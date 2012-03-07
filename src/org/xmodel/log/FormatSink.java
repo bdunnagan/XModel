@@ -18,13 +18,21 @@ public final class FormatSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message)
   {
-    String thread = Thread.currentThread().getName();
     StringBuilder sb = new StringBuilder();
     formatDate( Calendar.getInstance(), sb);
-    sb.append( " ["); sb.append( thread); sb.append( "] ");
-    sb.append( Log.getLevelName( level));
-    sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+    sb.append( ' ');
+    
+    sb.append( Log.getLevelName( level).toUpperCase());
+    sb.append( ' ');
+    
+    String thread = Thread.currentThread().getName();
+    sb.append( "["); sb.append( thread); sb.append( "] ");
+    
+    //sb.append( "("); sb.append( log.getName()); sb.append( ") - ");
+    sb.append( "("); sb.append( getStack()); sb.append( ") - ");
+    
     sb.append( message);
+    
     delegate.log( log, level, sb.toString());
   }
 
@@ -44,8 +52,10 @@ public final class FormatSink implements ILogSink
   public void log( Log log, int level, Object object, Throwable throwable)
   {
     String message = object.toString();
+    String thread = Thread.currentThread().getName();
     String levelName = Log.getLevelName( level);
 
+    String trace = getStack();
     StringBuilder date = new StringBuilder();
     formatDate( Calendar.getInstance(), date);
     
@@ -55,7 +65,9 @@ public final class FormatSink implements ILogSink
     {
       sb.append( date); sb.append( ' ');
       sb.append( levelName);
-      sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+      sb.append( " ["); sb.append( thread); sb.append( "]");
+      //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+      sb.append( " ("); sb.append( trace); sb.append( ") - ");
       sb.append( message);
       delegate.log( log, level, sb.toString());
     }
@@ -63,7 +75,9 @@ public final class FormatSink implements ILogSink
     sb.setLength( 0);
     sb.append( date); sb.append( ' ');
     sb.append( levelName);
-    sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+    sb.append( " ["); sb.append( thread); sb.append( "]");
+    //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+    sb.append( " ("); sb.append( trace); sb.append( ") - ");
     sb.append( throwable.getClass().getSimpleName());
     sb.append( ": ");
     sb.append( throwable.getMessage());
@@ -75,7 +89,7 @@ public final class FormatSink implements ILogSink
       sb.setLength( 0);
       sb.append( date); sb.append( ' ');
       sb.append( levelName);
-      sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+      //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
       sb.append( element.toString());
       delegate.log( log, level, sb.toString());
     }
@@ -88,7 +102,7 @@ public final class FormatSink implements ILogSink
    */
   private void formatDate( Calendar calendar, StringBuilder message)
   {
-    int year = calendar.get( Calendar.YEAR);
+    int year = calendar.get( Calendar.YEAR) - 2000;
     int month = calendar.get( Calendar.MONTH);
     int day = calendar.get( Calendar.DAY_OF_MONTH);
     
@@ -97,11 +111,31 @@ public final class FormatSink implements ILogSink
     int sec = calendar.get( Calendar.SECOND);
     int msec = calendar.get( Calendar.MILLISECOND);
     
-//    message.append( Integer.toString( year)); message.append( '/');
-//    message.append( Integer.toString( month)); message.append( '/');
-//    message.append( Integer.toString( day)); message.append( ' ');
+    message.append( String.format( "%02d-%02d-%02d %02d:%02d:%02d.%03d", month, day, year, hour, min, sec, msec));
+  }
+  
+  /**
+   * @return Return partial stack trace.
+   */
+  private String getStack()
+  {
+    // get stack trace
+    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
     
-    message.append( String.format( "%02d:%02d:%02d.%03d", hour, min, sec, msec));
+    // find first non-logging package stack frame
+    int start = 1;
+    for( ; start < stack.length; start++)
+    {
+      String className = stack[ start].getClassName();
+      if ( !className.startsWith( "org.xmodel.log")) break;
+    }
+
+    String className = stack[ start].getClassName();
+    int index = className.lastIndexOf( '.');
+    if ( index > 0) index = className.lastIndexOf( '.', index-1);
+    if ( index > 0) className = className.substring( index+1);
+
+    return className + "." + stack[ start].getMethodName();
   }
   
   private ILogSink delegate;

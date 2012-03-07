@@ -144,14 +144,23 @@ final class Connection implements ILink
   }
 
   /**
-   * Synchronously write the content of the specified buffer to the connection.
+   * Write the specified bytes to the connection.
+   * @param bytes The bytes to be written.
+   */
+  public void send( byte[] bytes) throws IOException
+  {
+    tcp.write( channel, bytes);
+  }
+  
+  /**
+   * Write the content of the specified buffer to the connection.
    * @param buffer The buffer.
    */
   public void send( ByteBuffer buffer) throws IOException
   {
     tcp.write( channel, buffer);
   }
-
+  
   /**
    * Insure that the internal read buffer has sufficient capacity. This will allocate or reallocate
    * the buffer as necessary to insure that the limit of the buffer does not exceed the threshold.

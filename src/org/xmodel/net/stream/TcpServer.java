@@ -22,15 +22,26 @@ public final class TcpServer extends TcpBase
   public TcpServer( String host, int port, ILink.IListener listener) throws IOException
   {
     super( listener);
-    
+    address = new InetSocketAddress( host, port);    
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpBase#start(boolean)
+   */
+  @Override
+  public void start( boolean daemon) throws IOException
+  {
     serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking( false);
-    serverChannel.socket().bind( new InetSocketAddress( host, port));
+    serverChannel.socket().bind( address);
     
     // register accept selector
     serverChannel.register( selector, SelectionKey.OP_ACCEPT);
+    
+    // start the server thread
+    super.start( daemon);
   }
-  
+
   /* (non-Javadoc)
    * @see org.xmodel.net.stream.TcpManager#stop()
    */
@@ -52,6 +63,7 @@ public final class TcpServer extends TcpBase
   }
 
   private final static Log log = Log.getLog( "org.xmodel.net.stream");
-  
+
+  private InetSocketAddress address;
   private ServerSocketChannel serverChannel;
 }

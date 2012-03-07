@@ -139,6 +139,15 @@ public class WhenTrigger extends AbstractTrigger
     boolean newValue;
   }
     
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.trigger.AbstractTrigger#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return String.format( "WhenTrigger: %s", triggerExpr);
+  }
+
   private IExpression triggerExpr;
   private ScriptAction script;
   private boolean initialize;

@@ -28,8 +28,8 @@ import org.xmodel.external.CachingException;
 
 /**
  * An IFileAssociation for comma-separator value text files with the .csv extension. These
- * files are parsed into "entry" elements with one attribute for each field. The attributes
- * are enumerated "f1" through "fN", where N is the number of fields.
+ * files are parsed into row elements with one child for each column.  Row elements have
+ * the element name, "row", and column elements have the element name, "column".
  */
 public class CsvAssociation extends AbstractFileAssociation
 {
@@ -54,7 +54,7 @@ public class CsvAssociation extends AbstractFileAssociation
       {
         String line = reader.readLine();
         
-        IModelObject object = new ModelObject( "entry", Integer.toString( lnum++));
+        IModelObject object = new ModelObject( rowElementName, Integer.toString( lnum++));
         parseFields( line, object);
         
         parent.addChild( object);
@@ -74,7 +74,7 @@ public class CsvAssociation extends AbstractFileAssociation
   private void parseFields( String line, IModelObject parent)
   {
     boolean quoting = false;
-    IModelObject child = new ModelObject( "field");
+    IModelObject child = new ModelObject( columnElementName);
     int index = 0;
     for( int i=0; i<line.length(); i++)
     {
@@ -85,7 +85,7 @@ public class CsvAssociation extends AbstractFileAssociation
           field = field.substring( 1, field.length() - 1);
         if ( index < i) child.setValue( field);
         parent.addChild( child);
-        child = new ModelObject( "field");
+        child = new ModelObject( columnElementName);
         index = i+1;
       }
       else if ( line.charAt( i) == '\"')
@@ -100,6 +100,9 @@ public class CsvAssociation extends AbstractFileAssociation
       parent.addChild( child);
     }
   }
+  
+  private final static String rowElementName = "row";
+  private final static String columnElementName = "column";
   
   private final static String[] extensions = { ".csv"};
 }

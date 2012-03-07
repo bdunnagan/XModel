@@ -135,6 +135,15 @@ public class EntityTrigger extends AbstractTrigger
     }
   };
   
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.trigger.AbstractTrigger#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return String.format( "EntityTrigger: %s", entityExpr);
+  }
+
   private IExpression entityExpr;
   private Aggregator aggregator;
   private int dispatchIndex;

@@ -44,7 +44,7 @@ public abstract class TcpBase
    * Start the socket servicing thread.
    * @param daemon True if servicing thread should be a daemon.
    */
-  public void start( boolean daemon)
+  public void start( boolean daemon) throws IOException
   {
     Runnable runnable = new Runnable() {
       public void run()
@@ -142,6 +142,24 @@ public abstract class TcpBase
     return false;
   }
 
+  /**
+   * Enqueue a request to write data.
+   * @param channel The channel.
+   * @param bytes The bytes to be written.
+   */
+  void write( SocketChannel channel, byte[] bytes)
+  {
+    ByteBuffer clone = ByteBuffer.allocate( bytes.length);
+    clone.put( bytes);
+    clone.flip();
+    
+    Request request = new Request();
+    request.channel = channel;
+    request.buffer = clone;
+    request.ops = SelectionKey.OP_READ | SelectionKey.OP_WRITE;
+    
+    enqueue( request);
+  }
   
   /**
    * Enqueue a request to write data.
@@ -150,7 +168,6 @@ public abstract class TcpBase
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
-    // TODO: this could be allocated direct if it lived on the Connection
     ByteBuffer clone = ByteBuffer.allocate( buffer.remaining());
     clone.put( buffer);
     clone.flip();

@@ -30,7 +30,7 @@ public class Server extends Protocol
    * Start the server.
    * @param daemon True if the server thread should be a daemon.
    */
-  public void start( boolean daemon)
+  public void start( boolean daemon) throws IOException
   {
     server.start( daemon);
   }
