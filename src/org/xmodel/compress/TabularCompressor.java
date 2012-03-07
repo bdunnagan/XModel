@@ -19,6 +19,9 @@
  */
 package org.xmodel.compress;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,9 +36,6 @@ import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-import org.xmodel.gwt.ByteArrayOutputStream;
-import org.xmodel.gwt.DataInputStream;
-import org.xmodel.gwt.DataOutputStream;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
