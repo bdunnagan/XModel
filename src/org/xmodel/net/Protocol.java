@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import org.xmodel.DepthFirstIterator;
@@ -65,6 +66,8 @@ public class Protocol implements ILink.IListener
     sessionOpenRequest,
     sessionOpenResponse,
     sessionCloseRequest,
+    heartbeatRequest,
+    heartbeatResponse,
     error,
     attachRequest,
     attachResponse,
@@ -94,8 +97,8 @@ public class Protocol implements ILink.IListener
   public Protocol( int timeout)
   {
     this.context = new StatefulContext();
-    this.sessions = Collections.synchronizedMap( new HashMap<ILink, List<SessionInfo>>());
-    this.sessionInitQueues = Collections.synchronizedMap( new HashMap<Long, BlockingQueue<Response>>());
+    this.sessions = new ConcurrentHashMap<ILink, List<SessionInfo>>();
+    this.sessionInitQueues = new ConcurrentHashMap<Long, BlockingQueue<Response>>();
     
     this.timeout = timeout;
     this.random = new Random();
@@ -534,12 +537,15 @@ public class Protocol implements ILink.IListener
         String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
         SLog.verbosef( this, "recv: session=%d, correlation=%d, content-length=%d\n%s", session, correlation, length, bytes);
       }
-      
+
       switch( type)
       {
         case sessionOpenRequest:  handleSessionOpenRequest( link, buffer, length); return true;
         case sessionOpenResponse: handleSessionOpenResponse( link, session, buffer, length); return true;
         case sessionCloseRequest: handleSessionCloseRequest( link, session, buffer, length); return true;
+        
+        case heartbeatRequest:    handleHeartbeatRequest( link, session, buffer, length); return true;
+        case heartbeatResponse:   handleHeartbeatResponse( link, session, correlation, buffer, length); return true;
         
         case error:           handleError( link, session, buffer, length); return true;
         case attachRequest:   handleAttachRequest( link, session, correlation, buffer, length); return true;
@@ -658,10 +664,12 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSessionCloseRequest( ILink link, int session) throws IOException
   {
-    SLog.debugf( this, "Send Session Close Request: session=%d", session);
-    
     initialize( buffer);
     finalize( buffer, Type.sessionCloseRequest, session, 0);
+    
+    SLog.debugf( this, "Send Session Close Request: session=%d", session);
+    
+    send( link, buffer, session);
   }
   
   /**
@@ -674,6 +682,60 @@ public class Protocol implements ILink.IListener
   private final void handleSessionCloseRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     dispatch( getSession( link, session), new SessionCloseRunnable( link, session));
+  }
+
+  /**
+   * Send a heartbeat request message.
+   * @param link The link.
+   * @param session The session number.
+   */
+  public final void sendHeartbeatRequest( ILink link, int session) throws IOException
+  {
+    initialize( buffer);
+    finalize( buffer, Type.heartbeatRequest, session, 0);
+    
+    SLog.debugf( this, "Send Heartbeat Request: session=%d", session);
+
+    send( link, buffer, session);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleHeartbeatRequest( ILink link, int session, ByteBuffer buffer, int length)
+  {
+    dispatch( getSession( link, session), new HeartbeatRunnable( link, session)); 
+  }
+  
+  /**
+   * Send a heartbeat response message.
+   * @param link The link.
+   * @param session The session number.
+   */
+  public final void sendHeartbeatResponse( ILink link, int session) throws IOException
+  {
+    initialize( buffer);
+    finalize( buffer, Type.heartbeatResponse, session, 0);
+    
+    SLog.debugf( this, "Send Heartbeat Response: session=%d", session);
+
+    send( link, buffer, session);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param correlation The correlation tag.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  protected void handleHeartbeatResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
+  {
   }
   
   /**
@@ -2519,6 +2581,30 @@ public class Protocol implements ILink.IListener
     private int session;
     private long key;
     private boolean dirty;
+  }
+  
+  private final class HeartbeatRunnable implements Runnable
+  {
+    public HeartbeatRunnable( ILink sender, int session)
+    {
+      this.sender = sender;
+      this.session = session;
+    }
+    
+    public void run()
+    {
+      try
+      {
+        sendHeartbeatResponse( sender, session);
+      } 
+      catch( IOException e)
+      {
+        SLog.exception( this, e);
+      }
+    }
+
+    private ILink sender;
+    private int session;
   }
   
   private final class AttachRunnable implements Runnable

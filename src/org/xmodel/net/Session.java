@@ -20,6 +20,14 @@ public final class Session
   }
   
   /**
+   * Send a heartbeat request.
+   */
+  public void ping() throws IOException
+  {
+    protocol.sendHeartbeatRequest( link, session);
+  }
+  
+  /**
    * Attach to the element on the specified xpath.
    * @param xpath The XPath expression.
    * @param reference The reference.

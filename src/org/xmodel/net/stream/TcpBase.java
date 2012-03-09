@@ -291,6 +291,7 @@ public abstract class TcpBase
     }
     catch( Exception e)
     {
+      log.exception( e);
       close( key);
     }
   }
