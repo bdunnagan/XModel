@@ -463,7 +463,7 @@ public final class Log
    */
   private void configure()
   {
-    mask = problems;
+    mask = problems | info;
     sink = new FormatSink( new ConsoleSink());
   }
   

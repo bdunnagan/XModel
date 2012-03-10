@@ -61,6 +61,9 @@ public class WhenTrigger extends AbstractTrigger
    */
   public void activate( IContext context)
   {
+    correlation++;
+    System.out.printf( "ACTIVATE %d %s\n", correlation, this);
+    
     if ( initialize)
     {
       triggerExpr.addNotifyListener( context, listener);
@@ -102,6 +105,7 @@ public class WhenTrigger extends AbstractTrigger
         try
         {
           NotifyBooleanChange runnable = new NotifyBooleanChange();
+          runnable.correlation = correlation;
           runnable.context = context;
           runnable.newValue = newValue;
           context.getModel().dispatch( runnable);
@@ -131,10 +135,18 @@ public class WhenTrigger extends AbstractTrigger
   {
     public void run()
     {
-      log.debugf( "Trigger notifyChange( %s): %s", Boolean.toString( newValue), WhenTrigger.this.toString());
-      script.run( context);
+      if ( WhenTrigger.this.correlation == correlation)
+      {
+        log.debugf( "Trigger notifyChange( %s): %s", Boolean.toString( newValue), WhenTrigger.this.toString());
+        script.run( context);
+      }
+      else
+      {
+        log.debugf( "Trigger ignored");
+      }
     }
 
+    int correlation;
     IContext context;
     boolean newValue;
   }
@@ -153,6 +165,12 @@ public class WhenTrigger extends AbstractTrigger
   private boolean initialize;
   private boolean finalize;
   private boolean updating;
+  
+  //
+  // The correlation value is incremented each time the trigger is activated. 
+  // Notifications with the wrong correlation value are ignored.
+  //
+  private int correlation;
   
   private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
 }

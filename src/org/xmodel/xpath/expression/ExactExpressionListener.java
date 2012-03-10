@@ -25,6 +25,7 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.ListDiffer;
 import org.xmodel.diff.ListDiffer.Change;
+import org.xmodel.xpath.expression.IExpression.ResultType;
 
 /**
  * An implementation of IExpression which provides more precise notification for expressions which
@@ -107,36 +108,49 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyChange( IExpression expression, IContext context)
   {
-    IModel model = context.getModel();
-    
-    // revert and evaluate
-    model.revert();
-    List<IModelObject> oldNodes = expression.evaluateNodes( context);
-    model.restore();
-
-    // evaluate
-    List<IModelObject> newNodes = expression.evaluateNodes( context);
-
-    // diff
-    ListDiffer differ = new ListDiffer();
-    differ.diff( oldNodes, newNodes);
-    
-    List<IModelObject> incremental = new ArrayList<IModelObject>();
-    incremental.addAll( oldNodes);
-    
-    List<Change> changes = differ.getChanges();
-    for( Change change: changes)
+    try
     {
-      if ( change.rIndex >= 0)
+      IModel model = context.getModel();
+      if ( expression.getType( context) == ResultType.NODES)
       {
-        for( int i=0; i<change.count; i++) incremental.add( change.lIndex, newNodes.get( change.rIndex + i));
-        notifyInsert( expression, context, incremental, change.lIndex, change.count);
+        // revert and evaluate
+        model.revert();
+        List<IModelObject> oldNodes = expression.evaluateNodes( context);
+        model.restore();
+    
+        // evaluate
+        List<IModelObject> newNodes = expression.evaluateNodes( context);
+    
+        // diff
+        ListDiffer differ = new ListDiffer();
+        differ.diff( oldNodes, newNodes);
+        
+        List<IModelObject> incremental = new ArrayList<IModelObject>();
+        incremental.addAll( oldNodes);
+        
+        List<Change> changes = differ.getChanges();
+        for( Change change: changes)
+        {
+          if ( change.rIndex >= 0)
+          {
+            for( int i=0; i<change.count; i++) incremental.add( change.lIndex, newNodes.get( change.rIndex + i));
+            notifyInsert( expression, context, incremental, change.lIndex, change.count);
+          }
+          else
+          {
+            notifyRemove( expression, context, incremental, change.lIndex, change.count);
+            for( int i=0; i<change.count; i++) incremental.remove( change.lIndex);
+          }
+        }
       }
       else
       {
-        notifyRemove( expression, context, incremental, change.lIndex, change.count);
-        for( int i=0; i<change.count; i++) incremental.remove( change.lIndex);
+        super.notifyChange( expression, context);
       }
+    }
+    catch( ExpressionException e)
+    {
+      handleException( expression, context, e);
     }
   }
 }

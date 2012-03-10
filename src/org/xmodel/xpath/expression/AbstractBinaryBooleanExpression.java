@@ -74,7 +74,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
   @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    evaluateChange( context);
+    parent.notifyChange( this, context);
   }
 
   /* (non-Javadoc)
@@ -85,7 +85,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
   @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    evaluateChange( context);
+    parent.notifyChange( this, context);
   }
   
   /* (non-Javadoc)
@@ -230,28 +230,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    */
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
-    evaluateChange( contexts[ 0]);
-  }
-  
-  /**
-   * Reevaluate both sides of this expression before and after reverting the model
-   * and send targeted notification to the parent expression. This is a workaround
-   * for the AND expressions which can interact badly with the current notification
-   * semantics (see BUG #58).
-   * @param context The context.
-   */
-  private void evaluateChange( IContext context)
-  {
-    IExpression lhs = getArgument( 0);
-    IExpression rhs = getArgument( 1);
-    
-    context.getModel().revert();
-    boolean oldResult = evaluate( context, lhs, rhs);
-           
-    context.getModel().restore();
-    boolean newResult = evaluate( context, lhs, rhs);
-    
-    if ( oldResult != newResult) parent.notifyChange( this, context, newResult);
+    parent.notifyChange( this, contexts[ 0]);
   }
   
   private LiteralExpression literal;
