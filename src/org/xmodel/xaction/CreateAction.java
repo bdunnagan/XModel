@@ -143,7 +143,8 @@ public class CreateAction extends GuardedAction
     while( iter.hasNext())
     {
       IModelObject element = (IModelObject)iter.next();
-      for( String attrName: element.getAttributeNames())
+      String[] attrNames = element.getAttributeNames().toArray( new String[ 0]);
+      for( String attrName: attrNames)
       {
         String rawText = Xlate.get( element, attrName, "");
         Object newText = replaceTemplateExpressions( context, rawText);

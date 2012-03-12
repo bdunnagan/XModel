@@ -1888,10 +1888,20 @@ public class Protocol implements ILink.IListener
     
     try
     {
-      send( link, buffer, session);
       SessionInfo info = getSession( link, session);
       
-      // TODO: timeout is incorrect if responses with wrong correlation numbers are dropped
+      // drain response queue before sending next message
+      info.responseQueue.clear();
+      
+      // send
+      send( link, buffer, session);
+
+      //
+      // A protocol session is always used by the same model thread, so there will never
+      // be more than one outstanding synchronous request.  This is why the queue is cleared
+      // above before the message is sent.  Still, it is possible that a message with an 
+      // old correlation will show up.
+      //
       Response response = info.responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
       while( response != null)
       {
@@ -1966,16 +1976,10 @@ public class Protocol implements ILink.IListener
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    try 
+    SessionInfo info = getSession( link, session);
+    if ( info != null) 
     {
-      SessionInfo info = getSession( link, session);
-      if ( info != null) 
-      {
-        info.responseQueue.put( new Response( correlation, bytes));
-      }
-    } 
-    catch( InterruptedException e) 
-    {
+      info.responseQueue.offer( new Response( correlation, bytes));
     }
   }
   
