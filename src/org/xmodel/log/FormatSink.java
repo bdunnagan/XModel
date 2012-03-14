@@ -66,33 +66,29 @@ public final class FormatSink implements ILogSink
       sb.append( date); sb.append( ' ');
       sb.append( levelName);
       sb.append( " ["); sb.append( thread); sb.append( "]");
-      //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
       sb.append( " ("); sb.append( trace); sb.append( ") - ");
       sb.append( message);
-      delegate.log( log, level, sb.toString());
+      sb.append( '\n');
     }
     
-    sb.setLength( 0);
     sb.append( date); sb.append( ' ');
     sb.append( levelName);
     sb.append( " ["); sb.append( thread); sb.append( "]");
-    //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
     sb.append( " ("); sb.append( trace); sb.append( ") - ");
     sb.append( throwable.getClass().getSimpleName());
     sb.append( ": ");
     sb.append( throwable.getMessage());
-    delegate.log( log, level, sb.toString());
+    sb.append( '\n');
     
     StackTraceElement[] stack = throwable.getStackTrace();
     for( StackTraceElement element: stack)
     {
-      sb.setLength( 0);
-//      sb.append( date); sb.append( ' ');
-//      sb.append( levelName);
-//      sb.append( ' ');
+      sb.append( '\t');
       sb.append( element.toString());
-      delegate.log( log, level, sb.toString());
+      sb.append( '\n');
     }
+    
+    delegate.log( log, level, sb.toString());
   }
 
   /**

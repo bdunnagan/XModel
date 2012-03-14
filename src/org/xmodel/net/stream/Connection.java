@@ -13,7 +13,7 @@ import org.xmodel.net.ILink;
 /**
  * A class that represents a TCP connection.
  */
-final class Connection implements ILink
+public final class Connection implements ILink
 {
   /**
    * Create a new connection.
