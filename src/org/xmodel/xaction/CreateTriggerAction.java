@@ -19,6 +19,7 @@
  */
 package org.xmodel.xaction;
 
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -71,6 +72,20 @@ public class CreateTriggerAction extends XAction
     IVariableScope scope = context.getScope();
     if ( scope != null)
     {
+      // cancel previous trigger in var
+      Object object = scope.get( var);
+      if ( object != null && object instanceof List<?>)
+      {
+        IModelObject holder = (IModelObject)((List<?>)object).get( 0);
+        Object trigger = holder.getValue();
+        if ( trigger instanceof ITrigger)
+        {
+          ((ITrigger)trigger).deactivate( context);
+          holder.setValue( null);
+        }
+      }
+      
+      // save trigger in var
       IModelObject holder = new ModelObject( "trigger");
       holder.setValue( trigger);
       scope.set( var, holder);

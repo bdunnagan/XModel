@@ -45,7 +45,6 @@ public abstract class AbstractPath implements IPath, IAxis
   public AbstractPath()
   {
     elements = new IPathElement[ 0];
-    layer = new ArrayList<IModelObject>();
   }
   
   /* (non-Javadoc)
@@ -362,12 +361,17 @@ public abstract class AbstractPath implements IPath, IAxis
   protected List<IModelObject> query( IContext parent, IModelObject object, int length, List<IModelObject> result)
   {
     if ( result == null) result = new ArrayList<IModelObject>();
+    List<IModelObject> layer = new ArrayList<IModelObject>();
     
     // configure layers so result is nextLayer at end of query
-    boolean even = (length % 2) == 0;
-    List<IModelObject> currLayer = even? layer: result;
-    List<IModelObject> nextLayer = even? result: layer;
-    
+    List<IModelObject> currLayer = layer;
+    List<IModelObject> nextLayer = result;
+    if ( (length & 0x1) != 0)
+    {
+      currLayer = result;
+      nextLayer = layer;
+    }
+      
     // query each location
     nextLayer.clear();
     nextLayer.add( object);
@@ -460,7 +464,6 @@ public abstract class AbstractPath implements IPath, IAxis
   
   private IExpression parent;
   private IPathElement[] elements;
-  private List<IModelObject> layer;
   private IPath inverse;
   protected IListenerChain chainProto;
   private Boolean isAbsolute;

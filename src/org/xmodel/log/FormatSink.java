@@ -53,7 +53,7 @@ public final class FormatSink implements ILogSink
   {
     String message = object.toString();
     String thread = Thread.currentThread().getName();
-    String levelName = Log.getLevelName( level);
+    String levelName = Log.getLevelName( level).toUpperCase();
 
     String trace = getStack();
     StringBuilder date = new StringBuilder();
@@ -87,9 +87,9 @@ public final class FormatSink implements ILogSink
     for( StackTraceElement element: stack)
     {
       sb.setLength( 0);
-      sb.append( date); sb.append( ' ');
-      sb.append( levelName);
-      //sb.append( " ("); sb.append( log.getName()); sb.append( ") - ");
+//      sb.append( date); sb.append( ' ');
+//      sb.append( levelName);
+//      sb.append( ' ');
       sb.append( element.toString());
       delegate.log( log, level, sb.toString());
     }

@@ -3,6 +3,7 @@ package org.xmodel.log;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Yet another logging facility.
@@ -130,7 +131,8 @@ public final class Log
   public Log( String name)
   {
     this.name = name;
-    mask = -1;
+    mask = new AtomicInteger( problems | info);
+    sink = new FormatSink( new ConsoleSink());
   }
   
   /**
@@ -147,8 +149,7 @@ public final class Log
    */
   public void setLevel( int level)
   {
-    if ( mask < 0) configure();
-    this.mask = level;
+    mask.set( level);
   }
   
   /**
@@ -157,7 +158,6 @@ public final class Log
    */
   public void setSink( ILogSink sink)
   {
-    if ( mask < 0) configure();
     this.sink = sink;
   }
   
@@ -168,8 +168,7 @@ public final class Log
    */
   public boolean isLevelEnabled( int level)
   {
-    if ( mask < 0) configure();
-    return (mask & level) != 0;
+    return (mask.get() & level) != 0;
   }
 
   /**
@@ -381,8 +380,7 @@ public final class Log
    */
   public void exception( Throwable throwable)
   {
-    if ( mask < 0) configure();
-    if ( (mask & exception) == 0) return;
+    if ( (mask.get() & exception) == 0) return;
     sink.log( this, exception, throwable);
   }
   
@@ -394,8 +392,7 @@ public final class Log
    */
   public void exceptionf( Throwable throwable, String format, Object... params)
   {
-    if ( mask < 0) configure();
-    if ( (mask & exception) == 0) return;
+    if ( (mask.get() & exception) == 0) return;
     sink.log( this, exception, String.format( format, params), throwable);
   }
 
@@ -406,8 +403,7 @@ public final class Log
    */
   public void log( int level, Object message)
   {
-    if ( mask < 0) configure();
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
       sink.log( this, level, message);
@@ -426,8 +422,7 @@ public final class Log
    */
   public void log( int level, Object message, Throwable throwable)
   {
-    if ( mask < 0) configure();
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
       sink.log( this, level, message, throwable);
@@ -446,8 +441,7 @@ public final class Log
    */
   public void logf( int level, String format, Object... params)
   {
-    if ( mask < 0) configure();
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
       sink.log( this, level, String.format( format, params));
@@ -458,19 +452,10 @@ public final class Log
     }
   }
   
-  /**
-   * Configure the log level and sink for this log.
-   */
-  private void configure()
-  {
-    mask = problems | info;
-    sink = new FormatSink( new ConsoleSink());
-  }
-  
   private static Map<String, Log> logs = Collections.synchronizedMap( new HashMap<String, Log>());
   private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
 
   private String name;
-  private volatile int mask;
-  private volatile ILogSink sink;
+  private AtomicInteger mask;
+  private ILogSink sink;
 }
