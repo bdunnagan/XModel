@@ -21,6 +21,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
@@ -29,8 +30,8 @@ import org.xmodel.diff.ConfiguredXmlMatcher;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.xaction.debug.IDebugger;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -122,6 +123,14 @@ public abstract class XAction implements IXAction
   }
   
   /**
+   * @return Returns true if a debugger is present.
+   */
+  public final static boolean isDebugging()
+  {
+    return debugging;
+  }
+  
+  /**
    * Returns the factory defined for the specified locus. The first ancestor which defines a
    * factory determines which factory is created and returned.
    * @param locus The locus.
@@ -198,19 +207,13 @@ public abstract class XAction implements IXAction
   public String toString()
   {
     XActionDocument document = getDocument();
-    if ( document != null)
-    {
-      IModelObject viewRoot = document.getRoot();
-      if ( viewRoot != null)
-      {
-        XmlIO xmlIO = new XmlIO();
-        xmlIO.skipOutputPrefix( "break");
-        xmlIO.setOutputStyle( Style.printable);
-        return xmlIO.write( viewRoot);
-      }
-    }
+    if ( document == null) return "(No document)";
     
-    return "(no document)";
+    IModelObject root = document.getRoot();
+    if ( root == null) return "(No root)";
+
+    IPath path = ModelAlgorithms.createIdentityPath( root, true);
+    return String.format( "%s\n%s", path.toString(), XmlIO.write( Style.printable, root)); 
   }
 
   private final IExpression factoryExpr = XPath.createExpression(
@@ -222,8 +225,8 @@ public abstract class XAction implements IXAction
   private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
-  protected static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
-  protected static boolean debugging = false;
+  private static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
+  private volatile static boolean debugging = false;
   
   protected XActionDocument document;
 }

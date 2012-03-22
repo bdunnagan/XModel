@@ -33,18 +33,21 @@
           <class classes="protected" methods="protected" fields="protected">
             <patternset>
               <include name="org.xmodel.**.*"/>
-              <!--include name="org.xmodel.Xlate"/>
+              <include name="org.xmodel.Xlate"/>
               <include name="org.xmodel.IModel"/>
               <include name="org.xmodel.Model"/>
               <include name="org.xmodel.ModelRegistry"/>
+              <include name="org.xmodel.Update"/>
               <include name="org.xmodel.IDispatcher"/>
-              <include name="org.xmodel.IModelObject"/-->
+              <include name="org.xmodel.IModelObject"/>
+              <include name="org.xmodel.xpath.expression.Expression"/>
+              <include name="org.xmodel.xpath.expression.ExpressionListener"/>
+              <include name="org.xmodel.xpath.expression.ExactExpressionListener"/>
               <exclude name="org.xmodel.AbstractPath"/>
               <exclude name="org.xmodel.IPathElement"/>
               <exclude name="org.xmodel.IPredicate"/>
               <exclude name="org.xmodel.ModelListenerList"/>
               <exclude name="org.xmodel.PathListenerList"/>
-              <exclude name="org.xmodel.Update"/>
               <exclude name="org.xmodel.IAxis"/>
               <exclude name="org.xmodel.memento.**.*"/>
               <exclude name="org.xmodel.path.**.*"/>
@@ -81,16 +84,16 @@
           <class classes="protected" methods="protected" fields="protected">
           	<patternset>
               <include name="org.xmodel.**.*"/>
-              <!--include name="org.xmodel.IModel"/>
+              <include name="org.xmodel.IModel"/>
               <include name="org.xmodel.Model"/>
               <include name="org.xmodel.ModelRegistry"/>
-              <include name="org.xmodel.IDispatcher"/-->
+              <include name="org.xmodel.Update"/>
+              <include name="org.xmodel.IDispatcher"/>
               <exclude name="org.xmodel.AbstractPath"/>
               <exclude name="org.xmodel.IPathElement"/>
               <exclude name="org.xmodel.IPredicate"/>
               <exclude name="org.xmodel.ModelListenerList"/>
               <exclude name="org.xmodel.PathListenerList"/>
-              <exclude name="org.xmodel.Update"/>
               <exclude name="org.xmodel.IAxis"/>
               <exclude name="org.xmodel.memento.**.*"/>
               <exclude name="org.xmodel.path.**.*"/>

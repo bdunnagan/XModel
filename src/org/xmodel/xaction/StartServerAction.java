@@ -51,7 +51,6 @@ public class StartServerAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
-    debugExpr = document.getExpression( "debug", true);
     
     // get context expression
     sourceExpr = document.getExpression();
@@ -66,9 +65,6 @@ public class StartServerAction extends GuardedAction
     // get context
     IModelObject source = (sourceExpr != null)? sourceExpr.queryFirst( context): null;
     
-    // allow debugging?
-    boolean debug = (debugExpr != null)? debugExpr.evaluateBoolean( context): false;
-    
     // start server
     try
     {
@@ -76,7 +72,7 @@ public class StartServerAction extends GuardedAction
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): 27700;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       
-      server = new Server( host, port, timeout, debug);
+      server = new Server( host, port, timeout);
       server.setServerContext( (source != null)? new StatefulContext( context.getScope(), source): context);
       server.start( true);
       
@@ -101,6 +97,5 @@ public class StartServerAction extends GuardedAction
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;
-  private IExpression debugExpr;
   private IExpression sourceExpr;
 }

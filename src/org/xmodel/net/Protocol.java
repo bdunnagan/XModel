@@ -40,10 +40,8 @@ import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.IXAction;
-import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
-import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -82,12 +80,7 @@ public class Protocol implements ILink.IListener
     queryRequest,
     queryResponse,
     executeRequest,
-    executeResponse,
-    debugGo,
-    debugStop,
-    debugStepIn,
-    debugStepOver,
-    debugStepOut
+    executeResponse
   }
 
   /**
@@ -120,12 +113,6 @@ public class Protocol implements ILink.IListener
    */
   public void setServerContext( IContext context)
   {
-    if ( debugEnabled) 
-    {
-      this.context.getScope().clear( "debug");
-      context.set( "debug", new ModelObject( "debug"));
-    }
-    
     this.context = context;
     dispatcher = context.getModel().getDispatcher();
   }
@@ -140,20 +127,6 @@ public class Protocol implements ILink.IListener
   }
   
   /**
-   * Enable or disable debugging via this server instance.
-   * @param enable True if debugging should be enabled.
-   */
-  public void setEnableDebugging( boolean enable)
-  {
-    debugEnabled = enable;
-    
-    if ( debugEnabled && context != null) 
-    {
-      context.set( "debug", new ModelObject( "debug"));
-    }
-  }
-  
-  /**
    * Set the dispatcher. It is not necessary to set the dispatcher using this method if either the
    * <code>setServerContext</code> method or <code>attach</code> method is called. 
    * @param dispatcher The dispatcher.
@@ -161,6 +134,14 @@ public class Protocol implements ILink.IListener
   public void setDispatcher( IDispatcher dispatcher)
   {
     this.dispatcher = dispatcher;
+  }
+  
+  /**
+   * @return Returns null or the dispatcher.
+   */
+  public IDispatcher getDispatcher()
+  {
+    return dispatcher;
   }
   
   /**
@@ -562,11 +543,6 @@ public class Protocol implements ILink.IListener
         case queryResponse:   handleQueryResponse( link, session, correlation, buffer, length); return true;
         case executeRequest:  handleExecuteRequest( link, session, correlation, buffer, length); return true;
         case executeResponse: handleExecuteResponse( link, session, correlation, buffer, length); return true;
-        case debugGo:         if ( debugEnabled) handleDebugGo( link, session, buffer, length); return true;
-        case debugStop:       if ( debugEnabled) handleDebugStop( link, session, buffer, length); return true;
-        case debugStepIn:     if ( debugEnabled) handleDebugStepIn( link, session, buffer, length); return true;
-        case debugStepOver:   if ( debugEnabled) handleDebugStepOver( link, session, buffer, length); return true;
-        case debugStepOut:    if ( debugEnabled) handleDebugStepOut( link, session, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
@@ -1672,202 +1648,6 @@ public class Protocol implements ILink.IListener
     queueResponse( link, session, correlation, buffer, length);
   }
   
-  /**
-   * Send a debug step message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendDebugGo( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.debugGo, session, 0);
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleDebugGo( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    handleDebugGo( link, session);
-  }
-  
-  /**
-   * Handle a debug step.
-   * @param link The link.
-   * @param session The session number.
-   */
-  protected void handleDebugGo( ILink link, int session)
-  {
-    dispatch( getSession( link, session), new Runnable() {
-      public void run()
-      {
-        XAction.getDebugger().stepOut();
-        XAction.setDebugger( null);
-      }
-    });
-  }
-  
-  /**
-   * Send a debug step message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendDebugStop( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.debugStop, session, 0);
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleDebugStop( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    handleDebugStop( link, session);
-  }
-  
-  /**
-   * Handle a debug step.
-   * @param link The link.
-   * @param session The session number.
-   */
-  protected void handleDebugStop( ILink link, int session)
-  {
-    dispatch( getSession( link, session), new Runnable() {
-      public void run()
-      {
-        XAction.setDebugger( new Debugger( Protocol.this, context));
-      }
-    });
-  }
-  
-  /**
-   * Send a debug step message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendDebugStepIn( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.debugStepIn, session, 0);
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleDebugStepIn( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    handleDebugStepIn( link, session);
-  }
-  
-  /**
-   * Handle a debug step.
-   * @param link The link.
-   * @param session The session number.
-   */
-  protected void handleDebugStepIn( ILink link, int session)
-  {
-    dispatch( getSession( link, session), new Runnable() {
-      public void run()
-      {
-        XAction.getDebugger().stepIn();
-      }
-    });
-  }
-  
-  /**
-   * Send a debug step message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendDebugStepOver( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.debugStepOver, session, 0);
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleDebugStepOver( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    handleDebugStepOver( link, session);
-  }
-  
-  /**
-   * Handle a debug step.
-   * @param link The link.
-   * @param session The session number.
-   */
-  protected void handleDebugStepOver( ILink link, int session)
-  {
-    dispatcher.execute( new Runnable() {
-      public void run()
-      {
-        XAction.getDebugger().stepOver();
-      }
-    });
-  }
-  
-  /**
-   * Send a debug step message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendDebugStepOut( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.debugStepOut, session, 0);
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleDebugStepOut( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    handleDebugStepOut( link, session);
-  }
-  
-  /**
-   * Handle a debug step.
-   * @param link The link.
-   * @param session The session number.
-   */
-  protected void handleDebugStepOut( ILink link, int session)
-  {
-    dispatcher.execute( new Runnable() {
-      public void run()
-      {
-        XAction.getDebugger().stepOut();
-      }
-    });
-  }
-
   /**
    * Send and wait for a response.
    * @param link The link.
@@ -3041,5 +2821,4 @@ public class Protocol implements ILink.IListener
   private List<String> packageNames;
   private ILink updating;
   private ExecutePrivilege privilege;
-  private boolean debugEnabled;
 }

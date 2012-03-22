@@ -492,21 +492,44 @@ public class ModelAlgorithms implements IAxis
    */
   public static CanonicalPath createIdentityPath( IModelObject object)
   {
+    return createIdentityPath( object, false);
+  }
+  
+  /**
+   * Returns the identity path for the given object.  The identity path of an object is a path
+   * which uniquely identifies location in the path leading to the object.  It includes an
+   * IPathElement for each ancestor.
+   * @param object The object.
+   * @param useName True if name attribute should be used if present.
+   * @return Returns the identity path for the given object.
+   */
+  public static CanonicalPath createIdentityPath( IModelObject object, boolean useName)
+  {
     CanonicalPath path = new CanonicalPath();
     while( object != null)
     {
       IModelObject parent = object.getParent();
+      
       int axis = (parent == null)? IAxis.ROOT: IAxis.CHILD;
       if ( object instanceof AttributeNode) axis = IAxis.ATTRIBUTE;
-      String id = Xlate.get( object, "id", (String)null);
-      if ( id != null)
+      
+      String identAttrName = "id";
+      
+      if ( useName)
+      {
+        String name = Xlate.get( object, "name", (String)null);
+        if ( name != null) identAttrName = "name";
+      }
+      
+      String identAttrValue = Xlate.get( object, identAttrName, (String)null);
+      if ( identAttrValue != null)
       {
         PredicateExpression predicate = new PredicateExpression( path);
-        PathExpression idPath = new PathExpression( XPath.createPath( "@id"));
+        PathExpression identPath = new PathExpression( XPath.createPath( "@"+identAttrName));
         LiteralExpression literal = new LiteralExpression( path);
-        literal.setValue( id);
+        literal.setValue( identAttrValue);
         EqualityExpression compare = new EqualityExpression( Operator.EQ);
-        compare.addArgument( idPath);
+        compare.addArgument( identPath);
         compare.addArgument( literal);
         predicate.addArgument( compare);
         IPathElement element = new PathElement( axis, object.getType(), predicate);
@@ -979,7 +1002,7 @@ public class ModelAlgorithms implements IAxis
   {
     String xml = 
       "<a>" +
-      "  <b id='1'>" +
+      "  <b id='1' name='B1'>" +
       "    <c>1</c>" +
       "    <c>2</c>" +
       "    <c>3</c>" +
@@ -998,13 +1021,8 @@ public class ModelAlgorithms implements IAxis
     
     XmlIO xmlIO = new XmlIO();
     IModelObject root = xmlIO.read( xml);
-    IModelObject leaf = root.getChild( 2).getChild( 0);
-    int[] indices = ModelAlgorithms.createIndexPath( root, leaf);
-    for( int i=0; i<indices.length; i++)
-      System.out.printf( "%d ", indices[ i]);
-    System.out.println( "");
-    
-    leaf = ModelAlgorithms.evaluateIndexPath( root, indices);
-    System.out.println( leaf);
+    IModelObject leaf = root.getChild( 1).getChild( 0);
+    IPath path = ModelAlgorithms.createIdentityPath( leaf, true);
+    System.out.println( path.toString());
   }
 }

@@ -83,7 +83,6 @@ public final class FormatSink implements ILogSink
     StackTraceElement[] stack = throwable.getStackTrace();
     for( StackTraceElement element: stack)
     {
-      sb.append( '\t');
       sb.append( element.toString());
       sb.append( '\n');
     }

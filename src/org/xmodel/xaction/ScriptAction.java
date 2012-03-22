@@ -122,7 +122,7 @@ public class ScriptAction extends GuardedAction
     // optionally create local variable context
     privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
         
-    // special handling of <if>
+    // special handling of <if>, <elseif>, <else>
     IfAction ifAction = null;
     
     // create script operations
@@ -157,7 +157,7 @@ public class ScriptAction extends GuardedAction
   {
     if ( privateScope) context = new StatefulContext( context);
     
-    if ( !debugging)
+    if ( !isDebugging())
     {
       for( IXAction action: actions)
       {
@@ -168,7 +168,7 @@ public class ScriptAction extends GuardedAction
     }
     else
     {
-      IDebugger debugger = debuggers.get();
+      IDebugger debugger = getDebugger();
       try
       {
         debugger.push( context, this);

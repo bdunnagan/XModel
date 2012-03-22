@@ -132,7 +132,15 @@ public final class Log
   {
     this.name = name;
     mask = new AtomicInteger( problems | info);
-    sink = new FormatSink( new ConsoleSink());
+    
+    try
+    {
+      sink = new FormatSink( new MultiSink( new ConsoleSink(), new SyslogSink()));
+    }
+    catch( Exception e)
+    {
+      sink = new FormatSink( new ConsoleSink());
+    }
   }
   
   /**
@@ -382,6 +390,10 @@ public final class Log
   {
     if ( (mask.get() & exception) == 0) return;
     sink.log( this, exception, throwable);
+    
+    Throwable cause = throwable.getCause();
+    if ( cause != null && cause != throwable)
+      exceptionf( cause, "Caused by: ");
   }
   
   /**
@@ -394,6 +406,10 @@ public final class Log
   {
     if ( (mask.get() & exception) == 0) return;
     sink.log( this, exception, String.format( format, params), throwable);
+    
+    Throwable cause = throwable.getCause();
+    if ( cause != null && cause != throwable)
+      exceptionf( cause, "Caused by: ");
   }
 
   /**

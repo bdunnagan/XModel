@@ -19,10 +19,9 @@ public class Server extends Protocol
    * @param timeout The timeout for message response.
    * @param debug True if debugging is enabled on this server.
    */
-  public Server( String host, int port, int timeout, boolean debug) throws IOException
+  public Server( String host, int port, int timeout) throws IOException
   {
     super( timeout);
-    setEnableDebugging( debug);
     server = new TcpServer( host, port, this);
   }
 

@@ -3,8 +3,8 @@ package org.xmodel.xaction.debug;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.concurrent.Semaphore;
-
 import org.xmodel.BlockingDispatcher;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.diff.DefaultXmlMatcher;
@@ -56,98 +56,80 @@ public class Debugger implements IDebugger
    * @see org.xmodel.xaction.debug.IDebugger#stepOver()
    */
   @Override
-  public void stepOver()
+  public synchronized void stepOver()
   {
-    synchronized( this)
-    {
-      stepFrame = currFrame;
-      unblock();
-    }
+    stepFrame = currFrame;
+    unblock();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#stepIn()
    */
   @Override
-  public void stepIn()
+  public synchronized void stepIn()
   {
-    synchronized( this)
-    {
-      stepFrame = currFrame + 1;
-      unblock();
-    }
+    stepFrame = currFrame + 1;
+    unblock();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#stepOut()
    */
   @Override
-  public void stepOut()
+  public synchronized void stepOut()
   {
-    synchronized( this)
-    {
-      stepFrame = currFrame - 1;
-      unblock();
-    }
+    stepFrame = currFrame - 1;
+    unblock();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#push(org.xmodel.xpath.expression.IContext, org.xmodel.xaction.ScriptAction)
    */
   @Override
-  public void push( IContext context, ScriptAction script)
+  public synchronized void push( IContext context, ScriptAction script)
   {
-    synchronized( this)
-    {
-      currFrame++;
-      
-      Frame frame = new Frame( context, script);
-      stack.push( frame);
-      
-      debugRoot.addChild( createFrameElement( frame, null));
-    }
+    currFrame++;
+    
+    Frame frame = new Frame( context, script);
+    stack.push( frame);
+    
+    debugRoot.addChild( createFrameElement( frame, null));
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#run(org.xmodel.xpath.expression.IContext, org.xmodel.xaction.IXAction)
    */
   @Override
-  public Object[] run( IContext context, IXAction action)
+  public synchronized Object[] run( IContext context, IXAction action)
   {
-    synchronized( this)
+    if ( stepFrame >= currFrame) 
     {
-      if ( stepFrame >= currFrame) 
-      {
-        Frame frame = stack.peek();
-        
-        IModelObject element = debugRoot.getChild( debugRoot.getNumberOfChildren() - 1);
-        IModelObject revised = createFrameElement( frame, action);
-        XmlDiffer differ = new XmlDiffer( new DefaultXmlMatcher( true));
-        differ.diffAndApply( element, revised);
-        
-        block();
-      }
+      Frame frame = stack.peek();
       
-      Object[] result = action.run( context);
-      return result;
+      IModelObject element = debugRoot.getChild( debugRoot.getNumberOfChildren() - 1);
+      IModelObject revised = createFrameElement( frame, action);
+      XmlDiffer differ = new XmlDiffer( new DefaultXmlMatcher( true));
+      differ.diffAndApply( element, revised);
+      
+      block();
     }
+    
+    Object[] result = action.run( context);
+    return result;
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.debug.IDebugger#pop()
    */
   @Override
-  public void pop()
+  public synchronized void pop()
   {
-    synchronized( this)
-    {
-      stack.pop();
+    stack.pop();
+    
+    int depth = debugRoot.getNumberOfChildren();
+    if ( depth > 0) debugRoot.removeChild( depth-1); 
       
-      int depth = debugRoot.getNumberOfChildren();
-      if ( depth > 0) debugRoot.removeChild( depth-1); 
-        
-      currFrame--;
-    }
+    currFrame--;
   }
   
   /**
@@ -155,11 +137,19 @@ public class Debugger implements IDebugger
    */
   private void block()
   {
-    protocol.setDispatcher( dispatcher);
-    while( true)
+    IDispatcher protocolDispatcher = protocol.getDispatcher();
+    try
     {
-      dispatcher.process();
-      if ( semaphore.tryAcquire()) break;
+      protocol.setDispatcher( dispatcher);
+      while( true)
+      {
+        dispatcher.process();
+        if ( semaphore.tryAcquire()) break;
+      }
+    }
+    finally
+    {
+      protocol.setDispatcher( protocolDispatcher);
     }
   }
 

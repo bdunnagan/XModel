@@ -25,7 +25,7 @@ public class TestServer
         
         try
         {
-          server = new Server( "127.0.0.1", port, Integer.MAX_VALUE, true);
+          server = new Server( "127.0.0.1", port, Integer.MAX_VALUE);
           server.start( true);
           
           ManualDispatcher dispatcher = new ManualDispatcher();
