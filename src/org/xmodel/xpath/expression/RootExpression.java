@@ -25,7 +25,11 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
-import org.xmodel.xpath.variable.*;
+import org.xmodel.xpath.variable.IVariableScope;
+import org.xmodel.xpath.variable.IVariableSource;
+import org.xmodel.xpath.variable.Precedences;
+import org.xmodel.xpath.variable.VariableScope;
+import org.xmodel.xpath.variable.VariableSource;
 
 
 /**
@@ -165,7 +169,7 @@ public class RootExpression extends Expression
    */
   public void setVariableSource( IVariableSource variableSource)
   {
-    this.variableSource = variableSource;
+    varSources.set( variableSource);
   }
   
   /* (non-Javadoc)
@@ -174,13 +178,14 @@ public class RootExpression extends Expression
   @Override
   public IVariableSource getVariableSource()
   {
-    if ( variableSource == null) 
+    IVariableSource varSource = varSources.get();
+    if ( varSource == null)
     {
-      variableSource = new VariableSource();
-      if ( variableSource.getScope( "local") == null)
-        variableSource.addScope( new VariableScope( "local", Precedences.localScope));
+      varSource = new VariableSource();
+      varSource.addScope( new VariableScope( "local", Precedences.localScope));
+      varSources.set( varSource);
     }
-    return variableSource;
+    return varSource;
   }
 
   /* (non-Javadoc)
@@ -429,15 +434,7 @@ public class RootExpression extends Expression
    */
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    updating = true;
-    try
-    {
-      if ( listeners != null) listeners.notifyAdd( this, context, nodes);
-    }
-    finally
-    {
-      updating = false;
-    }
+    if ( listeners != null) listeners.notifyAdd( this, context, nodes);
   }
 
   /* (non-Javadoc)
@@ -447,15 +444,7 @@ public class RootExpression extends Expression
    */
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    updating = true;
-    try
-    {
-      if ( listeners != null) listeners.notifyRemove( this, context, nodes);
-    }
-    finally
-    {
-      updating = false;
-    }
+    if ( listeners != null) listeners.notifyRemove( this, context, nodes);
   }
 
   /* (non-Javadoc)
@@ -465,15 +454,7 @@ public class RootExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
-    updating = true;
-    try
-    {
-      if ( listeners != null) listeners.notifyChange( this, context, newValue);
-    }
-    finally
-    {
-      updating = false;
-    }
+    if ( listeners != null) listeners.notifyChange( this, context, newValue);
   }
 
   /* (non-Javadoc)
@@ -483,15 +464,7 @@ public class RootExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
   {
-    updating = true;
-    try
-    {
-      if ( listeners != null) listeners.notifyChange( this, context, newValue, oldValue);
-    }
-    finally
-    {
-      updating = false;
-    }
+    if ( listeners != null) listeners.notifyChange( this, context, newValue, oldValue);
   }
 
   /* (non-Javadoc)
@@ -501,15 +474,7 @@ public class RootExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
   {
-    updating = true;
-    try
-    {
-      if ( listeners != null) listeners.notifyChange( this, context, newValue, oldValue);
-    }
-    finally
-    {
-      updating = false;
-    }
+    if ( listeners != null) listeners.notifyChange( this, context, newValue, oldValue);
   }
 
   /* (non-Javadoc)
@@ -519,21 +484,13 @@ public class RootExpression extends Expression
   @Override
   public void notifyChange( IExpression expression, IContext context)
   {
-    updating = true;
-    try
+    if ( listeners != null) 
     {
-      if ( listeners != null) 
+      if ( context.shouldUpdate( this))
       {
-        if ( context.shouldUpdate( this))
-        {
-          context.notifyUpdate( this);
-          listeners.notifyChange( this, context);
-        }
+        context.notifyUpdate( this);
+        listeners.notifyChange( this, context);
       }
-    }
-    finally
-    {
-      updating = false;
     }
   }
 
@@ -578,9 +535,8 @@ public class RootExpression extends Expression
     return (tree != null)? tree.toString(): "(?)";
   }
   
-  IVariableSource variableSource;
-  ExpressionListenerList listeners;
-  boolean updating;
+  private ThreadLocal<IVariableSource> varSources = new ThreadLocal<IVariableSource>();
+  private ExpressionListenerList listeners;
   
   public static void main( String[] args) throws Exception
   {
