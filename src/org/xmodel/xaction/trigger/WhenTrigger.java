@@ -23,6 +23,7 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.ExpressionListener;
@@ -62,7 +63,7 @@ public class WhenTrigger extends AbstractTrigger
   public void activate( IContext context)
   {
     correlation++;
-    System.out.printf( "ACTIVATE %d %s\n", correlation, this);
+    SLog.infof( this, "ACTIVATE %d %s\n", correlation, this);
     
     if ( initialize)
     {
