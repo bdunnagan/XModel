@@ -43,6 +43,14 @@ public class AttributeHistoryNode implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearModel()
+   */
+  @Override
+  public void clearModel()
+  {
+  }
+  
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModel()
    */
   public IModel getModel()

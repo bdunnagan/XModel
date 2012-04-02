@@ -51,6 +51,15 @@ public class Reference implements IModelObject
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearModel()
+   */
+  @Override
+  public void clearModel()
+  {
+    referent.clearModel();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModel()
    */
   public IModel getModel()

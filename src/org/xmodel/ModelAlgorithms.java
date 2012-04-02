@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.zip.CRC32;
+import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.util.Fifo;
@@ -345,7 +346,9 @@ public class ModelAlgorithms implements IAxis
           fifo.push( child);
           fifo.push( childDup);
         }
+        childDup.clearModel();
       }
+      sourceDup.clearModel();
     }
     return thisDup;
   }
@@ -962,6 +965,23 @@ public class ModelAlgorithms implements IAxis
     name.append( session);
     name.append( Integer.toString( id, 36));
     return name.toString();
+  }
+  
+  /**
+   * Create a master clone of the specified slave object.  The master clone can be used in another thread,
+   * and the slave will be kept synchronized via its thread dispatcher.
+   * @see org.xmodel.concurrent.MasterSlaveListener
+   * @param slave The slave.
+   * @return Returns the master clone, or null if the argument is null.
+   */
+  public static IModelObject createMasterClone( IModelObject slave)
+  {
+    if ( slave == null) return null;
+    
+    IModelObject master = slave.cloneTree();
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    masterListener.install( master);
+    return master;
   }
 
   /**

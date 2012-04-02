@@ -42,6 +42,15 @@ public class AttributeNode implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearModel()
+   */
+  @Override
+  public void clearModel()
+  {
+    source.clearModel();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModel()
    */
   public IModel getModel()
@@ -121,7 +130,7 @@ public class AttributeNode implements IModelObject
    */
   public IModelObject cloneObject()
   {
-    return new AttributeNode( attrName, source);
+    return new AttributeNode( attrName, source.cloneTree());
   }
 
   /* (non-Javadoc)

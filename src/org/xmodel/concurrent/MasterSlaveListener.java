@@ -19,7 +19,6 @@
  */
 package org.xmodel.concurrent;
 
-import java.lang.ref.WeakReference;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -45,7 +44,7 @@ public class MasterSlaveListener extends NonSyncingListener
   public MasterSlaveListener( IModelObject master, IModelObject slave)
   {
     this.master = master;
-    this.slave = new WeakReference<IModelObject>( slave);
+    this.slave = slave;
     this.dispatcher = slave.getModel().getDispatcher();
     if ( dispatcher == null) throw new IllegalArgumentException( "Slave element does not have associated dispatcher.");
   }
@@ -124,25 +123,14 @@ public class MasterSlaveListener extends NonSyncingListener
     @Override 
     public void run()
     {
-      if ( slave != null)
-      {
-        IModelObject element = slave.get();
-        if ( element == null) 
-        {
-          synchronized( this) { dispatcher = null;}
-        }
-        else 
-        {
-          record.applyChange( element);
-        }
-      }
+      record.applyChange( slave);
     }
     
     private IChangeRecord record;
   }
   
   private IModelObject master;
-  private WeakReference<IModelObject> slave;
+  private IModelObject slave;
   private IDispatcher dispatcher;
   
   public static void main( String[] args) throws Exception

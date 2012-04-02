@@ -78,6 +78,15 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearModel()
+   */
+  @Override
+  public void clearModel()
+  {
+    model = null;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModel()
    */
   public IModel getModel()

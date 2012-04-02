@@ -39,6 +39,15 @@ public class TextNode implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearModel()
+   */
+  @Override
+  public void clearModel()
+  {
+    source.clearModel();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModel()
    */
   public IModel getModel()
@@ -118,7 +127,7 @@ public class TextNode implements IModelObject
    */
   public IModelObject cloneObject()
   {
-    return new TextNode( source);
+    return new TextNode( source.cloneTree());
   }
 
   /* (non-Javadoc)
