@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.xaction.debug.IDebugger;
+import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -168,7 +168,7 @@ public class ScriptAction extends GuardedAction
     }
     else
     {
-      IDebugger debugger = getDebugger();
+      Debugger debugger = getDebugger();
       try
       {
         debugger.push( context, this);

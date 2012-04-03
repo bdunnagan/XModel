@@ -26,7 +26,6 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
-import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -106,30 +105,6 @@ public class AssignAction extends GuardedAction
             List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
             for( IModelObject source: sources) clones.add( ModelAlgorithms.cloneTree( source, factory));
             setVariable( scope, clones);
-          }
-          else if ( mode.equals( "master-copy"))
-          {
-            List<IModelObject> masters = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) 
-            {
-              IModelObject master = ModelAlgorithms.cloneTree( source, factory);
-              MasterSlaveListener listener = new MasterSlaveListener( master, source);
-              listener.install( master);
-              masters.add( master);
-            }
-            setVariable( scope, masters);
-          }
-          else if ( mode.equals( "slave-copy"))
-          {
-            List<IModelObject> slaves = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) 
-            {
-              IModelObject slave = ModelAlgorithms.cloneTree( source, factory);
-              MasterSlaveListener listener = new MasterSlaveListener( source, slave);
-              listener.install( source);
-              slaves.add( slave);
-            }
-            setVariable( scope, slaves);
           }
           else if ( mode.equals( "fk1"))
           {

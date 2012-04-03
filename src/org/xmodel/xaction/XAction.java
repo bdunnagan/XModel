@@ -29,7 +29,7 @@ import org.xmodel.Xlate;
 import org.xmodel.diff.ConfiguredXmlMatcher;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.IXmlMatcher;
-import org.xmodel.xaction.debug.IDebugger;
+import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -100,7 +100,7 @@ public abstract class XAction implements IXAction
    * Turn on debugging and use the specified debugger.
    * @param debugger The debugger.
    */
-  public final static void setDebugger( IDebugger debugger)
+  public final static void setDebugger( Debugger debugger)
   {
     if ( debugger != null)
     {
@@ -117,7 +117,7 @@ public abstract class XAction implements IXAction
   /**
    * @return Returns the debugger or null.
    */
-  public final static IDebugger getDebugger()
+  public final static Debugger getDebugger()
   {
     return debuggers.get();
   }
@@ -225,7 +225,7 @@ public abstract class XAction implements IXAction
   private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
-  private static ThreadLocal<IDebugger> debuggers = new ThreadLocal<IDebugger>();
+  private static ThreadLocal<Debugger> debuggers = new ThreadLocal<Debugger>();
   private volatile static boolean debugging = false;
   
   protected XActionDocument document;

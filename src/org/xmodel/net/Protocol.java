@@ -39,9 +39,12 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
+import org.xmodel.net.DebugProtocol.Operation;
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
+import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -80,7 +83,9 @@ public class Protocol implements ILink.IListener
     queryRequest,
     queryResponse,
     executeRequest,
-    executeResponse
+    executeResponse,
+    debugRequest,
+    debugResponse
   }
 
   /**
@@ -543,6 +548,9 @@ public class Protocol implements ILink.IListener
         case queryResponse:   handleQueryResponse( link, session, correlation, buffer, length); return true;
         case executeRequest:  handleExecuteRequest( link, session, correlation, buffer, length); return true;
         case executeResponse: handleExecuteResponse( link, session, correlation, buffer, length); return true;
+        
+        case debugRequest:  handleDebugRequest( link, session, correlation, buffer, length); return true;
+        case debugResponse: handleDebugResponse( link, session, correlation, buffer, length); return true;
       }
     }
     catch( BufferUnderflowException e)
@@ -1649,6 +1657,149 @@ public class Protocol implements ILink.IListener
   }
   
   /**
+   * Send an debug request message.
+   * @param link The link.
+   * @param session The session number.
+   * @param context The local execution context.
+   * @param operation The debug operation.
+   * @param timeout The amount of time to wait for a response.
+   * @return Returns null or the execution results.
+   */
+  public final IModelObject sendDebugRequest( ILink link, int session, StatefulContext context, Operation operation, int timeout) throws IOException
+  {
+    SessionInfo info = getSession( link, session);
+    
+    initialize( buffer);
+    buffer.put( (byte)operation.ordinal());
+    finalize( buffer, Type.executeRequest, session, ++info.correlation, 1);
+
+    // log
+    SLog.debugf( this, "Send Debug Request: operation=%s", operation.name());
+    
+    if ( timeout > 0)
+    {
+      byte[] response = send( link, session, info.correlation, buffer, timeout);
+      if ( response != null) return (ModelObject)info.compressor.decompress( response, 0);
+    }
+    else
+    {
+      send( link, buffer, session);
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param correlation The correlation number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleDebugRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
+  {
+    Operation operation = Operation.values()[ buffer.get()];
+    SLog.debugf( this, "Handle Debug Request: operation=%s", operation.name());
+    handleDebugRequest( link, session, correlation, operation);
+  }
+  
+  /**
+   * Handle a debug request.
+   * @param link The link.
+   * @param session The session number.
+   * @param correlation The correlation number.
+   * @param operation The debug operation.
+   */
+  protected void handleDebugRequest( ILink link, int session, int correlation, Operation operation)
+  {
+    Debugger debugger = XAction.getDebugger();
+    if ( debugger == null)
+    {
+      debugger = new Debugger();
+      XAction.setDebugger( debugger);
+    }
+
+    switch( operation)
+    {
+      case stepOver: debugger.stepOver(); break;
+      case stepIn:   debugger.stepIn(); break;
+      case stepOut:  debugger.stepOut(); break;
+      case resume:
+      {
+        XAction.setDebugger( null);
+        debugger.resume();
+        break;
+      }
+    }
+    
+    try
+    {
+      //
+      // Set the default context to the debugging context.
+      //
+      context = debugger.getContext();
+      IXAction action = debugger.getAction();
+      sendDebugResponse( link, session, correlation, context, action.getDocument().getRoot());
+    }
+    catch( IOException e)
+    {
+      SLog.exception( this, e);
+    }
+  }
+  
+  /**
+   * Send a debug response.
+   * @param link The link.
+   * @param session The session number.
+   * @param correlation The correlation number.
+   * @param context The debugging context.
+   * @param location The debugging location.
+   */
+  public final void sendDebugResponse( ILink link, int session, int correlation, IContext context, IModelObject location) throws IOException
+  {
+    initialize( buffer);
+    
+    IModelObject response = DebugProtocol.buildResponse( context, location);
+    ICompressor compressor = getSession( link, session).compressor;
+    byte[] bytes = compressor.compress( response);
+    
+    int required = buffer.position() + bytes.length;
+    if ( required >= buffer.limit())
+    {
+      buffer.flip();
+      ByteBuffer larger = ByteBuffer.allocate( (int)(required * 1.5));
+      larger.put( buffer);
+      buffer = larger;
+    }
+    
+    buffer.put( bytes);
+    finalize( buffer, Type.debugResponse, session, correlation, bytes.length);
+    
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, response);
+      SLog.debugf( this, "Send Debug Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+    }
+    
+    send( link, buffer, session);
+  }
+  
+  /**
+   * Handle the specified message buffer.
+   * @param link The link.
+   * @param session The session number.
+   * @param correlation The correlation number.
+   * @param buffer The buffer.
+   * @param length The length of the message.
+   */
+  private final void handleDebugResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
+  {
+    queueResponse( link, session, correlation, buffer, length);
+  }
+  
+  /**
    * Send and wait for a response.
    * @param link The link.
    * @param session The session number.
@@ -2486,7 +2637,7 @@ public class Protocol implements ILink.IListener
     private IContext context;
     private IModelObject script;
   }
-  
+    
   private final class SessionCloseRunnable implements Runnable
   {
     public SessionCloseRunnable( ILink sender, int session)
