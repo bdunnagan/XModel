@@ -51,7 +51,12 @@ public class Debugger
     unblock();
   }
 
-  public void resume()
+  public synchronized void pause()
+  {
+    stepFrame = currFrame + 1;
+  }
+  
+  public synchronized void resume()
   {
     stepFrame = -1;
     unblock();

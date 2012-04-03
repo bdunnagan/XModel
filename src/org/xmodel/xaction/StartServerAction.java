@@ -20,11 +20,11 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.log.Log;
 import org.xmodel.net.Server;
+import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -51,6 +51,7 @@ public class StartServerAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
+    debugExpr = document.getExpression( "debug", true);
     
     // get context expression
     sourceExpr = document.getExpression();
@@ -64,6 +65,12 @@ public class StartServerAction extends GuardedAction
   {
     // get context
     IModelObject source = (sourceExpr != null)? sourceExpr.queryFirst( context): null;
+    
+    // install debugger
+    if ( (debugExpr != null)? debugExpr.evaluateBoolean( context): false)
+    {
+      XAction.setDebugger( new Debugger());
+    }
     
     // start server
     try
@@ -98,4 +105,5 @@ public class StartServerAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression sourceExpr;
+  private IExpression debugExpr;
 }

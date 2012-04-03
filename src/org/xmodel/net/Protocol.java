@@ -1713,23 +1713,15 @@ public class Protocol implements ILink.IListener
   protected void handleDebugRequest( ILink link, int session, int correlation, Operation operation)
   {
     Debugger debugger = XAction.getDebugger();
-    if ( debugger == null)
-    {
-      debugger = new Debugger();
-      XAction.setDebugger( debugger);
-    }
+    if ( debugger == null) return;
 
     switch( operation)
     {
       case stepOver: debugger.stepOver(); break;
       case stepIn:   debugger.stepIn(); break;
       case stepOut:  debugger.stepOut(); break;
-      case resume:
-      {
-        XAction.setDebugger( null);
-        debugger.resume();
-        break;
-      }
+      case resume:   debugger.resume(); break;
+      case pause:    debugger.pause(); break;
     }
     
     try
