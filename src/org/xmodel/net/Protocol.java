@@ -39,12 +39,12 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.DebugProtocol.Operation;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xaction.debug.Debugger;
+import org.xmodel.xaction.debug.Debugger.Operation;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -1737,9 +1737,7 @@ public class Protocol implements ILink.IListener
       //
       // Set the default context to the debugging context.
       //
-      context = debugger.getContext();
-      IXAction action = debugger.getAction();
-      sendDebugResponse( link, session, correlation, context, action.getDocument().getRoot());
+      sendDebugResponse( link, session, correlation, debugger.getStack());
     }
     catch( IOException e)
     {
@@ -1752,16 +1750,14 @@ public class Protocol implements ILink.IListener
    * @param link The link.
    * @param session The session number.
    * @param correlation The correlation number.
-   * @param context The debugging context.
-   * @param location The debugging location.
+   * @param stack The stack.
    */
-  public final void sendDebugResponse( ILink link, int session, int correlation, IContext context, IModelObject location) throws IOException
+  public final void sendDebugResponse( ILink link, int session, int correlation, IModelObject stack) throws IOException
   {
     initialize( buffer);
     
-    IModelObject response = DebugProtocol.buildResponse( context, location);
     ICompressor compressor = getSession( link, session).compressor;
-    byte[] bytes = compressor.compress( response);
+    byte[] bytes = compressor.compress( stack);
     
     int required = buffer.position() + bytes.length;
     if ( required >= buffer.limit())
@@ -1778,8 +1774,8 @@ public class Protocol implements ILink.IListener
     // log
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
-      String xml = XmlIO.write( Style.compact, response);
-      SLog.debugf( this, "Send Debug Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      String xml = XmlIO.write( Style.printable, stack);
+      SLog.debugf( this, "Send Debug Response: session=%d, correlation=%d\n%s", session, correlation, xml);
     }
     
     send( link, buffer, session);

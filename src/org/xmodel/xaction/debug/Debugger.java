@@ -1,6 +1,12 @@
 package org.xmodel.xaction.debug;
 
 import java.util.concurrent.Semaphore;
+import org.xmodel.IModelObject;
+import org.xmodel.IPath;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.Xlate;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
@@ -13,26 +19,18 @@ public class Debugger
 {
   public final static int defaultPort = 27700;
   
+  public static enum Operation { stepOver, stepIn, stepOut, pause, resume};
+  
   public Debugger()
   {
     semaphore = new Semaphore( 0);
     stepFrame = 1;
+    stack = new ModelObject( "stack");
   }
 
-  /**
-   * @return Returns the current debugging context.
-   */
-  public synchronized IContext getContext()
+  public synchronized IModelObject getStack()
   {
-    return context;
-  }
-  
-  /**
-   * @return Returns the next action that will execute.
-   */
-  public synchronized IXAction getAction()
-  {
-    return action;
+    return stack.cloneTree();
   }
   
   public synchronized void stepOver()
@@ -62,8 +60,27 @@ public class Debugger
   public synchronized void push( IContext context, ScriptAction action)
   {
     currFrame++;
-    this.context = context;
-    this.action = action;
+    
+    // set stack ID to name of thread
+    Xlate.set( stack, "thread", Thread.currentThread().getName());
+
+    // build frame
+    IModelObject parent = (frame != null)? frame: stack;
+    frame = new ModelObject( "frame");
+    
+    // location
+    IPath path = ModelAlgorithms.createIdentityPath( action.getDocument().getRoot(), true);
+    Xlate.set( frame, "location", path.toString());
+    
+    // store variable names in scope
+    for( String varName: context.getScope().getVariables())
+    {
+      ModelObject varNode = new ModelObject( "var");
+      varNode.setValue( varName);
+      frame.addChild( varNode);
+    }
+    
+    parent.addChild( frame);
   }
 
   public synchronized Object[] run( IContext context, IXAction action)
@@ -76,10 +93,21 @@ public class Debugger
   public synchronized void pop()
   {
     currFrame--;
+    
+    // remove current frame
+    if ( frame != null && frame != stack) frame.removeFromParent();
   }
   
   private void block()
   {
+    try 
+    { 
+      semaphore.acquire();
+    } 
+    catch( InterruptedException e) 
+    {
+      SLog.info( this, "Debugger resuming after interruption.");
+    }
   }
 
   private void unblock()
@@ -89,7 +117,7 @@ public class Debugger
 
   private int stepFrame;
   private int currFrame;
-  private IContext context;
-  private IXAction action;
+  private IModelObject stack;
+  private IModelObject frame;
   private Semaphore semaphore;
 }

@@ -3,7 +3,7 @@ package org.xmodel.net;
 import java.io.IOException;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.net.DebugProtocol.Operation;
+import org.xmodel.xaction.debug.Debugger.Operation;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
