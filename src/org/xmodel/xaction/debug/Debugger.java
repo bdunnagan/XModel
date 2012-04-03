@@ -24,8 +24,10 @@ public class Debugger
   public Debugger()
   {
     semaphore = new Semaphore( 0);
-    stepFrame = 1;
+    stepFrame = -1;
+    
     stack = new ModelObject( "stack");
+    Xlate.set( stack, "thread", Thread.currentThread().getName());
   }
 
   public synchronized IModelObject getStack()
@@ -65,32 +67,26 @@ public class Debugger
   public synchronized void push( IContext context, ScriptAction action)
   {
     currFrame++;
-    
-    // set stack ID to name of thread
-    Xlate.set( stack, "thread", Thread.currentThread().getName());
 
-    // build frame
+    IModelObject newFrame = new ModelObject( "frame");
+    
     IModelObject parent = (frame != null)? frame: stack;
-    frame = new ModelObject( "frame");
+    parent.addChild( newFrame);
     
-    // location
-    IPath path = ModelAlgorithms.createIdentityPath( action.getDocument().getRoot(), true);
-    Xlate.set( frame, "location", path.toString());
-    
-    // store variable names in scope
-    for( String varName: context.getScope().getVariables())
-    {
-      ModelObject varNode = new ModelObject( "var");
-      varNode.setValue( varName);
-      frame.addChild( varNode);
-    }
-    
-    parent.addChild( frame);
+    frame = newFrame;
   }
 
-  public synchronized Object[] run( IContext context, IXAction action)
+  public Object[] run( IContext context, IXAction action)
   {
-    if ( stepFrame >= currFrame) block();
+    boolean block = false;
+    synchronized( this) 
+    { 
+      block = stepFrame >= currFrame;
+      buildFrame( context, action);
+    }
+    
+    if ( block) block();
+    
     Object[] result = action.run( context);
     return result;
   }
@@ -100,14 +96,22 @@ public class Debugger
     currFrame--;
     
     // remove current frame
-    if ( frame != null && frame != stack) frame.removeFromParent();
+    if ( frame != null && frame != stack) 
+    {
+      IModelObject parent = frame.getParent();
+      frame.removeFromParent();
+      frame = parent;
+    }
   }
   
   private void block()
   {
     try 
     { 
+      SLog.infof( this, "Debugger blocking ...");
       semaphore.acquire();
+      
+      SLog.infof( this, "Debugger resuming.");
     } 
     catch( InterruptedException e) 
     {
@@ -118,6 +122,31 @@ public class Debugger
   private void unblock()
   {
     semaphore.release();
+  }
+  
+  private void buildFrame( IContext context, IXAction action)
+  {
+    // clean old frame
+    frame.removeChildren( "var");
+    
+    // location
+    if ( frame.getParent().isType( "stack"))
+    {
+      IPath path = ModelAlgorithms.createIdentityPath( action.getDocument().getRoot(), true);
+      Xlate.set( frame, "location", path.toString());
+    }
+    else
+    {
+      Xlate.set( frame, "location", action.toString());
+    }
+    
+    // store variable names in scope
+    for( String varName: context.getScope().getVariables())
+    {
+      ModelObject varNode = new ModelObject( "var");
+      varNode.setValue( varName);
+      frame.addChild( varNode);
+    }
   }
 
   private int stepFrame;

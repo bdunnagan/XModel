@@ -692,7 +692,14 @@ public class Protocol implements ILink.IListener
    */
   private final void handleHeartbeatRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
-    dispatch( getSession( link, session), new HeartbeatRunnable( link, session)); 
+    try
+    {
+      sendHeartbeatResponse( link, session);
+    }
+    catch( IOException e)
+    {
+      SLog.exception( this, e);
+    }
   }
   
   /**
@@ -2503,30 +2510,6 @@ public class Protocol implements ILink.IListener
     private int session;
     private long key;
     private boolean dirty;
-  }
-  
-  private final class HeartbeatRunnable implements Runnable
-  {
-    public HeartbeatRunnable( ILink sender, int session)
-    {
-      this.sender = sender;
-      this.session = session;
-    }
-    
-    public void run()
-    {
-      try
-      {
-        sendHeartbeatResponse( sender, session);
-      } 
-      catch( IOException e)
-      {
-        SLog.exception( this, e);
-      }
-    }
-
-    private ILink sender;
-    private int session;
   }
   
   private final class AttachRunnable implements Runnable

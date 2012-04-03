@@ -105,12 +105,12 @@ public abstract class XAction implements IXAction
     if ( debugger != null)
     {
       debugging = true;
-      debuggers.set( debugger);
+      XAction.debugger = debugger;
     }
     else
     {
       debugging = false;
-      debuggers.set( null);
+      XAction.debugger = null;
     }
   }
   
@@ -119,7 +119,7 @@ public abstract class XAction implements IXAction
    */
   public final static Debugger getDebugger()
   {
-    return debuggers.get();
+    return debugger;
   }
   
   /**
@@ -225,7 +225,7 @@ public abstract class XAction implements IXAction
   private final IExpression loaderExpr = XPath.createExpression(
     "ancestor-or-self::*/classLoader");
 
-  private static ThreadLocal<Debugger> debuggers = new ThreadLocal<Debugger>();
+  private static Debugger debugger = null;
   private volatile static boolean debugging = false;
   
   protected XActionDocument document;

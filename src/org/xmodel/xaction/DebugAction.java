@@ -1,7 +1,9 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+import java.util.List;
 import org.xmodel.IModelObject;
+import org.xmodel.diff.XmlDiffer;
 import org.xmodel.net.Client;
 import org.xmodel.net.Session;
 import org.xmodel.xaction.debug.Debugger;
@@ -15,6 +17,11 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public class DebugAction extends GuardedAction
 {
+  public DebugAction()
+  {
+    differ = new XmlDiffer();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -40,9 +47,6 @@ public class DebugAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    String op = opExpr.evaluateString( context);
-    op = op.trim().toLowerCase();
-    
     if ( sessions.get() == null)
     {
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
@@ -65,12 +69,34 @@ public class DebugAction extends GuardedAction
     try
     {
       Session session = sessions.get();
+      
+      String op = opExpr.evaluateString( context);
       IModelObject response = session.debug( Operation.valueOf( op), (int)timeout);
       
       if ( var != null)
       {
         IVariableScope scope = context.getScope();
-        if ( scope != null) scope.set( var, response);
+        if ( scope != null) 
+        {
+          Object object = scope.get( var);
+          if ( object != null && object instanceof List)
+          {
+            List<?> list = (List<?>)object;
+            if ( list.size() > 0)
+            {
+              IModelObject element = (IModelObject)list.get( 0);
+              differ.diffAndApply( element, response);
+            }
+            else
+            {
+              scope.set( var, response);
+            }
+          }
+          else
+          {
+            scope.set( var, response);
+          }
+        }
       }
     }
     catch( IOException e)
@@ -88,4 +114,5 @@ public class DebugAction extends GuardedAction
   private IExpression timeoutExpr;
   private IExpression opExpr;
   private String var;
+  private XmlDiffer differ;
 }
