@@ -1660,18 +1660,17 @@ public class Protocol implements ILink.IListener
    * Send an debug request message.
    * @param link The link.
    * @param session The session number.
-   * @param context The local execution context.
    * @param operation The debug operation.
    * @param timeout The amount of time to wait for a response.
    * @return Returns null or the execution results.
    */
-  public final IModelObject sendDebugRequest( ILink link, int session, StatefulContext context, Operation operation, int timeout) throws IOException
+  public final IModelObject sendDebugRequest( ILink link, int session, Operation operation, int timeout) throws IOException
   {
     SessionInfo info = getSession( link, session);
     
     initialize( buffer);
     buffer.put( (byte)operation.ordinal());
-    finalize( buffer, Type.executeRequest, session, ++info.correlation, 1);
+    finalize( buffer, Type.debugRequest, session, ++info.correlation, 1);
 
     // log
     SLog.debugf( this, "Send Debug Request: operation=%s", operation.name());

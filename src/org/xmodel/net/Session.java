@@ -1,9 +1,9 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.net.DebugProtocol.Operation;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -68,6 +68,16 @@ public final class Session
   public Object[] execute( StatefulContext context, String[] variables, IModelObject script, int timeout) throws IOException
   {
     return protocol.execute( link, session, context, variables, script, timeout);
+  }
+  
+  /**
+   * Send a debug operation.
+   * @param operation The debug operation.
+   * @param timeout The timeout in milliseconds.
+   */
+  public IModelObject debug( Operation operation, int timeout) throws IOException
+  {
+    return protocol.sendDebugRequest( link, session, operation, timeout);
   }
   
   /**
