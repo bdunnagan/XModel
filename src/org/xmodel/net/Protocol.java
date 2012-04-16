@@ -67,8 +67,6 @@ public class Protocol implements ILink.IListener
     sessionOpenRequest,
     sessionOpenResponse,
     sessionCloseRequest,
-    heartbeatRequest,
-    heartbeatResponse,
     error,
     attachRequest,
     attachResponse,
@@ -530,9 +528,6 @@ public class Protocol implements ILink.IListener
         case sessionOpenResponse: handleSessionOpenResponse( link, session, buffer, length); return true;
         case sessionCloseRequest: handleSessionCloseRequest( link, session, buffer, length); return true;
         
-        case heartbeatRequest:    handleHeartbeatRequest( link, session, buffer, length); return true;
-        case heartbeatResponse:   handleHeartbeatResponse( link, session, correlation, buffer, length); return true;
-        
         case error:           handleError( link, session, buffer, length); return true;
         case attachRequest:   handleAttachRequest( link, session, correlation, buffer, length); return true;
         case attachResponse:  handleAttachResponse( link, session, correlation, buffer, length); return true;
@@ -668,67 +663,6 @@ public class Protocol implements ILink.IListener
     dispatch( getSession( link, session), new SessionCloseRunnable( link, session));
   }
 
-  /**
-   * Send a heartbeat request message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendHeartbeatRequest( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.heartbeatRequest, session, 0);
-    
-    SLog.debugf( this, "Send Heartbeat Request: session=%d", session);
-
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  private final void handleHeartbeatRequest( ILink link, int session, ByteBuffer buffer, int length)
-  {
-    try
-    {
-      sendHeartbeatResponse( link, session);
-    }
-    catch( IOException e)
-    {
-      SLog.exception( this, e);
-    }
-  }
-  
-  /**
-   * Send a heartbeat response message.
-   * @param link The link.
-   * @param session The session number.
-   */
-  public final void sendHeartbeatResponse( ILink link, int session) throws IOException
-  {
-    initialize( buffer);
-    finalize( buffer, Type.heartbeatResponse, session, 0);
-    
-    SLog.debugf( this, "Send Heartbeat Response: session=%d", session);
-
-    send( link, buffer, session);
-  }
-  
-  /**
-   * Handle the specified message buffer.
-   * @param link The link.
-   * @param session The session number.
-   * @param correlation The correlation tag.
-   * @param buffer The buffer.
-   * @param length The length of the message.
-   */
-  protected void handleHeartbeatResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
-  {
-  }
-  
   /**
    * Send an error message.
    * @param link The link.
@@ -1179,22 +1113,21 @@ public class Protocol implements ILink.IListener
    * @param link The link.
    * @param session The session number.
    * @param key The remote node key.
-   * @param attrName The name of the attribute.
-   * @param attrValue The new value.
+   * @param node The attribute node.
    */
-  public final void sendChangeAttribute( ILink link, int session, Long key, String attrName, Object value) throws IOException
+  public final void sendChangeAttribute( ILink link, int session, Long key, IModelObject node) throws IOException
   {
-    byte[] bytes = serialize( value);
+    byte[] bytes = serialize( node);
     
     initialize( buffer);
     int length = 4;
     buffer.putInt( key.intValue());
-    length += writeString( attrName);
+    length += writeString( node.getType());
     length += writeBytes( bytes, 0, bytes.length, true);
     finalize( buffer, Type.changeAttribute, session, length);
     
     // log
-    SLog.debugf( this, "Send Change Attribute: session=%d, object=%X, attr=%s, value=%s", session, key, attrName, value);
+    SLog.debugf( this, "Send Change Attribute: session=%d, object=%X, attr=%s, value=%s", session, key, node.getType(), node.getValue());
     
     send( link, buffer, session);
   }
@@ -1794,6 +1727,35 @@ public class Protocol implements ILink.IListener
   }
   
   /**
+   * Send a session open request and wait for a response.
+   * @param link The link.
+   * @param client The session initialization client identifier.
+   * @param buffer The buffer to send.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns null or the response buffer.
+   */
+  private Response send( ILink link, long client, ByteBuffer buffer, int timeout) throws IOException
+  {
+    try
+    {
+      SynchronousQueue<Response> queue = new SynchronousQueue<Response>();      
+      sessionInitQueues.put( client, queue);
+      
+      send( link, buffer, -1);
+      
+      Response response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      sessionInitQueues.remove( client);
+      if ( response != null) return response;
+    }
+    catch( InterruptedException e)
+    {
+      return null;
+    }
+    
+    throw new IOException( "Network request timeout.");
+  }
+  
+  /**
    * Send and wait for a response.
    * @param link The link.
    * @param session The session number.
@@ -1833,35 +1795,6 @@ public class Protocol implements ILink.IListener
         if ( response.correlation == correlation) return response.bytes;
         response = info.responseQueue.poll( timeout, TimeUnit.MILLISECONDS);
       } 
-    }
-    catch( InterruptedException e)
-    {
-      return null;
-    }
-    
-    throw new IOException( "Network request timeout.");
-  }
-  
-  /**
-   * Send a session open request and wait for a response.
-   * @param link The link.
-   * @param client The session initialization client identifier.
-   * @param buffer The buffer to send.
-   * @param timeout The timeout in milliseconds.
-   * @return Returns null or the response buffer.
-   */
-  private Response send( ILink link, long client, ByteBuffer buffer, int timeout) throws IOException
-  {
-    try
-    {
-      SynchronousQueue<Response> queue = new SynchronousQueue<Response>();      
-      sessionInitQueues.put( client, queue);
-      
-      send( link, buffer, -1);
-      
-      Response response = queue.poll( timeout, TimeUnit.MILLISECONDS);
-      sessionInitQueues.remove( client);
-      if ( response != null) return response;
     }
     catch( InterruptedException e)
     {
@@ -1932,11 +1865,12 @@ public class Protocol implements ILink.IListener
   
   /**
    * Returns the serialized attribute value.
-   * @param object The attribute value.
+   * @param node The attribute node.
    * @return Returns the serialized attribute value.
    */
-  private byte[] serialize( Object object)
+  private byte[] serialize( IModelObject node)
   {
+    Object object = node.getValue();
     if ( object == null) return new byte[ 0];
     
     // use java serialization
@@ -1946,7 +1880,7 @@ public class Protocol implements ILink.IListener
       {
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         DataOutputStream ds = new DataOutputStream( bs);
-        serializer.writeObject( ds, object);
+        serializer.writeObject( ds, node);
         ds.close();
         return bs.toByteArray();
       }
@@ -2711,7 +2645,7 @@ public class Protocol implements ILink.IListener
       try
       {
         long key = System.identityHashCode( object);
-        sendChangeAttribute( sender, session, key, attrName, newValue);
+        sendChangeAttribute( sender, session, key, object.getAttributeNode( attrName));
       } 
       catch( IOException e)
       {

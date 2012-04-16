@@ -63,7 +63,7 @@ public class WhenTrigger extends AbstractTrigger
   public void activate( IContext context)
   {
     correlation++;
-    SLog.infof( this, "ACTIVATE %d %s\n", correlation, this);
+    SLog.infof( this, "ACTIVATE %d %s", correlation, this);
     
     if ( initialize)
     {

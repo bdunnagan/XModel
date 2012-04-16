@@ -300,7 +300,7 @@ public class TabularCompressor extends AbstractCompressor
       for( String attrName: attrNames)
       {
         writeHash( stream, attrName);
-        writeObject( stream, node.getAttribute( attrName));
+        writeObject( stream, node.getAttributeNode( attrName));
       }
     }
     else
@@ -399,12 +399,12 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Serialize a Java Object to the stream.
    * @param stream The stream.
-   * @param object The object.
+   * @param node The node containing the object.
    * @return Returns the number of bytes written.
    */
-  private int writeObject( DataOutputStream stream, Object object) throws IOException
+  private int writeObject( DataOutputStream stream, IModelObject node) throws IOException
   {
-    return serializer.writeObject( stream, object);
+    return serializer.writeObject( stream, node);
   }
 
   /**

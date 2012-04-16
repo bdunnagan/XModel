@@ -72,13 +72,6 @@ public class XActionException extends RuntimeException
     super( cause);
   }
   
-  public String getMessage()
-  {
-    if ( document == null) return super.getMessage();
-    IPath path = ModelAlgorithms.createIdentityPath( document.getRoot());
-    return String.format( "%s: %s", super.getMessage(), path.toString());
-  }
-  
   /**
    * Set the location of an XActionException.
    * @param document The configuration document.
@@ -137,6 +130,25 @@ public class XActionException extends RuntimeException
     return null;
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Throwable#toString()
+   */
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append( super.toString());
+
+    if ( document != null && document.getRoot() != null)
+    {
+      IPath path = ModelAlgorithms.createIdentityPath( document.getRoot(), true);
+      sb.append( ": ");
+      sb.append( path);
+    }
+    
+    return sb.toString();
+  }
+
   private static Log log = Log.getLog( "org.xmodel.xaction");
   
   private XActionDocument document;

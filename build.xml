@@ -37,6 +37,7 @@
               <include name="org.xmodel.IModel"/>
               <include name="org.xmodel.Model"/>
               <include name="org.xmodel.ModelRegistry"/>
+              <include name="org.xmodel.ModelAlgorithms"/>
               <include name="org.xmodel.Update"/>
               <include name="org.xmodel.IDispatcher"/>
               <include name="org.xmodel.IModelObject"/>

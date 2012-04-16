@@ -21,7 +21,9 @@ public final class MultiSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message, Throwable throwable)
   {
-    for( ILogSink sink: delegates) sink.log( log, level, message, throwable);
+    for( ILogSink sink: delegates) 
+      if ( sink != null)
+        sink.log( log, level, message, throwable);
   }
 
   /* (non-Javadoc)
@@ -30,7 +32,9 @@ public final class MultiSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message)
   {
-    for( ILogSink sink: delegates) sink.log( log, level, message);
+    for( ILogSink sink: delegates) 
+      if ( sink != null)
+        sink.log( log, level, message);
   }
 
   /* (non-Javadoc)
@@ -39,7 +43,9 @@ public final class MultiSink implements ILogSink
   @Override
   public void log( Log log, int level, Throwable throwable)
   {
-    for( ILogSink sink: delegates) sink.log( log, level, throwable);
+    for( ILogSink sink: delegates) 
+      if ( sink != null)
+        sink.log( log, level, throwable);
   }
   
   private ILogSink[] delegates;

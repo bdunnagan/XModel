@@ -75,9 +75,7 @@ public final class FormatSink implements ILogSink
     sb.append( levelName);
     sb.append( " ["); sb.append( thread); sb.append( "]");
     sb.append( " ("); sb.append( trace); sb.append( ") - ");
-    sb.append( throwable.getClass().getSimpleName());
-    sb.append( ": ");
-    sb.append( throwable.getMessage());
+    sb.append( throwable);
     sb.append( '\n');
     
     StackTraceElement[] stack = throwable.getStackTrace();
