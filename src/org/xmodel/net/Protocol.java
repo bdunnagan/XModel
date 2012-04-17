@@ -1463,6 +1463,7 @@ public class Protocol implements ILink.IListener
     IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
     ICompressor compressor = info.compressor;
     byte[] bytes = compressor.compress( request);
+    if ( buffer.limit() < bytes.length) buffer = ByteBuffer.allocate( (int)(bytes.length * 1.5));
     buffer.put( bytes);
     
     finalize( buffer, Type.executeRequest, session, ++info.correlation, bytes.length);
