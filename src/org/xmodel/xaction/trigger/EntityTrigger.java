@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.Log;
 import org.xmodel.util.Aggregator;
@@ -59,7 +61,7 @@ public class EntityTrigger extends AbstractTrigger
     script = document.createScript( "entity");
     
     // get aggregator
-    aggregator = new Aggregator( 50);
+    aggregator = new Aggregator( Xlate.get( document.getRoot(), "delay", 50));
     
     // get index
     dispatchIndex = aggregator.add( document.getRoot().getModel().getDispatcher(), updateRunnable);

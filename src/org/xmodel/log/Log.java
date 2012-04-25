@@ -82,7 +82,7 @@ public final class Log
   public static Log getLog( String name)
   {
     Log log = logs.get( name);
-    if ( log == null) log = new Log( root);
+    if ( log == null) log = new Log();
     logs.put( name, log);
     return log;
   }
@@ -130,7 +130,8 @@ public final class Log
   
   private Log()
   {
-    this( null);
+    this.mask = new AtomicInteger( problems | info);
+    this.sink = null;
     
     ILogSink fileSink = null;
     try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
@@ -139,22 +140,6 @@ public final class Log
     try { syslogSink = new SyslogSink();} catch( Exception e) {}
     
     sink = new FormatSink( new MultiSink( fileSink, new ConsoleSink(), syslogSink));
-  }
-  
-  protected Log( Log parent)
-  {
-    this.parent = parent;
-    this.mask = new AtomicInteger( problems | info);
-    this.sink = null;
-  }
-  
-  /**
-   * Set the parent of this log. 
-   * @param parent The parent.
-   */
-  public synchronized void setParent( Log parent)
-  {
-    this.parent = parent;
   }
   
   /**
@@ -396,15 +381,12 @@ public final class Log
   {
     if ( (mask.get() & exception) == 0) return;
     
-    Log parent;
     ILogSink sink;
     synchronized( this)
     {
-      parent = this.parent;
       sink = this.sink;
     }
     
-    if ( parent != null) parent.exception( throwable);
     if ( sink != null) sink.log( this, exception, throwable);
     
     Throwable cause = throwable.getCause();
@@ -422,15 +404,12 @@ public final class Log
   {
     if ( (mask.get() & exception) == 0) return;
     
-    Log parent;
     ILogSink sink;
     synchronized( this)
     {
-      parent = this.parent;
       sink = this.sink;
     }
     
-    if ( parent != null) parent.exceptionf( throwable, format, params);
     if ( sink != null) sink.log( this, exception, String.format( format, params), throwable);
     
     Throwable cause = throwable.getCause();
@@ -447,17 +426,14 @@ public final class Log
   {
     if ( (mask.get() & level) == 0) return;
     
-    Log parent;
     ILogSink sink;
     synchronized( this)
     {
-      parent = this.parent;
       sink = this.sink;
     }
     
     try
     {
-      if ( parent != null) parent.log( level, message);
       if ( sink != null) sink.log( this, level, message);
     }
     catch( Exception e)
@@ -476,17 +452,14 @@ public final class Log
   {
     if ( (mask.get() & level) == 0) return;
     
-    Log parent;
     ILogSink sink;
     synchronized( this)
     {
-      parent = this.parent;
       sink = this.sink;
     }
     
     try
     {
-      if ( parent != null) parent.log( level, message, throwable);
       if ( sink != null) sink.log( this, level, message, throwable);
     }
     catch( Exception e)
@@ -505,17 +478,14 @@ public final class Log
   {
     if ( (mask.get() & level) == 0) return;
     
-    Log parent;
     ILogSink sink;
     synchronized( this)
     {
-      parent = this.parent;
       sink = this.sink;
     }
     
     try
     {
-      if ( parent != null) parent.logf( level, format, params);
       if ( sink != null) sink.log( this, level, String.format( format, params));
     }
     catch( Exception e)
@@ -534,12 +504,6 @@ public final class Log
    */
   private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
   
-  /**
-   * Root log.
-   */
-  private static Log root = new Log();
-  
-  private Log parent;
   private AtomicInteger mask;
   private ILogSink sink;
 }
