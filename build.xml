@@ -25,10 +25,10 @@
 		<taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="lib/yguard.jar"/>		
 		<yguard>
       <inoutpair in="jars/xmodel.jar" out="jars/xmodel-ob.jar"/>
-      
       <attribute name="Deprecated"/>
       
 			<shrink logfile="shrinklog.xml">
+        <property name="digests" value="none"/>
         <keep>
           <class classes="protected" methods="protected" fields="protected">
             <patternset>
@@ -81,6 +81,7 @@
 			</shrink>
 			
       <rename mainclass="org.xmodel.xaction.Main" logfile="renamelog.xml">
+        <property name="digests" value="none"/>
         <keep>
           <class classes="protected" methods="protected" fields="protected">
           	<patternset>
