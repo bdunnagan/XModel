@@ -107,7 +107,7 @@ public class Protocol implements ILink.IListener
     serializer = new DefaultSerializer();
     packageNames = new ArrayList<String>();
     
-    //Log.getLog( Protocol.class).setLevel( Log.all);
+    //Log.getLog( this).setLevel( Log.all);
   }
   
   /**

@@ -101,7 +101,7 @@ public abstract class NodeValueListener extends ExpressionListener
   @Override
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
-    if ( node == object || node.equals( object)) notifyValue( contexts[ 0], newValue, oldValue);
+    if ( node != null && (node == object || node.equals( object))) notifyValue( contexts[ 0], newValue, oldValue);
   }
   
   /* (non-Javadoc)

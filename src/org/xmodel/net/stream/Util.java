@@ -28,7 +28,7 @@ public class Util
       
       sb.append( String.format( "%02X", buffer.get( i)));
       
-      if ( (i - buffer.position()) > 128)
+      if ( (i - buffer.position()) > 1024)
       {
         sb.append( "...");
         break;
