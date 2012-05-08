@@ -133,10 +133,12 @@ public final class Log
     this.mask = new AtomicInteger( problems | info);
     this.sink = null;
     
-    ILogSink fileSink = null;
-    try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
-
-    ILogSink syslogSink= null;
+    synchronized( Log.class)
+    {
+      if ( fileSink == null) try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
+    }
+    
+    ILogSink syslogSink = null;
     try { syslogSink = new SyslogSink();} catch( Exception e) {}
     
     sink = new FormatSink( new MultiSink( fileSink, new ConsoleSink(), syslogSink));
@@ -503,6 +505,8 @@ public final class Log
    * Thread-local map of logs by logging source object.
    */
   private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
+
+  private static FileSink fileSink;
   
   private AtomicInteger mask;
   private ILogSink sink;

@@ -30,8 +30,6 @@ import org.xmodel.diff.ConfiguredXmlMatcher;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.xaction.debug.Debugger;
-import org.xmodel.xml.IXmlIO.Style;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -213,7 +211,7 @@ public abstract class XAction implements IXAction
     if ( root == null) return "(No root)";
 
     IPath path = ModelAlgorithms.createIdentityPath( root, true);
-    return String.format( "%s\n%s", path.toString(), XmlIO.write( Style.printable, root)); 
+    return path.toString(); 
   }
 
   private final IExpression factoryExpr = XPath.createExpression(

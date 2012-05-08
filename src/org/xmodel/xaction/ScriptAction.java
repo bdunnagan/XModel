@@ -24,8 +24,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -177,6 +179,11 @@ public class ScriptAction extends GuardedAction
           Object[] result = debugger.run( context, action);
           if ( result != null) return result;
         }
+      }
+      catch( RuntimeException e)
+      {
+        SLog.errorf( this, "Caught next exception at %s ...", this);
+        throw e;
       }
       finally
       {
