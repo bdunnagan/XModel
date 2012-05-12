@@ -100,7 +100,7 @@ public class Protocol implements ILink.IListener
     this.random = new Random();
     
     // allocate less than standard mtu
-    buffer = ByteBuffer.allocate( 4096);
+    buffer = ByteBuffer.allocate( 32768);
     buffer.order( ByteOrder.BIG_ENDIAN);
     
     dispatcher = new ImmediateDispatcher();
