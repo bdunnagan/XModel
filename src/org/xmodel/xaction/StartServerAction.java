@@ -52,6 +52,7 @@ public class StartServerAction extends GuardedAction
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
     debugExpr = document.getExpression( "debug", true);
+    daemonExpr = document.getExpression( "daemon", true);
     
     // get context expression
     sourceExpr = document.getExpression();
@@ -78,10 +79,11 @@ public class StartServerAction extends GuardedAction
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): 27700;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+      boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       
       server = new Server( host, port, timeout);
       server.setServerContext( (source != null)? new StatefulContext( context.getScope(), source): context);
-      server.start( true);
+      server.start( daemon);
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");
@@ -106,4 +108,5 @@ public class StartServerAction extends GuardedAction
   private IExpression timeoutExpr;
   private IExpression sourceExpr;
   private IExpression debugExpr;
+  private IExpression daemonExpr;
 }

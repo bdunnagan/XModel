@@ -98,21 +98,25 @@
 </p>
 
 <div class="column1">
-  <pre><![CDATA[
-    <parent>
-      <child-a/>
-      <child-b/>
-      <child-c/>
-    </parent> 
-  ]]></pre>
+  <p class="code">
+    <pre>
+    &lt;parent&gt;
+      &lt;child-a/&gt;
+      &lt;child-b/&gt;
+      &lt;child-c/&gt;
+    &lt;/parent&gt;
+    </pre>
+  </p> 
 </div>
 <div class="column2">
-  <pre><![CDATA[
-    <parent>
-      <child-a/>
-      <child-c/>
-    </parent> 
-  ]]></pre>
+  <p class="code">
+    <pre>
+    &lt;parent&gt;
+      &lt;child-a/&gt;
+      &lt;child-c/&gt;
+    &lt;/parent&gt;
+    </pre>
+  </p> 
 </div>
 
 <p style="clear:both">
@@ -124,21 +128,21 @@ indicating that the element <i>child-b</i> was added to the second fragment.
 <p>The next example illustrates the case where non-unique elements occur in an ordered list.</p>
 
 <div class="column1">
-  <pre><![CDATA[
-    <parent>
-      <child>1</child>
-      <child>2</child>
-      <child>3</child>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child&gt;1&lt;/child&gt;
+      &lt;child&gt;2&lt;/child&gt;
+      &lt;child&gt;3&lt;/child&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 <div class="column2">
-  <pre><![CDATA[
-    <parent>
-      <child>1</child>
-      <child>3</child>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child&gt;1&lt;/child&gt;
+      &lt;child&gt;3&lt;/child&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 
 <p style="clear:both">
@@ -154,21 +158,21 @@ do not comprise an ordered list.
 </p>
 
 <div class="column1">
-  <pre><![CDATA[
-    <parent>
-      <child id="1"/>
-      <child id="2"/>
-      <child id="3"/>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child id="1"/&gt;
+      &lt;child id="2"/&gt;
+      &lt;child id="3"/&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 <div class="column2">
-  <pre><![CDATA[
-    <parent>
-      <child id="1"/>
-      <child id="3"/>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child id="1"/&gt;
+      &lt;child id="3"/&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 
 <p style="clear:both">
@@ -189,31 +193,31 @@ is determined by complex content. The next example illustrates this case.
 </p>
 
 <div class="column1">
-  <pre><![CDATA[
-    <parent>
-      <child>
-        <content>1</content>
-      </child>
-      <child>
-        <content>2</content>
-      </child>
-      <child>
-        <content>3</content>
-      </child>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child&gt;
+        &lt;content&gt;1&lt;/content&gt;
+      &lt;/child&gt;
+      &lt;child&gt;
+        &lt;content&gt;2&lt;/content&gt;
+      &lt;/child&gt;
+      &lt;child&gt;
+        &lt;content&gt;3&lt;/content&gt;
+      &lt;/child&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 <div class="column2">
-  <pre><![CDATA[
-    <parent>
-      <child>
-        <content>1</content>
-      </child>
-      <child>
-        <content>3</content>
-      </child>
-    </parent> 
-  ]]></pre>
+  <pre>
+    &lt;parent&gt;
+      &lt;child&gt;
+        &lt;content&gt;1&lt;/content&gt;
+      &lt;/child&gt;
+      &lt;child&gt;
+        &lt;content&gt;3&lt;/content&gt;
+      &lt;/child&gt;
+    &lt;/parent&gt; 
+  </pre>
 </div>
 
 <p style="clear:both">
