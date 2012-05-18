@@ -19,6 +19,8 @@
  */
 package org.xmodel;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -32,6 +34,7 @@ public class BlockingDispatcher implements IDispatcher
   public BlockingDispatcher()
   {
     queue = new ArrayBlockingQueue<Runnable>( 100);
+    dequeued = new ArrayList<Runnable>();
   }
   
   /* (non-Javadoc)
@@ -55,8 +58,16 @@ public class BlockingDispatcher implements IDispatcher
   {
     try
     {
-      Runnable runnable = queue.take();
-      if ( runnable != null) runnable.run();
+      Runnable first = queue.take();
+      
+      dequeued.add( first);
+      queue.drainTo( dequeued);
+      
+      for( Runnable runnable: dequeued)
+        if ( runnable != null) 
+          runnable.run();
+      
+      dequeued.clear();
     }
     catch( InterruptedException e)
     {
@@ -64,4 +75,5 @@ public class BlockingDispatcher implements IDispatcher
   }
   
   private BlockingQueue<Runnable> queue;
+  private List<Runnable> dequeued;
 }

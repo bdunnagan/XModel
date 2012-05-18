@@ -117,7 +117,6 @@ public class Protocol implements ILink.IListener
   public void setServerContext( IContext context)
   {
     this.context = context;
-    dispatcher = context.getModel().getDispatcher();
   }
   
   /**
@@ -144,6 +143,7 @@ public class Protocol implements ILink.IListener
    */
   public IDispatcher getDispatcher()
   {
+    if ( dispatcher == null) dispatcher = context.getModel().getDispatcher();
     return dispatcher;
   }
   

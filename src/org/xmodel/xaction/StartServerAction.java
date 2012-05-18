@@ -20,6 +20,7 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.log.Log;
@@ -77,7 +78,7 @@ public class StartServerAction extends GuardedAction
     try
     {
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
-      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): 27700;
+      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       
