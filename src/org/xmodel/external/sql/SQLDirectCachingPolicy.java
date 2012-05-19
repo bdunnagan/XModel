@@ -45,6 +45,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.external.ITransaction;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -118,6 +119,14 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     // add second stage
     IExpression stageExpr = XPath.createExpression( child);
     defineNextStage( stageExpr, rowCachingPolicy, true);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
   }
 
   /* (non-Javadoc)

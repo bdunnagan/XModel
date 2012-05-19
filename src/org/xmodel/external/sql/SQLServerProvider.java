@@ -59,10 +59,10 @@ public class SQLServerProvider implements ISQLProvider
     }
    
     login = Xlate.childGet( annotation, "login", (String)null);
-    if ( database == null) throw new CachingException( "Login not defined in annotation: "+annotation);
+    if ( login == null) throw new CachingException( "Login not defined in annotation: "+annotation);
     
     password = Xlate.childGet( annotation, "password", (String)null);
-    if ( database == null) throw new CachingException( "Password not defined in annotation: "+annotation);
+    if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
   }
 
   /**
