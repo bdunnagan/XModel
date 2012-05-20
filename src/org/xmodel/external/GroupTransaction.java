@@ -3,10 +3,6 @@ package org.xmodel.external;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xmodel.ChangeSet;
-import org.xmodel.IBoundChangeRecord;
-import org.xmodel.IChangeSet;
-
 /**
  * An implementation of ITransaction that atomically operates on one or more nested instances of ITranscation.
  */
@@ -138,21 +134,6 @@ public class GroupTransaction implements ITransaction
     }
     
     return corrupt.size() == 0;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ITransaction#getChanges()
-   */
-  @Override
-  public IChangeSet getChanges()
-  {
-    ChangeSet changeSet = new ChangeSet();
-    for( ITransaction transaction: transactions)
-    {
-      List<IBoundChangeRecord> records = transaction.getChanges().getRecords();
-      for( IBoundChangeRecord record: records) changeSet.addRecord( record);
-    }
-    return changeSet;
   }
   
   private List<ITransaction> transactions;

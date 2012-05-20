@@ -2,8 +2,6 @@ package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import org.xmodel.IChangeSet;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ITransaction;
 import org.xmodel.log.SLog;
@@ -13,9 +11,9 @@ import org.xmodel.log.SLog;
  */
 public class SQLTransaction implements ITransaction
 {
-  public SQLTransaction( Connection connection)
+  public SQLTransaction( SQLDirectCachingPolicy cachingPolicy)
   {
-    this.connection = connection;
+    this.cachingPolicy = cachingPolicy;
   }
 
   /* (non-Javadoc)
@@ -26,6 +24,7 @@ public class SQLTransaction implements ITransaction
   {
     try
     {
+      connection = cachingPolicy.getSQLProvider().leaseConnection();
       connection.setAutoCommit( false);
       return true;
     }
@@ -54,6 +53,11 @@ public class SQLTransaction implements ITransaction
           "Failed to restore database to auto commit mode: %s",
           connection), e);
     }
+    finally
+    {
+      cachingPolicy.getSQLProvider().releaseConnection( connection);
+      connection = null;
+    }
   }
 
   /* (non-Javadoc)
@@ -64,11 +68,14 @@ public class SQLTransaction implements ITransaction
   {
     try
     {
+      cachingPolicy.commit( connection);
       connection.commit();
       return true;
     }
     catch( SQLException e)
     {
+      rollback();
+      
       SLog.error( this, e.getMessage());
       return false;
     }
@@ -92,14 +99,6 @@ public class SQLTransaction implements ITransaction
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ITransaction#getChanges()
-   */
-  @Override
-  public IChangeSet getChanges()
-  {
-    return null;
-  }
-  
+  private SQLDirectCachingPolicy cachingPolicy;
   private Connection connection;
 }

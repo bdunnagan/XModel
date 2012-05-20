@@ -1,7 +1,5 @@
 package org.xmodel.external;
 
-import org.xmodel.IChangeSet;
-
 /**
  * An interface for a transaction involving one or more IExternalReference instances. 
  */
@@ -40,9 +38,4 @@ public interface ITransaction
    * @throws CachingException If the state of any resource is left in an unknown state.
    */
   public boolean rollback();
-  
-  /**
-   * @return Returns the changes made since the transaction was created.
-   */
-  public IChangeSet getChanges();
 }

@@ -249,6 +249,23 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
       if ( element.isDirty()) ((IExternalReference)element).setDirty( false);
     }
   }
+  
+  /**
+   * Returns the nested elements that have their own caching policies.
+   * @param reference The reference.
+   * @return Returns the nested elements that have their own caching policies.
+   */
+  protected List<IExternalReference> getNextStages( IExternalReference reference)
+  {
+    List<IExternalReference> result = new ArrayList<IExternalReference>();
+    Context context = new Context( reference);
+    for( NextStage stage: dynamicStages)
+    {
+      List<IModelObject> matches = stage.path.evaluateNodes( context);
+      for( IModelObject matched: matches) result.add( (IExternalReference)matched);
+    }
+    return result;
+  }
 
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#transaction()

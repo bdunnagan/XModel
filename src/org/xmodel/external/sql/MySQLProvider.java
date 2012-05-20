@@ -21,10 +21,6 @@ package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -36,7 +32,7 @@ public class MySQLProvider implements ISQLProvider
 {
   public MySQLProvider()
   {
-    drivers = new HashMap<String, JDCConnectionDriver>();
+    pool = new ConnectionPool( this, 10);
   }
   
   /* (non-Javadoc)
@@ -51,42 +47,20 @@ public class MySQLProvider implements ISQLProvider
     url = String.format( "jdbc:mysql://%s/%s", host, database);  
    
     login = Xlate.childGet( annotation, "login", (String)null);
-    if ( database == null) throw new CachingException( "Login not defined in annotation: "+annotation);
+    if ( login == null) throw new CachingException( "Login not defined in annotation: "+annotation);
     
     password = Xlate.childGet( annotation, "password", (String)null);
-    if ( database == null) throw new CachingException( "Password not defined in annotation: "+annotation);
+    if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
   }
 
-  /**
-   * Returns a connection to the database.
-   * @param context The context of the reference being synced.
-   * @return Returns a connection to the database.
+  /* (non-Javadoc)
+   * @see org.xmodel.external.sql.ISQLProvider#newConnection()
    */
-  public Connection getConnection() throws CachingException
+  public Connection newConnection() throws CachingException
   {
     try
     {
-      // load jdbc driver
-      if ( !init)
-      {
-        init = true;
-        Class.forName( driverClassName);    
-        
-      }
-    
-      JDCConnectionDriver driver = null;
-      synchronized( drivers)
-      {
-        driver = drivers.get( url);
-        if ( driver == null)
-        {
-          driver = new JDCConnectionDriver( driverClassName, url, login, password);
-          drivers.put( url, driver);
-        }
-      }
-      
-      // return connection
-      return DriverManager.getConnection( url, login, password);    
+      return DriverManager.getConnection( url, login, password);
     }
     catch( Exception e)
     {
@@ -95,43 +69,27 @@ public class MySQLProvider implements ISQLProvider
   }  
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.caching.SQLCachingPolicy.SQLManager#prepareStatement(java.lang.String)
+   * @see org.xmodel.external.sql.ISQLProvider#leaseConnection()
    */
-  public PreparedStatement prepareStatement( String sql) throws CachingException
+  @Override
+  public Connection leaseConnection()
   {
-    try
-    {
-      Connection connection = getConnection();
-      return connection.prepareStatement( sql);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( "Unable to create prepared statement for sql: "+sql, e);
-    }
+    return pool.lease();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.sql.SQLManager#prepareStatement(java.lang.String, int, int, int)
+   * @see org.xmodel.external.sql.ISQLProvider#returnConnection(java.sql.Connection)
    */
-  public PreparedStatement prepareStatement( String sql, int type, int concurrency, int holdability) throws CachingException
+  @Override
+  public void releaseConnection( Connection connection)
   {
-    try
-    {
-      Connection connection = getConnection();
-      return connection.prepareStatement( sql, type, concurrency, holdability);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( "Unable to create prepared statement for sql: "+sql, e);
-    }
+    pool.release( connection);
   }
 
-  private final static String driverClassName = "com.mysql.jdbc.Driver";
+  //private final static String driverClassName = "com.mysql.jdbc.Driver";
   
-  private static Map<String, JDCConnectionDriver> drivers;
-  
-  private boolean init;
   private String url;
   private String login;
   private String password;
+  private ConnectionPool pool;
 }

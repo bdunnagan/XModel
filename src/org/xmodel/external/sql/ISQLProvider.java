@@ -20,10 +20,7 @@
 package org.xmodel.external.sql;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-
 import org.xmodel.IModelObject;
-import org.xmodel.external.CachingException;
 
 /**
  * An interface for creating (and possibly caching) instances of java.sql.Statement. An implementation
@@ -36,30 +33,23 @@ public interface ISQLProvider
    * Configure this manager from the specified annotation.
    * @param annotation The annotation.
    */
-  public void configure( IModelObject annotation) throws CachingException;
-  
-  /**
-   * Returns a Connection possibly from a pool of Connection objects.
-   * @return Returns a Connection possibly from a pool of Connection objects.
-   */
-  public Connection getConnection() throws CachingException;
-  
-  /**
-   * Returns a PreparedStatement built from the specified SQL. This method is provided to allow
-   * the implementation to optionally cache PreparedStatement instances.
-   * @param sql The SQL statement.
-   * @return Returns a PreparedStatement built from the specified SQL.
-   */
-  public PreparedStatement prepareStatement( String sql) throws CachingException; 
+  public void configure( IModelObject annotation);
 
   /**
-   * Returns a PreparedStatement built from the specified SQL. This method is provided to allow
-   * the implementation to optionally cache PreparedStatement instances.
-   * @param sql The SQL statement.
-   * @param type The result set type.
-   * @param concurrency The result set concurrency.
-   * @param holdability The result set holdability.
-   * @return Returns a PreparedStatement built from the specified SQL.
+   * Create a new Connection instance.
+   * @return Returns the new Connection instance.
    */
-  public PreparedStatement prepareStatement( String sql, int type, int concurrency, int holdability) throws CachingException; 
+  public Connection newConnection();
+  
+  /**
+   * Lease a Connection instance from the Connection pool.
+   * @return Returns a Connection instance.
+   */
+  public Connection leaseConnection();
+  
+  /**
+   * Return a Connection instance to the Connection pool.
+   * @param connection The connection.
+   */
+  public void releaseConnection( Connection connection);
 }
