@@ -88,33 +88,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     // create SQLManager
     provider = getProvider( annotation);
     
-    // set factory
     factory = new ModelObjectFactory();
-    
-    // get parameters
-    otherKeys = new ArrayList<String>( 1);
-    for( IModelObject keyDecl: annotation.getChildren( "key"))
-    {
-      String keyName = Xlate.get( keyDecl, (String)null);
-      if ( Xlate.get( keyDecl, "primary", false))
-      {
-        primaryKey = keyName;
-      }
-      else
-      {
-        otherKeys.add( keyName);
-      }
-    }
-    
-    // set static attributes
-    List<String> staticAttributes = new ArrayList<String>();
-    staticAttributes.add( "id");
-    staticAttributes.add( primaryKey);
-    staticAttributes.addAll( otherKeys);
-    rowCachingPolicy.setStaticAttributes( staticAttributes.toArray( new String[ 0]));
-
-    // set element name for row elements
-    rowElementName = Xlate.childGet( annotation, "rows", annotation.getParent().getType());
+    tableName = Xlate.childGet( annotation, "table", (String)null);
+    rowElementName = Xlate.childGet( annotation, "row", annotation.getParent().getType());
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( rowElementName);
@@ -137,7 +113,18 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     SLog.debugf( this, "sync: %s", reference);
+    
+    // get table meta-data
+    fetchMetadata();
+    
+    // configure static attributes of SQLRowCachingPolicy
+    rowCachingPolicy.addStaticAttribute( primaryKey);
+    for( String otherKey: otherKeys) rowCachingPolicy.addStaticAttribute( otherKey);
+    
+    // sync
     syncTable( reference);
+    
+    // install update monitor
     entityListener.install( reference);
   }
   
@@ -150,9 +137,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = null;
     try
     {
-      // get schema
-      columns = getColumns( reference);
-      
       // get row stubs
       statement = createTableSelectStatement( reference);
       ResultSet result = statement.executeQuery();
@@ -199,18 +183,19 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       ResultSet result = statement.executeQuery();
       if ( result.next())
       {      
-        for( int i=0; i<columns.length; i++)
+        for( int i=0; i<columnNames.size(); i++)
         {
-          if ( columns[ i].name.equals( primaryKey)) continue;
+          String columnName = columnNames.get( i);
+          if ( columnName.equals( primaryKey)) continue;
 
-          Object value = result.getObject( i);
-          if ( otherKeys.contains( columns[ i].name))
+          Object value = result.getObject( i+1);
+          if ( otherKeys.contains( columnName))
           {
-            object.setAttribute( columns[ i].name, value);
+            object.setAttribute( columnName, value);
           }
           else
           {
-            IModelObject field = getFactory().createObject( object, columns[ i].name);
+            IModelObject field = getFactory().createObject( object, columnName);
             field.setValue( value);
             object.addChild( field);
           }
@@ -289,33 +274,51 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       SLog.exception( this, e);
     }
   }
-  
+
   /**
-   * Returns the names of the columns in the specified database table.
-   * @param table The table reference.
-   * @return Returns the names of the columns in the specified database table.
+   * Fetch the meta-data for the table.
    */
-  private Column[] getColumns( IExternalReference table) throws CachingException
+  private void fetchMetadata()
   {
     try
     {
       Connection connection = provider.leaseConnection();
       DatabaseMetaData meta = connection.getMetaData();
-      ResultSet result = meta.getColumns( null, null, Xlate.get( table, "table", ""), null);
-      List<Column> columns = new ArrayList<Column>();
+      ResultSet result = meta.getColumns( null, null, tableName, null);
+      columnNames = new ArrayList<String>();
       while( result.next()) 
       {
-        Column column = new Column();
-        column.name = result.getString( "COLUMN_NAME");
-        column.type = result.getInt( "DATA_TYPE");
-        columns.add( column);
+        String columnName = result.getString( "COLUMN_NAME");
+        columnNames.add( columnName.toLowerCase());
       }
+      
+      result = meta.getPrimaryKeys( null, null, tableName);
+      while( result.next())
+      {
+        String name = result.getString( "COLUMN_NAME");
+        
+        if ( primaryKey != null) 
+        {
+          throw new CachingException( String.format(
+              "Composite primary keys not supported in table, %s", tableName));
+        }
+        
+        primaryKey = name.toLowerCase();
+      }
+      
+      otherKeys = new ArrayList<String>( 1);
+      result = meta.getIndexInfo( null, null, tableName, false, false);
+      while( result.next())
+      {
+        String columnName = result.getString( "COLUMN_NAME");
+        if ( columnName != null) otherKeys.add( columnName.toLowerCase());
+      }
+      
       provider.releaseConnection( connection);
-      return columns.toArray( new Column[ 0]);
     }
     catch( SQLException e)
     {
-      throw new CachingException( "Unable to get column names for table: "+table, e);
+      throw new CachingException( "Unable to get column names for table: "+tableName, e);
     }
   }
   
@@ -327,8 +330,6 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
   {
-    String table = Xlate.get( reference, "table", (String)null);
-    
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); 
     sb.append( primaryKey);
@@ -339,7 +340,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       sb.append( otherKey);
     }
     
-    sb.append( " FROM "); sb.append( table);
+    sb.append( " FROM "); sb.append( tableName);
     
     Connection connection = provider.leaseConnection();
     return connection.prepareStatement( sb.toString());
@@ -352,10 +353,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private PreparedStatement createRowSelectStatement( IExternalReference reference) throws SQLException
   {
-    String table = Xlate.get( reference.getParent(), "table", (String)null);
-    
     StringBuilder sb = new StringBuilder();
-    sb.append( "SELECT * "); sb.append( "FROM "); sb.append( table);
+    sb.append( "SELECT * "); sb.append( "FROM "); sb.append( tableName);
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     Connection connection = provider.leaseConnection();
@@ -375,16 +374,11 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
-    String table = Xlate.get( reference, "table", (String)null);
-    
-    // get columns if not already
-    if ( columns == null) columns = getColumns( reference);
-    
     StringBuilder sb = new StringBuilder();
-    sb.append( "INSERT INTO "); sb.append( table);
+    sb.append( "INSERT INTO "); sb.append( tableName);
     sb.append( " VALUES");
     sb.append( "(?");
-    for( int j=1; j<columns.length; j++) sb.append( ",?");
+    for( int i=1; i<columnNames.size(); i++) sb.append( ",?");
     sb.append( ")");
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
@@ -392,10 +386,12 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     for( IModelObject node: nodes)
     {
       statement.setString( 1, node.getID());
-      for( int j=0; j<columns.length; j++)
+      for( int i=0, j=0; i<columnNames.size(); i++, j++)
       {
-        if ( columns[ j].name.equals( primaryKey)) continue;
-        statement.setObject( j, node.getValue());
+        if ( columnNames.get( i).equals( primaryKey)) continue;
+        if ( otherKeys.contains( columnNames.get( i))) continue;
+        IModelObject fieldNode = node.getChild( j++);
+        statement.setObject( i+1, fieldNode.getValue());
       }
       statement.addBatch();
     }
@@ -412,10 +408,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> fields) throws SQLException
   {
-    String table = Xlate.get( reference.getParent(), "table", (String)null);
-    
     StringBuilder sb = new StringBuilder();
-    sb.append( "UPDATE "); sb.append( table);
+    sb.append( "UPDATE "); sb.append( tableName);
     sb.append( " SET ");
 
     for( int i=0; i<fields.size(); i++)
@@ -434,8 +428,10 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     {
       String field = fields.get( i);
       Object value = otherKeys.contains( field)? reference.getAttribute( field): reference.getFirstChild( field).getValue();
-      statement.setObject( i, value);
+      statement.setObject( i+1, value);
     }
+    
+    statement.setString( fields.size() + 1, reference.getID());
     
     return statement;
   }
@@ -449,10 +445,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
-    String table = Xlate.get( reference, "table", (String)null);
-    
     StringBuilder sb = new StringBuilder();
-    sb.append( "DELETE FROM "); sb.append( table);
+    sb.append( "DELETE FROM "); sb.append( tableName);
     sb.append( " WHERE "); sb.append( primaryKey);
     sb.append( "=?");
 
@@ -545,17 +539,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     return provider;
   }
   
-  private class Column
-  {
-    String name;
-    int type;
-    
-    public String toString()
-    {
-      return name+":"+type;
-    }
-  }
-  
+  /**
+   * An implementation of ICachingPolicy for loading table rows.
+   */
   private class SQLRowCachingPolicy extends AbstractCachingPolicy
   {
     protected SQLRowCachingPolicy( ICache cache)
@@ -564,12 +550,12 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     }
     
     /* (non-Javadoc)
-     * @see org.xmodel.external.AbstractCachingPolicy#setStaticAttributes(java.lang.String[])
+     * @see org.xmodel.external.AbstractCachingPolicy#addStaticAttribute(java.lang.String)
      */
     @Override
-    public void setStaticAttributes( String[] staticAttributes)
+    public void addStaticAttribute( String attrName)
     {
-      super.setStaticAttributes( staticAttributes);
+      super.addStaticAttribute( attrName);
     }
 
     /* (non-Javadoc)
@@ -578,13 +564,34 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     public void sync( IExternalReference reference) throws CachingException
     {
       SLog.debugf( this, "sync row: %s", reference.getID());
-      IModelObject object = createRowPrototype( reference);
-      update( reference, object);
+      
+      entityListener.setEnabled( false);
+      try
+      {
+        IModelObject object = createRowPrototype( reference);
+        update( reference, object);
+      }
+      finally
+      {
+        entityListener.setEnabled( true);
+      }
     }
   } 
 
+  /**
+   * A listener that monitors changes to the table data-model.
+   */
   private class SQLEntityListener extends NonSyncingListener
   {
+    /**
+     * Enable or disable notifications from this listener.
+     * @param enabled True to enable.
+     */
+    public void setEnabled( boolean enabled)
+    {
+      this.enabled = enabled;
+    }
+    
     /* (non-Javadoc)
      * @see org.xmodel.external.NonSyncingListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
      */
@@ -592,25 +599,28 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
-
-      if ( isTable( parent))
+      
+      if ( enabled)
       {
-        List<IModelObject> inserts = rowInserts.get( parent);
-        if ( inserts == null)
+        if ( isTable( parent))
         {
-          inserts = new ArrayList<IModelObject>();
-          rowInserts.put( parent, inserts);
+          List<IModelObject> inserts = rowInserts.get( parent);
+          if ( inserts == null)
+          {
+            inserts = new ArrayList<IModelObject>();
+            rowInserts.put( parent, inserts);
+          }
+          inserts.add( child);
         }
-        inserts.add( child);
+        else
+        {
+          throw new CachingException( String.format( 
+              "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+              ModelAlgorithms.createIdentityPath( parent), child.getType()));
+        }
+  
+        if ( transaction == null) commit();
       }
-      else
-      {
-        throw new CachingException( String.format( 
-            "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-            ModelAlgorithms.createIdentityPath( parent), child.getType()));
-      }
-
-      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -621,27 +631,30 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     {
       super.notifyRemoveChild( parent, child, index);
       
-      if ( isTable( parent))
+      if ( enabled)
       {
-        List<IModelObject> deletes = rowDeletes.get( parent);
-        if ( deletes == null)
+        if ( isTable( parent))
         {
-          deletes = new ArrayList<IModelObject>();
-          rowDeletes.put( parent, deletes);
+          List<IModelObject> deletes = rowDeletes.get( parent);
+          if ( deletes == null)
+          {
+            deletes = new ArrayList<IModelObject>();
+            rowDeletes.put( parent, deletes);
+          }
+          deletes.add( child);
+          
+          // remove any cached update records for removed row
+          rowUpdates.remove( child);
         }
-        deletes.add( child);
+        else
+        {
+          throw new CachingException( String.format( 
+              "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+              ModelAlgorithms.createIdentityPath( parent), child.getType()));
+        }
         
-        // remove any cached update records for removed row
-        rowUpdates.remove( child);
+        if ( transaction == null) commit();
       }
-      else
-      {
-        throw new CachingException( String.format( 
-            "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-            ModelAlgorithms.createIdentityPath( parent), child.getType()));
-      }
-      
-      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -652,36 +665,39 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     {
       super.notifyChange( object, attrName, newValue, oldValue);
       
-      if ( isTable( object)) return;
-      
-      if ( isTable( object.getParent()))
+      if ( enabled)
       {
-        // row
-        List<String> updates = rowUpdates.get( object);
-        if ( updates == null)
+        if ( isTable( object)) return;
+        
+        if ( isTable( object.getParent()))
         {
-          updates = new ArrayList<String>();
-          rowUpdates.put( object, updates);
+          // row
+          List<String> updates = rowUpdates.get( object);
+          if ( updates == null)
+          {
+            updates = new ArrayList<String>();
+            rowUpdates.put( object, updates);
+          }
+          updates.add( attrName);
         }
-        updates.add( attrName);
-      }
-      else if ( attrName.equals( ""))
-      {
-        // field
-        List<String> updates = rowUpdates.get( object.getParent());
-        if ( updates == null)
+        else if ( attrName.equals( ""))
         {
-          updates = new ArrayList<String>();
-          rowUpdates.put( object.getParent(), updates);
+          // field
+          List<String> updates = rowUpdates.get( object.getParent());
+          if ( updates == null)
+          {
+            updates = new ArrayList<String>();
+            rowUpdates.put( object.getParent(), updates);
+          }
+          updates.add( object.getType());
         }
-        updates.add( object.getType());
+        else
+        {
+          SLog.warnf( this, "Attribute, %s, of table row field, %s, was updated.", attrName, object.getType());
+        }
+        
+        if ( transaction == null) commit();
       }
-      else
-      {
-        SLog.warnf( this, "Attribute, %s, of table row field, %s, was updated.", attrName, object.getType());
-      }
-      
-      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -693,6 +709,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       super.notifyClear( object, attrName, oldValue);
       notifyChange( object, attrName, null, null);
     }
+    
+    private boolean enabled;
   }
     
   private static Map<String, Class<? extends ISQLProvider>> providers;
@@ -700,7 +718,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   private ISQLProvider provider;
   private IModelObjectFactory factory;
   private SQLRowCachingPolicy rowCachingPolicy;
-  private Column[] columns;
+  private String tableName;
+  private List<String> columnNames;
   private String primaryKey;
   private List<String> otherKeys;
   private String rowElementName;

@@ -20,6 +20,7 @@
 package org.xmodel.external;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -55,9 +56,12 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   protected AbstractCachingPolicy( ICache cache)
   {
     this.cache = cache;
+    
     differ = new XmlDiffer();
-    staticAttributes = new String[] { "id"};
     factory = new ModelObjectFactory();
+    
+    staticAttributes = new ArrayList<String>( 1);
+    staticAttributes.add( "id");
   }
   
   /* (non-Javadoc)
@@ -383,7 +387,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   public String[] getStaticAttributes()
   {
-    return staticAttributes;
+    return staticAttributes.toArray( new String[ 0]);
   }
 
   /* (non-Javadoc)
@@ -436,11 +440,22 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * Specify the names of attributes which should not cause synchronization. Two types of 
    * wildcards can be used. An asterisk by itself means <i>all attributes</i>. A prefix 
    * ending with a colon followed by an asterisk means <i>all attributes in namespace</i>.
-   * @param staticAttributes An array of attribute names.
+   * @param attrNames An array of attribute names.
    */
-  protected void setStaticAttributes( String[] staticAttributes)
+  protected void setStaticAttributes( String[] attrNames)
   {
-    this.staticAttributes = staticAttributes;
+    this.staticAttributes = Arrays.asList( attrNames);
+  }
+  
+  /**
+   * Add the name of a static attribute.  Two types of wildcards can be used. An asterisk by 
+   * itself means <i>all attributes</i>. A prefix ending with a colon followed by an asterisk 
+   * means <i>all attributes in namespace</i>.
+   * @param attrName The name of the attribute.
+   */
+  protected void addStaticAttribute( String attrName)
+  {
+    this.staticAttributes.add( attrName);
   }
   
   /**
@@ -458,9 +473,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     }
     else
     {
-      for( int i=0; i<staticAttributes.length; i++)
+      for( int i=0; i<staticAttributes.size(); i++)
       {
-        String staticAttribute = staticAttributes[ i];
+        String staticAttribute = staticAttributes.get( i);
         if ( staticAttribute.endsWith( ":*"))
         {
           String prefix = staticAttribute.substring( 0, staticAttribute.length()-2);
@@ -560,7 +575,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   
   private ICache cache;
   private IXmlDiffer differ;
-  private String[] staticAttributes;
+  private List<String> staticAttributes;
   private List<NextStage> dynamicStages;
   private List<IModelObject> staticStages;
   private IModelObjectFactory factory;

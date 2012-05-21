@@ -30,9 +30,10 @@ import org.xmodel.external.CachingException;
  */
 public class MySQLProvider implements ISQLProvider
 {
-  public MySQLProvider()
+  public MySQLProvider() throws ClassNotFoundException
   {
     pool = new ConnectionPool( this, 10);
+    Class.forName( driverClassName);    
   }
   
   /* (non-Javadoc)
@@ -40,14 +41,14 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    String database = Xlate.childGet( annotation, "database", (String)null);
+    String database = Xlate.childGet( annotation, "database", Xlate.childGet( annotation, "db", (String)null));
     if ( database == null) throw new CachingException( "Database not defined in annotation: "+annotation);
 
-    String host = Xlate.childGet( annotation, "host", "127.0.0.1");
+    String host = Xlate.childGet( annotation, "host", "localhost");
     url = String.format( "jdbc:mysql://%s/%s", host, database);  
    
-    login = Xlate.childGet( annotation, "login", (String)null);
-    if ( login == null) throw new CachingException( "Login not defined in annotation: "+annotation);
+    username = Xlate.childGet( annotation, "user", Xlate.childGet( annotation, "login", (String)null));
+    if ( username == null) throw new CachingException( "Login not defined in annotation: "+annotation);
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
@@ -58,9 +59,11 @@ public class MySQLProvider implements ISQLProvider
    */
   public Connection newConnection() throws CachingException
   {
+    
+    
     try
     {
-      return DriverManager.getConnection( url, login, password);
+      return DriverManager.getConnection( url, username, password);
     }
     catch( Exception e)
     {
@@ -86,10 +89,10 @@ public class MySQLProvider implements ISQLProvider
     pool.release( connection);
   }
 
-  //private final static String driverClassName = "com.mysql.jdbc.Driver";
+  private final static String driverClassName = "com.mysql.jdbc.Driver";
   
   private String url;
-  private String login;
+  private String username;
   private String password;
   private ConnectionPool pool;
 }
