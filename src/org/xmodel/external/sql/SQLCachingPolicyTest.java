@@ -1,7 +1,6 @@
 package org.xmodel.external.sql;
 
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;

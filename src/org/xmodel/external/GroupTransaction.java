@@ -10,11 +10,21 @@ public class GroupTransaction implements ITransaction
 {
   public GroupTransaction()
   {
+    state = State.ready;
     transactions = new ArrayList<ITransaction>();
     locked = new ArrayList<ITransaction>();
     corrupt = new ArrayList<ITransaction>();
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ITransaction#state()
+   */
+  @Override
+  public State state()
+  {
+    return state;
+  }
+
   /**
    * Add a transaction to the group.
    * @param transaction The transaction.
@@ -53,6 +63,7 @@ public class GroupTransaction implements ITransaction
       return false;
     }
     
+    state = State.lock;
     transactions.clear();
     return true;
   }
@@ -68,6 +79,8 @@ public class GroupTransaction implements ITransaction
       transaction.unlock();
       transactions.add( transaction);
     }
+    
+    state = State.ready;
   }
 
   /* (non-Javadoc)
@@ -107,8 +120,10 @@ public class GroupTransaction implements ITransaction
         }
       }
     }
+
+    state = (corrupt.size() == 0)? State.commit: State.error;
     
-    return corrupt.size() == 0;
+    return state == State.commit;
   }
   
   /* (non-Javadoc)
@@ -133,9 +148,12 @@ public class GroupTransaction implements ITransaction
       }
     }
     
-    return corrupt.size() == 0;
+    state = (corrupt.size() == 0)? State.rollback: State.error;
+    
+    return state == State.rollback;
   }
   
+  private State state;
   private List<ITransaction> transactions;
   private List<ITransaction> locked;
   private List<ITransaction> corrupt;

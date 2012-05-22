@@ -103,7 +103,18 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public ITransaction transaction()
   {
-    return new SQLTransaction( this);
+    if ( transaction != null) return transaction;
+    transaction = new SQLTransaction( this);
+    return transaction;
+  }
+  
+  /**
+   * Notify this caching policy that the specified transaction has completed.
+   * @param transaction The transaction.
+   */
+  protected void transactionComplete( ITransaction transaction)
+  {
+    transaction = null;
   }
   
   /* (non-Javadoc)
@@ -386,7 +397,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     for( IModelObject node: nodes)
     {
       statement.setString( 1, node.getID());
-      for( int i=0, j=0; i<columnNames.size(); i++, j++)
+      for( int i=0, j=0; i<columnNames.size(); i++)
       {
         if ( columnNames.get( i).equals( primaryKey)) continue;
         if ( otherKeys.contains( columnNames.get( i))) continue;

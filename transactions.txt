@@ -1,25 +1,5 @@
-Use Cases
-
-. Changes made to an ExternalReference with an SQLDirectCachingPolicy can be used to update the database.
-
-. A collection of changes made in the course of a transaction may affect multiple columns, rows and tables.
-
-. Changes need to be tracked because updates to small-data columns should not result in large-data columns being sent to db.
-  ChangeSet is not required.  Tables, rows and columns just need to be flagged.
-  
-. SQLDirectCachingPolicy could flag these changes using special attributes, or using a separate data-structure and map.
-  One is fast.  One is non-intrusive.  Non-intrusive prevents users from having to know about special attributes when
-  using paths like @*.
-
-
-
-
-
 <script>
-  ...
-  
-  <!-- Start a GroupTransaction (no elements specified) -->
-  <transaction>
+  <transaction set="">
     ...
     
     <!-- Include one or more external references in the transaction -->
@@ -34,9 +14,7 @@ Use Cases
     
     <!-- rollback transaction (v1), or rollback to last save point (v2) -->
     <rollback/>
-    
-    <!-- commit whatever is pending -->
+
+    <!-- commit is the default -->
   </transaction>
-  
-  ...
 </script>

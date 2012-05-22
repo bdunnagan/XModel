@@ -5,6 +5,13 @@ package org.xmodel.external;
  */
 public interface ITransaction
 {
+  public enum State { ready, lock, commit, rollback, error};
+  
+  /**
+   * @return Returns the current transaction state.
+   */
+  public State state();
+  
   /**
    * Lock resources in this transaction.
    * @param timeout The timeout in milliseconds.

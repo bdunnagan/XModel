@@ -2,6 +2,7 @@ package org.xmodel.external.sql;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ITransaction;
 import org.xmodel.log.SLog;
@@ -14,6 +15,16 @@ public class SQLTransaction implements ITransaction
   public SQLTransaction( SQLDirectCachingPolicy cachingPolicy)
   {
     this.cachingPolicy = cachingPolicy;
+    this.state = State.ready;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ITransaction#state()
+   */
+  @Override
+  public State state()
+  {
+    return state;
   }
 
   /* (non-Javadoc)
@@ -26,6 +37,7 @@ public class SQLTransaction implements ITransaction
     {
       connection = cachingPolicy.getSQLProvider().leaseConnection();
       connection.setAutoCommit( false);
+      state = State.lock;
       return true;
     }
     catch( SQLException e)
@@ -44,6 +56,7 @@ public class SQLTransaction implements ITransaction
     try
     {
       connection.setAutoCommit( false);
+      state = State.ready;
     }
     catch( SQLException e)
     {
@@ -56,6 +69,7 @@ public class SQLTransaction implements ITransaction
     finally
     {
       cachingPolicy.getSQLProvider().releaseConnection( connection);
+      cachingPolicy.transactionComplete( this);
       connection = null;
     }
   }
@@ -70,6 +84,7 @@ public class SQLTransaction implements ITransaction
     {
       cachingPolicy.commit( connection);
       connection.commit();
+      state = State.commit;
       return true;
     }
     catch( SQLException e)
@@ -77,6 +92,7 @@ public class SQLTransaction implements ITransaction
       rollback();
       
       SLog.error( this, e.getMessage());
+      state = State.error;
       return false;
     }
   }
@@ -90,15 +106,18 @@ public class SQLTransaction implements ITransaction
     try
     {
       connection.rollback();
+      state = State.rollback;
       return true;
     }
     catch( SQLException e)
     {
       SLog.error( this, e.getMessage());
+      state = State.error;
       return false;
     }
   }
 
   private SQLDirectCachingPolicy cachingPolicy;
   private Connection connection;
+  private State state;
 }
