@@ -19,8 +19,10 @@
  */
 package org.xmodel.xaction;
 
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.net.Server;
+import org.xmodel.xaction.StartServerAction.ThreadPoolDispatcher;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -36,7 +38,6 @@ public class StopServerAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-
     serverExpr = document.getExpression();
   }
 
@@ -49,6 +50,10 @@ public class StopServerAction extends GuardedAction
     IModelObject object = serverExpr.queryFirst( context);
     Server server = (Server)object.getValue();
     server.stop();
+    
+    IDispatcher dispatcher = context.getModel().getDispatcher();
+    if ( dispatcher instanceof ThreadPoolDispatcher) ((ThreadPoolDispatcher)dispatcher).shutdown();
+    
     return null;
   }
 

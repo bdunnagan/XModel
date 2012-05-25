@@ -103,7 +103,7 @@ public class Protocol implements ILink.IListener
     buffer = ByteBuffer.allocate( 32768);
     buffer.order( ByteOrder.BIG_ENDIAN);
     
-    dispatcher = new ImmediateDispatcher();
+    //dispatcher = new ImmediateDispatcher();
     serializer = new DefaultSerializer();
     packageNames = new ArrayList<String>();
     
@@ -2740,9 +2740,17 @@ public class Protocol implements ILink.IListener
     {
       info.dispatcher.execute( runnable);
     }
-    else if ( dispatcher != null) 
+    else
     {
-      dispatcher.execute( runnable);
+      IDispatcher dispatcher = getDispatcher();
+      if ( dispatcher != null)
+      {
+        dispatcher.execute( runnable);
+      }
+      else
+      {
+        SLog.error( this, "Dispatcher not defined.");
+      }
     }
   }
   

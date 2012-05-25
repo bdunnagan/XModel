@@ -12,7 +12,7 @@ import org.xmodel.log.SLog;
  */
 public class SQLTransaction implements ITransaction
 {
-  public SQLTransaction( SQLDirectCachingPolicy cachingPolicy)
+  public SQLTransaction( SQLTableCachingPolicy cachingPolicy)
   {
     this.cachingPolicy = cachingPolicy;
     this.state = State.ready;
@@ -117,7 +117,7 @@ public class SQLTransaction implements ITransaction
     }
   }
 
-  private SQLDirectCachingPolicy cachingPolicy;
+  private SQLTableCachingPolicy cachingPolicy;
   private Connection connection;
   private State state;
 }

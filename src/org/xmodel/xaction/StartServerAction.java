@@ -20,7 +20,10 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.log.Log;
@@ -54,6 +57,7 @@ public class StartServerAction extends GuardedAction
     timeoutExpr = document.getExpression( "timeout", true);
     debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
+    threadsExpr = document.getExpression( "threads", true);
     
     // get context expression
     sourceExpr = document.getExpression();
@@ -81,9 +85,13 @@ public class StartServerAction extends GuardedAction
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
+      int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
+      
+      IContext serverContext = (source != null)? new StatefulContext( context.getScope(), source): context;
+      if ( threads > 0) serverContext.getModel().setDispatcher( new ThreadPoolDispatcher( threads));
       
       server = new Server( host, port, timeout);
-      server.setServerContext( (source != null)? new StatefulContext( context.getScope(), source): context);
+      server.setServerContext( serverContext);
       server.start( daemon);
       
       StatefulContext stateful = (StatefulContext)context;
@@ -98,6 +106,33 @@ public class StartServerAction extends GuardedAction
     
     return null;
   }
+
+  protected static class ThreadPoolDispatcher implements IDispatcher
+  {
+    public ThreadPoolDispatcher( int threads)
+    {
+      executor = Executors.newFixedThreadPool( threads);
+    }
+    
+    /* (non-Javadoc)
+     * @see org.xmodel.IDispatcher#execute(java.lang.Runnable)
+     */
+    @Override
+    public void execute( Runnable runnable)
+    {
+      executor.execute( runnable);
+    }
+    
+    /**
+     * Shutdown thread pool.
+     */
+    public void shutdown()
+    {
+      executor.shutdown();
+    }
+    
+    private ExecutorService executor;
+  }
   
   private static Log log = Log.getLog( "org.xmodel.xaction");
   
@@ -110,4 +145,5 @@ public class StartServerAction extends GuardedAction
   private IExpression sourceExpr;
   private IExpression debugExpr;
   private IExpression daemonExpr;
+  private IExpression threadsExpr;
 }

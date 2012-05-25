@@ -13,7 +13,6 @@ import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 
@@ -60,21 +59,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
-    XmlIO xmlIO = new XmlIO();
-    String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", (String)null));
-    if ( host == null) 
-    {
-      String xml = xmlIO.write( annotation);
-      throw new CachingException( "Host not defined in annotation: \n"+xml);
-    }
-    
-    int port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", 0));
-    if ( port == 0)
-    {
-      String xml = xmlIO.write( annotation);
-      throw new CachingException( "Port not defined in annotation: \n"+xml);
-    }
-    
+    String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
+    int port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", Server.defaultPort));
     timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", reconnectDelay));
     
     try
@@ -86,8 +72,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( "Problem creating client.", e);
     }
     
-    query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", (String)null));
-    if ( query != null) validate( query);
+    query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
+    validate( query);
   }
   
   /* (non-Javadoc)

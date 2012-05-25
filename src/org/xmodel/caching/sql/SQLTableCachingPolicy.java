@@ -33,7 +33,6 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -50,9 +49,9 @@ import org.xmodel.xpath.expression.IExpression;
  * A caching policy for accessing information from an SQL database. 
  * This caching policy is used to load both rows and columns of a table.
  */
-public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
+public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 {
-  public SQLDirectCachingPolicy()
+  public SQLTableCachingPolicy()
   {
     this( new UnboundedCache());
   }
@@ -61,12 +60,12 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * Create the caching policy with the specified cache.
    * @param cache The cache.
    */
-  public SQLDirectCachingPolicy( ICache cache)
+  public SQLTableCachingPolicy( ICache cache)
   {
     super( cache);
     
     rowCachingPolicy = new SQLRowCachingPolicy( cache);
-    entityListener = new SQLEntityListener();
+    updateMonitor = new SQLEntityListener();
     
     rowInserts = new HashMap<IModelObject, List<IModelObject>>();
     rowDeletes = new HashMap<IModelObject, List<IModelObject>>();
@@ -136,7 +135,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     syncTable( reference);
     
     // install update monitor
-    entityListener.install( reference);
+    updateMonitor.install( reference);
   }
   
   /**
@@ -474,7 +473,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     if ( !(object instanceof IExternalReference)) return false;
     
     IExternalReference reference = (IExternalReference)object;
-    if ( reference.getCachingPolicy() instanceof SQLDirectCachingPolicy)
+    if ( reference.getCachingPolicy() instanceof SQLTableCachingPolicy)
     {
       IModelObject parent = object.getParent();
       if ( parent == null || !(parent instanceof IExternalReference)) return true;
@@ -543,44 +542,14 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
-   * An implementation of ICachingPolicy for loading table rows.
+   * Enable or disable the update monitoring listener.
+   * @param enabled True if enabled.
    */
-  private class SQLRowCachingPolicy extends AbstractCachingPolicy
+  protected void setUpdateMonitorEnabled( boolean enabled)
   {
-    protected SQLRowCachingPolicy( ICache cache)
-    {
-      super( cache);
-    }
-    
-    /* (non-Javadoc)
-     * @see org.xmodel.external.AbstractCachingPolicy#addStaticAttribute(java.lang.String)
-     */
-    @Override
-    public void addStaticAttribute( String attrName)
-    {
-      super.addStaticAttribute( attrName);
-    }
-
-    /* (non-Javadoc)
-     * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)
-     */
-    public void sync( IExternalReference reference) throws CachingException
-    {
-      SLog.debugf( this, "sync row: %s", reference.getID());
-      
-      entityListener.setEnabled( false);
-      try
-      {
-        IModelObject object = createRowPrototype( reference);
-        update( reference, object);
-      }
-      finally
-      {
-        entityListener.setEnabled( true);
-      }
-    }
-  } 
-
+    updateMonitor.setEnabled( enabled);
+  }
+  
   /**
    * A listener that monitors changes to the table data-model.
    */
@@ -726,7 +695,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   private String primaryKey;
   private List<String> otherKeys;
   private String rowElementName;
-  private SQLEntityListener entityListener;
+  private SQLEntityListener updateMonitor;
   private SQLTransaction transaction;
   private Map<IModelObject, List<IModelObject>> rowInserts;
   private Map<IModelObject, List<IModelObject>> rowDeletes;
