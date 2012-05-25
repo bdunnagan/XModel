@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.sql;
+package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,7 +32,6 @@ public class MySQLProvider implements ISQLProvider
 {
   public MySQLProvider() throws ClassNotFoundException
   {
-    pool = new ConnectionPool( this, 10);
     Class.forName( driverClassName);    
   }
   
@@ -41,17 +40,16 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    String database = Xlate.childGet( annotation, "database", Xlate.childGet( annotation, "db", (String)null));
-    if ( database == null) throw new CachingException( "Database not defined in annotation: "+annotation);
-
     String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:mysql://%s/%s", host, database);  
+    url = String.format( "jdbc:mysql://%s/", host);  
    
     username = Xlate.childGet( annotation, "user", Xlate.childGet( annotation, "login", (String)null));
     if ( username == null) throw new CachingException( "Login not defined in annotation: "+annotation);
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
+    
+    pool = new ConnectionPool( this, Xlate.childGet( annotation, "pool", 10));
   }
 
   /* (non-Javadoc)
@@ -59,8 +57,6 @@ public class MySQLProvider implements ISQLProvider
    */
   public Connection newConnection() throws CachingException
   {
-    
-    
     try
     {
       return DriverManager.getConnection( url, username, password);

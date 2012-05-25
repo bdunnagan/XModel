@@ -1,4 +1,4 @@
-package org.xmodel.external.sql;
+package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.SQLException;

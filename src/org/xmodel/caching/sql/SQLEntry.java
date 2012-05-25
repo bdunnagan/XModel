@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.sql;
+package org.xmodel.caching.sql;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;

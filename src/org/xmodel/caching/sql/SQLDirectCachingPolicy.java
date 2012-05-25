@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.external.sql;
+package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -90,7 +90,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     factory = new ModelObjectFactory();
     tableName = Xlate.childGet( annotation, "table", (String)null);
-    rowElementName = Xlate.childGet( annotation, "row", annotation.getParent().getType());
+    rowElementName = Xlate.childGet( annotation, "row", tableName);
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( rowElementName);
@@ -251,17 +251,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    */
   private static ISQLProvider getProvider( IModelObject annotation) throws CachingException
   {
-    String providerName = Xlate.childGet( annotation, "provider", (String)null);
-    if ( providerName == null) throw new CachingException( "SQL database provider not defined.");
-    
-    Class<? extends ISQLProvider> providerClass = providers.get( providerName);
-    if ( providerClass == null) throw new CachingException( String.format( "Provider %s not supported.", providerName));
-
     try
     {
-      ISQLProvider provider = providerClass.newInstance();
-      provider.configure( annotation);
-      return provider;
+      return SQLProviderFactory.getProvider( annotation);
     }
     catch( Exception e)
     {
