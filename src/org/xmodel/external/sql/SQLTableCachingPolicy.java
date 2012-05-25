@@ -28,12 +28,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -41,6 +41,7 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
@@ -50,9 +51,9 @@ import org.xmodel.xpath.expression.IExpression;
  * A caching policy for accessing information from an SQL database. 
  * This caching policy is used to load both rows and columns of a table.
  */
-public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
+public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 {
-  public SQLDirectCachingPolicy()
+  public SQLTableCachingPolicy()
   {
     this( new UnboundedCache());
   }
@@ -61,12 +62,14 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * Create the caching policy with the specified cache.
    * @param cache The cache.
    */
-  public SQLDirectCachingPolicy( ICache cache)
+  public SQLTableCachingPolicy( ICache cache)
   {
     super( cache);
     
     rowCachingPolicy = new SQLRowCachingPolicy( cache);
-    entityListener = new SQLEntityListener();
+    rowCachingPolicy.setParent( this);
+    
+    updateMonitor = new SQLEntityListener();
     
     rowInserts = new HashMap<IModelObject, List<IModelObject>>();
     rowDeletes = new HashMap<IModelObject, List<IModelObject>>();
@@ -77,6 +80,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
       providers = new HashMap<String, Class<? extends ISQLProvider>>();
       providers.put( "mysql", MySQLProvider.class);
     }
+    
+    Log.getLog( this).setLevel( Log.all);
   }
   
   /* (non-Javadoc)
@@ -136,7 +141,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     syncTable( reference);
     
     // install update monitor
-    entityListener.install( reference);
+    updateMonitor.install( reference);
   }
   
   /**
@@ -379,11 +384,11 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
    * then the field may contain an InputStream.  In this case, the field must also have the <i>length</i>
    * attribute set to the length of the stream (because JDBC requires it for some reason).
    * @param connection The database connection.
-   * @param reference The reference representing a table.
+   * @param object The object representing a table.
    * @param nodes The rows to be inserted in the table.
    * @return Returns a prepared statement which will insert one or more nodes.
    */
-  private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createInsertStatement( Connection connection, IModelObject object, List<IModelObject> nodes) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
@@ -413,11 +418,11 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   /**
    * Returns a prepared statement which will update one or more rows.
    * @param connection The database connection.
-   * @param reference The reference representing a table row.
+   * @param object The object representing a table row.
    * @param fields The fields of the row that were updated.
    * @return Returns a prepared statement which will update one or more rows.
    */
-  private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> fields) throws SQLException
+  private PreparedStatement createUpdateStatement( Connection connection, IModelObject object, List<String> fields) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "UPDATE "); sb.append( tableName);
@@ -438,11 +443,11 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     for( int i=0; i<fields.size(); i++)
     {
       String field = fields.get( i);
-      Object value = otherKeys.contains( field)? reference.getAttribute( field): reference.getFirstChild( field).getValue();
+      Object value = otherKeys.contains( field)? object.getAttribute( field): object.getFirstChild( field).getValue();
       statement.setObject( i+1, value);
     }
     
-    statement.setString( fields.size() + 1, reference.getID());
+    statement.setString( fields.size() + 1, object.getID());
     
     return statement;
   }
@@ -450,11 +455,11 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   /**
    * Returns a prepared statement which will delete one or more rows.
    * @param connection The database connection.
-   * @param reference The reference representing a table.
+   * @param object The reference representing a table.
    * @param nodes The rows to be updated in the table.
    * @return Returns a prepared statement which will delete one or more rows.
    */
-  private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createDeleteStatement( Connection connection, IModelObject object, List<IModelObject> nodes) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "DELETE FROM "); sb.append( tableName);
@@ -482,13 +487,22 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     if ( !(object instanceof IExternalReference)) return false;
     
     IExternalReference reference = (IExternalReference)object;
-    if ( reference.getCachingPolicy() instanceof SQLDirectCachingPolicy)
+    if ( reference.getCachingPolicy() instanceof SQLTableCachingPolicy)
     {
       IModelObject parent = object.getParent();
       if ( parent == null || !(parent instanceof IExternalReference)) return true;
     }
 
     return false;
+  }
+  
+  /**
+   * Set whether update monitoring is enabled.
+   * @param enabled True if enabled.
+   */
+  protected void setUpdateMonitorEnabled( boolean enabled)
+  {
+    updateMonitor.setEnabled( enabled);
   }
   
   /**
@@ -519,7 +533,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   {
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
-      PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      PreparedStatement statement = createDeleteStatement( connection, entry.getKey(), entry.getValue());
+      SLog.debugf( this, "Executing SQL: %s", statement);
       statement.execute();
     }
     
@@ -527,7 +542,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
-      PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      PreparedStatement statement = createInsertStatement( connection, entry.getKey(), entry.getValue());
+      SLog.debugf( this, "Executing SQL: %s", statement);
       statement.execute();
     }
     
@@ -535,7 +551,8 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
     
     for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
     {
-      PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      PreparedStatement statement = createUpdateStatement( connection, entry.getKey(), entry.getValue());
+      SLog.debugf( this, "Executing SQL: %s", statement);
       statement.execute();
     }
     
@@ -551,48 +568,9 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
-   * An implementation of ICachingPolicy for loading table rows.
-   */
-  private class SQLRowCachingPolicy extends AbstractCachingPolicy
-  {
-    protected SQLRowCachingPolicy( ICache cache)
-    {
-      super( cache);
-    }
-    
-    /* (non-Javadoc)
-     * @see org.xmodel.external.AbstractCachingPolicy#addStaticAttribute(java.lang.String)
-     */
-    @Override
-    public void addStaticAttribute( String attrName)
-    {
-      super.addStaticAttribute( attrName);
-    }
-
-    /* (non-Javadoc)
-     * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)
-     */
-    public void sync( IExternalReference reference) throws CachingException
-    {
-      SLog.debugf( this, "sync row: %s", reference.getID());
-      
-      entityListener.setEnabled( false);
-      try
-      {
-        IModelObject object = createRowPrototype( reference);
-        update( reference, object);
-      }
-      finally
-      {
-        entityListener.setEnabled( true);
-      }
-    }
-  } 
-
-  /**
    * A listener that monitors changes to the table data-model.
    */
-  private class SQLEntityListener extends NonSyncingListener
+  class SQLEntityListener extends NonSyncingListener
   {
     /**
      * Enable or disable notifications from this listener.
@@ -734,7 +712,7 @@ public class SQLDirectCachingPolicy extends ConfiguredCachingPolicy
   private String primaryKey;
   private List<String> otherKeys;
   private String rowElementName;
-  private SQLEntityListener entityListener;
+  private SQLEntityListener updateMonitor;
   private SQLTransaction transaction;
   private Map<IModelObject, List<IModelObject>> rowInserts;
   private Map<IModelObject, List<IModelObject>> rowDeletes;

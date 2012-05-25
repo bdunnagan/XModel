@@ -41,6 +41,7 @@ public class SQLCachingPolicyTest
 
     xml = 
         "<script>" +
+        "  <delete>$users/user[ @id = 'bob']</delete>" +
         "  <create parent='$users'>" +
         "    <user id='bob'>" +
         "      <created>0</created>" +
@@ -54,6 +55,19 @@ public class SQLCachingPolicyTest
         "      <password>root</password>" +
         "    </user>" +
         "  </create>" +
+        "</script>";
+    
+    node = xmlIO.read( xml);
+    doc = new XActionDocument( node);
+    script = doc.createScript();    
+    script.run( context);
+    
+    xml = 
+        "<script>" +
+        "  <transaction var='result' set='$users'>" +
+        "    <set target='$users/user[ 2]/first_name'>'Fred'</set>" +
+        "    <set target='$users/user[ 2]/last_name'>'Anderson'</set>" +
+        "  </transaction>" +
         "</script>";
     
     node = xmlIO.read( xml);

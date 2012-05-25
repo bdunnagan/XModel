@@ -1,6 +1,10 @@
 package org.xmodel.xaction;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.external.GroupTransaction;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
@@ -29,7 +33,13 @@ public class TransactionAction extends ScriptAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    GroupTransaction group = new GroupTransaction();
+    GroupTransaction group = getTransaction( context);
+    if ( group == null)
+    {
+      group = new GroupTransaction();
+      setTransaction( context, group);
+    }
+    
     for( IModelObject node: setExpr.evaluateNodes( context))
     {
       if ( !(node instanceof IExternalReference)) continue;
@@ -39,9 +49,6 @@ public class TransactionAction extends ScriptAction
       group.addTransaction( transaction);
     }
 
-    // store transaction in context
-    context.getScope().set( var, group); 
-    
     // lock
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     group.lock(  timeout);
@@ -62,10 +69,54 @@ public class TransactionAction extends ScriptAction
     {
       // unlock
       group.unlock();
+      
+      // clear transaction
+      setTransaction( context, null);
     }
 
     return null;
   }
+   
+  /**
+   * Returns the GroupTransaction instance in the specified context.
+   * @param context The context.
+   * @return Returns null or the GroupTransaction.
+   */
+  public static GroupTransaction getTransaction( IContext context)
+  {
+    Object object = context.get( transactionVariable);
+    if ( object != null)
+    { 
+      List<?> list = (List<?>)object;
+      if ( list.size() > 0) 
+      {
+        IModelObject holder = (IModelObject)list.get( 0);
+        return (GroupTransaction)holder.getValue();
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Set the transaction in the specified context.
+   * @param context The context.
+   * @param transaction The transaction.
+   */
+  private static void setTransaction( IContext context, GroupTransaction transaction)
+  {
+    if ( transaction != null)
+    {
+      IModelObject holder = new ModelObject( "transaction");
+      holder.setValue( transaction);
+      context.set( transactionVariable, holder);
+    }
+    else
+    {
+      context.set( transactionVariable, Collections.<IModelObject>emptyList());
+    }
+  }
+  
+  private final static String transactionVariable = "TransactionAction.GroupTransaction";
 
   private String var;
   private IExpression setExpr;
