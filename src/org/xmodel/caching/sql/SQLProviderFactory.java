@@ -13,11 +13,6 @@ public class SQLProviderFactory
 {
   public enum Provider { mysql};
   
-  public SQLProviderFactory()
-  {
-    providers = new HashMap<String, ISQLProvider>();
-  }
-  
   /**
    * Returns an instance of ISQLProvider for the specified annotation.
    * @param annotation The caching policy annotation.
@@ -53,5 +48,5 @@ public class SQLProviderFactory
     return provider;
   }
   
-  private static Map<String, ISQLProvider> providers;
+  private static Map<String, ISQLProvider> providers = new HashMap<String, ISQLProvider>();
 }

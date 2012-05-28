@@ -77,8 +77,24 @@ public class ExecutionProtocol
       for( Object object: objects)
       {
         ModelObject result = new ModelObject( "result");
-        result.setValue( object);
         results.addChild( result);
+        if ( object instanceof List)
+        {
+          List<?> list = (List<?>)object;
+          if ( list.size() > 0)
+          {
+            for( Object listObject: list)
+              result.addChild( (IModelObject)listObject);
+          }
+        }
+        else if ( object instanceof IModelObject)
+        {
+          result.addChild( (IModelObject)object);
+        }
+        else
+        {
+          result.setValue( object);
+        }
       }
     }
     
@@ -106,7 +122,15 @@ public class ExecutionProtocol
       objects = new Object[ children.size()];
       for( int i=0; i<children.size(); i++)
       {
-        objects[ i] = children.get( i).getValue();
+        IModelObject child = children.get( i);
+        if ( child.getNumberOfChildren() > 0)
+        {
+          objects[ i] = child.getChildren();
+        }
+        else
+        {
+          objects[ i] = child.getValue();
+        }
       }
     }
     

@@ -1,8 +1,8 @@
 package org.xmodel.caching.sql;
 
 import org.xmodel.IModelObject;
-import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
+import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
@@ -11,20 +11,11 @@ import org.xmodel.log.SLog;
 /**
  * An implementation of ICachingPolicy for loading table rows.
  */
-public class SQLRowCachingPolicy extends AbstractCachingPolicy
+public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
 {
-  protected SQLRowCachingPolicy( ICache cache)
+  public SQLRowCachingPolicy( ICache cache)
   {
     super( cache);
-  }
-  
-  /**
-   * Set the SQLTableCachingPolicy.
-   * @param parent The parent caching policy.
-   */
-  protected void setParent( SQLTableCachingPolicy parent)
-  {
-    this.parent = parent;
   }
   
   /* (non-Javadoc)
@@ -37,12 +28,13 @@ public class SQLRowCachingPolicy extends AbstractCachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
-  public void sync( IExternalReference reference) throws CachingException
+  public void syncImpl( IExternalReference reference) throws CachingException
   {
     SLog.debugf( this, "sync row: %s", reference.getID());
-    
+
+    SQLTableCachingPolicy parent = getParent( reference);
     parent.setUpdateMonitorEnabled( false);
     try
     {
@@ -53,6 +45,17 @@ public class SQLRowCachingPolicy extends AbstractCachingPolicy
     {
       parent.setUpdateMonitorEnabled( true);
     }
+  }
+  
+  /**
+   * @param reference The row reference.
+   * @return Returns the parent caching policy.
+   */
+  private SQLTableCachingPolicy getParent( IExternalReference reference)
+  {
+    if ( parent == null)
+      parent = (SQLTableCachingPolicy)((IExternalReference)reference.getParent()).getCachingPolicy();
+    return parent;
   }
 
   /* (non-Javadoc)

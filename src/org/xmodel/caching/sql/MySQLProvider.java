@@ -43,8 +43,8 @@ public class MySQLProvider implements ISQLProvider
     String host = Xlate.childGet( annotation, "host", "localhost");
     url = String.format( "jdbc:mysql://%s/", host);  
    
-    username = Xlate.childGet( annotation, "user", Xlate.childGet( annotation, "login", (String)null));
-    if ( username == null) throw new CachingException( "Login not defined in annotation: "+annotation);
+    username = Xlate.childGet( annotation, "username", (String)null);
+    if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);

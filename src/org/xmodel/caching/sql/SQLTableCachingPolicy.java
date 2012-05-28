@@ -26,8 +26,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -41,6 +43,9 @@ import org.xmodel.external.ITransaction;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlException;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -88,12 +93,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     provider = getProvider( annotation);
     
     factory = new ModelObjectFactory();
+    catalog = Xlate.childGet( annotation, "catalog", (String)null);
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
+    stub = Xlate.childGet( annotation, "stub", true);
+    
+    xmlColumns = new HashSet<String>( 1);
+    for( IModelObject column: annotation.getChildren( "xml"))
+      xmlColumns.add( Xlate.get( column, (String)null));
     
     // add second stage
     IExpression stageExpr = XPath.createExpression( rowElementName);
-    defineNextStage( stageExpr, rowCachingPolicy, true);
+    defineNextStage( stageExpr, rowCachingPolicy, stub);
   }
 
   /* (non-Javadoc)
@@ -154,13 +165,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
-        IModelObject stub = factory.createObject( reference, rowElementName);
-        stub.setID( result.getString( 1));
+        IModelObject row = factory.createObject( reference, rowElementName);
+        if ( stub)
+        {
+          row.setID( result.getString( 1));
+          for( int i=0; i<otherKeys.size(); i++) 
+            row.setAttribute( otherKeys.get( i), result.getObject( i+2));
+        }
+        else
+        {
+          throw new UnsupportedOperationException();
+        }
         
-        for( int i=0; i<otherKeys.size(); i++) 
-          stub.setAttribute( otherKeys.get( i), result.getObject( i+2));
-        
-        parent.addChild( stub);
+        parent.addChild( row);
       }
       
       // update reference
@@ -205,9 +222,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           }
           else
           {
-            IModelObject field = getFactory().createObject( object, columnName);
-            field.setValue( value);
-            object.addChild( field);
+            importColumn( object, columnName, value);
           }
         }        
       }
@@ -223,7 +238,61 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       if ( statement != null) close( statement);
     }
   }
-    
+
+  /**
+   * Import a database column value into the model.
+   * @param row The row element.
+   * @param column The column name.
+   * @param value The database column value.
+   */
+  private void importColumn( IModelObject row, String column, Object value)
+  {
+    if ( otherKeys.contains( column))
+    {
+      row.setAttribute( column, value);
+    }
+    else if ( xmlColumns.contains( column))
+    {
+      try
+      {
+        String xml = value.toString();
+        if ( xml.length() > 0)
+        {
+          IModelObject root = new XmlIO().read( xml);
+          row.getCreateChild( column).addChild( root);
+        }
+      }
+      catch( XmlException e)
+      {
+        SLog.errorf( this, "Invalid xml in %s.%s", tableName, column, e);
+      }
+    }
+    else
+    {
+      row.getCreateChild( column).setValue( value);
+    }
+  }
+
+  /**
+   * Export the content of a column.
+   * @param row The row reference.
+   * @param column The column name.
+   * @return Returns the exported value.
+   */
+  private Object exportColumn( IModelObject row, String column)
+  {
+    if ( xmlColumns.contains( column))
+    {
+      IModelObject root = row.getFirstChild( column).getChild( 0);
+      if ( root != null) return XmlIO.write( Style.compact, root);
+      return "";
+    }
+    else
+    {
+      return otherKeys.contains( column)? row.getAttribute( column): row.getFirstChild( column).getValue();    
+    }
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
@@ -285,13 +354,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       Connection connection = provider.leaseConnection();
+      connection.setCatalog( catalog);
+      
       DatabaseMetaData meta = connection.getMetaData();
       ResultSet result = meta.getColumns( null, null, tableName, null);
       columnNames = new ArrayList<String>();
+      columnTypes = new ArrayList<Integer>();
       while( result.next()) 
       {
         String columnName = result.getString( "COLUMN_NAME");
         columnNames.add( columnName.toLowerCase());
+        
+        int columnType = result.getInt( "DATA_TYPE");
+        columnTypes.add( columnType);
       }
       
       result = meta.getPrimaryKeys( null, null, tableName);
@@ -334,17 +409,26 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); 
-    sb.append( primaryKey);
-    
-    for( String otherKey: otherKeys)
+
+    if ( stub)
     {
-      sb.append( ",");
-      sb.append( otherKey);
+      sb.append( primaryKey);
+      for( String otherKey: otherKeys)
+      {
+        sb.append( ",");
+        sb.append( otherKey);
+      }
+    }
+    else
+    {
+      sb.append( "*");
     }
     
     sb.append( " FROM "); sb.append( tableName);
     
     Connection connection = provider.leaseConnection();
+    connection.setCatalog( catalog);
+    
     return connection.prepareStatement( sb.toString());
   }
   
@@ -360,6 +444,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     Connection connection = provider.leaseConnection();
+    connection.setCatalog( catalog);
+    
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     statement.setString( 1, reference.getID());
     return statement;
@@ -388,12 +474,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( IModelObject node: nodes)
     {
       statement.setString( 1, node.getID());
-      for( int i=0, j=0; i<columnNames.size(); i++)
+      for( int i=0; i<columnNames.size(); i++)
       {
         if ( columnNames.get( i).equals( primaryKey)) continue;
-        if ( otherKeys.contains( columnNames.get( i))) continue;
-        IModelObject fieldNode = node.getChild( j++);
-        statement.setObject( i+1, fieldNode.getValue());
+        
+        Object value = exportColumn( node, columnNames.get( i));
+        if ( value != null)
+        {
+          statement.setObject( i+1, value);
+        }
+        else
+        {
+          statement.setNull( i+1, columnTypes.get( i));
+        }
       }
       statement.addBatch();
     }
@@ -405,19 +498,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * Returns a prepared statement which will update one or more rows.
    * @param connection The database connection.
    * @param reference The reference representing a table row.
-   * @param fields The fields of the row that were updated.
+   * @param columns The columns of the row that were updated.
    * @return Returns a prepared statement which will update one or more rows.
    */
-  private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> fields) throws SQLException
+  private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> columns) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "UPDATE "); sb.append( tableName);
     sb.append( " SET ");
 
-    for( int i=0; i<fields.size(); i++)
+    for( int i=0; i<columns.size(); i++)
     {
       if ( i > 0) sb.append( ",");
-      sb.append( fields.get( i));
+      sb.append( columns.get( i));
       sb.append( "=?");
     }
     
@@ -426,14 +519,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( "=?");
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
-    for( int i=0; i<fields.size(); i++)
+    for( int i=0; i<columns.size(); i++)
     {
-      String field = fields.get( i);
-      Object value = otherKeys.contains( field)? reference.getAttribute( field): reference.getFirstChild( field).getValue();
+      String column = columns.get( i);
+      Object value = exportColumn( reference, column);
       statement.setObject( i+1, value);
     }
     
-    statement.setString( fields.size() + 1, reference.getID());
+    statement.setString( columns.size() + 1, reference.getID());
     
     return statement;
   }
@@ -490,6 +583,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
+      connection.setCatalog( catalog);
       commit( connection);
     }
     catch( SQLException e)
@@ -555,6 +649,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private class SQLEntityListener extends NonSyncingListener
   {
+    public SQLEntityListener()
+    {
+      enabled = true;
+    }
+    
     /**
      * Enable or disable notifications from this listener.
      * @param enabled True to enable.
@@ -689,12 +788,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 
   private ISQLProvider provider;
   private IModelObjectFactory factory;
+  private boolean stub;
   private SQLRowCachingPolicy rowCachingPolicy;
+  private String catalog;
   private String tableName;
   private List<String> columnNames;
+  private List<Integer> columnTypes;
   private String primaryKey;
   private List<String> otherKeys;
   private String rowElementName;
+  private Set<String> xmlColumns;
   private SQLEntityListener updateMonitor;
   private SQLTransaction transaction;
   private Map<IModelObject, List<IModelObject>> rowInserts;

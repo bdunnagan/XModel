@@ -142,6 +142,18 @@ public class AnnotationTransform
     reference.setCachingPolicy( cachingPolicy);
     reference.setDirty( dirty);
     
+    if ( !dirty) 
+    {
+      for ( IModelObject child: element.getChildren())
+      {
+        if ( child != annotation)
+        {
+          IModelObject clone = factory.createClone( child);
+          reference.addChild( clone);
+        }
+      }
+    }
+    
     return reference;
   }
   
