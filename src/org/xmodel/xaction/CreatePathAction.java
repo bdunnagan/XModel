@@ -39,7 +39,7 @@ public class CreatePathAction extends GuardedAction
     super.configure( document);
     sourceExpr = document.getExpression( "source", false);
     if ( sourceExpr == null) sourceExpr = document.getExpression( document.getRoot());
-    factory = getFactory( document.getRoot());
+    factory = Conventions.getFactory( document.getRoot());
   }
 
   /* (non-Javadoc)

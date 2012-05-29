@@ -25,6 +25,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
 import org.xmodel.log.SLog;
+import org.xmodel.net.Client;
 import org.xmodel.net.Server;
 import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
@@ -32,10 +33,10 @@ import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * An XAction that creates a client endpoint that uses the XModel network protocol.  
+ * An XAction that creates a client endpoint that uses the XModel network protocol.
  * For more information about the protocol @see org.xmodel.net.Protocol Protocol.
  */
-public class StartServerAction extends GuardedAction
+public class StartClientAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
@@ -63,7 +64,7 @@ public class StartServerAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     // get context
-    IModelObject serverContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
+    IModelObject clientContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
     
     // install debugger
     if ( (debugExpr != null)? debugExpr.evaluateBoolean( context): false)
@@ -80,19 +81,18 @@ public class StartServerAction extends GuardedAction
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       
-      IContext serverContext = (serverContextNode != null)? new StatefulContext( context.getScope(), serverContextNode): context;
+      IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
       if ( threads > 0) 
       {
         dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
-        serverContext.getModel().setDispatcher( dispatcher);
+        clientContext.getModel().setDispatcher( dispatcher);
       }
       
-      server = new Server( host, port, timeout);
-      server.setServerContext( serverContext);
-      server.start( daemon);
+      client = new Client( host, port, timeout, daemon);
+      client.setServerContext( clientContext);
       
       StatefulContext stateful = (StatefulContext)context;
-      IModelObject object = factory.createObject( null, "server");
+      IModelObject object = factory.createObject( null, "client");
       object.setValue( this);
       stateful.set( var, object);
     }
@@ -103,22 +103,22 @@ public class StartServerAction extends GuardedAction
     
     return null;
   }
-  
+
   /**
-   * @return Returns the Server instance.
+   * @return Returns the Client instance.
    */
-  protected Server getServer()
+  protected Client getClient()
   {
-    return server;
+    return client;
   }
   
   /**
-   * Called by StopServerAction.
+   * Called by StopClientAction.
    */
-  protected void stop()
+  protected void stop() throws IOException
   {
-    server.stop();
-    server = null;
+    client.disconnect();
+    client = null;
     
     if ( dispatcher != null)
     {
@@ -127,7 +127,7 @@ public class StartServerAction extends GuardedAction
     }
   }
   
-  private Server server;
+  private Client client;
   private String var;
   private IExpression hostExpr;
   private IExpression portExpr;

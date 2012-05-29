@@ -20,11 +20,9 @@
 package org.xmodel.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
-import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.diff.ConfiguredXmlMatcher;
 import org.xmodel.diff.DefaultXmlMatcher;
@@ -129,41 +127,6 @@ public abstract class XAction implements IXAction
   }
   
   /**
-   * Returns the factory defined for the specified locus. The first ancestor which defines a
-   * factory determines which factory is created and returned.
-   * @param locus The locus.
-   * @return Returns the factory.
-   */
-  @SuppressWarnings("unchecked")
-  protected IModelObjectFactory getFactory( IModelObject locus)
-  {
-    IModelObject factoryElement = factoryExpr.queryFirst( locus);
-    if ( factoryElement == null) return new ModelObjectFactory();
-    
-    String className = Xlate.get( factoryElement, (String)null);
-    if ( className == null) 
-      getDocument().error(
-        "Class name is undefined in factory element: "+
-          ModelAlgorithms.createIdentityPath( factoryElement));
-    
-    ClassLoader loader = null;
-    IModelObject loaderElement = loaderExpr.queryFirst( locus);
-    if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
-    if ( loader == null) loader = getClass().getClassLoader();
-    
-    try
-    {
-      Class<IModelObjectFactory> clss = (Class<IModelObjectFactory>)loader.loadClass( className);
-      return clss.newInstance();
-    }
-    catch( Exception e)
-    {
-      getDocument().error( "Unable to resolve IModelObjectFactory class: "+className);      
-      return new ModelObjectFactory();
-    }
-  }
-  
-  /**
    * Returns the matcher defined for the specified locus. The first ancestor which defines a
    * matcher determines which matcher is created and returned.
    * @param locus The locus.
@@ -214,9 +177,6 @@ public abstract class XAction implements IXAction
     return path.toString(); 
   }
 
-  private final IExpression factoryExpr = XPath.createExpression(
-    "ancestor-or-self::*/factory");
-  
   private final IExpression matcherExpr = XPath.createExpression(
     "ancestor-or-self::*/matcher");
   

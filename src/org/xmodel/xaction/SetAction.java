@@ -47,7 +47,7 @@ public class SetAction extends GuardedAction
     if ( sourceExpr == null) sourceExpr = document.getExpression();
     if ( targetExpr == null) targetExpr = document.getExpression();
     
-    factory = getFactory( document.getRoot());
+    factory = Conventions.getFactory( document.getRoot());
   }
 
   /* (non-Javadoc)

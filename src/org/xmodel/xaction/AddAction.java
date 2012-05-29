@@ -43,7 +43,7 @@ public class AddAction extends GuardedAction
 
     // load IModelObjectFactory and IXmlMatcher classes
     IModelObject viewRoot = document.getRoot();
-    factory = getFactory( viewRoot);
+    factory = Conventions.getFactory( viewRoot);
     matcher = getMatcher( viewRoot);
     
     // get source and target expressions

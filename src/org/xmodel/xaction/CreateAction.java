@@ -58,7 +58,7 @@ public class CreateAction extends GuardedAction
     nameExpr = Xlate.get( config, "name", (IExpression)null);
     
     // get the factory used to create elements
-    factory = getFactory( config);
+    factory = Conventions.getFactory( config);
 
     // if annotated then preprocess template
     annotatedExpr = Xlate.get( config, "annotated", (IExpression)null);

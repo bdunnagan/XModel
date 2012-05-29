@@ -25,8 +25,9 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
+import org.xmodel.net.Protocol;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -47,6 +48,8 @@ public class RunAction extends GuardedAction
 
     var = Conventions.getVarName( document.getRoot(), false, "assign");    
     contextExpr = document.getExpression( "context", true);
+    remoteExpr = document.getExpression( "remote", true);
+    timeoutExpr = Xlate.get( document.getRoot(), "timeout", (IExpression)null);
     scriptExpr = document.getExpression();
   }
 
@@ -57,21 +60,21 @@ public class RunAction extends GuardedAction
   @SuppressWarnings("unchecked")
   protected Object[] doAction( IContext context)
   {
+    if ( remoteExpr == null) runLocal( context); else runRemote( context);   
+    return null;
+  }
+
+  /**
+   * Perform local execution.
+   * @param context The context.
+   * @return Returns the execution result.
+   */
+  @SuppressWarnings("unchecked")
+  private Object[] runLocal( IContext context)
+  {
     Object[] results = null;
 
-    IXAction script = null;
-    IModelObject node = scriptExpr.queryFirst( context);
-    if ( node != null)
-    {
-      CompiledAttribute attribute = (node != null)? (CompiledAttribute)node.getAttribute( "compiled"): null;
-      if ( attribute != null) script = attribute.script;
-      if ( script == null)
-      {
-        script = document.createScript( node);
-        node.setAttribute( "compiled", new CompiledAttribute( script));
-      }
-    }
-        
+    IXAction script = getScript( context);
     if ( script == null) return null;
     
     if ( contextExpr != null)
@@ -100,6 +103,78 @@ public class RunAction extends GuardedAction
     return null;
   }
   
+  /**
+   * Perform remote execution.
+   * @param context The context.
+   * @return Returns the execution result.
+   */
+  private Object[] runRemote( IContext context)
+  {
+    Protocol protocol = getProtocol( context);
+    //protocol.execute( )
+    return null;
+  }
+  
+  /**
+   * Returns the instance of Protocol for remote invocation.
+   * @param context The context.
+   * @return Returns the instance of Protocol for remote invocation.
+   */
+  private Protocol getProtocol( IContext context)
+  {
+    IModelObject holder = remoteExpr.queryFirst( context);
+    if ( holder == null) throw new XActionException( "Remote instance not found.");
+    
+    Object object = holder.getValue();
+    if ( object == null) throw new XActionException( "Invalid remote instance.");
+    
+    if ( object instanceof StartClientAction)
+    {
+      return ((StartClientAction)object).getClient();
+    }
+    else if ( object instanceof StartServerAction)
+    {
+      return ((StartServerAction)object).getServer();
+    }
+    else
+    {
+      throw new XActionException( "Invalid remote instance.");
+    }
+  }
+  
+  /**
+   * Get the script to be executed.
+   * @param context The context.
+   * @return Returns null or the script.
+   */
+  private IXAction getScript( IContext context)
+  {
+    IXAction script = null;
+    if ( scriptExpr == null)
+    {
+      IModelObject scriptNode = document.getRoot();
+      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+      if ( attribute != null) script = attribute.script;
+      if ( script == null)
+      {
+        script = document.createScript( scriptNode, "var", "context", "remote", "timeout");
+        scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+      }
+    }
+    else
+    {
+      IModelObject scriptNode = scriptExpr.queryFirst( context);
+      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+      if ( attribute != null) script = attribute.script;
+      if ( script == null)
+      {
+        script = document.createScript( scriptNode);
+        scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+      }
+    }
+    return script;
+  }
+  
   private final static class CompiledAttribute
   {
     public CompiledAttribute( IXAction script)
@@ -112,5 +187,7 @@ public class RunAction extends GuardedAction
 
   private String var;
   private IExpression contextExpr;
+  private IExpression remoteExpr;
+  private IExpression timeoutExpr;
   private IExpression scriptExpr;
 }

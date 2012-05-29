@@ -19,15 +19,17 @@
  */
 package org.xmodel.xaction;
 
+import java.io.IOException;
 import org.xmodel.IModelObject;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * An XAction that terminates a previously started server.
- * @see org.xmodel.xaction.StartServerAction StartServerAction.
+ * An XAction that terminates a previously started client.
+ * @see org.xmodel.xaction.StartClientAction StartClientAction.
  */
-public class StopServerAction extends GuardedAction
+public class StopClientAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
@@ -36,7 +38,7 @@ public class StopServerAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    serverExpr = document.getExpression();
+    clientExpr = document.getExpression();
   }
 
   /* (non-Javadoc)
@@ -45,11 +47,19 @@ public class StopServerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject object = serverExpr.queryFirst( context);
-    StartServerAction action = (StartServerAction)object.getValue();
-    action.stop();
+    IModelObject object = clientExpr.queryFirst( context);
+    StartClientAction action = (StartClientAction)object.getValue();
+    try
+    {
+      action.stop();
+    }
+    catch( IOException e)
+    {
+      SLog.warnf( this, "Client disconnect failed because: %s", e.getMessage());
+    }
+    
     return null;
   }
 
-  private IExpression serverExpr;
+  private IExpression clientExpr;
 }

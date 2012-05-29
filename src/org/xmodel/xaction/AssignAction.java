@@ -53,7 +53,7 @@ public class AssignAction extends GuardedAction
     if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
     
     // load IModelObjectFactory class
-    factory = getFactory( config);
+    factory = Conventions.getFactory( config);
 
     // flags
     mode = Xlate.get( config, "mode", "direct");

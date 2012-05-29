@@ -44,7 +44,7 @@ public class ValidateAction extends GuardedAction
     super.configure( document);
     
     IModelObject config = document.getRoot();
-    factory = getFactory( config);
+    factory = Conventions.getFactory( config);
     var = Conventions.getVarName( config, true, "assign");    
     sourceExpr = document.getExpression( "source", false);
     schemaRootExpr = document.getExpression( "schema", false);

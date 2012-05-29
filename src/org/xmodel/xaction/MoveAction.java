@@ -43,7 +43,7 @@ public class MoveAction extends GuardedAction
 
     IModelObject viewRoot = document.getRoot();
     
-    factory = getFactory( viewRoot);
+    factory = Conventions.getFactory( viewRoot);
     
     // get source and target expressions
     sourceExpr = document.getExpression( "source", true);
