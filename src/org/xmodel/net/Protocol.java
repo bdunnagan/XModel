@@ -20,10 +20,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
+
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.PathSyntaxException;
@@ -93,14 +93,14 @@ public class Protocol implements ILink.IListener
   public Protocol( int timeout)
   {
     this.context = new StatefulContext();
-    this.sessions = new ConcurrentHashMap<ILink, List<SessionInfo>>();
+    this.sessionManager = new SessionManager( this);
     this.sessionInitQueues = new ConcurrentHashMap<Long, BlockingQueue<Response>>();
     
     this.timeout = timeout;
     this.random = new Random();
     
     // allocate less than standard mtu
-    buffer = ByteBuffer.allocate( 32768);
+    buffer = ByteBuffer.allocate( 32);
     buffer.order( ByteOrder.BIG_ENDIAN);
     
     //dispatcher = new ImmediateDispatcher();
@@ -174,18 +174,7 @@ public class Protocol implements ILink.IListener
   public Session openSession( ILink link) throws IOException
   {
     int id = sendSessionOpenRequest( link, version);
-    
-    SessionInfo info = new SessionInfo();
-    List<SessionInfo> list = sessions.get( link);
-    if ( list == null)
-    {
-      list = new ArrayList<SessionInfo>( 1);
-      sessions.put( link, list);
-    }
-    
-    for( int i=list.size(); i<=id; i++) list.add( null);
-    list.set( id, info);
-    
+    sessionManager.register( link, id);
     return new Session( this, link, id);
   }
   
@@ -210,7 +199,7 @@ public class Protocol implements ILink.IListener
   {
     if ( link != null && link.isOpen())
     {
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       if ( info.xpath != null) 
       {
         throw new IOException( "Protocol only supports one concurrent attach operation per session.");
@@ -246,7 +235,7 @@ public class Protocol implements ILink.IListener
   {
     sendDetachRequest( link, session);
     
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     if ( info != null)
     {
       info.xpath = null;
@@ -314,7 +303,7 @@ public class Protocol implements ILink.IListener
       IModelObject copy = null;
       if ( target != null)
       {
-        SessionInfo info = getSession( sender, session);
+        SessionInfo info = sessionManager.getSessionInfo( sender, session);
         info.xpath = xpath;
         info.element = target;
         
@@ -340,7 +329,7 @@ public class Protocol implements ILink.IListener
    */
   protected void doDetach( ILink sender, int session)
   {
-    SessionInfo info = getSession( sender, session);
+    SessionInfo info = sessionManager.getSessionInfo( sender, session);
     if ( info != null)
     {
       info.recvMap.clear();
@@ -411,8 +400,16 @@ public class Protocol implements ILink.IListener
         throw new XActionException( String.format(
           "Unable to resolve IXAction class: %s.", script.getType()));
       }
+
+      //
+      // Store the session in the context so that the caller can implement an asynchronous callback
+      // by invoking a remote run back through the calling session.
+      //
+      IModelObject holder = new ModelObject( "holder");
+      holder.setValue( new Session( this, sender, session));
+      context.set( "session", holder);
       
-      context.set( "session", session);
+      // execute
       results = action.run( context);
     }
     catch( Throwable t)
@@ -428,6 +425,11 @@ public class Protocol implements ILink.IListener
       {
         SLog.exception( this, e);
       }
+    }
+    finally
+    {
+      // cleanup
+      context.set( "session", Collections.<IModelObject>emptyList());
     }
     
     try
@@ -448,7 +450,7 @@ public class Protocol implements ILink.IListener
    */
   protected void doSessionClose( ILink sender, int session)
   {
-    deallocSession( sender, session);
+    sessionManager.deallocate( sender, session);
   }
   
   /**
@@ -460,11 +462,11 @@ public class Protocol implements ILink.IListener
   {
     IExternalReference reference = null;
     
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     if ( info != null && info.isAttachClient) reference = (IExternalReference)info.element;
     
     doDetach( link, session);
-    deallocSession( link, session);
+    sessionManager.deallocate( link, session);
     
     if ( reference != null) reference.setDirty( true);
   }
@@ -475,7 +477,7 @@ public class Protocol implements ILink.IListener
   @Override
   public void onClose( ILink link)
   {
-    List<SessionInfo> list = getSessions( link);
+    List<SessionInfo> list = sessionManager.getSessionInfoList( link);
     for( int i=0; i<list.size(); i++)
     {
       SessionInfo info = list.get( i);
@@ -519,7 +521,7 @@ public class Protocol implements ILink.IListener
       if ( SLog.isLevelEnabled( this, Log.verbose)) 
       {
         String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
-        SLog.verbosef( this, "recv: session=%d, correlation=%d, content-length=%d\n%s", session, correlation, length, bytes);
+        SLog.verbosef( this, "recv: session=%X, correlation=%d, content-length=%d\n%s", session, correlation, length, bytes);
       }
 
       switch( type)
@@ -598,7 +600,7 @@ public class Protocol implements ILink.IListener
 
     try
     {
-      sendSessionOpenResponse( link, allocSession( link), client);
+      sendSessionOpenResponse( link, sessionManager.allocate( link), client);
     }
     catch( IOException e)
     {
@@ -660,7 +662,7 @@ public class Protocol implements ILink.IListener
    */
   private final void handleSessionCloseRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
-    dispatch( getSession( link, session), new SessionCloseRunnable( link, session));
+    dispatch( sessionManager.getSessionInfo( link, session), new SessionCloseRunnable( link, session));
   }
 
   /**
@@ -714,7 +716,7 @@ public class Protocol implements ILink.IListener
    */
   public final void sendAttachRequest( ILink link, int session, String query) throws IOException
   {
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     
     initialize( buffer);
     byte[] bytes = query.getBytes();
@@ -758,7 +760,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleAttachRequest( ILink link, int session, int correlation, String xpath)
   {
-    dispatch( getSession( link, session), new AttachRunnable( link, session, correlation, xpath));
+    dispatch( sessionManager.getSessionInfo( link, session), new AttachRunnable( link, session, correlation, xpath));
   }
 
   /**
@@ -772,7 +774,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     byte[] bytes = compressor.compress( element);
     ByteBuffer content = ByteBuffer.wrap( bytes);
     
@@ -810,7 +812,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleAttachResponse( ILink link, int session, IModelObject element)
   {
-    IExternalReference attached = (IExternalReference)getSession( link, session).element;
+    IExternalReference attached = (IExternalReference)sessionManager.getSessionInfo( link, session).element;
     if ( attached != null)
     {
       ICachingPolicy cachingPolicy = attached.getCachingPolicy();
@@ -849,7 +851,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleDetachRequest( ILink link, int session)
   {
-    dispatch( getSession( link, session), new DetachRunnable( link, session));
+    dispatch( sessionManager.getSessionInfo( link, session), new DetachRunnable( link, session));
   }
   
   /**
@@ -861,7 +863,7 @@ public class Protocol implements ILink.IListener
    */
   public final void sendSyncRequest( ILink link, int session, Long key, IExternalReference reference) throws IOException
   {
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     
     initialize( buffer);
     buffer.putInt( key.intValue());
@@ -902,7 +904,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleSyncRequest( ILink sender, int session, int correlation, long key)
   {
-    dispatch( getSession( sender, session), new SyncRunnable( sender, session, correlation, key));
+    dispatch( sessionManager.getSessionInfo( sender, session), new SyncRunnable( sender, session, correlation, key));
   }
   
   /**
@@ -958,7 +960,7 @@ public class Protocol implements ILink.IListener
     initialize( buffer);
     int length = 4;
     buffer.putInt( (int)key);
-    length += writeElement( getSession( link, session).compressor, element);
+    length += writeElement( sessionManager.getSessionInfo( link, session).compressor, element);
     buffer.putInt( index); length += 4;
     finalize( buffer, Type.addChild, session, length);
     
@@ -997,7 +999,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleAddChild( ILink link, int session, long key, byte[] child, int index)
   {
-    dispatch( getSession( link, session), new AddChildEvent( link, session, key, child, index));
+    dispatch( sessionManager.getSessionInfo( link, session), new AddChildEvent( link, session, key, child, index));
   }
   
   /**
@@ -1014,7 +1016,7 @@ public class Protocol implements ILink.IListener
     {
       updating = link;
       
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       IModelObject attached = info.element;
       if ( attached == null) return;
       
@@ -1079,7 +1081,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleRemoveChild( ILink link, int session, long key, int index)
   {
-    dispatch( getSession( link, session), new RemoveChildEvent( link, session, key, index));
+    dispatch( sessionManager.getSessionInfo( link, session), new RemoveChildEvent( link, session, key, index));
   }
   
   /**
@@ -1095,7 +1097,7 @@ public class Protocol implements ILink.IListener
     {
       updating = link;
       
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       IModelObject attached = info.element;
       if ( attached == null) return;
       
@@ -1157,7 +1159,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleChangeAttribute( ILink link, int session, long key, String attrName, Object attrValue)
   {
-    dispatch( getSession( link, session), new ChangeAttributeEvent( link, session, key, attrName, attrValue));
+    dispatch( sessionManager.getSessionInfo( link, session), new ChangeAttributeEvent( link, session, key, attrName, attrValue));
   }
   
   /**
@@ -1174,7 +1176,7 @@ public class Protocol implements ILink.IListener
     {
       updating = link;
 
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       IModelObject attached = info.element;
       if ( attached == null) return;
       
@@ -1234,7 +1236,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleClearAttribute( ILink link, int session, long key, String attrName)
   {
-    dispatch( getSession( link, session), new ClearAttributeEvent( link, session, key, attrName));
+    dispatch( sessionManager.getSessionInfo( link, session), new ClearAttributeEvent( link, session, key, attrName));
   }
 
   /**
@@ -1250,7 +1252,7 @@ public class Protocol implements ILink.IListener
     {
       updating = link;
       
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       IModelObject attached = info.element;
       if ( attached == null) return;
       
@@ -1307,7 +1309,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleChangeDirty( ILink link, int session, long key, boolean dirty)
   {
-    dispatch( getSession( link, session), new ChangeDirtyEvent( link, session, key, dirty));
+    dispatch( sessionManager.getSessionInfo( link, session), new ChangeDirtyEvent( link, session, key, dirty));
   }
 
   /**
@@ -1323,7 +1325,7 @@ public class Protocol implements ILink.IListener
     {
       updating = link;
 
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       IModelObject attached = info.element;
       if ( attached == null) return;
       
@@ -1350,7 +1352,7 @@ public class Protocol implements ILink.IListener
    */
   public final Object sendQueryRequest( ILink link, int session, IContext context, String query, int timeout) throws IOException
   {
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     
     initialize( buffer);
     
@@ -1387,7 +1389,7 @@ public class Protocol implements ILink.IListener
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
     
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     ModelObject request = (ModelObject)compressor.decompress( bytes, 0);
     
     handleQueryRequest( link, session, correlation, request);
@@ -1402,7 +1404,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleQueryRequest( ILink link, int session, int correlation, IModelObject request)
   {
-    dispatch( getSession( link, session), new QueryRunnable( link, session, correlation, request));
+    dispatch( sessionManager.getSessionInfo( link, session), new QueryRunnable( link, session, correlation, request));
   }
   
   /**
@@ -1415,7 +1417,7 @@ public class Protocol implements ILink.IListener
   public final void sendQueryResponse( ILink link, int session, int correlation, Object object) throws IOException
   {
     initialize( buffer);
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     IModelObject response = QueryProtocol.buildResponse( object);
     byte[] bytes = compressor.compress( response);
     buffer.put( bytes);
@@ -1456,14 +1458,14 @@ public class Protocol implements ILink.IListener
    */
   public final Object[] sendExecuteRequest( ILink link, int session, StatefulContext context, String[] variables, IModelObject script, int timeout) throws IOException
   {
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     
     initialize( buffer);
     
     IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
     ICompressor compressor = info.compressor;
     byte[] bytes = compressor.compress( request);
-    if ( buffer.limit() < bytes.length) buffer = ByteBuffer.allocate( (int)(bytes.length * 1.5));
+    if ( buffer.limit() < bytes.length) buffer = ByteBuffer.allocate( bytes.length);
     buffer.put( bytes);
     
     finalize( buffer, Type.executeRequest, session, ++info.correlation, bytes.length);
@@ -1505,7 +1507,7 @@ public class Protocol implements ILink.IListener
     byte[] content = new byte[ length];
     buffer.get( content);
     
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     IModelObject request = compressor.decompress( content, 0);
     
     // log
@@ -1544,7 +1546,7 @@ public class Protocol implements ILink.IListener
     }
     
     // dispatch
-    dispatch( getSession( link, session), new ExecuteRunnable( link, session, correlation, context, script));
+    dispatch( sessionManager.getSessionInfo( link, session), new ExecuteRunnable( link, session, correlation, context, script));
   }
   
   /**
@@ -1559,14 +1561,14 @@ public class Protocol implements ILink.IListener
     initialize( buffer);
     
     IModelObject response = ExecutionProtocol.buildResponse( context, results);
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     byte[] bytes = compressor.compress( response);
     
     int required = buffer.position() + bytes.length;
     if ( required >= buffer.limit())
     {
       buffer.flip();
-      ByteBuffer larger = ByteBuffer.allocate( (int)(required * 1.5));
+      ByteBuffer larger = ByteBuffer.allocate( required);
       larger.put( buffer);
       buffer = larger;
     }
@@ -1607,7 +1609,7 @@ public class Protocol implements ILink.IListener
    */
   public final IModelObject sendDebugRequest( ILink link, int session, Operation operation, int timeout) throws IOException
   {
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     
     initialize( buffer);
     buffer.put( (byte)operation.ordinal());
@@ -1689,7 +1691,7 @@ public class Protocol implements ILink.IListener
   {
     initialize( buffer);
     
-    ICompressor compressor = getSession( link, session).compressor;
+    ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     byte[] bytes = compressor.compress( stack);
     
     int required = buffer.position() + bytes.length;
@@ -1776,7 +1778,7 @@ public class Protocol implements ILink.IListener
     
     try
     {
-      SessionInfo info = getSession( link, session);
+      SessionInfo info = sessionManager.getSessionInfo( link, session);
       
       // drain response queue before sending next message
       info.responseQueue.clear();
@@ -1835,7 +1837,7 @@ public class Protocol implements ILink.IListener
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     if ( info != null) 
     {
       info.responseQueue.offer( new Response( correlation, bytes));
@@ -2172,7 +2174,7 @@ public class Protocol implements ILink.IListener
   {
     element.getModel().setSyncLock( true);
 
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     try
     {
@@ -2241,7 +2243,7 @@ public class Protocol implements ILink.IListener
   {
     root.getModel().setSyncLock( true);
     
-    SessionInfo info = getSession( link, session);
+    SessionInfo info = sessionManager.getSessionInfo( link, session);
     Map<IModelObject, IModelObject> map = new HashMap<IModelObject, IModelObject>();
     try
     {
@@ -2316,7 +2318,7 @@ public class Protocol implements ILink.IListener
     
     public void run()
     {
-      SessionInfo info = getSession( sender, session);
+      SessionInfo info = sessionManager.getSessionInfo( sender, session);
       IModelObject reference = info.recvMap.get( key);
       if ( reference != null)
       {
@@ -2754,88 +2756,6 @@ public class Protocol implements ILink.IListener
     }
   }
   
-  /**
-   * Allocate a session.
-   * @param link The link.
-   * @return Returns the session number.
-   */
-  private final int allocSession( ILink link)
-  {
-    synchronized( sessions)
-    {
-      List<SessionInfo> list = sessions.get( link);
-      if ( list == null)
-      {
-        list = new ArrayList<SessionInfo>();
-        sessions.put( link, list);
-      }
-      
-      for( int i=0; i<list.size(); i++)
-      {
-        if ( list.get( i) == null)
-        {
-          list.set( i, new SessionInfo());
-          return i;
-        }
-      }
-      
-      list.add( new SessionInfo());
-      return list.size() - 1;
-    }
-  }
-  
-  /**
-   * Deallocate a session.
-   * @param link The link.
-   * @param session The session number.
-   */
-  private final void deallocSession( ILink link, int session)
-  {
-    synchronized( sessions)
-    {
-      List<SessionInfo> list = sessions.get( link);
-      if ( list != null) list.set( session, null);
-    }
-  }
-  
-  /**
-   * Returns the SessionInfo object for the specified session on the specified link.
-   * @param link The link.
-   * @param session The session.
-   * @return Returns the SessionInfo object for the specified session on the specified link.
-   */
-  protected final SessionInfo getSession( ILink link, int session)
-  {
-    synchronized( sessions)
-    {
-      List<SessionInfo> list = sessions.get( link);
-      if ( list != null) return list.get( session);
-      return null;
-    }
-  }
-  
-  /**
-   * Returns the SessionInfo objects on the specified link.
-   * @param link The link.
-   * @return Returns the SessionInfo objects on the specified link.
-   */
-  protected final List<SessionInfo> getSessions( ILink link)
-  {
-    synchronized( sessions)
-    {
-      List<SessionInfo> list = sessions.get( link);
-      if ( list == null) return Collections.emptyList();
-      
-      List<SessionInfo> result = new ArrayList<SessionInfo>();
-      for( SessionInfo info: list)
-      {
-        if ( info != null) result.add( info);
-      }
-      
-      return result;
-    }
-  }
-  
   protected class SessionInfo
   {
     public SessionInfo()
@@ -2873,8 +2793,8 @@ public class Protocol implements ILink.IListener
   private final static int lengthHeaderMask = 0x20;
   private final static int sessionHeaderMask = 0x40;
   private final static int correlationHeaderMask = 0x80;
-  
-  private Map<ILink, List<SessionInfo>> sessions;
+
+  private SessionManager sessionManager;
   private Map<Long, BlockingQueue<Response>> sessionInitQueues;
   private IContext context;
   private ByteBuffer buffer;

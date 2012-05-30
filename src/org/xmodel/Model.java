@@ -334,10 +334,8 @@ public class Model implements IModel
 
   private static Log log = Log.getLog( "org.xmodel");
   
-  private static final boolean debug = true;
-  private static Map<Model, Thread> debugMap = debug? 
-      Collections.synchronizedMap( new HashMap<Model, Thread>()):
-      null;
+  private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
+  private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;
   
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;

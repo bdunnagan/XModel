@@ -1,0 +1,31 @@
+<script>
+  <assign var="pass">1</assign>
+  <loop while="true()">
+    <print>$pass</print>
+    <assign var="pass">$pass + 1</assign>
+  
+    <assign var="all">descendant-or-self::*</assign>
+  
+    <random var="i" min="1" max="count( $all) + 1"/>
+    <set target="$all[ $i]/a">$i</set>
+    
+    <random var="sleep" max="100"/>
+    <sleep>$sleep</sleep>
+
+    <random var="i" min="1" max="count( $all) + 1"/>
+    <delete>$all[ $i]</delete>
+
+    <random var="sleep" max="100"/>
+    <sleep>$sleep</sleep>
+    
+    <random var="i" min="1" max="count( $all) + 1"/>
+    <create parent="$all[ $i]">
+      <alpha>
+        <beta/>
+      </alpha>
+    </create> 
+    
+    <random var="sleep" min="10" max="1000"/>
+    <sleep>$sleep</sleep>
+  </loop>
+</script>

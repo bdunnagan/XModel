@@ -66,7 +66,6 @@ public class Element implements IModelObject
   @Override
   public void clearModel()
   {
-    model = null;
   }
 
   /* (non-Javadoc)
@@ -74,8 +73,7 @@ public class Element implements IModelObject
    */
   public IModel getModel()
   {
-    if ( model == null) model = ModelRegistry.getInstance().getModel();
-    return model;
+    return ModelRegistry.getInstance().getModel();
   }
 
   /* (non-Javadoc)
@@ -811,7 +809,7 @@ public class Element implements IModelObject
    */
   public String toXml()
   {
-    IModel model = getModel();
+    IModel model = ModelRegistry.getInstance().getModel();
     boolean syncLock = model.getSyncLock();
     try
     {
@@ -836,7 +834,6 @@ public class Element implements IModelObject
   
   private final static IModelObjectFactory factory = new ElementFactory();
 
-  private IModel model;
   private String type;
   private IModelObject parent;
   private List<IModelObject> children;

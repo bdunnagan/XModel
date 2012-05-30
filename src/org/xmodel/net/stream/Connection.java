@@ -2,6 +2,7 @@ package org.xmodel.net.stream;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
@@ -27,6 +28,9 @@ public final class Connection implements ILink
     this.channel = channel;
     this.listener = listener;
     this.semaphore = new Semaphore( 0);
+    
+    Socket socket = channel.socket();
+    if ( socket != null) address = (InetSocketAddress)socket.getRemoteSocketAddress();
     
     buffer = ByteBuffer.allocateDirect( 4096);
     buffer.flip();

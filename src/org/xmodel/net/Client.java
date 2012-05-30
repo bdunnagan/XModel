@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+
 import org.xmodel.net.stream.TcpClient;
 
 /**
@@ -85,9 +86,8 @@ public class Client extends Protocol
   {
     return link != null && link.isOpen();
   }
-  
+    
   private static TcpClient client;
-  
   private String host;
   private int port;
   private ILink link;

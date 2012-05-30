@@ -24,10 +24,16 @@
  */
 package org.xmodel.xaction;
 
+import java.io.IOException;
 import java.util.List;
+
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
-import org.xmodel.net.Protocol;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.log.SLog;
+import org.xmodel.net.Server;
+import org.xmodel.net.Session;
+import org.xmodel.net.stream.Connection;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -48,16 +54,18 @@ public class RunAction extends GuardedAction
 
     var = Conventions.getVarName( document.getRoot(), false, "assign");    
     contextExpr = document.getExpression( "context", true);
-    remoteExpr = document.getExpression( "remote", true);
-    timeoutExpr = Xlate.get( document.getRoot(), "timeout", (IExpression)null);
     scriptExpr = document.getExpression();
+    
+    varsExpr = document.getExpression( "vars", true);
+    hostExpr = document.getExpression( "host", true);
+    remoteExpr = document.getExpression( "remote", true);
+    timeoutExpr = document.getExpression( "timeout", true);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
   @Override 
-  @SuppressWarnings("unchecked")
   protected Object[] doAction( IContext context)
   {
     if ( remoteExpr == null) runLocal( context); else runRemote( context);   
@@ -110,17 +118,53 @@ public class RunAction extends GuardedAction
    */
   private Object[] runRemote( IContext context)
   {
-    Protocol protocol = getProtocol( context);
-    //protocol.execute( )
-    return null;
+    String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    
+    String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
+    String[] varArray = vars.split( "\\s*,\\s*");
+    
+    // attempt to connect with cached session
+    try
+    {
+      // create session on demand
+      if ( session == null) session = getSession( context, host, timeout);
+
+      // execute
+      Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
+      if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+      return null;
+    }
+    catch( IOException e)
+    {
+      SLog.warnf( this, "Failed to execute script: %s", e.getMessage());
+    }
+    
+    // attempt to create new session
+    try
+    {
+      // create new session
+      session = getSession( context, host, timeout);
+
+      // execute
+      Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
+      if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+      return null;
+    }
+    catch( IOException e)
+    {
+      throw new XActionException( e);
+    }
   }
-  
+
   /**
-   * Returns the instance of Protocol for remote invocation.
+   * Get or create a session with the specified timeout.
    * @param context The context.
-   * @return Returns the instance of Protocol for remote invocation.
+   * @param host The remote host (if remote is client).
+   * @param timeout The timeout in milliseconds.
+   * @return Returns the session.
    */
-  private Protocol getProtocol( IContext context)
+  private Session getSession( IContext context, String host, int timeout) throws IOException
   {
     IModelObject holder = remoteExpr.queryFirst( context);
     if ( holder == null) throw new XActionException( "Remote instance not found.");
@@ -128,18 +172,62 @@ public class RunAction extends GuardedAction
     Object object = holder.getValue();
     if ( object == null) throw new XActionException( "Invalid remote instance.");
     
-    if ( object instanceof StartClientAction)
+    if ( object instanceof Session)
     {
-      return ((StartClientAction)object).getClient();
+      return (Session)object;
+    }
+    else if ( object instanceof StartClientAction)
+    {
+      return ((StartClientAction)object).getClient().connect( timeout);
     }
     else if ( object instanceof StartServerAction)
     {
-      return ((StartServerAction)object).getServer();
+      Server server = ((StartServerAction)object).getServer();
+      
+      List<Connection> connections = server.getConnections( host);
+      if ( connections.size() == 0)
+      {
+        throw new IOException( String.format( 
+            "No client connections from host %s available for remote execution", host));
+      }
+      
+      for( int i=0; i<connections.size(); i++)
+      {
+        Connection connection = connections.get( i);
+        try
+        {
+          return server.openSession( connection);
+        }
+        catch( IOException e)
+        {
+          SLog.warnf( this, "Failed to create session from server over connection %d of %d to host %s: %s", 
+              i, connections.size(), host, e.getMessage());
+        }
+      }
+      
+      throw new IOException( "Failed to create session to host: "+host);
     }
     else
     {
       throw new XActionException( "Invalid remote instance.");
     }
+  }
+  
+  /**
+   * Get the script node to be executed.
+   * @param context The context.
+   * @return Returns null or the script node.
+   */
+  private IModelObject getScriptNode( IContext context)
+  {
+    if ( scriptExpr != null) return scriptExpr.queryFirst( context);
+    
+    if ( inline == null)
+    {
+      inline = new ModelObject( "script");
+      ModelAlgorithms.copyChildren( document.getRoot(), inline, null);
+    }
+    return inline;
   }
   
   /**
@@ -150,18 +238,7 @@ public class RunAction extends GuardedAction
   private IXAction getScript( IContext context)
   {
     IXAction script = null;
-    if ( scriptExpr == null)
-    {
-      IModelObject scriptNode = document.getRoot();
-      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
-      if ( attribute != null) script = attribute.script;
-      if ( script == null)
-      {
-        script = document.createScript( scriptNode, "var", "context", "remote", "timeout");
-        scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
-      }
-    }
-    else
+    if ( scriptExpr != null)
     {
       IModelObject scriptNode = scriptExpr.queryFirst( context);
       CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
@@ -186,8 +263,12 @@ public class RunAction extends GuardedAction
   }
 
   private String var;
+  private IExpression varsExpr;
   private IExpression contextExpr;
   private IExpression remoteExpr;
+  private IExpression hostExpr;
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
+  private Session session;
+  private IModelObject inline;
 }

@@ -1,7 +1,9 @@
 package org.xmodel.net.stream;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
@@ -10,9 +12,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -69,6 +73,42 @@ public abstract class TcpBase
   {
     exit = true;
     selector.wakeup();
+  }
+  
+  /**
+   * Get all connections currently open to the specified host.
+   * @param host The remote host (use null to select any host).
+   * @param port The remote port (use -1 to select any port).
+   * @return Returns all connections to the specified host.
+   */
+  public List<Connection> getConnections( String host, int port)
+  {
+    try
+    {
+      List<String> ips = new ArrayList<String>();
+      for( InetAddress address: InetAddress.getAllByName( host))
+        ips.add( address.getHostAddress());
+      
+      List<Connection> result = new ArrayList<Connection>( 5);
+      for( Connection connection: connections.values())
+      {
+        if ( connection.isOpen())
+        {
+          String remoteHost = connection.getAddress();
+          int remotePort = connection.getPort();
+          if ( (host == null || ips.contains( remoteHost)) && (port < 0 || remotePort == port)) 
+          {
+            result.add( connection);
+          }
+        }
+      }
+      return result;
+    }
+    catch( UnknownHostException e)
+    {
+      log.errorf( "Unknown host: %s", host);
+      return Collections.emptyList();
+    }
   }
 
   /**

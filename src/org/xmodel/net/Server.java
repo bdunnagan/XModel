@@ -1,7 +1,9 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.xmodel.net.stream.Connection;
 import org.xmodel.net.stream.TcpServer;
 
 /**
@@ -40,6 +42,16 @@ public class Server extends Protocol
   public void stop()
   {
     server.stop();
+  }
+
+  /**
+   * Returns the Connection instances to the specified remote host.
+   * @param host The remote host.
+   * @return Returns the Connection instances to the specified remote host.
+   */
+  public List<Connection> getConnections( String host)
+  {
+    return server.getConnections( host, -1);
   }
   
   private TcpServer server;
