@@ -19,11 +19,11 @@
  */
 package org.xmodel.concurrent;
 
+import org.xmodel.BlockingDispatcher;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
-import org.xmodel.ManualDispatcher;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelListener;
 import org.xmodel.ModelObject;
@@ -144,7 +144,7 @@ public class MasterSlaveListener extends NonSyncingListener
         ModelObject slave = new ModelObject( "slave");
         slave.setValue( 0);
         
-        ManualDispatcher dispatcher = new ManualDispatcher();
+        BlockingDispatcher dispatcher = new BlockingDispatcher();
         slave.getModel().setDispatcher( dispatcher);
         
         MasterSlaveListener listener = new MasterSlaveListener( master, slave);
@@ -160,7 +160,6 @@ public class MasterSlaveListener extends NonSyncingListener
         while( true)
         {
           dispatcher.process();
-          try { Thread.sleep( 100);} catch( InterruptedException e) {}
           
           if ( slave != null && Xlate.get( slave, 0) > 5) 
             slave = null;

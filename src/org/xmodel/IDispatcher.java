@@ -29,4 +29,12 @@ public interface IDispatcher
    * @param runnable The runnable.
    */
   public void execute( Runnable runnable);
+  
+  /**
+   * Instruct the dispatcher to stop executing new tasks. If the immediate flag is false then any queued tasks 
+   * will be executed before the dispatcher terminates. Otherwise, the dispatcher will terminate after the currently
+   * executing runnable(s) have completed. Some implementations may attempt to stop currently executing tasks by
+   * interrupting the thread when the immediate flag is true.
+   */
+  public void shutdown( boolean immediate);
 }

@@ -226,7 +226,8 @@ public class NullObject implements IModelObject
    */
   public IModel getModel()
   {
-    return ModelRegistry.getInstance().getModel();
+    if ( model == null) model = ModelRegistry.getInstance().getModel();
+    return model;
   }
 
   /* (non-Javadoc)
@@ -468,4 +469,6 @@ public class NullObject implements IModelObject
   {
     throw new UnsupportedOperationException();
   }
+  
+  private IModel model;
 }

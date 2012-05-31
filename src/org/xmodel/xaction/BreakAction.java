@@ -548,6 +548,7 @@ public class BreakAction extends GuardedAction
    * @param text The text.
    * @return Returns the number of lines.
    */
+  @SuppressWarnings("unused")
   private int lineCount( String text)
   {
     int count = 0;

@@ -21,12 +21,12 @@ public class ThreadPoolDispatcher implements IDispatcher
     executor.execute( runnable);
   }
   
-  /**
-   * Shutdown thread pool.
+  /* (non-Javadoc)
+   * @see org.xmodel.IDispatcher#shutdown(boolean)
    */
-  public void shutdown()
+  public void shutdown( boolean immediate)
   {
-    executor.shutdown();
+    if ( immediate) executor.shutdownNow(); else executor.shutdown();
   }
   
   private ExecutorService executor;

@@ -19,7 +19,7 @@ public class Debugger
 {
   public final static int defaultPort = 27700;
   
-  public static enum Operation { stepOver, stepIn, stepOut, pause, resume};
+  public static enum Operation { fetch, stepOver, stepIn, stepOut, pause, resume};
   
   public Debugger()
   {
@@ -56,6 +56,11 @@ public class Debugger
   public synchronized void pause()
   {
     stepFrame = currFrame + 1;
+  }
+  
+  public void breakpoint()
+  {
+    block();
   }
   
   public synchronized void resume()

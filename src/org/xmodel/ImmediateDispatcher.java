@@ -31,4 +31,13 @@ public class ImmediateDispatcher implements IDispatcher
   {
     runnable.run();
   }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IDispatcher#shutdown(boolean)
+   */
+  @Override
+  public void shutdown( boolean immediate)
+  {
+    throw new UnsupportedOperationException();
+  }
 }

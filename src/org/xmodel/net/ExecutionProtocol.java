@@ -84,12 +84,30 @@ public class ExecutionProtocol
           if ( list.size() > 0)
           {
             for( Object listObject: list)
-              result.addChild( (IModelObject)listObject);
+            {
+              IModelObject listElement = (IModelObject)listObject;
+              if ( listElement instanceof AttributeNode || listElement instanceof TextNode)
+              {
+                result.setValue( listElement.getValue());
+              }
+              else
+              {
+                result.addChild( listElement.cloneTree());
+              }
+            }
           }
         }
         else if ( object instanceof IModelObject)
         {
-          result.addChild( (IModelObject)object);
+          IModelObject element = (IModelObject)object;
+          if ( element instanceof AttributeNode || element instanceof TextNode)
+          {
+            result.setValue( element.getValue());
+          }
+          else
+          {
+            result.addChild( element.cloneTree());
+          }
         }
         else
         {

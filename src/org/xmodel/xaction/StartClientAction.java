@@ -21,6 +21,7 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
@@ -82,6 +83,10 @@ public class StartClientAction extends GuardedAction
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       
       IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
+      
+      dispatcher = clientContext.getModel().getDispatcher();
+      if ( dispatcher == null && threads == 0) threads = 1;
+      
       if ( threads > 0) 
       {
         dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
@@ -95,6 +100,8 @@ public class StartClientAction extends GuardedAction
       IModelObject object = factory.createObject( null, "client");
       object.setValue( this);
       stateful.set( var, object);
+      
+      client.connect( timeout);
     }
     catch( IOException e)
     {
@@ -122,7 +129,7 @@ public class StartClientAction extends GuardedAction
     
     if ( dispatcher != null)
     {
-      dispatcher.shutdown();
+      dispatcher.shutdown( true);
       dispatcher = null;
     }
   }
@@ -137,5 +144,5 @@ public class StartClientAction extends GuardedAction
   private IExpression daemonExpr;
   private IExpression threadsExpr;
   private IModelObjectFactory factory;
-  private ThreadPoolDispatcher dispatcher;
+  private IDispatcher dispatcher;
 }

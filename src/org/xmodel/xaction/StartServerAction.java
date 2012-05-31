@@ -21,6 +21,8 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
+import org.xmodel.BlockingDispatcher;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
@@ -32,8 +34,14 @@ import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * An XAction that creates a client endpoint that uses the XModel network protocol.  
+ * An XAction that creates a server endpoint that uses the XModel network protocol.  
  * For more information about the protocol @see org.xmodel.net.Protocol Protocol.
+ * There are three different server threading models.  If the <i>threads</i> parameter
+ * is supplied, then the server will create a ThreadPoolDispatcher and assign it to the
+ * server context. Otherwise, if the calling thread does not have a dispatcher, or if the
+ * <i>blocking</i> parameter is true, then the server will create a BlockingDispatcher, 
+ * assign it to the server context, and the action will not terminate unless the dispatcher 
+ * is shutdown.
  */
 public class StartServerAction extends GuardedAction
 {
@@ -53,7 +61,9 @@ public class StartServerAction extends GuardedAction
     debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
     threadsExpr = document.getExpression( "threads", true);
-    contextExpr = document.getExpression();
+    blockingExpr = document.getExpression( "blocking", true);
+    contextExpr = document.getExpression( "context", true);
+    if ( contextExpr == null) contextExpr = document.getExpression();
   }
 
   /* (non-Javadoc)
@@ -86,6 +96,11 @@ public class StartServerAction extends GuardedAction
         dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
         serverContext.getModel().setDispatcher( dispatcher);
       }
+      else if ( serverContext.getModel().getDispatcher() == null || blockingExpr.evaluateBoolean( context))
+      {
+        dispatcher = new BlockingDispatcher();
+        serverContext.getModel().setDispatcher( dispatcher);
+      }
       
       server = new Server( host, port, timeout);
       server.setServerContext( serverContext);
@@ -99,6 +114,14 @@ public class StartServerAction extends GuardedAction
     catch( IOException e)
     {
       SLog.exception( this, e);
+    }
+
+    if ( dispatcher instanceof BlockingDispatcher)
+    {
+      BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
+      while( true)
+        if ( !blocking.process())
+          break;
     }
     
     return null;
@@ -122,7 +145,7 @@ public class StartServerAction extends GuardedAction
     
     if ( dispatcher != null)
     {
-      dispatcher.shutdown();
+      dispatcher.shutdown( true);
       dispatcher = null;
     }
   }
@@ -133,9 +156,10 @@ public class StartServerAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression contextExpr;
+  private IExpression blockingExpr;
   private IExpression debugExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
   private IModelObjectFactory factory;
-  private ThreadPoolDispatcher dispatcher;
+  private IDispatcher dispatcher;
 }

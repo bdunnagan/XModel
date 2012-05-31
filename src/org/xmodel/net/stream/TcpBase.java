@@ -95,7 +95,7 @@ public abstract class TcpBase
         if ( connection.isOpen())
         {
           String remoteHost = connection.getAddress();
-          int remotePort = connection.getPort();
+          int remotePort = connection.getChannel().socket().getLocalPort();
           if ( (host == null || ips.contains( remoteHost)) && (port < 0 || remotePort == port)) 
           {
             result.add( connection);
@@ -312,6 +312,7 @@ public abstract class TcpBase
   {
     ServerSocketChannel channel = (ServerSocketChannel)key.channel();    
     Connection connection = createConnection( channel.accept(), listener);
+    int port = connection.getChannel().socket().getLocalPort();
     connection.getChannel().configureBlocking( false);
     connection.getChannel().register( selector, SelectionKey.OP_READ);
   }

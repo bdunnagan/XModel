@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -35,6 +36,7 @@ public class BlockingDispatcher implements IDispatcher
   {
     queue = new ArrayBlockingQueue<Runnable>( 100);
     dequeued = new ArrayList<Runnable>();
+    shutdown = new AtomicBoolean();
   }
   
   /* (non-Javadoc)
@@ -44,21 +46,35 @@ public class BlockingDispatcher implements IDispatcher
   {
     try
     {
-      queue.put( runnable);
+      if ( !shutdown.get()) queue.put( runnable);
     }
     catch( InterruptedException e)
     {
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.IDispatcher#shutdown(boolean)
+   */
+  @Override
+  public void shutdown( boolean immediate)
+  {
+    this.immediate = immediate;
+    this.shutdown.set( true);
+  }
+
   /**
    * Dequeue and execute all the runnables on the queue.
+   * @return Returns false if dispatcher has been shutdown.
    */
-  public void process()
+  public boolean process()
   {
     try
     {
       Runnable first = queue.take();
+      
+      if ( shutdown.get() && immediate)
+        return false;
       
       dequeued.add( first);
       queue.drainTo( dequeued);
@@ -68,12 +84,17 @@ public class BlockingDispatcher implements IDispatcher
           runnable.run();
       
       dequeued.clear();
+      return true;
     }
     catch( InterruptedException e)
     {
+      shutdown( true);
+      return false;
     }
   }
   
   private BlockingQueue<Runnable> queue;
   private List<Runnable> dequeued;
+  private AtomicBoolean shutdown;
+  private boolean immediate;
 }

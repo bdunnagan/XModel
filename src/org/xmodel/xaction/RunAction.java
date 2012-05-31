@@ -58,6 +58,7 @@ public class RunAction extends GuardedAction
     
     varsExpr = document.getExpression( "vars", true);
     hostExpr = document.getExpression( "host", true);
+    portExpr = document.getExpression( "port", true);
     remoteExpr = document.getExpression( "remote", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
@@ -119,6 +120,7 @@ public class RunAction extends GuardedAction
   private Object[] runRemote( IContext context)
   {
     String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
+    int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): -1;
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
@@ -128,7 +130,7 @@ public class RunAction extends GuardedAction
     try
     {
       // create session on demand
-      if ( session == null) session = getSession( context, host, timeout);
+      if ( session == null) session = getSession( context, host, port, timeout);
 
       // execute
       Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
@@ -144,7 +146,7 @@ public class RunAction extends GuardedAction
     try
     {
       // create new session
-      session = getSession( context, host, timeout);
+      session = getSession( context, host, port, timeout);
 
       // execute
       Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
@@ -164,7 +166,7 @@ public class RunAction extends GuardedAction
    * @param timeout The timeout in milliseconds.
    * @return Returns the session.
    */
-  private Session getSession( IContext context, String host, int timeout) throws IOException
+  private Session getSession( IContext context, String host, int port, int timeout) throws IOException
   {
     IModelObject holder = remoteExpr.queryFirst( context);
     if ( holder == null) throw new XActionException( "Remote instance not found.");
@@ -184,7 +186,7 @@ public class RunAction extends GuardedAction
     {
       Server server = ((StartServerAction)object).getServer();
       
-      List<Connection> connections = server.getConnections( host);
+      List<Connection> connections = server.getConnections( host, port);
       if ( connections.size() == 0)
       {
         throw new IOException( String.format( 
@@ -267,6 +269,7 @@ public class RunAction extends GuardedAction
   private IExpression contextExpr;
   private IExpression remoteExpr;
   private IExpression hostExpr;
+  private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
   private Session session;

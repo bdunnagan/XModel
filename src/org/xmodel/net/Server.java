@@ -47,11 +47,12 @@ public class Server extends Protocol
   /**
    * Returns the Connection instances to the specified remote host.
    * @param host The remote host.
+   * @param port The remote port.
    * @return Returns the Connection instances to the specified remote host.
    */
-  public List<Connection> getConnections( String host)
+  public List<Connection> getConnections( String host, int port)
   {
-    return server.getConnections( host, -1);
+    return server.getConnections( host, port);
   }
   
   private TcpServer server;
