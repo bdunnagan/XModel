@@ -78,35 +78,22 @@ public class ExecutionProtocol
       {
         ModelObject result = new ModelObject( "result");
         results.addChild( result);
-        if ( object instanceof List)
+        
+        List<IModelObject> nodes = tryCastToList( object);
+        if ( nodes != null)
         {
-          List<?> list = (List<?>)object;
-          if ( list.size() > 0)
+          for( IModelObject node: nodes)
           {
-            for( Object listObject: list)
+            ModelObject item = new ModelObject( "item");
+            result.addChild( item);
+
+            IModelObject copy = node.cloneTree();
+            item.addChild( copy);
+            
+            if ( node instanceof AttributeNode || node instanceof TextNode)
             {
-              IModelObject listElement = (IModelObject)listObject;
-              if ( listElement instanceof AttributeNode || listElement instanceof TextNode)
-              {
-                result.setValue( listElement.getValue());
-              }
-              else
-              {
-                result.addChild( listElement.cloneTree());
-              }
+              Xlate.set( item, "attr", node.getType());
             }
-          }
-        }
-        else if ( object instanceof IModelObject)
-        {
-          IModelObject element = (IModelObject)object;
-          if ( element instanceof AttributeNode || element instanceof TextNode)
-          {
-            result.setValue( element.getValue());
-          }
-          else
-          {
-            result.addChild( element.cloneTree());
           }
         }
         else
@@ -117,6 +104,26 @@ public class ExecutionProtocol
     }
     
     return response;
+  }
+  
+  /**
+   * Try to cast the specified result to a node-set.
+   * @param result The result.
+   * @return Returns null or the node-set.
+   */
+  @SuppressWarnings("unchecked")
+  private static List<IModelObject> tryCastToList( Object result)
+  {
+    if ( result instanceof List)
+    {
+      return (List<IModelObject>)result;
+    }
+    else if ( result instanceof IModelObject)
+    {
+      return Collections.singletonList( (IModelObject)result);
+    }
+    
+    return null;
   }
   
   /**
@@ -136,18 +143,38 @@ public class ExecutionProtocol
     IModelObject results = response.getFirstChild( "results");
     if ( results != null)
     {
-      List<IModelObject> children = results.getChildren( "result");
-      objects = new Object[ children.size()];
-      for( int i=0; i<children.size(); i++)
+      objects = new Object[ results.getNumberOfChildren()];
+      
+      int index = 0;
+      for( IModelObject result: results.getChildren( "result"))
       {
-        IModelObject child = children.get( i);
-        if ( child.getNumberOfChildren() > 0)
+        List<IModelObject> items = result.getChildren();
+        if ( items.size() > 0)
         {
-          objects[ i] = child.getChildren();
+          List<IModelObject> nodes = new ArrayList<IModelObject>( items.size());
+          
+          for( IModelObject item: items)
+          {
+            IModelObject node = item.getChild( 0);
+            
+            String attrName = Xlate.get( item, "attr", (String)null);
+            if ( attrName != null)
+            {
+              nodes.add( (attrName.length() > 0)? 
+                  new AttributeNode( attrName, node): 
+                  new TextNode( node));
+            }
+            else
+            {
+              nodes.add( node);
+            }
+          }
+          
+          objects[ index++] = nodes;
         }
         else
         {
-          objects[ i] = child.getValue();
+          objects[ index++] = result.getValue(); 
         }
       }
     }

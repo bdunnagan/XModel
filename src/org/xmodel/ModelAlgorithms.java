@@ -453,7 +453,7 @@ public class ModelAlgorithms implements IAxis
     if ( factory == null) factory = new ModelObjectFactory();
     for ( IModelObject child: source.getChildren())
     {
-      IModelObject clone = factory.createClone( child);
+      IModelObject clone = cloneTree( child, factory);
       destination.addChild( clone);
     }
   }
