@@ -76,9 +76,15 @@ public final class Connection implements ILink
    * @param timeout The timeout in milliseconds.
    * @return Returns true if the connection was established.
    */
-  boolean waitForConnect( int timeout) throws InterruptedException
+  boolean waitForConnect( int timeout) throws IOException, InterruptedException
   {
-    return semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
+    if ( semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS))
+    {
+      if ( channel == null || !channel.isOpen())
+        throw new IOException( "Connection was not established!");
+      return true;
+    }
+    return false;
   }
   
   /**
@@ -89,8 +95,8 @@ public final class Connection implements ILink
   {
     try 
     {
-      semaphore.release();
       if ( channel != null) channel.close();
+      semaphore.release();
     }
     catch( IOException e)
     {
@@ -187,6 +193,8 @@ public final class Connection implements ILink
   {
     if ( channel != null) 
     {
+      TcpBase.log.debugf( "Closing connection to %s:%d.", getAddress(), getPort());
+      
       try { channel.close();} catch( Exception e) {}
       channel = null;
     }

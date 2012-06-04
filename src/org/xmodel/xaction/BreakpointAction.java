@@ -11,8 +11,11 @@ public class BreakpointAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    Debugger debugger = XAction.getDebugger();
-    debugger.breakpoint();
+    if ( isDebugging())
+    {
+      Debugger debugger = XAction.getDebugger();
+      debugger.breakpoint();
+    }
     return null;
   }
 }

@@ -1,7 +1,7 @@
 /*
  * JAHM - Java Advanced Hierarchical Model 
  * 
- * StartServerAction.java
+ * StartClientAction.java
  * 
  * Copyright 2009 Robert Arvin Dunnagan
  * 
@@ -52,6 +52,7 @@ public class StartClientAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
+    retriesExpr = document.getExpression( "retries", true);
     debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
     threadsExpr = document.getExpression( "threads", true);
@@ -72,61 +73,85 @@ public class StartClientAction extends GuardedAction
     {
       XAction.setDebugger( new Debugger());
     }
-    
-    // start server
+
+    // start client
     try
     {
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
-      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 3000;
+      int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       
       IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
       
-      dispatcher = clientContext.getModel().getDispatcher();
+      IDispatcher dispatcher = clientContext.getModel().getDispatcher();
       if ( dispatcher == null && threads == 0) threads = 1;
       
       if ( threads > 0) 
       {
         dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
         clientContext.getModel().setDispatcher( dispatcher);
+        Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.dispatcher", dispatcher);
       }
       
-      client = new Client( host, port, timeout, daemon);
+      Client client = new Client( host, port, timeout, daemon);
       client.setServerContext( clientContext);
+      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", client);
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "client");
       object.setValue( this);
       stateful.set( var, object);
       
-      client.connect( timeout);
+      for( int i=1; i<=retries; i++)
+      {
+        try
+        {
+          if ( client.connect( timeout) != null) 
+            break;
+        }
+        catch( IOException e)
+        {
+          if ( i == retries) throw e;
+        }
+        
+        try { Thread.sleep( timeout);} catch( InterruptedException e2) {}
+      }
     }
     catch( IOException e)
     {
       SLog.exception( this, e);
+      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", null);
     }
     
     return null;
   }
 
   /**
-   * @return Returns the Client instance.
+   * @param context The context.
+   * @return Returns null or the Client instance.
    */
-  protected Client getClient()
+  protected Client getClient( IContext context)
   {
-    return client;
+    return (Client)Conventions.getCache( context, "org.xmodel.xaction.StartClientAction.client");
   }
   
   /**
    * Called by StopClientAction.
+   * @param context The context.
    */
-  protected void stop() throws IOException
+  protected void stop( IContext context) throws IOException
   {
-    client.disconnect();
-    client = null;
+    Client client = getClient( context);
+    if ( client != null)
+    {
+      client.disconnect();
+      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", null);
+    }
     
+    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartClientAction.dispatcher");
     if ( dispatcher != null)
     {
       dispatcher.shutdown( true);
@@ -134,15 +159,14 @@ public class StartClientAction extends GuardedAction
     }
   }
   
-  private Client client;
   private String var;
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;
+  private IExpression retriesExpr;
   private IExpression contextExpr;
   private IExpression debugExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
   private IModelObjectFactory factory;
-  private IDispatcher dispatcher;
 }

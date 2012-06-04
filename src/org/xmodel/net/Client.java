@@ -21,10 +21,13 @@ public class Client extends Protocol
   {
     super( timeout);
     
-    if ( client == null) 
+    synchronized( Client.class)
     {
-      client = new TcpClient();
-      client.start( daemon);
+      if ( client == null)
+      {
+        client = new TcpClient();
+        client.start( daemon);
+      }
     }
     
     this.host = host;

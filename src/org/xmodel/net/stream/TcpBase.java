@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.xmodel.log.Log;
 import org.xmodel.net.ILink;
 
@@ -127,9 +126,12 @@ public abstract class TcpBase
    * @param port The remote port.
    * @param timeout The timeout in milliseconds.
    * @param listener The listener for socket events.
+   * @return Returns an established connection.
    */
   protected Connection connect( String host, int port, int timeout, ILink.IListener listener) throws IOException
   {
+    log.debugf( "Opening a connection to %s:%d, timeout=%d ...", host, port, timeout);
+    
     SocketChannel channel = SocketChannel.open();
     channel.configureBlocking( false);
     
@@ -145,12 +147,20 @@ public abstract class TcpBase
     
     try
     {
-      if ( !connection.waitForConnect( timeout)) return null;
+      if ( !connection.waitForConnect( timeout)) 
+      {
+        log.debug( "Timeout expired!");
+        return null;
+      }
     }
     catch( InterruptedException e)
     {
+      Thread.interrupted();
+      log.debug( "Thread interrupted.");
+      return null;
     }
     
+    log.debug( "Connection established.");
     return connection;
   }
   
@@ -164,6 +174,8 @@ public abstract class TcpBase
   {
     if ( connection.isOpen()) connection.close();
     
+    log.debugf( "Reconnecting to %s:%d, timeout=%d ...", connection.getAddress(), connection.getPort(), timeout);
+    
     Request request = new Request();
     request.channel = connection.getChannel();
     request.buffer = null;
@@ -173,13 +185,21 @@ public abstract class TcpBase
   
     try
     {
-      return connection.waitForConnect( timeout);
+      if ( !connection.waitForConnect( timeout))
+      {
+        log.debug( "Timeout expired!");
+        return false;
+      }
     }
     catch( InterruptedException e)
     {
+      log.debugf( "Thread interrupted!");
+      Thread.interrupted();
+      return false;
     }
     
-    return false;
+    log.debug( "Connection re-established.");
+    return true;
   }
 
   /**
@@ -230,43 +250,6 @@ public abstract class TcpBase
     selector.wakeup();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.stream.TcpManager#process(int)
-   */
-  protected boolean process( int timeout) throws IOException
-  {
-    // wait for connection
-    if ( selector.select( timeout) == 0) return false; 
-      
-    // handle events
-    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-    while( iter.hasNext())
-    {
-      SelectionKey readyKey = iter.next();
-      iter.remove();
-      
-      if ( !readyKey.isValid()) continue;
-      
-      try
-      {
-        if ( readyKey.isReadable()) read( readyKey);
-        if ( readyKey.isWritable()) write( readyKey);
-        if ( readyKey.isAcceptable()) accept( readyKey);
-        if ( readyKey.isConnectable()) connect( readyKey);
-      }
-      catch( IOException e)
-      {
-        log.verbose( e.getMessage());
-      }
-      catch( CancelledKeyException e)
-      {
-        log.verbose( e.getMessage());
-      }
-    }
-    
-    return true;
-  }
-    
   /**
    * Create a new Connection instance for the specified channel.
    * @param channel The channel.
@@ -312,9 +295,11 @@ public abstract class TcpBase
   {
     ServerSocketChannel channel = (ServerSocketChannel)key.channel();    
     Connection connection = createConnection( channel.accept(), listener);
-    int port = connection.getChannel().socket().getLocalPort();
     connection.getChannel().configureBlocking( false);
     connection.getChannel().register( selector, SelectionKey.OP_READ);
+    
+    InetSocketAddress local = (InetSocketAddress)connection.getChannel().socket().getLocalSocketAddress();
+    log.debugf( "Accepted incoming connection from %s:%d.", local.getAddress().getHostAddress(), local.getPort());
   }
   
   /**
@@ -370,6 +355,43 @@ public abstract class TcpBase
     key.cancel();
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpManager#process(int)
+   */
+  protected boolean process( int timeout) throws IOException
+  {
+    // wait for connection
+    if ( selector.select( timeout) == 0) return false; 
+      
+    // handle events
+    Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
+    while( iter.hasNext())
+    {
+      SelectionKey readyKey = iter.next();
+      iter.remove();
+      
+      if ( !readyKey.isValid()) continue;
+      
+      try
+      {
+        if ( readyKey.isReadable()) read( readyKey);
+        if ( readyKey.isWritable()) write( readyKey);
+        if ( readyKey.isAcceptable()) accept( readyKey);
+        if ( readyKey.isConnectable()) connect( readyKey);
+      }
+      catch( IOException e)
+      {
+        log.verbose( e.getMessage());
+      }
+      catch( CancelledKeyException e)
+      {
+        log.verbose( e.getMessage());
+      }
+    }
+    
+    return true;
+  }
+    
   private void thread()
   {
     exit = false;
@@ -414,7 +436,7 @@ public abstract class TcpBase
     public int ops;
   }
   
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  protected final static Log log = Log.getLog( "org.xmodel.net.stream");
   private static int counter = 0;
 
   private ILink.IListener listener;

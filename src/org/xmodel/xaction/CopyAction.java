@@ -47,7 +47,7 @@ public class CopyAction extends GuardedAction
     super.configure( document);
 
     IModelObject root = document.getRoot();
-    matcher = getMatcher( root);
+    matcher = Conventions.getMatcher( document, root);
     differ.setMatcher( matcher);
     differ.setFactory( new ModelObjectFactory());
         

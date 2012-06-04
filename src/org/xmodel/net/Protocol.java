@@ -612,7 +612,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.sessionOpenResponse, session, 8);
     
     // log
-    SLog.debugf( this, "Send Session Open Response: session=%d, client=%X", session, client);
+    SLog.debugf( this, "Send Session Open Response: session=%X, client=%X", session, client);
     
     send( link, buffer, session);
   }
@@ -639,7 +639,7 @@ public class Protocol implements ILink.IListener
     initialize( buffer);
     finalize( buffer, Type.sessionCloseRequest, session, 0);
     
-    SLog.debugf( this, "Send Session Close Request: session=%d", session);
+    SLog.debugf( this, "Send Session Close Request: session=%X", session);
     
     send( link, buffer, session);
   }
@@ -670,7 +670,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.error, session, correlation, bytes.length);
 
     // log
-    SLog.debugf( this, "Send Error: session=%d, correlation=%d, message=%s", session, correlation, message);
+    SLog.debugf( this, "Send Error: session=%X, correlation=%d, message=%s", session, correlation, message);
     
     send( link, buffer, session);
   }
@@ -715,7 +715,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.attachRequest, session, ++info.correlation, bytes.length);
 
     // log
-    SLog.debugf( this, "Attach Request: session=%d, correlation=%d, query=%s", session, info.correlation, query);
+    SLog.debugf( this, "Attach Request: session=%X, correlation=%d, query=%s", session, info.correlation, query);
     
     // send and wait for response
     byte[] response = send( link, session, info.correlation, buffer, timeout);
@@ -775,7 +775,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, element);
-      SLog.debugf( this, "Send Attach Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      SLog.debugf( this, "Send Attach Response: session=%X, correlation=%d, response=%s", session, correlation, xml);
     }
     
     send( link, buffer, session);
@@ -864,7 +864,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, reference);
-      SLog.debugf( this, "Send Sync Request: session=%d, reference=%s", session, info.correlation, xml);
+      SLog.debugf( this, "Send Sync Request: session=%X, reference=%s", session, info.correlation, xml);
     }
     
     // send and wait for response
@@ -910,7 +910,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.syncResponse, session, correlation, 0);
     
     // log
-    SLog.debugf( this, "Send Sync Response: session=%d, correlation=%d", session, correlation);
+    SLog.debugf( this, "Send Sync Response: session=%X, correlation=%d", session, correlation);
     
     send( link, buffer, session);
   }
@@ -959,7 +959,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, element);
-      SLog.debugf( this, "Send Add Child: session=%d, parent=%X, index=%d, element=%s", session, key, index, xml);
+      SLog.debugf( this, "Send Add Child: session=%X, parent=%X, index=%d, element=%s", session, key, index, xml);
     }
     
     send( link, buffer, session);
@@ -1043,7 +1043,7 @@ public class Protocol implements ILink.IListener
     // log
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
-      SLog.debugf( this, "Send Remove Child: session=%d, parent=%X, index=%d", session, key, index);
+      SLog.debugf( this, "Send Remove Child: session=%X, parent=%X, index=%d", session, key, index);
     }
     
     send( link, buffer, session);
@@ -1120,7 +1120,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.changeAttribute, session, length);
     
     // log
-    SLog.debugf( this, "Send Change Attribute: session=%d, object=%X, attr=%s, value=%s", session, key, node.getType(), node.getValue());
+    SLog.debugf( this, "Send Change Attribute: session=%X, object=%X, attr=%s, value=%s", session, key, node.getType(), node.getValue());
     
     send( link, buffer, session);
   }
@@ -1199,7 +1199,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.clearAttribute, session, length);
     
     // log
-    SLog.debugf( this, "Send Clear Attribute: session=%d, object=%X, attr=%s", session, key, attrName);
+    SLog.debugf( this, "Send Clear Attribute: session=%X, object=%X, attr=%s", session, key, attrName);
     
     send( link, buffer, session);
   }
@@ -1272,7 +1272,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.changeDirty, session, length);
     
     // log
-    SLog.debugf( this, "Send Change Dirty: session=%d, object=%X, dirty=%s", session, key, Boolean.toString( dirty));
+    SLog.debugf( this, "Send Change Dirty: session=%X, object=%X, dirty=%s", session, key, Boolean.toString( dirty));
     
     send( link, buffer, session);
   }
@@ -1355,7 +1355,7 @@ public class Protocol implements ILink.IListener
     finalize( buffer, Type.queryRequest, session, ++info.correlation, bytes.length);
     
     // log
-    SLog.debugf( this, "Send Query Request: session=%d, query=%s", session, query);
+    SLog.debugf( this, "Send Query Request: session=%X, query=%s", session, query);
     
     byte[] content = send( link, session, info.correlation, buffer, timeout);
     if ( content != null)
@@ -1418,7 +1418,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, response);
-      SLog.debugf( this, "Send Query Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      SLog.debugf( this, "Send Query Response: session=%X, correlation=%d, response=%s", session, correlation, xml);
     }
     
     send( link, buffer, session);
@@ -1465,7 +1465,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, request);
-      SLog.debugf( this, "Send Execute Request: session=%d, correlation=%d, request=%s", session, info.correlation, xml);
+      SLog.debugf( this, "Send Execute Request: session=%X, correlation=%d, request=%s", session, info.correlation, xml);
     }
     
     if ( timeout > 0)
@@ -1505,7 +1505,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, request);
-      SLog.debugf( this, "Handle Execute Request: session=%d, correlation=%d, request=%s", session, correlation, xml);
+      SLog.debugf( this, "Handle Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
     }
     
     StatefulContext context = new StatefulContext( this.context);
@@ -1571,7 +1571,7 @@ public class Protocol implements ILink.IListener
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
       String xml = XmlIO.write( Style.compact, response);
-      SLog.debugf( this, "Send Execute Response: session=%d, correlation=%d, response=%s", session, correlation, xml);
+      SLog.debugf( this, "Send Execute Response: session=%X, correlation=%d, response=%s", session, correlation, xml);
     }
     
     send( link, buffer, session);
@@ -1634,7 +1634,7 @@ public class Protocol implements ILink.IListener
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
       int length = buffer.limit() - buffer.position();
-      SLog.verbosef( this, "send: session=%d, correlation=%d, total-length=%d\n%s", session, correlation, length, bytes);
+      SLog.verbosef( this, "send: session=%X, correlation=%d, total-length=%d\n%s", session, correlation, length, bytes);
     }
     
     try
@@ -1680,7 +1680,7 @@ public class Protocol implements ILink.IListener
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
       int length = buffer.limit() - buffer.position();
-      SLog.verbosef( this, "send: session=%d, total-length=%d\n%s", session, length, bytes);
+      SLog.verbosef( this, "send: session=%X, total-length=%d\n%s", session, length, bytes);
     }
     
     link.send( buffer);

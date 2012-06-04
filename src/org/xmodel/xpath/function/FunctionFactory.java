@@ -40,6 +40,7 @@ public class FunctionFactory implements IFunctionFactory
   private void addBaseFunctions()
   {
     Class[] classes = {
+      AvgFunction.class,
       BooleanFunction.class,
       CeilingFunction.class,
       CollectionFunction.class,
@@ -62,6 +63,8 @@ public class FunctionFactory implements IFunctionFactory
       LastFunction.class,
       LowercaseFunction.class,
       MatchesFunction.class,
+      MinFunction.class,
+      MaxFunction.class,
       NotFunction.class,
       NumberFunction.class,
       NameFunction.class,

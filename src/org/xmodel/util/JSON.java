@@ -1,6 +1,7 @@
 package org.xmodel.util;
 
 import org.xmodel.IModelObject;
+import org.xmodel.xml.XmlIO;
 
 /**
  * Class that transforms between a JSON string and an IModelObject.
@@ -23,12 +24,15 @@ public class JSON
 
   public void serializeValue( IModelObject node, StringBuilder json)
   {
-    if ( pretty) json.append( ' ');
-    json.append( "\"value\":");
-    
-    if ( pretty) json.append( ' ');
     Object attrValue = node.getValue();
-    json.append( escape( attrValue.toString()));
+    if ( attrValue != null)
+    {
+      if ( pretty) json.append( ' ');
+      json.append( "\"value\":");
+      
+      if ( pretty) json.append( ' ');
+      json.append( escape( attrValue.toString()));
+    }
   }
   
   /**
@@ -120,4 +124,16 @@ public class JSON
   }
   
   private boolean pretty;
+  
+  public static void main( String[] args) throws Exception
+  {
+    String xml = "" +
+    		"<x id='1'/>";
+    
+    IModelObject object = new XmlIO().read( xml);
+    JSON json = new JSON();
+    StringBuilder sb = new StringBuilder();
+    json.serialize( object, sb);
+    System.out.println( sb);
+  }
 }

@@ -31,6 +31,8 @@ public final class TcpServer extends TcpBase
   @Override
   public void start( boolean daemon) throws IOException
   {
+    log.debugf( "Server listening at %s:%d.", address.getAddress().getHostAddress(), address.getPort());
+    
     serverChannel = ServerSocketChannel.open();
     serverChannel.configureBlocking( false);
     serverChannel.socket().bind( address);

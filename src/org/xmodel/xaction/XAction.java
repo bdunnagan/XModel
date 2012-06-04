@@ -23,24 +23,13 @@ import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
-import org.xmodel.Xlate;
-import org.xmodel.diff.ConfiguredXmlMatcher;
-import org.xmodel.diff.DefaultXmlMatcher;
-import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.xaction.debug.Debugger;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
- * An abstract base implementation of IXAction which knows where to find the ClassLoader 
- * that is automatically placed in each form viewmodel. The <code>setClassLoader</code>
- * should be called on the IXForm instance to change the default ClassLoader which is
- * the eclipse class loader container the form framework.
- * <p>
- * This class works in conjunction with BreakAction to perform nested stepping.
+ * Abstract base class that implements XAction debugging semantics.
  */
 public abstract class XAction implements IXAction
 {
@@ -126,41 +115,6 @@ public abstract class XAction implements IXAction
     return debugging;
   }
   
-  /**
-   * Returns the matcher defined for the specified locus. The first ancestor which defines a
-   * matcher determines which matcher is created and returned.
-   * @param locus The locus.
-   * @return Returns the matcher.
-   */
-  @SuppressWarnings("unchecked")
-  protected IXmlMatcher getMatcher( IModelObject locus)
-  {
-    IModelObject matcherElement = matcherExpr.queryFirst( locus);
-    if ( matcherElement == null) return new ConfiguredXmlMatcher();
-    
-    String className = Xlate.get( matcherElement, (String)null);
-    if ( className == null) 
-      getDocument().error(
-        "Class name is undefined in matcher element: "+
-          ModelAlgorithms.createIdentityPath( matcherElement));
-    
-    ClassLoader loader = null;
-    IModelObject loaderElement = loaderExpr.queryFirst( locus);
-    if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
-    if ( loader == null) loader = getDocument().getClassLoader();
-    
-    try
-    {
-      Class<IXmlMatcher> clss = (Class<IXmlMatcher>)loader.loadClass( className);
-      return clss.newInstance();
-    }
-    catch( Exception e)
-    {
-      getDocument().error( "Unable to resolve IXmlMatcher class: "+className);      
-      return new DefaultXmlMatcher();
-    }
-  }
-  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -177,14 +131,12 @@ public abstract class XAction implements IXAction
     return path.toString(); 
   }
 
-  private final IExpression matcherExpr = XPath.createExpression(
-    "ancestor-or-self::*/matcher");
-  
-  private final IExpression loaderExpr = XPath.createExpression(
-    "ancestor-or-self::*/classLoader");
-
-  private static Debugger debugger = null;
-  private volatile static boolean debugging = false;
+  //
+  // Using a system property to enable debugging is appropriate because the debugger is static, and
+  // therefore debugging is either enabled or disabled for the entire VM.
+  //
+  private static boolean debugging = System.getProperty( "xaction:debug") != null;
+  private static Debugger debugger = debugging? new Debugger(): null;
   
   protected XActionDocument document;
 }

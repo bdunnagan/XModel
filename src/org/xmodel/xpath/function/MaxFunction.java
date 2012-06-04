@@ -1,7 +1,7 @@
 /*
  * JAHM - Java Advanced Hierarchical Model 
  * 
- * SumFunction.java
+ * CountFunction.java
  * 
  * Copyright 2009 Robert Arvin Dunnagan
  * 
@@ -25,17 +25,18 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
+
 /**
- * An implementation of the X-Path sum() function.
+ * An implementation of the X-Path min() function.
  */
-public class SumFunction extends Function
+public class MaxFunction extends Function
 {
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getName()
    */
   public String getName()
   {
-    return "sum";
+    return "max";
   }
 
   /* (non-Javadoc)
@@ -47,7 +48,7 @@ public class SumFunction extends Function
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateNumber(
+   * @see org.xmodel.xpath.expression.Expression#evaluateNumber(
    * org.xmodel.xpath.expression.IContext)
    */
   public double evaluateNumber( IContext context) throws ExpressionException
@@ -55,13 +56,14 @@ public class SumFunction extends Function
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     
-    double sum = Integer.MAX_VALUE;
+    double max = Integer.MIN_VALUE;
     for( IModelObject node: getArgument( 0).evaluateNodes( context))
     {
-      sum += NumberFunction.numericValue( node);
+      double value = NumberFunction.numericValue( node);
+      if ( value > max) max = value;
     }
     
-    return sum;
+    return max;
   }
 
   /* (non-Javadoc)

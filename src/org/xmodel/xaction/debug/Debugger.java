@@ -1,5 +1,7 @@
 package org.xmodel.xaction.debug;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -153,10 +155,26 @@ public class Debugger
       frame.addChild( varNode);
     }
   }
+  
+  private static class DebugStack
+  {
+    public List<DebugThread> threads = new ArrayList<DebugThread>();
+  }
+  
+  private static class DebugThread
+  {
+    public List<DebugFrame> frames = new ArrayList<DebugFrame>();
+  }
+  
+  private static class DebugFrame
+  {
+    private IContext context;
+    private IXAction action;
+  }
 
   private int stepFrame;
   private int currFrame;
-  private IModelObject stack;
-  private IModelObject frame;
   private Semaphore semaphore;
+  private IModelObject frame;
+  private IModelObject stack;
 }

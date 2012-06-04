@@ -51,7 +51,7 @@ public class StopClientAction extends GuardedAction
     StartClientAction action = (StartClientAction)object.getValue();
     try
     {
-      action.stop();
+      action.stop( context);
     }
     catch( IOException e)
     {

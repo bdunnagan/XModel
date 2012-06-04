@@ -47,7 +47,7 @@ public class StopServerAction extends GuardedAction
   {
     IModelObject object = serverExpr.queryFirst( context);
     StartServerAction action = (StartServerAction)object.getValue();
-    action.stop();
+    action.stop( context);
     return null;
   }
 

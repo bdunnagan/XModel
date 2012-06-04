@@ -28,7 +28,6 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
 import org.xmodel.log.SLog;
 import org.xmodel.net.Server;
-import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -58,7 +57,6 @@ public class StartServerAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
-    debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
     threadsExpr = document.getExpression( "threads", true);
     blockingExpr = document.getExpression( "blocking", true);
@@ -75,36 +73,34 @@ public class StartServerAction extends GuardedAction
     // get context
     IModelObject serverContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
     
-    // install debugger
-    if ( (debugExpr != null)? debugExpr.evaluateBoolean( context): false)
-    {
-      XAction.setDebugger( new Debugger());
-    }
-    
     // start server
     try
     {
-      String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
+      String host = (hostExpr != null)? hostExpr.evaluateString( context): "0.0.0.0";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
+      boolean blocking = (blockingExpr != null)? blockingExpr.evaluateBoolean( context): false;
       
       IContext serverContext = (serverContextNode != null)? new StatefulContext( context.getScope(), serverContextNode): context;
       if ( threads > 0) 
       {
-        dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
+        IDispatcher dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
         serverContext.getModel().setDispatcher( dispatcher);
+        Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.dispatcher", dispatcher);
       }
-      else if ( serverContext.getModel().getDispatcher() == null || blockingExpr.evaluateBoolean( context))
+      else if ( serverContext.getModel().getDispatcher() == null || blocking)
       {
-        dispatcher = new BlockingDispatcher();
+        IDispatcher dispatcher = new BlockingDispatcher();
         serverContext.getModel().setDispatcher( dispatcher);
+        Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.dispatcher", dispatcher);
       }
       
-      server = new Server( host, port, timeout);
+      Server server = new Server( host, port, timeout);
       server.setServerContext( serverContext);
       server.start( daemon);
+      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", server);
       
       StatefulContext stateful = (StatefulContext)context;
       IModelObject object = factory.createObject( null, "server");
@@ -114,9 +110,12 @@ public class StartServerAction extends GuardedAction
     catch( IOException e)
     {
       SLog.exception( this, e);
+      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", null);
+      throw new XActionException( e);
     }
 
-    if ( dispatcher instanceof BlockingDispatcher)
+    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.dispatcher");
+    if ( dispatcher != null && dispatcher instanceof BlockingDispatcher)
     {
       BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
       while( true)
@@ -128,21 +127,28 @@ public class StartServerAction extends GuardedAction
   }
   
   /**
+   * @param context The context.
    * @return Returns the Server instance.
    */
-  protected Server getServer()
+  protected Server getServer( IContext context)
   {
-    return server;
+    return (Server)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.server");
   }
   
   /**
    * Called by StopServerAction.
+   * @param context The context.
    */
-  protected void stop()
+  protected void stop( IContext context)
   {
-    server.stop();
-    server = null;
+    Server server = getServer( context);
+    if ( server != null)
+    {
+      server.stop();
+      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", null);
+    }
     
+    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.dispatcher");
     if ( dispatcher != null)
     {
       dispatcher.shutdown( true);
@@ -150,16 +156,13 @@ public class StartServerAction extends GuardedAction
     }
   }
   
-  private Server server;
   private String var;
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression contextExpr;
   private IExpression blockingExpr;
-  private IExpression debugExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
   private IModelObjectFactory factory;
-  private IDispatcher dispatcher;
 }

@@ -1,13 +1,19 @@
 package org.xmodel.xaction;
 
+import java.util.Collections;
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.diff.ConfiguredXmlMatcher;
+import org.xmodel.diff.IXmlMatcher;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.XPath;
+import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
@@ -15,6 +21,79 @@ import org.xmodel.xpath.expression.IExpression;
  */
 public class Conventions
 {
+  /**
+   * Cache the specified object in the specified context variable.
+   * @param context The context.
+   * @param var The name of the variable.
+   * @param object The object to be cached.
+   */
+  public static void putCache( IContext context, String var, Object object)
+  {
+    if ( object == null) 
+    {
+      context.set( var, Collections.<IModelObject>emptyList());
+    }
+    else
+    {
+      IModelObject holder = new ModelObject( object.getClass().getName());
+      holder.setValue( object);
+      context.set( var, holder);
+    }
+  }
+  
+  /**
+   * Get the cached object in the specified context variable.
+   * @param context The context.
+   * @param var The name of the variable.
+   * @return Returns null or the cached object.
+   */
+  public static Object getCache( IContext context, String var)
+  {
+    List<?> list = (List<?>)context.get( var);
+    if ( list == null) return null;
+    
+    IModelObject holder = (IModelObject)list.get( 0);
+    return holder.getValue();
+  }
+  
+  /**
+   * Returns the matcher defined for the specified locus. The first ancestor which defines a
+   * matcher determines which matcher is created and returned.
+   * @param doc The document.
+   * @param locus The locus.
+   * @return Returns the matcher.
+   */
+  @SuppressWarnings("unchecked")
+  public static IXmlMatcher getMatcher( XActionDocument doc, IModelObject locus)
+  {
+    final IExpression matcherExpr = XPath.createExpression( "ancestor-or-self::*/matcher");
+    final IExpression loaderExpr = XPath.createExpression( "ancestor-or-self::*/classLoader");
+    
+    IModelObject matcherElement = matcherExpr.queryFirst( locus);
+    if ( matcherElement == null) return new ConfiguredXmlMatcher();
+    
+    String className = Xlate.get( matcherElement, (String)null);
+    if ( className == null) 
+      throw new XActionException(
+        "Class name is undefined in matcher element: "+
+          ModelAlgorithms.createIdentityPath( matcherElement));
+    
+    ClassLoader loader = null;
+    IModelObject loaderElement = loaderExpr.queryFirst( locus);
+    if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
+    if ( loader == null) loader = doc.getClassLoader();
+    
+    try
+    {
+      Class<IXmlMatcher> clss = (Class<IXmlMatcher>)loader.loadClass( className);
+      return clss.newInstance();
+    }
+    catch( Exception e)
+    {
+      throw new XActionException( "Unable to resolve IXmlMatcher class: "+className);      
+    }
+  }
+  
   /**
    * Returns the factory defined for the specified locus. The first ancestor which defines a
    * factory determines which factory is created and returned.

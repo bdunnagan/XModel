@@ -130,7 +130,12 @@ public class RunAction extends GuardedAction
     try
     {
       // create session on demand
-      if ( session == null) session = getSession( context, host, port, timeout);
+      Session session = (Session)Conventions.getCache( context, "org.xmodel.xaction.RunAction.session");
+      if ( session == null) 
+      {
+        session = createSession( context, host, port, timeout);
+        Conventions.putCache( context, "org.xmodel.xaction.RunAction.session", session);
+      }
 
       // execute
       Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
@@ -146,7 +151,8 @@ public class RunAction extends GuardedAction
     try
     {
       // create new session
-      session = getSession( context, host, port, timeout);
+      Session session = createSession( context, host, port, timeout);
+      Conventions.putCache( context, "org.xmodel.xaction.RunAction.session", session);
 
       // execute
       Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
@@ -158,15 +164,15 @@ public class RunAction extends GuardedAction
       throw new XActionException( e);
     }
   }
-
+  
   /**
-   * Get or create a session with the specified timeout.
+   * Create a session with the specified timeout.
    * @param context The context.
    * @param host The remote host (if remote is client).
    * @param timeout The timeout in milliseconds.
    * @return Returns the session.
    */
-  private Session getSession( IContext context, String host, int port, int timeout) throws IOException
+  private Session createSession( IContext context, String host, int port, int timeout) throws IOException
   {
     IModelObject holder = remoteExpr.queryFirst( context);
     if ( holder == null) throw new XActionException( "Remote instance not found.");
@@ -180,11 +186,11 @@ public class RunAction extends GuardedAction
     }
     else if ( object instanceof StartClientAction)
     {
-      return ((StartClientAction)object).getClient().connect( timeout);
+      return ((StartClientAction)object).getClient( context).connect( timeout);
     }
     else if ( object instanceof StartServerAction)
     {
-      Server server = ((StartServerAction)object).getServer();
+      Server server = ((StartServerAction)object).getServer( context);
       
       List<Connection> connections = server.getConnections( host, port);
       if ( connections.size() == 0)
@@ -272,6 +278,5 @@ public class RunAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
-  private Session session;
   private IModelObject inline;
 }
