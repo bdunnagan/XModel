@@ -55,7 +55,7 @@ public class SumFunction extends Function
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     
-    double sum = Integer.MAX_VALUE;
+    double sum = 0;
     for( IModelObject node: getArgument( 0).evaluateNodes( context))
     {
       sum += NumberFunction.numericValue( node);
