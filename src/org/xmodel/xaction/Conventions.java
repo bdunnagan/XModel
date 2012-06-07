@@ -50,7 +50,7 @@ public class Conventions
   public static Object getCache( IContext context, String var)
   {
     List<?> list = (List<?>)context.get( var);
-    if ( list == null) return null;
+    if ( list == null || list.size() == 0) return null;
     
     IModelObject holder = (IModelObject)list.get( 0);
     return holder.getValue();
