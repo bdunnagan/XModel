@@ -510,6 +510,8 @@ public class Protocol implements ILink.IListener
       int correlation = readMessageCorrelation( byte0, buffer);
       
       int length = readMessageLength( byte0, buffer);
+      //SLog.infof( this, "handle: %d, %d", length, buffer.remaining());
+      
       if ( length > buffer.remaining()) return false;
       
       if ( SLog.isLevelEnabled( this, Log.verbose)) 
@@ -1457,7 +1459,7 @@ public class Protocol implements ILink.IListener
     IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
     ICompressor compressor = info.compressor;
     byte[] bytes = compressor.compress( request);
-    if ( buffer.limit() < bytes.length) buffer = ByteBuffer.allocate( bytes.length);
+    ensureBufferCapacity( bytes.length);
     buffer.put( bytes);
     
     finalize( buffer, Type.executeRequest, session, ++info.correlation, bytes.length);
@@ -1555,16 +1557,7 @@ public class Protocol implements ILink.IListener
     IModelObject response = ExecutionProtocol.buildResponse( context, results);
     ICompressor compressor = sessionManager.getSessionInfo( link, session).compressor;
     byte[] bytes = compressor.compress( response);
-    
-    int required = buffer.position() + bytes.length;
-    if ( required >= buffer.limit())
-    {
-      buffer.flip();
-      ByteBuffer larger = ByteBuffer.allocate( required);
-      larger.put( buffer);
-      buffer = larger;
-    }
-    
+    ensureBufferCapacity( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.executeResponse, session, correlation, bytes.length);
     
@@ -1893,6 +1886,22 @@ public class Protocol implements ILink.IListener
   }
   
   /**
+   * Grow the buffer as necessary to accomdoate the specified payload size.
+   * @param required The required payload size.
+   */
+  private void ensureBufferCapacity( int required)
+  {
+    required += buffer.position();
+    if ( required >= buffer.limit())
+    {
+      ByteBuffer larger = ByteBuffer.allocate( (int)(required + 13));
+      buffer.flip();
+      larger.put( buffer);
+      buffer = larger;
+    }
+  }
+  
+  /**
    * Read a length from the buffer.
    * @param buffer The buffer.
    * @param small True means 1 or 4 bytes. False means 2 or 4 bytes.
@@ -1966,15 +1975,7 @@ public class Protocol implements ILink.IListener
    */
   public int writeBytes( byte[] bytes, int offset, int length, boolean small)
   {
-    int required = buffer.position() + length;
-    if ( required >= buffer.limit())
-    {
-      buffer.flip();
-      ByteBuffer larger = ByteBuffer.allocate( (int)(required * 1.5));
-      larger.put( buffer);
-      buffer = larger;
-    }
-    
+    ensureBufferCapacity( buffer.position() + length);
     int prefix = writeLength( buffer, length, small);
     buffer.put( bytes, offset, length);
     return prefix + length;

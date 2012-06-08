@@ -313,6 +313,7 @@ public abstract class TcpBase
     try
     {
       int nread = connection.read();
+      //log.infof( "read: %d", nread);
       if ( nread == -1) close( key);
     }
     catch( Exception e)
@@ -332,6 +333,10 @@ public abstract class TcpBase
     if ( request != null)
     {
       //log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
+      //int n = request.buffer.remaining();
+      //int wrote = request.channel.write( request.buffer);
+      //log.infof( "wrote: %d - %d = %d", n, wrote, request.buffer.remaining());
+      
       request.channel.write( request.buffer);
       
       if ( request.buffer.remaining() == 0)
