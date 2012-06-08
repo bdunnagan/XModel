@@ -21,11 +21,10 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
+
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
-import org.xmodel.log.SLog;
 import org.xmodel.net.Client;
 import org.xmodel.net.Server;
 import org.xmodel.xaction.debug.Debugger;
@@ -47,12 +46,9 @@ public class StartClientAction extends GuardedAction
   {
     super.configure( document);
     
-    var = Conventions.getVarName( document.getRoot(), true);
-    factory = Conventions.getFactory( document.getRoot());
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
-    retriesExpr = document.getExpression( "retries", true);
     debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
     threadsExpr = document.getExpression( "threads", true);
@@ -65,9 +61,6 @@ public class StartClientAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    // get context
-    IModelObject clientContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
-    
     // install debugger
     if ( (debugExpr != null)? debugExpr.evaluateBoolean( context): false)
     {
@@ -80,93 +73,65 @@ public class StartClientAction extends GuardedAction
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 3000;
-      int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       
+      IModelObject clientContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
       IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
-      
-      IDispatcher dispatcher = clientContext.getModel().getDispatcher();
-      if ( dispatcher == null && threads == 0) threads = 1;
-      
-      if ( threads > 0) 
-      {
-        dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
-        clientContext.getModel().setDispatcher( dispatcher);
-        Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.dispatcher", dispatcher);
-      }
       
       Client client = new Client( host, port, timeout, daemon);
       client.setServerContext( clientContext);
-      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", client);
-      
-      StatefulContext stateful = (StatefulContext)context;
-      IModelObject object = factory.createObject( null, "client");
-      object.setValue( this);
-      stateful.set( var, object);
-      
-      for( int i=1; i<=retries; i++)
-      {
-        try
-        {
-          if ( client.connect( timeout) != null) 
-            break;
-        }
-        catch( IOException e)
-        {
-          if ( i == retries) throw e;
-        }
-        
-        try { Thread.sleep( timeout);} catch( InterruptedException e2) {}
-      }
     }
     catch( IOException e)
     {
-      SLog.exception( this, e);
-      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", null);
+      throw new XActionException( e);
     }
     
     return null;
   }
 
   /**
+   * Get client cached in the specified context variable.
    * @param context The context.
+   * @param host The host.
+   * @param port The port.
    * @return Returns null or the Client instance.
    */
-  protected Client getClient( IContext context)
+  protected static Client getClient( IContext context, String host, int port)
   {
-    return (Client)Conventions.getCache( context, "org.xmodel.xaction.StartClientAction.client");
+    String var = String.format( "%s:%d", host, port);
+    Cached cached = (Cached)Conventions.getCache( context, var);
+    return (cached != null)? cached.client: null;
   }
-  
-  /**
-   * Called by StopClientAction.
-   * @param context The context.
-   */
-  protected void stop( IContext context) throws IOException
-  {
-    Client client = getClient( context);
-    if ( client != null)
-    {
-      client.disconnect();
-      Conventions.putCache( context, "org.xmodel.xaction.StartClientAction.client", null);
-    }
     
-    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartClientAction.dispatcher");
-    if ( dispatcher != null)
+  /**
+   * Disconnect the client (and all sessions).
+   * @param host The host.
+   * @param port The port.
+   */
+  protected static void stop( IContext context, String host, int port) throws IOException
+  {
+    String var = String.format( "%s:%d", host, port);
+    Cached cached = (Cached)Conventions.getCache( context, var);
+    if ( cached != null)
     {
-      dispatcher.shutdown( true);
-      dispatcher = null;
+      if ( cached.client != null) cached.client.disconnect();
+      if ( cached.dispatcher != null) cached.dispatcher.shutdown( true);
+      Conventions.putCache( context, var, null);
     }
   }
   
-  private String var;
+  protected static class Cached
+  {
+    public Client client;
+    public IDispatcher dispatcher;
+  }
+  
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;
-  private IExpression retriesExpr;
   private IExpression contextExpr;
   private IExpression debugExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
-  private IModelObjectFactory factory;
 }

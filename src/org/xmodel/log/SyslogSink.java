@@ -14,7 +14,7 @@ public final class SyslogSink implements ILogSink
 {
   public SyslogSink() throws SocketException
   {
-    this( "127.0.0.1");
+    this( "localhost");
   }
   
   public SyslogSink( String host) throws SocketException
@@ -88,7 +88,7 @@ public final class SyslogSink implements ILogSink
     }
     catch( IOException e)
     {
-      System.err.println( message);
+      System.err.println( e.getMessage());
     }
   }
   

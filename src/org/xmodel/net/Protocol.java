@@ -543,6 +543,7 @@ public class Protocol implements ILink.IListener
     }
     catch( BufferUnderflowException e)
     {
+      SLog.verbose( this, e.getMessage());
     }
     
     return false;

@@ -21,12 +21,11 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
+
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
 import org.xmodel.ThreadPoolDispatcher;
-import org.xmodel.log.SLog;
 import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -52,8 +51,6 @@ public class StartServerAction extends GuardedAction
   {
     super.configure( document);
     
-    var = Conventions.getVarName( document.getRoot(), true);
-    factory = Conventions.getFactory( document.getRoot());
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
@@ -70,9 +67,6 @@ public class StartServerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    // get context
-    IModelObject serverContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
-    
     // start server
     try
     {
@@ -83,80 +77,90 @@ public class StartServerAction extends GuardedAction
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       boolean blocking = (blockingExpr != null)? blockingExpr.evaluateBoolean( context): false;
       
+      IModelObject serverContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
       IContext serverContext = (serverContextNode != null)? new StatefulContext( context.getScope(), serverContextNode): context;
+      
+      String var = String.format( "%s:%d", host, port);
+      Cached cached = (Cached)Conventions.getCache( context, var);
+      if ( cached != null)
+      {
+        if ( cached.server.getHost().equals( host) && cached.server.getPort() == port)
+          return null;
+      }
+      
+      cached = new Cached();
+      
       if ( threads > 0) 
       {
         IDispatcher dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
         serverContext.getModel().setDispatcher( dispatcher);
-        Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.dispatcher", dispatcher);
+        cached.dispatcher = dispatcher;
       }
       else if ( serverContext.getModel().getDispatcher() == null || blocking)
       {
         IDispatcher dispatcher = new BlockingDispatcher();
         serverContext.getModel().setDispatcher( dispatcher);
-        Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.dispatcher", dispatcher);
+        cached.dispatcher = dispatcher;
       }
       
       Server server = new Server( host, port, timeout);
       server.setServerContext( serverContext);
       server.start( daemon);
-      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", server);
+      cached.server = server;
+      Conventions.putCache( context, var, cached);
       
-      StatefulContext stateful = (StatefulContext)context;
-      IModelObject object = factory.createObject( null, "server");
-      object.setValue( this);
-      stateful.set( var, object);
+      if ( cached.dispatcher != null && cached.dispatcher instanceof BlockingDispatcher)
+      {
+        BlockingDispatcher blockingDispatcher = (BlockingDispatcher)cached.dispatcher;
+        while( true)
+        {
+          if ( !blockingDispatcher.process())
+            break;
+        }
+      }
     }
     catch( IOException e)
     {
-      SLog.exception( this, e);
-      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", null);
       throw new XActionException( e);
     }
 
-    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.dispatcher");
-    if ( dispatcher != null && dispatcher instanceof BlockingDispatcher)
-    {
-      BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
-      while( true)
-        if ( !blocking.process())
-          break;
-    }
-    
     return null;
   }
-  
+
   /**
+   * Get server cached in the specified context variable.
    * @param context The context.
-   * @return Returns the Server instance.
+   * @param var The context variable.
+   * @return Returns null or the Server instance.
    */
-  protected Server getServer( IContext context)
+  protected static Server getServer( IContext context, String var)
   {
-    return (Server)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.server");
+    Cached cached = (Cached)Conventions.getCache( context, var);
+    return (cached != null)? cached.server: null;
   }
-  
-  /**
-   * Called by StopServerAction.
-   * @param context The context.
-   */
-  protected void stop( IContext context)
-  {
-    Server server = getServer( context);
-    if ( server != null)
-    {
-      server.stop();
-      Conventions.putCache( context, "org.xmodel.xaction.StartServerAction.server", null);
-    }
     
-    IDispatcher dispatcher = (IDispatcher)Conventions.getCache( context, "org.xmodel.xaction.StartServerAction.dispatcher");
-    if ( dispatcher != null)
+  /**
+   * Disconnect the server in the specified context variable.
+   * @param context The context.
+   * @param var The context variable.
+   */
+  protected static void stop( IContext context, String var) throws IOException
+  {
+    Cached cached = (Cached)Conventions.getCache( context, var);
+    if ( cached != null)
     {
-      dispatcher.shutdown( true);
-      dispatcher = null;
+      if ( cached.server != null) cached.server.stop();
+      if ( cached.dispatcher != null) cached.dispatcher.shutdown( true);
+      Conventions.putCache( context, var, null);
     }
   }
   
-  private String var;
+  protected static class Cached
+  {
+    public Server server;
+    public IDispatcher dispatcher;
+  }
+  
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;
@@ -164,5 +168,4 @@ public class StartServerAction extends GuardedAction
   private IExpression blockingExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
-  private IModelObjectFactory factory;
 }

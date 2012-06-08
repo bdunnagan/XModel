@@ -19,7 +19,10 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import java.io.IOException;
+
+import org.xmodel.log.SLog;
+import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -36,7 +39,8 @@ public class StopServerAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    serverExpr = document.getExpression();
+    hostExpr = document.getExpression( "host", true);
+    portExpr = document.getExpression( "port", true);
   }
 
   /* (non-Javadoc)
@@ -45,11 +49,21 @@ public class StopServerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject object = serverExpr.queryFirst( context);
-    StartServerAction action = (StartServerAction)object.getValue();
-    action.stop( context);
+    try
+    {
+      String host = (hostExpr != null)? hostExpr.evaluateString( context): "localhost";
+      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
+      String var = String.format( "%s:%d", host, port);
+      StartServerAction.stop( context, var);
+    }
+    catch( IOException e)
+    {
+      SLog.warnf( this, "Server shutdown failed because: %s", e.getMessage());
+    }
+    
     return null;
   }
 
-  private IExpression serverExpr;
+  private IExpression hostExpr;
+  private IExpression portExpr;
 }

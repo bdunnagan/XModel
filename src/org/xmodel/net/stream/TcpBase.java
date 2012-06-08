@@ -328,17 +328,22 @@ public abstract class TcpBase
    */
   protected void write( SelectionKey key) throws IOException
   {
-    Request request = pending.remove( key.channel());
+    Request request = pending.get( key.channel());
     if ( request != null)
     {
       //log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
       request.channel.write( request.buffer);
       
-      // disable write events if queue is empty or next request is for a different channel
-      request = queue.peek();
-      if ( request == null || request.channel != key.channel())
+      if ( request.buffer.remaining() == 0)
       {
-        key.channel().register( selector, SelectionKey.OP_READ);
+        pending.remove( key.channel());
+      
+        // disable write events if queue is empty or next request is for a different channel
+        request = queue.peek();
+        if ( request == null || request.channel != key.channel())
+        {
+          key.channel().register( selector, SelectionKey.OP_READ);
+        }
       }
     }
   }
@@ -403,21 +408,25 @@ public abstract class TcpBase
         process( 0);
         
         // handle requests
-        Request request = queue.poll();
+        Request request = queue.peek();
         if ( request != null) 
         {
-          try
+          if ( !pending.containsKey( request.channel))
           {
-            pending.put( request.channel, request);
-            if ( request.channel != null)
+            queue.remove();
+            try
             {
-              request.channel.register( selector, request.ops);
+              pending.put( request.channel, request);
+              if ( request.channel != null)
+              {
+                request.channel.register( selector, request.ops);
+              }
             }
-          }
-          catch( CancelledKeyException e)
-          {
-            pending.remove( request.channel);
-            log.exception( e);
+            catch( CancelledKeyException e)
+            {
+              pending.remove( request.channel);
+              log.exception( e);
+            }
           }
         }
       }

@@ -30,10 +30,11 @@ import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
-import org.xmodel.log.SLog;
-import org.xmodel.net.Server;
+import org.xmodel.log.Log;
+import org.xmodel.net.Client;
 import org.xmodel.net.Session;
-import org.xmodel.net.stream.Connection;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -59,7 +60,6 @@ public class RunAction extends GuardedAction
     varsExpr = document.getExpression( "vars", true);
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
-    remoteExpr = document.getExpression( "remote", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
 
@@ -69,7 +69,7 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( remoteExpr == null) runLocal( context); else runRemote( context);   
+    if ( hostExpr == null) runLocal( context); else runRemote( context);   
     return null;
   }
 
@@ -125,99 +125,32 @@ public class RunAction extends GuardedAction
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     String[] varArray = vars.split( "\\s*,\\s*");
-    
-    // attempt to connect with cached session
+
+    Client client = null;
     try
     {
-      // create session on demand
-      Session session = (Session)Conventions.getCache( context, "org.xmodel.xaction.RunAction.session");
-      if ( session == null) 
+      if ( log.isLevelEnabled( Log.debug))
       {
-        session = createSession( context, host, port, timeout);
-        Conventions.putCache( context, "org.xmodel.xaction.RunAction.session", session);
+        log.debugf( "Remote on %s:%d, %s ...", host, port, getScriptDescription( context));
       }
 
+      client = new Client( host, port, timeout, false);
+      Session session = client.connect( timeout);
+      
       // execute
       Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
       if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
-      return null;
-    }
-    catch( IOException e)
-    {
-      SLog.warnf( this, "Failed to execute script: %s", e.getMessage());
-    }
-    
-    // attempt to create new session
-    try
-    {
-      // create new session
-      Session session = createSession( context, host, port, timeout);
-      Conventions.putCache( context, "org.xmodel.xaction.RunAction.session", session);
-
-      // execute
-      Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
-      if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+      
+      log.debug( "Finished remote.");
       return null;
     }
     catch( IOException e)
     {
       throw new XActionException( e);
     }
-  }
-  
-  /**
-   * Create a session with the specified timeout.
-   * @param context The context.
-   * @param host The remote host (if remote is client).
-   * @param timeout The timeout in milliseconds.
-   * @return Returns the session.
-   */
-  private Session createSession( IContext context, String host, int port, int timeout) throws IOException
-  {
-    IModelObject holder = remoteExpr.queryFirst( context);
-    if ( holder == null) throw new XActionException( "Remote instance not found.");
-    
-    Object object = holder.getValue();
-    if ( object == null) throw new XActionException( "Invalid remote instance.");
-    
-    if ( object instanceof Session)
+    finally
     {
-      return (Session)object;
-    }
-    else if ( object instanceof StartClientAction)
-    {
-      return ((StartClientAction)object).getClient( context).connect( timeout);
-    }
-    else if ( object instanceof StartServerAction)
-    {
-      Server server = ((StartServerAction)object).getServer( context);
-      
-      List<Connection> connections = server.getConnections( host, port);
-      if ( connections.size() == 0)
-      {
-        throw new IOException( String.format( 
-            "No client connections from host %s available for remote execution", host));
-      }
-      
-      for( int i=0; i<connections.size(); i++)
-      {
-        Connection connection = connections.get( i);
-        try
-        {
-          return server.openSession( connection);
-        }
-        catch( IOException e)
-        {
-          SLog.warnf( this, "Failed to create session from server over connection %d of %d to host %s: %s", 
-              i, connections.size(), host, e.getMessage());
-        }
-      }
-      
-      throw new IOException( "Failed to create session to host: "+host);
-    }
-    else
-    {
-      throw new XActionException( "Invalid remote instance.");
+      if ( client != null) try { client.disconnect();} catch( Exception e) {}
     }
   }
   
@@ -260,6 +193,14 @@ public class RunAction extends GuardedAction
     return script;
   }
   
+  private String getScriptDescription( IContext context)
+  {
+    if ( scriptExpr != null) return scriptExpr.toString();
+    
+    IModelObject node = getScriptNode( context);
+    return XmlIO.write( Style.printable, node);
+  }
+  
   private final static class CompiledAttribute
   {
     public CompiledAttribute( IXAction script)
@@ -270,10 +211,11 @@ public class RunAction extends GuardedAction
     public IXAction script;
   }
 
+  private final static Log log = Log.getLog( RunAction.class);
+  
   private String var;
   private IExpression varsExpr;
   private IExpression contextExpr;
-  private IExpression remoteExpr;
   private IExpression hostExpr;
   private IExpression portExpr;
   private IExpression timeoutExpr;

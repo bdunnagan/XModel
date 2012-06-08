@@ -28,6 +28,24 @@ public class Server extends Protocol
   }
 
   /**
+   * Get server address.
+   * @return Returns the server address.
+   */
+  public String getHost()
+  {
+    return server.getHost();
+  }
+  
+  /**
+   * Get server port.
+   * @return Returns the server port.
+   */
+  public int getPort()
+  {
+    return server.getPort();
+  }
+  
+  /**
    * Start the server.
    * @param daemon True if the server thread should be a daemon.
    */

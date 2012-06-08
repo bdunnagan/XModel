@@ -19,6 +19,14 @@ public final class Session
   }
   
   /**
+   * @return Returns the session number.
+   */
+  public int getID()
+  {
+    return session;
+  }
+  
+  /**
    * Attach to the element on the specified xpath.
    * @param xpath The XPath expression.
    * @param reference The reference.

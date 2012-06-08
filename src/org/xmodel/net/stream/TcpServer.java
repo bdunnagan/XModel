@@ -25,6 +25,24 @@ public final class TcpServer extends TcpBase
     address = new InetSocketAddress( host, port);    
   }
   
+  /**
+   * Get server address.
+   * @return Returns the server address.
+   */
+  public String getHost()
+  {
+    return address.getHostName();
+  }
+  
+  /**
+   * Get server port.
+   * @return Returns the server port.
+   */
+  public int getPort()
+  {
+    return address.getPort();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.stream.TcpBase#start(boolean)
    */

@@ -79,7 +79,7 @@ public final class Log
    * @param name The name of the log.
    * @return Returns the log with the specified name.
    */
-  public static Log getLog( String name)
+  public synchronized static Log getLog( String name)
   {
     Log log = logs.get( name);
     if ( log == null) log = new Log();
@@ -133,15 +133,15 @@ public final class Log
     this.mask = new AtomicInteger( problems | info);
     this.sink = null;
     
-    synchronized( Log.class)
+    if ( fileSink == null)
     {
-      if ( fileSink == null) try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
+      consoleSink = new ConsoleSink();
+      try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
+      //try { syslogSink = new SyslogSink();} catch( Exception e) {}
     }
     
-    ILogSink syslogSink = null;
-    try { syslogSink = new SyslogSink();} catch( Exception e) {}
-    
-    sink = new FormatSink( new MultiSink( fileSink, new ConsoleSink(), syslogSink));
+    //sink = new FormatSink( new MultiSink( fileSink, consoleSink, syslogSink));
+    sink = new FormatSink( new MultiSink( fileSink, consoleSink));
   }
   
   /**
@@ -507,6 +507,8 @@ public final class Log
   private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
 
   private static FileSink fileSink;
+  private static ConsoleSink consoleSink;
+  private static SyslogSink syslogSink;
   
   private AtomicInteger mask;
   private ILogSink sink;

@@ -20,8 +20,9 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
-import org.xmodel.IModelObject;
+
 import org.xmodel.log.SLog;
+import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -38,7 +39,8 @@ public class StopClientAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    clientExpr = document.getExpression();
+    hostExpr = document.getExpression( "host", true);
+    portExpr = document.getExpression( "port", true);
   }
 
   /* (non-Javadoc)
@@ -47,11 +49,11 @@ public class StopClientAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject object = clientExpr.queryFirst( context);
-    StartClientAction action = (StartClientAction)object.getValue();
     try
     {
-      action.stop( context);
+      String host = (hostExpr != null)? hostExpr.evaluateString( context): "localhost";
+      int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
+      StartClientAction.stop( context, host, port);
     }
     catch( IOException e)
     {
@@ -61,5 +63,6 @@ public class StopClientAction extends GuardedAction
     return null;
   }
 
-  private IExpression clientExpr;
+  private IExpression hostExpr;
+  private IExpression portExpr;
 }

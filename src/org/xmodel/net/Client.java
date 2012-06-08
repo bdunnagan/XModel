@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.io.IOException;
 
+import org.xmodel.log.SLog;
 import org.xmodel.net.stream.TcpClient;
 
 /**
@@ -32,6 +33,7 @@ public class Client extends Protocol
     
     this.host = host;
     this.port = port;
+    this.retries = 1;
   }
 
   /**
@@ -56,16 +58,42 @@ public class Client extends Protocol
    */
   public Session connect( int timeout) throws IOException
   {
+    return connect( timeout, retries);
+  }
+  
+  /**
+   * Connect (or reconnect) to the remote host.
+   * @param timeout The connection timeout.
+   * @param retry The number of retries.
+   * @return Returns a connected session or null on timeout.
+   */
+  public Session connect( int timeout, int retry) throws IOException
+  {
     if ( link == null || !link.isOpen())
     {
+      SLog.infof( this, "Opening connection to %s:%d, timeout=%d", host, port, timeout);
       link = client.connect( host, port, timeout, this);
     }
     
     if ( link != null)
     {
-      Session session = openSession( link);
-      return session;
+      try
+      {
+        SLog.infof( this, "Opening session on %s:%d", host, port);
+        Session session = openSession( link);
+        
+        SLog.infof( this, "Opened new session, %X", session.getID());
+        return session;
+      }
+      catch( IOException e1)
+      {
+        SLog.warnf( this, "Open session failed, closing connection, will try again: %s", e1.getMessage());
+        link.close();
+        link = null;
+      }
     }
+
+    if ( retry > 0) return connect( timeout, retry-1);
     
     return null;
   }
@@ -93,5 +121,6 @@ public class Client extends Protocol
   private static TcpClient client;
   private String host;
   private int port;
+  private int retries;
   private ILink link;
 }
