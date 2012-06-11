@@ -217,5 +217,5 @@ public class ExpressionListener implements IExpressionListener
     log.exception( e);
   }
   
-  private static Log log = Log.getLog( "org.xmodel.xpath.expression");
+  private static Log log = Log.getLog( ExpressionListener.class);
 }

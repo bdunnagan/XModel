@@ -71,7 +71,7 @@ public class Client extends Protocol
   {
     if ( link == null || !link.isOpen())
     {
-      SLog.infof( this, "Opening connection to %s:%d, timeout=%d", host, port, timeout);
+      SLog.debugf( this, "Opening connection to %s:%d, timeout=%d", host, port, timeout);
       link = client.connect( host, port, timeout, this);
     }
     
@@ -79,10 +79,10 @@ public class Client extends Protocol
     {
       try
       {
-        SLog.infof( this, "Opening session on %s:%d", host, port);
+        SLog.debugf( this, "Opening session on %s:%d", host, port);
         Session session = openSession( link);
         
-        SLog.infof( this, "Opened new session, %X", session.getID());
+        SLog.debugf( this, "Opened new session, %X", session.getID());
         return session;
       }
       catch( IOException e1)

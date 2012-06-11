@@ -120,40 +120,6 @@ public final class Connection implements ILink
   }
 
   /**
-   * @return Returns the number of bytes read.
-   */
-  int read() throws IOException
-  {
-    if ( channel == null) return -1;
-
-    // unflip
-    if ( buffer.position() < buffer.limit())
-    {
-      buffer.position( buffer.limit());
-      buffer.limit( buffer.capacity());
-    }
-    else
-    {
-      buffer.clear();
-    }
-    
-    insureCapacity();
-    
-    int nread = channel.read( buffer);
-    if ( nread == -1) return nread;
-
-    //optimizeCapacity();
-    
-    if ( listener != null && nread > 0) 
-    {
-      buffer.flip();
-      listener.onReceive( this, buffer);
-    }
-    
-    return nread;
-  }
-
-  /**
    * Write the specified bytes to the connection.
    * @param bytes The bytes to be written.
    */
@@ -172,18 +138,13 @@ public final class Connection implements ILink
   }
   
   /**
-   * Insure that the internal read buffer has sufficient capacity. This will allocate or reallocate
-   * the buffer as necessary to insure that the limit of the buffer does not exceed the threshold.
+   * Notify listeners of a read event.
+   * @param buffer The read buffer.
    */
-  private void insureCapacity()
+  protected final void notifyRead( ByteBuffer buffer)
   {
-    if ( buffer.position() == buffer.limit())
-    {
-      ByteBuffer larger = ByteBuffer.allocate( buffer.capacity() << 1);
-      buffer.flip();
-      larger.put( buffer);
-      buffer = larger;
-    }
+    if ( listener != null)
+      listener.onReceive( this, buffer);
   }
 
   /**
@@ -212,6 +173,7 @@ public final class Connection implements ILink
   private ILink.IListener listener;
   private InetSocketAddress address;
   private SocketChannel channel;
-  private ByteBuffer buffer;
   private Semaphore semaphore;
+  
+  protected ByteBuffer buffer;
 }

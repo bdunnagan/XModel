@@ -37,6 +37,12 @@ public class ProtocolTest
     server = new Server( host, port, timeout);
     server.setDispatcher( new ImmediateDispatcher());
     server.start( false);
+    
+//    Log.getLog( TcpBase.class).setLevel( Log.all);
+//    Log.getLog( Client.class).setLevel( Log.all);
+//    Log.getLog( Server.class).setLevel( Log.all);
+//    Log.getLog( Connection.class).setLevel( Log.all);
+//    Log.getLog( Protocol.class).setLevel( Log.all);
   }
   
   @After public void shutdown() throws IOException
@@ -202,7 +208,6 @@ public class ProtocolTest
       {
         for( int i=0; i<executeLoopCount; i++)
         {
-          System.out.printf( "%X\n", session.getID());
           Object[] result = session.execute( context, new String[] { "payload"}, script, timeout);
           results.add( result);
         }

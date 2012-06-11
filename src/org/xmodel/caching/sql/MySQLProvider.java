@@ -48,8 +48,6 @@ public class MySQLProvider implements ISQLProvider
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
-    
-    pool = new ConnectionPool( this, Xlate.childGet( annotation, "pool", 10));
   }
 
   /* (non-Javadoc)
@@ -73,7 +71,7 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public Connection leaseConnection()
   {
-    return pool.lease();
+    return newConnection();
   }
 
   /* (non-Javadoc)
@@ -82,7 +80,7 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void releaseConnection( Connection connection)
   {
-    pool.release( connection);
+    try { connection.close();} catch( Exception e) {}
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
@@ -90,5 +88,4 @@ public class MySQLProvider implements ISQLProvider
   private String url;
   private String username;
   private String password;
-  private ConnectionPool pool;
 }

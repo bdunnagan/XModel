@@ -3,7 +3,6 @@ package org.xmodel.log;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Yet another logging facility.
@@ -94,10 +93,7 @@ public final class Log
    */
   public static Log getLog( Class<?> clazz)
   {
-    String name = clazz.getName();
-    int index = name.lastIndexOf( '.');
-    if ( index < 0) return getLog( name);
-    return getLog( name.substring( 0, index));
+    return getLog( clazz.getName());
   }
   
   /**
@@ -108,29 +104,18 @@ public final class Log
   public static Log getLog( Object object)
   {
     if ( object instanceof String)
-      throw new IllegalArgumentException(
-          "Illegal to log on behalf of String class.");
-    
-    Map<Object, Log> map = threadLogs.get();
-    if ( map == null)
     {
-      map = new HashMap<Object, Log>();
-      threadLogs.set( map);
+      throw new IllegalArgumentException( String.format(
+          "SLog invocation missing object argument in class: %", 
+          object.getClass().getName()));
     }
-    
-    Log log = map.get( object);
-    if ( log == null)
-    {
-      log = getLog( object.getClass());
-      map.put( object, log);
-    }
-    
-    return log;
+  
+    return getLog( object.getClass().getName());
   }
   
   private Log()
   {
-    this.mask = new AtomicInteger( problems | info);
+    this.mask = problems | info;
     this.sink = null;
     
     if ( fileSink == null)
@@ -150,14 +135,14 @@ public final class Log
    */
   public void setLevel( int level)
   {
-    mask.set( level);
+    mask = level;
   }
   
   /**
-   * Set the log sink (not thread-safe).
+   * Set the log sink.
    * @param sink The log sink.
    */
-  public synchronized void setSink( ILogSink sink)
+  public void setSink( ILogSink sink)
   {
     this.sink = sink;
   }
@@ -169,7 +154,7 @@ public final class Log
    */
   public boolean isLevelEnabled( int level)
   {
-    return (mask.get() & level) != 0;
+    return (mask & level) != 0;
   }
 
   /**
@@ -381,14 +366,7 @@ public final class Log
    */
   public void exception( Throwable throwable)
   {
-    if ( (mask.get() & exception) == 0) return;
-    
-    ILogSink sink;
-    synchronized( this)
-    {
-      sink = this.sink;
-    }
-    
+    if ( (mask & exception) == 0) return;
     if ( sink != null) sink.log( this, exception, throwable);
     
     Throwable cause = throwable.getCause();
@@ -404,14 +382,7 @@ public final class Log
    */
   public void exceptionf( Throwable throwable, String format, Object... params)
   {
-    if ( (mask.get() & exception) == 0) return;
-    
-    ILogSink sink;
-    synchronized( this)
-    {
-      sink = this.sink;
-    }
-    
+    if ( (mask & exception) == 0) return;
     if ( sink != null) sink.log( this, exception, String.format( format, params), throwable);
     
     Throwable cause = throwable.getCause();
@@ -426,14 +397,7 @@ public final class Log
    */
   public void log( int level, Object message)
   {
-    if ( (mask.get() & level) == 0) return;
-    
-    ILogSink sink;
-    synchronized( this)
-    {
-      sink = this.sink;
-    }
-    
+    if ( (mask & level) == 0) return;
     try
     {
       if ( sink != null) sink.log( this, level, message);
@@ -452,14 +416,7 @@ public final class Log
    */
   public void log( int level, Object message, Throwable throwable)
   {
-    if ( (mask.get() & level) == 0) return;
-    
-    ILogSink sink;
-    synchronized( this)
-    {
-      sink = this.sink;
-    }
-    
+    if ( (mask & level) == 0) return;
     try
     {
       if ( sink != null) sink.log( this, level, message, throwable);
@@ -478,14 +435,7 @@ public final class Log
    */
   public void logf( int level, String format, Object... params)
   {
-    if ( (mask.get() & level) == 0) return;
-    
-    ILogSink sink;
-    synchronized( this)
-    {
-      sink = this.sink;
-    }
-    
+    if ( (mask & level) == 0) return;
     try
     {
       if ( sink != null) sink.log( this, level, String.format( format, params));
@@ -501,15 +451,11 @@ public final class Log
    */
   private static Map<String, Log> logs = Collections.synchronizedMap( new HashMap<String, Log>());
   
-  /**
-   * Thread-local map of logs by logging source object.
-   */
-  private static ThreadLocal<Map<Object, Log>> threadLogs = new ThreadLocal<Map<Object, Log>>();
-
   private static FileSink fileSink;
   private static ConsoleSink consoleSink;
+  @SuppressWarnings("unused")
   private static SyslogSink syslogSink;
   
-  private AtomicInteger mask;
-  private ILogSink sink;
+  private volatile int mask;
+  private volatile ILogSink sink;
 }

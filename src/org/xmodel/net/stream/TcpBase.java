@@ -308,13 +308,53 @@ public abstract class TcpBase
    */
   protected void read( SelectionKey key) throws IOException
   {
-    SocketChannel socketChannel = (SocketChannel)key.channel();
-    Connection connection = connections.get( socketChannel);
+    SocketChannel channel = (SocketChannel)key.channel();
+    Connection connection = connections.get( channel);
     try
     {
-      int nread = connection.read();
-      //log.infof( "read: %d", nread);
-      if ( nread == -1) close( key);
+      ByteBuffer buffer = connection.buffer;
+      
+      // unflip
+      if ( buffer.position() < buffer.limit())
+      {
+        buffer.position( buffer.limit());
+        buffer.limit( buffer.capacity());
+      }
+      else
+      {
+        buffer.clear();
+      }
+      
+      // ensure capacity      
+      if ( buffer.position() == buffer.limit())
+      {
+        ByteBuffer larger = ByteBuffer.allocate( buffer.capacity() << 1);
+        buffer.flip();
+        larger.put( buffer);
+        buffer = connection.buffer = larger;
+      }
+
+      // read (optionally use ssl)
+      int nread = 0;
+      if ( ssl != null)
+      {
+        nread = ssl.read( channel, connection);
+      }
+      else
+      {
+        nread = channel.read( buffer);
+        //log.debugf( ">>  %s", Util.dump( buffer, ""));
+      }
+      
+      if ( nread > 0)
+      {
+        buffer.flip();
+        connection.notifyRead( buffer);
+      }
+      else if ( nread == -1)
+      {
+        close( key);
+      }
     }
     catch( Exception e)
     {
@@ -337,7 +377,14 @@ public abstract class TcpBase
       //int wrote = request.channel.write( request.buffer);
       //log.infof( "wrote: %d - %d = %d", n, wrote, request.buffer.remaining());
       
-      request.channel.write( request.buffer);
+      if ( ssl != null)
+      {
+        ssl.write( request.channel, request.buffer);
+      }
+      else
+      {
+        request.channel.write( request.buffer);
+      }
       
       if ( request.buffer.remaining() == 0)
       {
@@ -450,7 +497,7 @@ public abstract class TcpBase
     public int ops;
   }
   
-  protected final static Log log = Log.getLog( "org.xmodel.net.stream");
+  protected final static Log log = Log.getLog( TcpBase.class);
   private static int counter = 0;
 
   private ILink.IListener listener;
@@ -458,6 +505,7 @@ public abstract class TcpBase
   private Map<Channel, Connection> connections;
   private Queue<Request> queue;
   private Map<Channel, Request> pending;
+  private SSL ssl;
   private Thread thread;
   private boolean exit;
 }

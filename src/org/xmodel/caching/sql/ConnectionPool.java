@@ -27,7 +27,10 @@ public class ConnectionPool
     {
       Item item = queue.take();
       if ( item.connection == null)
+      {
         item.connection = provider.newConnection();
+      }
+      
       return item.connection;
     }
     catch( InterruptedException e)
