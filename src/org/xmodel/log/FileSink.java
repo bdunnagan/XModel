@@ -189,7 +189,7 @@ public final class FileSink implements ILogSink
     }
   };
 
-  private final static DateFormat dateFormat = new SimpleDateFormat( "hh_mm_ss_MM_dd_yyyy");
+  private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_hhmmss");
   private final static Pattern fileRegex = Pattern.compile( "^.*\\d{8}_\\d{6}\\.log$");
 
   private String path;
