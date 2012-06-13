@@ -1,17 +1,71 @@
 package org.xmodel.net.stream;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.TrustManagerFactory;
 
 /**
  * Convenience class for handling SSL.
  */
 public class SSL
 {
+  private final static String keyManagerAlgorithm = "SunX509";
+  private final static String sslProtocol = "TLS";
+  private enum Authentication { none, requested, required};
+  
+  /**
+   * Create an SSL instance with the specified CA instances, CA password, and client authentication.
+   * @param keyStore The private key CA.
+   * @param keyStorePass The password to the key-store.
+   * @param trustStore The third-party CA.
+   * @param trustStorePass The password to the trust-store.
+   * @param auth Client authentication mode.
+   */
+  public SSL( InputStream keyStore, String keyStorePass, InputStream trustStore, String trustStorePass, Authentication auth) 
+  throws GeneralSecurityException, IOException
+  {
+    KeyStore ks = KeyStore.getInstance( "JKS");
+    KeyStore ts = KeyStore.getInstance( "JKS");
+
+    ks.load( keyStore, keyStorePass.toCharArray());
+    ts.load( trustStore, trustStorePass.toCharArray());
+
+    KeyManagerFactory kmf = KeyManagerFactory.getInstance( keyManagerAlgorithm);
+    kmf.init( ks, keyStorePass.toCharArray());
+
+    TrustManagerFactory tmf = TrustManagerFactory.getInstance( keyManagerAlgorithm);
+    tmf.init( ts);
+
+    SSLContext sslContext = SSLContext.getInstance( sslProtocol);
+    sslContext.init( kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+    
+    engine = sslContext.createSSLEngine();
+    switch( auth)
+    {
+      case none:      break;
+      case requested: engine.setWantClientAuth( true); break;
+      case required:  engine.setNeedClientAuth( true); break;
+    }
+  }
+  
+  /**
+   * Returns the SSLEngine so that parameters can be configured, such as client-mode and client-authentication.
+   * @return Returns the SSLEngine.
+   */
+  public SSLEngine getSSLEngine()
+  {
+    return engine;
+  }
+
   /**
    * Read data from specified channel and handle SSL handshaking.
    * @param channel The channel.

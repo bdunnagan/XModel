@@ -1,9 +1,7 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-import java.util.List;
-
-import org.xmodel.net.stream.Connection;
+import org.xmodel.net.stream.SSL;
 import org.xmodel.net.stream.TcpServer;
 
 /**
@@ -46,6 +44,15 @@ public class Server extends Protocol
   }
   
   /**
+   * Use SSL according to the specified SSL instance (call prior to starting server).
+   * @param ssl The SSL instance.
+   */
+  public final void useSSL( SSL ssl)
+  {
+    server.useSSL( ssl);
+  }
+  
+  /**
    * Start the server.
    * @param daemon True if the server thread should be a daemon.
    */
@@ -62,16 +69,5 @@ public class Server extends Protocol
     server.stop();
   }
 
-  /**
-   * Returns the Connection instances to the specified remote host.
-   * @param host The remote host.
-   * @param port The remote port.
-   * @return Returns the Connection instances to the specified remote host.
-   */
-  public List<Connection> getConnections( String host, int port)
-  {
-    return server.getConnections( host, port);
-  }
-  
   private TcpServer server;
 }

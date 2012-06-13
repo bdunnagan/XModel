@@ -44,6 +44,16 @@ public final class TcpServer extends TcpBase
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpBase#useSSL(org.xmodel.net.stream.SSL)
+   */
+  @Override
+  public synchronized final void useSSL( SSL ssl)
+  {
+    ssl.getSSLEngine().setUseClientMode( false);
+    super.useSSL( ssl);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.stream.TcpBase#start(boolean)
    */
   @Override

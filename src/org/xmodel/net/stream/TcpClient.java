@@ -1,7 +1,6 @@
 package org.xmodel.net.stream;
 
 import java.io.IOException;
-
 import org.xmodel.net.ILink;
 
 public class TcpClient extends TcpBase
@@ -9,6 +8,16 @@ public class TcpClient extends TcpBase
   public TcpClient() throws IOException
   {
     super();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.stream.TcpBase#useSSL(org.xmodel.net.stream.SSL)
+   */
+  @Override
+  public synchronized final void useSSL( SSL ssl)
+  {
+    ssl.getSSLEngine().setUseClientMode( true);
+    super.useSSL( ssl);
   }
 
   /* (non-Javadoc)

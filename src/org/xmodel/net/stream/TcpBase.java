@@ -1,9 +1,7 @@
 package org.xmodel.net.stream;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
@@ -12,14 +10,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.log.Log;
 import org.xmodel.net.ILink;
 
@@ -44,10 +41,20 @@ public abstract class TcpBase
   }
 
   /**
+   * Set the SSL instance (prior to calling <code>start( boolean)</code>.
+   * @param ssl An SSL instance.
+   */
+  protected synchronized void useSSL( SSL ssl)
+  {
+    if ( thread != null) throw new IllegalStateException();
+    this.ssl = ssl;
+  }
+  
+  /**
    * Start the socket servicing thread.
    * @param daemon True if servicing thread should be a daemon.
    */
-  public void start( boolean daemon) throws IOException
+  public synchronized void start( boolean daemon) throws IOException
   {
     Runnable runnable = new Runnable() {
       public void run()
@@ -56,10 +63,7 @@ public abstract class TcpBase
       }
     };
     
-    int id = 0;
-    synchronized( this) { id = ++counter;}
-    
-    String name = String.format( "%s-%d", getClass().getSimpleName(), id);
+    String name = String.format( "%s-%d", getClass().getSimpleName(), counter.incrementAndGet());
     thread = new Thread( runnable, name);
     thread.setDaemon( daemon);
     thread.start();
@@ -68,48 +72,12 @@ public abstract class TcpBase
   /**
    * Stop the socket servicing thread.
    */
-  public void stop()
+  public synchronized void stop()
   {
     exit = true;
     selector.wakeup();
   }
   
-  /**
-   * Get all connections currently open to the specified host.
-   * @param host The remote host (use null to select any host).
-   * @param port The remote port (use -1 to select any port).
-   * @return Returns all connections to the specified host.
-   */
-  public List<Connection> getConnections( String host, int port)
-  {
-    try
-    {
-      List<String> ips = new ArrayList<String>();
-      for( InetAddress address: InetAddress.getAllByName( host))
-        ips.add( address.getHostAddress());
-      
-      List<Connection> result = new ArrayList<Connection>( 5);
-      for( Connection connection: connections.values())
-      {
-        if ( connection.isOpen())
-        {
-          String remoteHost = connection.getAddress();
-          int remotePort = connection.getChannel().socket().getLocalPort();
-          if ( (host == null || ips.contains( remoteHost)) && (port < 0 || remotePort == port)) 
-          {
-            result.add( connection);
-          }
-        }
-      }
-      return result;
-    }
-    catch( UnknownHostException e)
-    {
-      log.errorf( "Unknown host: %s", host);
-      return Collections.emptyList();
-    }
-  }
-
   /**
    * Return the connection associated with the specified channel.
    * @param channel The channel.
@@ -498,7 +466,7 @@ public abstract class TcpBase
   }
   
   protected final static Log log = Log.getLog( TcpBase.class);
-  private static int counter = 0;
+  private static AtomicInteger counter = new AtomicInteger();
 
   private ILink.IListener listener;
   protected Selector selector;

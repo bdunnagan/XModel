@@ -1,8 +1,8 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-
 import org.xmodel.log.SLog;
+import org.xmodel.net.stream.SSL;
 import org.xmodel.net.stream.TcpClient;
 
 /**
@@ -50,6 +50,15 @@ public class Client extends Protocol
   public int getPort()
   {
     return port;
+  }
+  
+  /**
+   * Use SSL according to the specified SSL instance (call prior to connecting client).
+   * @param ssl The SSL instance.
+   */
+  public final void useSSL( SSL ssl)
+  {
+    client.useSSL( ssl);
   }
   
   /**
