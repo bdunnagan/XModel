@@ -20,14 +20,10 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
-
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.ThreadPoolDispatcher;
 import org.xmodel.net.Client;
 import org.xmodel.net.Server;
-import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -49,9 +45,7 @@ public class StartClientAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
-    debugExpr = document.getExpression( "debug", true);
     daemonExpr = document.getExpression( "daemon", true);
-    threadsExpr = document.getExpression( "threads", true);
     contextExpr = document.getExpression();
   }
 
@@ -61,20 +55,12 @@ public class StartClientAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    // install debugger
-    if ( (debugExpr != null)? debugExpr.evaluateBoolean( context): false)
-    {
-      XAction.setDebugger( new Debugger());
-    }
-
-    // start client
     try
     {
       String host = (hostExpr != null)? hostExpr.evaluateString( context): "127.0.0.1";
       int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): Server.defaultPort;
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 3000;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
-      int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
       
       IModelObject clientContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
       IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
@@ -131,7 +117,5 @@ public class StartClientAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression contextExpr;
-  private IExpression debugExpr;
   private IExpression daemonExpr;
-  private IExpression threadsExpr;
 }

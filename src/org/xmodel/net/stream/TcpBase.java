@@ -280,27 +280,7 @@ public abstract class TcpBase
     Connection connection = connections.get( channel);
     try
     {
-      ByteBuffer buffer = connection.buffer;
-      
-      // unflip
-      if ( buffer.position() < buffer.limit())
-      {
-        buffer.position( buffer.limit());
-        buffer.limit( buffer.capacity());
-      }
-      else
-      {
-        buffer.clear();
-      }
-      
-      // ensure capacity      
-      if ( buffer.position() == buffer.limit())
-      {
-        ByteBuffer larger = ByteBuffer.allocate( buffer.capacity() << 1);
-        buffer.flip();
-        larger.put( buffer);
-        buffer = connection.buffer = larger;
-      }
+      connection.buffer = prepareReadBuffer( connection.buffer);
 
       // read (optionally use ssl)
       int nread = 0;
@@ -310,14 +290,14 @@ public abstract class TcpBase
       }
       else
       {
-        nread = channel.read( buffer);
+        nread = channel.read( connection.buffer);
         //log.debugf( ">>  %s", Util.dump( buffer, ""));
       }
       
       if ( nread > 0)
       {
-        buffer.flip();
-        connection.notifyRead( buffer);
+        connection.buffer.flip();
+        connection.notifyRead( connection.buffer);
       }
       else if ( nread == -1)
       {
@@ -329,6 +309,34 @@ public abstract class TcpBase
       log.exception( e);
       close( key);
     }
+  }
+
+  /**
+   * Prepare the specified read buffer for appending new data.
+   * @param buffer The read buffer.
+   * @return Returns a larger buffer if necessary.
+   */
+  private ByteBuffer prepareReadBuffer( ByteBuffer buffer)
+  {
+    if ( buffer.position() < buffer.limit())
+    {
+      buffer.position( buffer.limit());
+      buffer.limit( buffer.capacity());
+    }
+    else
+    {
+      buffer.clear();
+    }
+    
+    if ( buffer.position() == buffer.capacity())
+    {
+      ByteBuffer larger = ByteBuffer.allocate( buffer.capacity() << 1);
+      buffer.flip();
+      larger.put( buffer);
+      return larger;
+    }
+    
+    return buffer;
   }
   
   /**

@@ -1,5 +1,6 @@
 package org.xmodel.net.stream;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -18,9 +19,23 @@ import javax.net.ssl.TrustManagerFactory;
  */
 public class SSL
 {
+  public enum Authentication { none, requested, required};
   private final static String keyManagerAlgorithm = "SunX509";
   private final static String sslProtocol = "TLS";
-  private enum Authentication { none, requested, required};
+  
+  /**
+   * Create an SSL instance with the specified CA instances, CA password, and client authentication.
+   * @param keyStore The private key CA.
+   * @param keyStorePass The password to the key-store.
+   * @param trustStore The third-party CA.
+   * @param trustStorePass The password to the trust-store.
+   * @param auth Client authentication mode.
+   */
+  public SSL( String keyStore, String keyStorePass, String trustStore, String trustStorePass, Authentication auth) 
+  throws GeneralSecurityException, IOException
+  {
+    this( new FileInputStream( keyStore), keyStorePass, new FileInputStream( trustStore), trustStorePass, auth);
+  }
   
   /**
    * Create an SSL instance with the specified CA instances, CA password, and client authentication.
@@ -74,6 +89,11 @@ public class SSL
    */
   public int read( SocketChannel channel, Connection connection) throws IOException
   {
+    if ( buffer == null)
+    {
+      buffer = ByteBuffer.allocate( engine.getSession().getPacketBufferSize());
+    }
+    
     int nread = channel.read( buffer);
     if ( nread == -1)
     {
@@ -81,12 +101,12 @@ public class SSL
       return -1;
     }
 
-    int start = connection.buffer.position();
-    
+    buffer.flip();
     SSLEngineResult sslResult = engine.unwrap( buffer, connection.buffer);
     runDelegatedTasks( sslResult);
-
-    buffer.compact();
+    
+    buffer.flip();
+    connection.buffer.flip();
     
     switch( sslResult.getStatus()) 
     {
@@ -103,9 +123,9 @@ public class SSL
       case BUFFER_UNDERFLOW:
       {
         int required = engine.getSession().getPacketBufferSize();
-        if ( required > buffer.capacity()) 
+        if ( required > buffer.remaining()) 
         {
-          ByteBuffer larger = ByteBuffer.allocate( required);
+          ByteBuffer larger = ByteBuffer.allocate( buffer.position() + required);
           buffer.flip();
           larger.put( buffer);
           buffer = larger;
@@ -117,12 +137,11 @@ public class SSL
       {
         return -1;
       }
-      
-      default:
-      {
-        return buffer.position() - start;
-      }
     }
+
+    sslResult = engine.wrap( connection.buffer, buffer);
+    
+    return sslResult.bytesProduced();
   }
   
   /**
@@ -132,6 +151,11 @@ public class SSL
    */
   public void write( SocketChannel channel, ByteBuffer data) throws IOException
   {
+    if ( buffer == null)
+    {
+      buffer = ByteBuffer.allocate( engine.getSession().getPacketBufferSize());
+    }
+    
     SSLEngineResult sslResult = engine.wrap( data, buffer);
     runDelegatedTasks( sslResult);
     
@@ -140,13 +164,10 @@ public class SSL
       case BUFFER_OVERFLOW:
       {
         int required = engine.getSession().getPacketBufferSize();
-        if ( required > buffer.capacity()) 
-        {
-          ByteBuffer larger = ByteBuffer.allocate( required);
-          buffer.flip();
-          larger.put( buffer);
-          buffer = larger;
-        }
+        ByteBuffer larger = ByteBuffer.allocate( buffer.position() + required);
+        buffer.flip();
+        larger.put( buffer);
+        buffer = larger;
         
         write( channel, data);
         return;
@@ -157,6 +178,9 @@ public class SSL
         return;
       }
     }
+    
+    buffer.flip();
+    channel.write( buffer);
   }
   
   /**

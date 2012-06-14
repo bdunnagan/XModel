@@ -25,62 +25,60 @@ public class Debugger
   
   public Debugger()
   {
-    semaphore = new Semaphore( 0);
-    stepFrame = -1;
-    
-    stack = new ModelObject( "stack");
-    Xlate.set( stack, "thread", Thread.currentThread().getName());
+    stack = new DebugStack();
+    threads = new ThreadLocal<DebugThread>();
   }
 
   public synchronized IModelObject getStack()
   {
-    return stack.cloneTree();
   }
   
   public synchronized void stepOver()
   {
-    stepFrame = currFrame;
+    DebugThread thread = getDebugThread();
+    thread.op = Operation.stepOver;
     unblock();
   }
 
   public synchronized void stepIn()
   {
-    stepFrame = currFrame + 1;
+    DebugThread thread = getDebugThread();
+    thread.op = Operation.stepIn;
     unblock();
   }
 
   public synchronized void stepOut()
   {
-    stepFrame = currFrame - 1;
+    DebugThread thread = getDebugThread();
+    thread.op = Operation.stepOut;
     unblock();
   }
 
   public synchronized void pause()
   {
-    stepFrame = currFrame + 1;
+    DebugThread thread = getDebugThread();
+    thread.op = Operation.pause;
   }
   
-  public void breakpoint()
+  public synchronized void breakpoint()
   {
+    DebugThread thread = getDebugThread();
+    thread.op = Operation.pause;
     block();
   }
   
   public synchronized void resume()
   {
-    stepFrame = -1;
-    unblock();
+    DebugThread thread = getDebugThread();
+    if ( thread.op != Operation.resume)
+    {
+      thread.op = Operation.resume;
+      unblock();
+    }
   }
 
   public synchronized void push( IContext context, ScriptAction action)
   {
-    currFrame++;
-
-    IModelObject newFrame = new ModelObject( "frame");
-    
-    IModelObject parent = (frame != null)? frame: stack;
-    parent.addChild( newFrame);
-    
-    frame = newFrame;
   }
 
   public Object[] run( IContext context, IXAction action)
@@ -156,6 +154,18 @@ public class Debugger
     }
   }
   
+  private final synchronized DebugThread getDebugThread()
+  {
+    DebugThread thread = threads.get();
+    if ( thread == null)
+    {
+      thread = new DebugThread();
+      threads.set( thread);
+      stack.threads.add( thread);
+    }
+    return thread;
+  }
+  
   private static class DebugStack
   {
     public List<DebugThread> threads = new ArrayList<DebugThread>();
@@ -163,18 +173,30 @@ public class Debugger
   
   private static class DebugThread
   {
+    public DebugThread()
+    {
+      thread = Thread.currentThread().getName();
+    }
+    
+    public DebugStack parent;
     public List<DebugFrame> frames = new ArrayList<DebugFrame>();
+    public final String thread;
+    public Operation op;
   }
   
   private static class DebugFrame
   {
-    private IContext context;
-    private IXAction action;
+    public DebugFrame( IContext context, IXAction action)
+    {
+      this.context = context;
+      this.action = action;
+    }
+ 
+    public DebugThread parent;
+    public IContext context;
+    public IXAction action;
   }
-
-  private int stepFrame;
-  private int currFrame;
-  private Semaphore semaphore;
-  private IModelObject frame;
-  private IModelObject stack;
+  
+  private DebugStack stack;
+  private ThreadLocal<DebugThread> threads;
 }
