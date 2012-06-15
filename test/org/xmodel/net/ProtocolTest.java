@@ -2,12 +2,14 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -181,7 +183,7 @@ public class ProtocolTest
       }
     }
   }
-
+  
   private void createClients( int count) throws IOException
   {
     clients = new ArrayList<Client>();

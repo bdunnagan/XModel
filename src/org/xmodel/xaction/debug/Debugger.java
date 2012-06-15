@@ -3,8 +3,8 @@ package org.xmodel.xaction.debug;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+
 import org.xmodel.IModelObject;
-import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -12,6 +12,7 @@ import org.xmodel.log.SLog;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.variable.IVariableScope;
 
 /**
  * A reference IDebugger implementation that uses an XPathServer to provide
@@ -25,14 +26,10 @@ public class Debugger
   
   public Debugger()
   {
-    stack = new DebugStack();
     threads = new ThreadLocal<DebugThread>();
+    lock = new Semaphore( 0);
   }
 
-  public synchronized IModelObject getStack()
-  {
-  }
-  
   public synchronized void stepOver()
   {
     DebugThread thread = getDebugThread();
@@ -79,33 +76,49 @@ public class Debugger
 
   public synchronized void push( IContext context, ScriptAction action)
   {
+    DebugThread thread = getDebugThread();
+    DebugFrame frame = new DebugFrame( context, action);
+    thread.frames.add( frame);
+    
+    if ( thread.op == Operation.stepIn)
+      thread.op = Operation.pause;
   }
 
   public Object[] run( IContext context, IXAction action)
   {
-    boolean block = false;
-    synchronized( this) 
-    { 
-      block = stepFrame >= currFrame;
-      buildFrame( context, action);
+    DebugThread thread = getDebugThread();
+    DebugFrame frame = new DebugFrame( context, action);
+    Operation op;
+    synchronized( this)
+    {
+      thread.frames.add( frame);
+      op = thread.op;
     }
+
+    if ( op == Operation.pause) block();
     
-    if ( block) block();
-    
-    Object[] result = action.run( context);
-    return result;
+    try
+    {
+      Object[] result = action.run( context);
+      return result;
+    }
+    finally
+    {
+      synchronized( this)
+      {
+        thread.frames.remove( frame);
+      }
+    }
   }
 
   public synchronized void pop()
   {
-    currFrame--;
+    DebugThread thread = getDebugThread();
+    thread.frames.remove( thread.frames.size() - 1);
     
-    // remove current frame
-    if ( frame != null && frame != stack) 
+    if ( thread.frames.size() == 0)
     {
-      IModelObject parent = frame.getParent();
-      frame.removeFromParent();
-      frame = parent;
+      threads.set( null);
     }
   }
   
@@ -113,45 +126,53 @@ public class Debugger
   {
     try 
     { 
-      SLog.infof( this, "Debugger blocking ...");
-      semaphore.acquire();
-      
-      SLog.infof( this, "Debugger resuming.");
+      lock.drainPermits();
+      lock.acquire();
     } 
     catch( InterruptedException e) 
     {
-      SLog.info( this, "Debugger resuming after interruption.");
+      Thread.interrupted();
+      SLog.warnf( this, "Debugger breakpoint interrupted.");
     }
   }
 
   private void unblock()
   {
-    semaphore.release();
+    lock.release();
   }
-  
-  private void buildFrame( IContext context, IXAction action)
+    
+  public synchronized IModelObject getStack()
   {
-    // clean old frame
-    frame.removeChildren( "var");
+    IModelObject stackNode = new ModelObject( "stack");
     
-    // location
-    if ( frame.getParent().isType( "stack"))
+    for( DebugThread thread: threadList)
     {
-      IPath path = ModelAlgorithms.createIdentityPath( action.getDocument().getRoot(), true);
-      Xlate.set( frame, "location", path.toString());
-    }
-    else
-    {
-      Xlate.set( frame, "location", action.toString());
+      IModelObject threadNode = new ModelObject( "thread");
+      
+      threadNode.setID( String.format( "%X", thread.hashCode()));
+      Xlate.set( threadNode, "name", thread.thread);
+      
+      for( DebugFrame frame: thread.frames)
+      {
+        IModelObject frameNode = new ModelObject( "frame");
+        
+        frameNode.setID( String.format( "%X", frame.hashCode()));
+        Xlate.set( frameNode, "name", frame.getName());
+        
+        IVariableScope scope = frame.context.getScope();
+        for( String var: scope.getAll())
+        {
+          IModelObject varNode = new ModelObject( "var", var);
+          frameNode.addChild( varNode);
+        }
+        
+        threadNode.addChild( frameNode);
+      }
+      
+      stackNode.addChild( threadNode);
     }
     
-    // store variable names in scope
-    for( String varName: context.getScope().getVariables())
-    {
-      ModelObject varNode = new ModelObject( "var");
-      varNode.setValue( varName);
-      frame.addChild( varNode);
-    }
+    return stackNode;
   }
   
   private final synchronized DebugThread getDebugThread()
@@ -161,14 +182,8 @@ public class Debugger
     {
       thread = new DebugThread();
       threads.set( thread);
-      stack.threads.add( thread);
     }
     return thread;
-  }
-  
-  private static class DebugStack
-  {
-    public List<DebugThread> threads = new ArrayList<DebugThread>();
   }
   
   private static class DebugThread
@@ -178,7 +193,6 @@ public class Debugger
       thread = Thread.currentThread().getName();
     }
     
-    public DebugStack parent;
     public List<DebugFrame> frames = new ArrayList<DebugFrame>();
     public final String thread;
     public Operation op;
@@ -192,11 +206,21 @@ public class Debugger
       this.action = action;
     }
  
-    public DebugThread parent;
+    public String getName()
+    {
+      IModelObject config = action.getDocument().getRoot();
+      
+      String name = Xlate.get( config, "name", (String)null);
+      if ( name != null) return name;
+      
+      return ModelAlgorithms.createIdentityPath( config, true).toString();
+    }
+    
     public IContext context;
     public IXAction action;
   }
   
-  private DebugStack stack;
   private ThreadLocal<DebugThread> threads;
+  private List<DebugThread> threadList;
+  private Semaphore lock;
 }
