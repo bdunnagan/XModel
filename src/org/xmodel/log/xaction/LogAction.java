@@ -3,7 +3,6 @@ package org.xmodel.log.xaction;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
@@ -36,14 +35,15 @@ public class LogAction extends GuardedAction
    */
   static String createLogName( IModelObject root)
   {
-    IModelObject script = root.getAncestor( "script");
-    if ( script != null)
+    IModelObject node = root;
+    IModelObject parent = node.getParent();
+    while( parent != null && node.getAttribute( "xaction") != null)
     {
-      String name = Xlate.get( script, "name", (String)null);
-      if ( name != null) return name;
+      node = parent;
+      parent = node.getParent();
     }
     
-    IPath path = ModelAlgorithms.createIdentityPath( root);
+    IPath path = ModelAlgorithms.createIdentityPath( node);
     return path.toString();
   }
 

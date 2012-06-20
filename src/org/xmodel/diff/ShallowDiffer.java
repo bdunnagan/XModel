@@ -28,7 +28,6 @@ import org.xmodel.ModelAlgorithms;
 /**
  * An implementation of AbstractListDiffer which creates records in an IChangeSet.
  */
-@SuppressWarnings("unchecked")
 public class ShallowDiffer extends AbstractListDiffer
 {
   /**
@@ -86,14 +85,14 @@ public class ShallowDiffer extends AbstractListDiffer
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyEqual(java.util.List, int, int, java.util.List, int, int)
    */
-  public void notifyEqual( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count)
+  public void notifyEqual( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count)
   {
   }
   
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyInsert(java.util.List, int, int, java.util.List, int, int)
    */
-  public void notifyInsert( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count)
+  public void notifyInsert( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count)
   {
     for( int i=0; i<count; i++)
     {
@@ -105,7 +104,7 @@ public class ShallowDiffer extends AbstractListDiffer
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyRemove(java.util.List, int, int, java.util.List, int)
    */
-  public void notifyRemove( final List lhs, int lIndex, int lAdjust, final List rhs, int count)
+  public void notifyRemove( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int count)
   {
     for( int i=0; i<count; i++)
     {

@@ -19,9 +19,11 @@
  */
 package org.xmodel;
 
-
 /**
  * A ChangeSet which produces records which, when applied, result in an intersection operation.
+ * In the context of a diff operation, the intersection of two matching parent elements is defined
+ * as the children in the left-hand tree for which there is a matching child in the right-hand tree.
+ * Attribute updates are only performed if the attribute already exists in the left-hand element.
  */
 public class IntersectChangeSet extends ChangeSet
 {
@@ -47,5 +49,7 @@ public class IntersectChangeSet extends ChangeSet
   @Override
   public void setAttribute( IModelObject object, String attrName, Object attrValue)
   {
+    if ( object.getAttribute( attrName) != null)
+      super.setAttribute( object, attrName, attrValue);
   }
 }

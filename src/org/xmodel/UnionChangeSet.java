@@ -19,7 +19,6 @@
  */
 package org.xmodel;
 
-
 /**
  * A ChangeSet which produces records which, when applied, result in a union operation.
  */

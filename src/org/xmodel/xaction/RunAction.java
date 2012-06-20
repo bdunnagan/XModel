@@ -42,6 +42,16 @@ import org.xmodel.xpath.variable.IVariableScope;
 
 /**
  * An XAction that executes a script identified by an expression.
+ * 
+ * TODO: RunAction has several problems:
+ *       
+ * 1. There is no control over the variables that get returned in the scope of a remote invocation,
+ *    which leads to huge execution responses.
+ * 
+ * 2. There is no support for the basic mechanism of function arguments.
+ *    So, while it is easy to assign variables expected by the target of the RunAction,
+ *    it is cumbersome to insulate the code surrounding the invocation fromt these variable
+ *    assignments.
  */
 public class RunAction extends GuardedAction
 {

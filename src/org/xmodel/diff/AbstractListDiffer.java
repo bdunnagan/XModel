@@ -39,13 +39,12 @@ import java.util.List;
  * <p>
  * (9/8/06) bdunnagan: Added conditions to prevent specious insert/delete at end of list (see below).
  */
-@SuppressWarnings("unchecked")
 public abstract class AbstractListDiffer implements IListDiffer
 {
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#diff(java.util.List, java.util.List)
    */
-  public void diff( List lhs, List rhs)
+  public void diff( List<?> lhs, List<?> rhs)
   {
     List<DeferredInsert> inserts = null;
     
@@ -150,7 +149,7 @@ public abstract class AbstractListDiffer implements IListDiffer
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyEqual(java.util.List, int, int, java.util.List, int, int)
    */
-  public void notifyEqual( final List lhs, int lIndex, int lAdjust, List rhs, int rIndex, int count)
+  public void notifyEqual( final List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int rIndex, int count)
   {
   }
 
@@ -162,7 +161,7 @@ public abstract class AbstractListDiffer implements IListDiffer
    * @param rStart The offset into the rhs list.
    * @return Returns the length of the run.
    */
-  public int findRunOfEqualObjects( List lhs, int lStart, List rhs, int rStart)
+  public int findRunOfEqualObjects( List<?> lhs, int lStart, List<?> rhs, int rStart)
   {
     int lSize = lhs.size();
     int rSize = rhs.size();
@@ -187,7 +186,7 @@ public abstract class AbstractListDiffer implements IListDiffer
    * @param rStart The offset into the rhs list.
    * @return Returns the length of the run or the negated length to the match point.
    */
-  public int findRunMissingFromLeft( List lhs, int lStart, List rhs, int rStart)
+  public int findRunMissingFromLeft( List<?> lhs, int lStart, List<?> rhs, int rStart)
   {
     int length = 0;
     int lSize = lhs.size();
@@ -216,7 +215,7 @@ public abstract class AbstractListDiffer implements IListDiffer
    * @param rStart The offset into the rhs list.
    * @return Returns the length of the run or the negated length to the match point.
    */
-  public int findRunMissingFromRight( List lhs, int lStart, List rhs, int rStart)
+  public int findRunMissingFromRight( List<?> lhs, int lStart, List<?> rhs, int rStart)
   {
     int length = 0;
     int lSize = lhs.size();
@@ -270,21 +269,21 @@ public abstract class AbstractListDiffer implements IListDiffer
     lhs.add( 'D'); rhs.add( 'D');                  
                  
     AbstractListDiffer differ = new AbstractListDiffer() {
-      public void notifyEqual( List lhs, int lIndex, int lAdjust, List rhs, int rIndex, int count)
+      public void notifyEqual( List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int rIndex, int count)
       {
         for( int i=0; i<count; i++)
         {
           System.out.println( "EQL: left="+lhs.get( lIndex+i)+", right="+rhs.get( rIndex+i));
         }
       }
-      public void notifyInsert( List lhs, int lIndex, int lAdjust, List rhs, int rIndex, int count)
+      public void notifyInsert( List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int rIndex, int count)
       {
         for( int i=0; i<count; i++)
         {
           System.out.println( "INS: right="+rhs.get( rIndex+i)+", at="+(lIndex+lAdjust+i));
         }
       }
-      public void notifyRemove( List lhs, int lIndex, int lAdjust, List rhs, int count)
+      public void notifyRemove( List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int count)
       {
         for( int i=0; i<count; i++)
         {

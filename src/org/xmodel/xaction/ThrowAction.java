@@ -40,7 +40,7 @@ public class ThrowAction extends GuardedAction
     super.configure( document);
     
     // load throwable class
-    String className = Xlate.get( document.getRoot(), "class", "");
+    String className = Xlate.get( document.getRoot(), "class", XActionException.class.getName());
     try
     {
       ClassLoader loader = document.getClassLoader();

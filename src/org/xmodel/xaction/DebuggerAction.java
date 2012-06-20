@@ -18,6 +18,7 @@ public class DebuggerAction extends GuardedAction
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), true);
+    threadExpr = document.getExpression( "thread", true);
     opExpr = document.getExpression( "op", true);
     if ( opExpr == null) opExpr = document.getExpression();
   }
@@ -29,15 +30,16 @@ public class DebuggerAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     Debugger debugger = XAction.getDebugger();
+    String thread = (threadExpr != null)? threadExpr.evaluateString( context): null;
     String op = opExpr.evaluateString( context);
     switch( Debugger.Operation.valueOf( op))
     {
-      case stepOver: debugger.stepOver(); break;
-      case stepIn:   debugger.stepIn(); break;
-      case stepOut:  debugger.stepOut(); break;
-      case resume:   debugger.resume(); break;
-      case pause:    debugger.pause(); break;
-      case fetch:    break;
+      case stepOver: debugger.stepOver( thread); break;
+      case stepIn:   debugger.stepIn( thread); break;
+      case stepOut:  debugger.stepOut( thread); break;
+      case resume:   debugger.resume( thread); break;
+      case pause:    debugger.pause( thread); break;
+      case sync:    break;
     }
 
     context.getScope().set( var, debugger.getStack());    
@@ -45,6 +47,7 @@ public class DebuggerAction extends GuardedAction
     return null;
   }
   
-  private IExpression opExpr;
   private String var;
+  private IExpression threadExpr;
+  private IExpression opExpr;
 }

@@ -2,16 +2,20 @@ package org.xmodel.xaction.debug;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-
 import org.xmodel.IModelObject;
-import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.ThreadPoolDispatcher;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
+import org.xmodel.net.Server;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -20,60 +24,78 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public class Debugger
 {
-  public final static int defaultPort = 27700;
+  public final static String debugProperty = "xaction:debug";
   
-  public static enum Operation { fetch, stepOver, stepIn, stepOut, pause, resume};
+  public static enum Operation { sync, stepOver, stepIn, stepOut, pause, resume};
   
   public Debugger()
   {
     threads = new ThreadLocal<DebugThread>();
+    threadList = new ArrayList<DebugThread>();
     lock = new Semaphore( 0);
-  }
+    
+    try
+    {
+      int port = Integer.parseInt( System.getProperty( debugProperty));
+      server = new Server( "localhost", port, Integer.MAX_VALUE);
+      server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
+      server.setServerContext( new StatefulContext());
+      server.start( true);
+    }
+    catch( Exception e)
+    {
+      SLog.exception( this, e);
+    }
+  }    
 
-  public synchronized void stepOver()
+  public synchronized void stepOver( String threadName)
   {
-    DebugThread thread = getDebugThread();
+    DebugThread thread = getDebugThread( threadName);
     thread.op = Operation.stepOver;
     unblock();
   }
 
-  public synchronized void stepIn()
+  public synchronized void stepIn( String threadName)
   {
-    DebugThread thread = getDebugThread();
+    DebugThread thread = getDebugThread( threadName);
     thread.op = Operation.stepIn;
     unblock();
   }
 
-  public synchronized void stepOut()
+  public synchronized void stepOut( String threadName)
   {
-    DebugThread thread = getDebugThread();
+    DebugThread thread = getDebugThread( threadName);
     thread.op = Operation.stepOut;
     unblock();
   }
 
-  public synchronized void pause()
+  public synchronized void pause( String threadName)
   {
-    DebugThread thread = getDebugThread();
+    DebugThread thread = getDebugThread( threadName);
     thread.op = Operation.pause;
   }
   
-  public synchronized void breakpoint()
+  public void breakpoint()
   {
-    DebugThread thread = getDebugThread();
-    thread.op = Operation.pause;
+    synchronized( this)
+    {
+      DebugThread thread = getDebugThread();
+      thread.op = Operation.pause;
+    }
+    
     block();
   }
   
-  public synchronized void resume()
+  public synchronized void resume( String threadName)
   {
-    DebugThread thread = getDebugThread();
+    DebugThread thread = getDebugThread( threadName);
     if ( thread.op != Operation.resume)
     {
       thread.op = Operation.resume;
       unblock();
     }
   }
-
+  
   public synchronized void push( IContext context, ScriptAction action)
   {
     DebugThread thread = getDebugThread();
@@ -111,15 +133,24 @@ public class Debugger
     }
   }
 
-  public synchronized void pop()
+  public void pop()
   {
-    DebugThread thread = getDebugThread();
-    thread.frames.remove( thread.frames.size() - 1);
+    boolean end = false;
     
-    if ( thread.frames.size() == 0)
+    synchronized( this)
     {
-      threads.set( null);
+      DebugThread thread = getDebugThread();
+      thread.frames.remove( thread.frames.size() - 1);
+      
+      if ( thread.frames.size() == 0)
+      {
+        threads.set( null);
+        threadList.remove( thread);
+        if ( thread.op == Operation.pause || thread.op == Operation.stepOver) end = true;
+      }
     }
+    
+    if ( end) block();
   }
   
   private void block()
@@ -148,31 +179,59 @@ public class Debugger
     for( DebugThread thread: threadList)
     {
       IModelObject threadNode = new ModelObject( "thread");
-      
       threadNode.setID( String.format( "%X", thread.hashCode()));
       Xlate.set( threadNode, "name", thread.thread);
       
-      for( DebugFrame frame: thread.frames)
+      IContext frameContext = null;
+      for( int i=0; i<thread.frames.size(); i++)
       {
-        IModelObject frameNode = new ModelObject( "frame");
+        DebugFrame frame = thread.frames.get( i);
         
+        IModelObject frameNode = new ModelObject( "frame");
         frameNode.setID( String.format( "%X", frame.hashCode()));
         Xlate.set( frameNode, "name", frame.getName());
         
-        IVariableScope scope = frame.context.getScope();
-        for( String var: scope.getAll())
+        if ( frameContext != frame.context)
         {
-          IModelObject varNode = new ModelObject( "var", var);
-          frameNode.addChild( varNode);
+          IVariableScope scope = frame.context.getScope();
+          for( String var: (i==0)? scope.getAll(): scope.getVariables())
+          {
+            IModelObject varNode = new ModelObject( "var", var);
+            Object object = scope.get( var);
+            serializeVariable( varNode, object);
+            frameNode.addChild( varNode);
+          }
+          frameContext = frame.context;
         }
         
         threadNode.addChild( frameNode);
       }
-      
       stackNode.addChild( threadNode);
     }
     
     return stackNode;
+  }
+  
+  /**
+   * Serialize the specified variable value into the specified stack variable node.
+   * @param varNode The stack variable node.
+   * @param value The value of the variable.
+   */
+  private static void serializeVariable( IModelObject varNode, Object value)
+  {
+    if ( value instanceof List)
+    {
+      Xlate.set( varNode, "type", "nodes");
+      for( Object object: (List<?>)value)
+      {
+        varNode.addChild( ((IModelObject)object).cloneTree());
+      }
+    }
+    else
+    {
+      Xlate.set( varNode, "type", "value");
+      varNode.setValue( value);
+    }
   }
   
   private final synchronized DebugThread getDebugThread()
@@ -182,8 +241,19 @@ public class Debugger
     {
       thread = new DebugThread();
       threads.set( thread);
+      threadList.add( thread);
     }
     return thread;
+  }
+  
+  private final synchronized DebugThread getDebugThread( String threadID)
+  {
+    for( DebugThread thread: threadList)
+    {
+      String id = String.format( "%X", thread.hashCode());
+      if ( id.equals( threadID)) return thread;
+    }
+    return null;
   }
   
   private static class DebugThread
@@ -205,17 +275,16 @@ public class Debugger
       this.context = context;
       this.action = action;
     }
- 
+    
     public String getName()
     {
-      IModelObject config = action.getDocument().getRoot();
-      
-      String name = Xlate.get( config, "name", (String)null);
-      if ( name != null) return name;
-      
-      return ModelAlgorithms.createIdentityPath( config, true).toString();
+      IModelObject config = action.getDocument().getRoot().cloneObject();
+      config.clearModel();
+      config.removeAttribute( "xaction");
+      config.removeAttribute( "xm:compiled");
+      return XmlIO.write( Style.printable, config);
     }
-    
+        
     public IContext context;
     public IXAction action;
   }
@@ -223,4 +292,5 @@ public class Debugger
   private ThreadLocal<DebugThread> threads;
   private List<DebugThread> threadList;
   private Semaphore lock;
+  private Server server;
 }

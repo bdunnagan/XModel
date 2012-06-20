@@ -39,7 +39,6 @@ import org.xmodel.ModelAlgorithms;
  * <p>
  * BUG: The ordered diff algorithm does not check IXmlMatcher.shouldDiff.
  */
-@SuppressWarnings("unchecked")
 public class XmlDiffer extends AbstractXmlDiffer
 {
   public XmlDiffer()
@@ -207,7 +206,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     /* (non-Javadoc)
      * @see org.xmodel.diff.IListDiffer#notifyEqual(java.util.List, int, int, java.util.List, int, int)
      */
-    public void notifyEqual( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count)
+    public void notifyEqual( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count)
     {
       IModelObject lParent = this.lParent;
       IModelObject rParent = this.rParent;
@@ -224,7 +223,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     /* (non-Javadoc)
      * @see org.xmodel.diff.IListDiffer#notifyInsert(java.util.List, int, int, java.util.List, int, int)
      */
-    public void notifyInsert( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count)
+    public void notifyInsert( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count)
     {
       for( int i=0; i<count; i++)
       {
@@ -236,7 +235,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     /* (non-Javadoc)
      * @see org.xmodel.diff.IListDiffer#notifyRemove(java.util.List, int, int, java.util.List, int)
      */
-    public void notifyRemove( final List lhs, int lIndex, int lAdjust, final List rhs, int count)
+    public void notifyRemove( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int count)
     {
       for( int i=0; i<count; i++)
       {

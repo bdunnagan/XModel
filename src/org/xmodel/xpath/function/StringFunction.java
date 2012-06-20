@@ -101,6 +101,8 @@ public class StringFunction extends Function
   public static String stringValue( IModelObject object)
   {
     Object value = object.getValue();
+    if ( value instanceof Number) return stringValue( ((Number)value).doubleValue());
+    if ( value instanceof Boolean) return stringValue( (Boolean)value);
     if ( value != null) return value.toString();
     return "";
 //    This is too slow.    
@@ -217,27 +219,6 @@ public class StringFunction extends Function
    */
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
-    IExpression arg0 = getArgument( 0);
-    for( IContext context: contexts)
-    {
-      IExpression parent = getParent();
-      if ( parent != null)
-      {
-        try
-        {
-          List<IModelObject> nodes = arg0.evaluateNodes( context);
-          if ( object.equals( nodes.get( 0))) 
-          {
-            String oldResult = (oldValue != null)? oldValue.toString(): "";
-            String newResult = (newValue != null)? newValue.toString(): "";
-            parent.notifyChange( this, context, newResult, oldResult);
-          }
-        }
-        catch( ExpressionException e)
-        {
-          parent.handleException( this, context, e);
-        }
-      }
-    }
+    getParent().notifyChange( this, contexts[ 0]);
   }
 }

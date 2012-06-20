@@ -35,7 +35,6 @@ import java.util.List;
  * Instead, the indices of the objects being removed should be stored and processed later. The
  * stored index should usually take into consideration the adjustment value (lIndex + lAdjust).
  */
-@SuppressWarnings("unchecked")
 public interface IListDiffer
 {
   /**
@@ -44,7 +43,7 @@ public interface IListDiffer
    * @param lhs The left-hand-side list.
    * @param rhs The right-hand-side list.
    */
-  public void diff( List lhs, List rhs);
+  public void diff( List<?> lhs, List<?> rhs);
 
   /**
    * Returns true if the specified objects match.
@@ -63,7 +62,7 @@ public interface IListDiffer
    * @param rIndex The index of the object in the rhs list.
    * @param count The number of objects which are equal.
    */
-  public void notifyEqual( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count);
+  public void notifyEqual( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count);
   
   /**
    * Called when a run of objects from the rhs list should be inserted into the lhs list.
@@ -75,7 +74,7 @@ public interface IListDiffer
    * @param rIndex The index of the object in the rhs list.
    * @param count The number of objects to insert.
    */
-  public void notifyInsert( final List lhs, int lIndex, int lAdjust, final List rhs, int rIndex, int count);
+  public void notifyInsert( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count);
   
   /**
    * Called when a run of objects from the lhs list should be removed.
@@ -86,5 +85,5 @@ public interface IListDiffer
    * @param rhs The right-hand-side list.
    * @param count The number of objects to removed.
    */
-  public void notifyRemove( final List lhs, int lIndex, int lAdjust, final List rhs, int count);
+  public void notifyRemove( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int count);
 }

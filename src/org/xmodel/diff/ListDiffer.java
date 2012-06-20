@@ -29,14 +29,13 @@ import java.util.List;
  * and deletes. An insert record will have an lIndex >= 0, while a delete record will
  * have an lIndex < 0.
  */
-@SuppressWarnings("unchecked")
 public class ListDiffer extends AbstractListDiffer
 {
   /* (non-Javadoc)
    * @see org.xmodel.diff.AbstractListDiffer#diff(java.util.List, java.util.List)
    */
   @Override
-  public void diff( List lhs, List rhs)
+  public void diff( List<?> lhs, List<?> rhs)
   {
     if ( changes != null) changes.clear();
     super.diff( lhs, rhs);
@@ -45,7 +44,7 @@ public class ListDiffer extends AbstractListDiffer
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyInsert(java.util.List, int, int, java.util.List, int, int)
    */
-  public void notifyInsert( List lhs, int lIndex, int lAdjust, List rhs, int rIndex, int count)
+  public void notifyInsert( List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int rIndex, int count)
   {
     Change change = new Change();
     change.lIndex = lIndex + lAdjust;
@@ -59,7 +58,7 @@ public class ListDiffer extends AbstractListDiffer
   /* (non-Javadoc)
    * @see org.xmodel.diff.IListDiffer#notifyRemove(java.util.List, int, int, java.util.List, int)
    */
-  public void notifyRemove( List lhs, int lIndex, int lAdjust, List rhs, int count)
+  public void notifyRemove( List<?> lhs, int lIndex, int lAdjust, List<?> rhs, int count)
   {
     Change change = new Change();
     change.lIndex = lIndex + lAdjust;

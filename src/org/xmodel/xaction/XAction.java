@@ -117,7 +117,7 @@ public abstract class XAction implements IXAction
   // Using a system property to enable debugging is appropriate because the debugger is static, and
   // therefore debugging is either enabled or disabled for the entire VM.
   //
-  private final static boolean debugging = System.getProperty( "xaction:debug") != null;
+  private final static boolean debugging = System.getProperty( Debugger.debugProperty) != null;
   private final static Debugger debugger = debugging? new Debugger(): null;
   
   protected XActionDocument document;

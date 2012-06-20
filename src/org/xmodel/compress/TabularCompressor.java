@@ -36,6 +36,7 @@ import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.log.SLog;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
@@ -438,6 +439,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   private void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
+    int startSize = stream.size();
+    
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
@@ -448,6 +451,9 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeBytes( key);
       stream.write( 0);
     }
+    
+    // log
+    SLog.debugf( this, "Wrote table: entries=%d, size=%d.", keys.size(), stream.size() - startSize);
   }
   
   /**
