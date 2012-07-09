@@ -61,6 +61,12 @@ public class BlockingDispatcher implements IDispatcher
   {
     this.immediate = immediate;
     this.shutdown.set( true);
+    
+    queue.offer( new Runnable() {
+      public void run()
+      {
+      }
+    });
   }
 
   /**

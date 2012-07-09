@@ -36,6 +36,7 @@ import org.xmodel.external.ExternalReference;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.log.SLog;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -99,6 +100,7 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     File file = new File( Xlate.get( reference, "path", "."));
+    SLog.infof( this, "LOADING %s", file.getAbsoluteFile());
     if ( file.canRead())
     {
       try

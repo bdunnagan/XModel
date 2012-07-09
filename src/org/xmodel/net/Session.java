@@ -57,7 +57,7 @@ public final class Session
   }
   
   /**
-   * Perform a remote invocation of the specified script.
+   * Perform a synchronous remote invocation of the specified script.
    * @param context The local execution context.
    * @param variables The variables to be passed.
    * @param script The script to be executed.
@@ -67,6 +67,20 @@ public final class Session
   public Object[] execute( StatefulContext context, String[] variables, IModelObject script, int timeout) throws IOException
   {
     return protocol.execute( link, session, context, variables, script, timeout);
+  }
+  
+  /**
+   * Perform an asynchronous remote invocation of the specified script.
+   * @param context The local execution context.
+   * @param variables The variables to be passed.
+   * @param script The script to be executed.
+   * @param callback The async callback interface.
+   * @param timeout The timeout to wait for a response.
+   * @return Returns null or the response.
+   */
+  public void execute( StatefulContext context, String[] variables, IModelObject script, ICallback callback, int timeout) throws IOException
+  {
+    protocol.execute( link, session, context, variables, script, callback, timeout);
   }
   
   /**

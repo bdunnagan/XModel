@@ -196,13 +196,9 @@ public abstract class TcpBase
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
-    ByteBuffer clone = ByteBuffer.allocate( buffer.remaining());
-    clone.put( buffer);
-    clone.flip();
-    
     Request request = new Request();
     request.channel = channel;
-    request.buffer = clone;
+    request.buffer = buffer;
     request.ops = SelectionKey.OP_READ | SelectionKey.OP_WRITE;
     
     enqueue( request);

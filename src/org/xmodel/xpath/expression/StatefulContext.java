@@ -44,7 +44,7 @@ public class StatefulContext implements IContext
   }
   
   /**
-   * Create a duplicate of the specified context.
+   * Shallow copy the specified context.
    * @param context The context.
    */
   public StatefulContext( IContext context)

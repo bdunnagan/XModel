@@ -7,7 +7,7 @@ import org.xmodel.xpath.expression.ExactExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpressionListener;
-import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.expression.SubContext;
 
 /**
  * An ExactExpressionListener that tracks changes to a node-set.  One or more listener/expression
@@ -73,7 +73,7 @@ public class ListDetailListener extends ExactExpressionListener
   {
     for( int i=0; i<count; i++)
     {
-      StatefulContext nodeContext = new StatefulContext( context, nodes.get( start + i));
+      SubContext nodeContext = new SubContext( context, nodes.get( start + i), 1, 1);
       for( Detail detail: details) detail.install( nodeContext);
       notifyDetailsBound( nodeContext, start + i);
     }
@@ -87,7 +87,7 @@ public class ListDetailListener extends ExactExpressionListener
   {
     for( int i=count-1; i>=0; i--)
     {
-      StatefulContext nodeContext = new StatefulContext( context, nodes.get( start + i));
+      SubContext nodeContext = new SubContext( context, nodes.get( start + i), 1, 1);
       for( Detail detail: details) detail.remove( nodeContext);
       notifyDetailsUnbound( nodeContext, start + i);
     }
@@ -114,7 +114,7 @@ public class ListDetailListener extends ExactExpressionListener
      * Install detail listener.
      * @param context The node context.
      */
-    public void install( StatefulContext context)
+    public void install( IContext context)
     {
       expression.addNotifyListener( context, listener);
     }
@@ -123,9 +123,9 @@ public class ListDetailListener extends ExactExpressionListener
      * Remove detail listener.
      * @param context The node context.
      */
-    public void remove( StatefulContext context)
+    public void remove( IContext context)
     {
-      expression.removeListener( context, listener);
+      expression.removeNotifyListener( context, listener);
     }
     
     public IExpression expression;

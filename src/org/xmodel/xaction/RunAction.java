@@ -26,12 +26,13 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.Client;
+import org.xmodel.net.ICallback;
 import org.xmodel.net.Session;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
@@ -71,6 +72,10 @@ public class RunAction extends GuardedAction
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
     timeoutExpr = document.getExpression( "timeout", true);
+    
+    onCompleteExpr = document.getExpression( "onComplete", true);
+    onSuccessExpr = document.getExpression( "onSuccess", true);
+    onErrorExpr = document.getExpression( "onError", true);
   }
 
   /* (non-Javadoc)
@@ -93,7 +98,7 @@ public class RunAction extends GuardedAction
   {
     Object[] results = null;
 
-    IXAction script = getScript( context);
+    IXAction script = getScript( context, scriptExpr);
     if ( script == null) return null;
     
     if ( contextExpr != null)
@@ -132,6 +137,10 @@ public class RunAction extends GuardedAction
     String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
     int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): -1;
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+
+    IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
+    IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
+    IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     String[] varArray = vars.split( "\\s*,\\s*");
@@ -147,9 +156,24 @@ public class RunAction extends GuardedAction
       client = new Client( host, port, timeout, false);
       Session session = client.connect( timeout);
       
-      // execute
-      Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
-      if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+      // execute synchronously unless on of the async callback scripts exists
+      if ( onComplete == null && onSuccess == null && onError == null)
+      {
+        try
+        {
+          Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
+          if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+        }
+        finally
+        {
+          if ( client != null) try { client.disconnect();} catch( Exception e) {}
+        }
+      }
+      else
+      {
+        Callback callback = new Callback( client, onComplete, onSuccess, onError);
+        session.execute( (StatefulContext)context, varArray, getScriptNode( context), callback, timeout);
+      }
       
       log.debug( "Finished remote.");
       return null;
@@ -157,10 +181,6 @@ public class RunAction extends GuardedAction
     catch( IOException e)
     {
       throw new XActionException( e);
-    }
-    finally
-    {
-      if ( client != null) try { client.disconnect();} catch( Exception e) {}
     }
   }
   
@@ -182,22 +202,30 @@ public class RunAction extends GuardedAction
   }
   
   /**
-   * Get the script to be executed.
+   * Get the script from the specified expression.
    * @param context The context.
+   * @param expression The script expression.
    * @return Returns null or the script.
    */
-  private IXAction getScript( IContext context)
+  private IXAction getScript( IContext context, IExpression expression)
   {
     IXAction script = null;
-    if ( scriptExpr != null)
+    if ( expression != null)
     {
-      IModelObject scriptNode = scriptExpr.queryFirst( context);
+      IModelObject scriptNode = expression.queryFirst( context);
       CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
       if ( attribute != null) script = attribute.script;
       if ( script == null)
       {
         script = document.createScript( scriptNode);
-        scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+        if ( script != null)
+        {
+          scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+        }
+        else
+        {
+          SLog.warnf( this, "Script not found: %s", expression);
+        }
       }
     }
     return script;
@@ -220,6 +248,50 @@ public class RunAction extends GuardedAction
     
     public IXAction script;
   }
+  
+  private final static class Callback implements ICallback
+  {
+    public Callback( Client client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    {
+      this.client = client;
+      this.onComplete = onComplete;
+      this.onSuccess = onSuccess;
+      this.onError = onError;
+    }
+    
+    /* (non-Javadoc)
+     * @see org.xmodel.net.ICallback#onComplete(org.xmodel.xpath.expression.IContext)
+     */
+    @Override
+    public void onComplete( IContext context)
+    {
+      if ( onComplete != null) onComplete.run( context);
+      if ( client != null) try { client.disconnect();} catch( Exception e) {}
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext)
+     */
+    @Override
+    public void onSuccess( IContext context)
+    {
+      if ( onSuccess != null) onSuccess.run( context);
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.net.ICallback#onError(org.xmodel.xpath.expression.IContext)
+     */
+    @Override
+    public void onError( IContext context)
+    {
+      if ( onError != null) onError.run( context);
+    }
+    
+    private Client client;
+    private IXAction onComplete;
+    private IXAction onSuccess;
+    private IXAction onError;
+  }
 
   private final static Log log = Log.getLog( RunAction.class);
   
@@ -231,4 +303,7 @@ public class RunAction extends GuardedAction
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
   private IModelObject inline;
+  private IExpression onCompleteExpr;
+  private IExpression onSuccessExpr;
+  private IExpression onErrorExpr;
 }

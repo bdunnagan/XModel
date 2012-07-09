@@ -42,6 +42,7 @@ public class Model implements IModel
     updateObjects = new ArrayList<Update>();
     locked = new ArrayList<IModelObject>();
     collections = new HashMultiMap<String, IModelObject>();
+    dispatcher = new BlockingDispatcher();
 
     // counter must start at one because 0 has meaning
     counter = 1;

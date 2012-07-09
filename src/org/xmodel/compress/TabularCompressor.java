@@ -54,11 +54,6 @@ import org.xmodel.log.SLog;
  */
 public class TabularCompressor extends AbstractCompressor
 {
-  /**
-   * Create a TabularCompressor and use ZIP post compression. This provides a good tradeoff
-   * between speed and size. For faster operation, turn post compression off. For somewhat
-   * better compression, use BZIP2.
-   */
   public TabularCompressor()
   {
     this.factory = new ModelObjectFactory();

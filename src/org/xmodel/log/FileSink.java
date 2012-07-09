@@ -8,6 +8,8 @@ import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -29,13 +31,11 @@ public final class FileSink implements ILogSink
   public FileSink( String path, String prefix, int maxCount, long maxSize) throws IOException
   {
     this.path = path;
-    this.prefix = prefix;
+    this.prefix = (prefix != null)? prefix: "";
     this.maxCount = maxCount;
     this.maxSize = maxSize;
     this.queue = new LinkedBlockingQueue<String>();
     this.files = new ArrayList<String>();
-    
-    time = System.currentTimeMillis();
     
     init();
     start();
@@ -134,6 +134,14 @@ public final class FileSink implements ILogSink
       stream = null;
     }
 
+    File folder = new File( path);
+    if ( !folder.exists()) folder.mkdirs();
+    
+    String name = String.format( "%s%s.log", prefix, dateFormat.format( new Date()));
+    stream = new FileOutputStream( new File( folder, name));
+
+    files.add( name);
+    
     while( files.size() > maxCount)
     {
       System.gc();
@@ -142,21 +150,17 @@ public final class FileSink implements ILogSink
       for( int i=0; i<extra; i++)
       {
         File file = new File( path, files.get( 0));
+        files.remove( 0);
         if ( file.delete())
         {
           file = null;
-          files.remove( 0);
+        }
+        else
+        {
+          files.add( 0, file.getAbsolutePath());
         }
       }
     }
-    
-    File folder = new File( path);
-    if ( !folder.exists()) folder.mkdirs();
-    
-    String name = String.format( "%s%s.log", prefix, dateFormat.format( new Date( time)));
-    stream = new FileOutputStream( new File( folder, name));
-
-    files.add( name);
   }
   
   /**
@@ -168,17 +172,16 @@ public final class FileSink implements ILogSink
     if ( folder.exists())
     {
       FilenameFilter filter = new FilenameFilter() {
-        @Override 
-        public boolean accept( File folder, String name)
+        @Override public boolean accept( File folder, String name)
         {
-          return name.startsWith( prefix) && fileRegex.matcher( name).matches();
+          return name.startsWith( prefix) && fileRegex.matcher( name.substring( prefix.length())).matches();
         }
       };
       
       for( String name: folder.list( filter))
-      {
         files.add( name);
-      }
+      
+      Collections.sort( files, lastModifiedComparator);
     }
   }
 
@@ -188,16 +191,24 @@ public final class FileSink implements ILogSink
       queueLoop();
     }
   };
+  
+  private final static Comparator<String> lastModifiedComparator = new Comparator<String>() {
+    public int compare( String path1, String path2)
+    {
+      File file1 = new File( path1);
+      File file2 = new File( path2);
+      return (int)(file1.lastModified() - file2.lastModified());
+    }
+  };
 
-  private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_hhmmss");
-  private final static Pattern fileRegex = Pattern.compile( "^.*\\d{8}_\\d{6}\\.log$");
+  private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_HHmmss");
+  private final static Pattern fileRegex = Pattern.compile( "^\\d{6}_\\d{6}\\.log$");
 
   private String path;
   private String prefix;
   private int maxCount;
   private long maxSize;
   private long size;
-  private long time;
   private List<String> files;
   private OutputStream stream;
   private BlockingQueue<String> queue;

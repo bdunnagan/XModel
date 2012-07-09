@@ -21,8 +21,6 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
-
-import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ThreadPoolDispatcher;
@@ -56,7 +54,6 @@ public class StartServerAction extends GuardedAction
     timeoutExpr = document.getExpression( "timeout", true);
     daemonExpr = document.getExpression( "daemon", true);
     threadsExpr = document.getExpression( "threads", true);
-    blockingExpr = document.getExpression( "blocking", true);
     contextExpr = document.getExpression( "context", true);
     if ( contextExpr == null) contextExpr = document.getExpression();
   }
@@ -75,7 +72,6 @@ public class StartServerAction extends GuardedAction
       int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
       boolean daemon = (daemonExpr != null)? daemonExpr.evaluateBoolean( context): true;
       int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
-      boolean blocking = (blockingExpr != null)? blockingExpr.evaluateBoolean( context): false;
       
       IModelObject serverContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
       IContext serverContext = (serverContextNode != null)? new StatefulContext( context.getScope(), serverContextNode): context;
@@ -88,35 +84,22 @@ public class StartServerAction extends GuardedAction
           return null;
       }
       
-      cached = new Cached();
-      
-      if ( threads > 0) 
-      {
-        IDispatcher dispatcher = new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads));
-        serverContext.getModel().setDispatcher( dispatcher);
-        cached.dispatcher = dispatcher;
-      }
-      else if ( serverContext.getModel().getDispatcher() == null || blocking)
-      {
-        IDispatcher dispatcher = new BlockingDispatcher();
-        serverContext.getModel().setDispatcher( dispatcher);
-        cached.dispatcher = dispatcher;
-      }
-      
       Server server = new Server( host, port, timeout);
       server.setServerContext( serverContext);
       server.start( daemon);
+      
+      cached = new Cached();
       cached.server = server;
       Conventions.putCache( context, var, cached);
       
-      if ( cached.dispatcher != null && cached.dispatcher instanceof BlockingDispatcher)
+      if ( threads > 0)
       {
-        BlockingDispatcher blockingDispatcher = (BlockingDispatcher)cached.dispatcher;
-        while( true)
-        {
-          if ( !blockingDispatcher.process())
-            break;
-        }
+        server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads)));
+        cached.dispatcher = server.getDispatcher();
+      }
+      else
+      {
+        server.setDispatcher( context.getModel().getDispatcher());
       }
     }
     catch( IOException e)
@@ -165,7 +148,6 @@ public class StartServerAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression contextExpr;
-  private IExpression blockingExpr;
   private IExpression daemonExpr;
   private IExpression threadsExpr;
 }

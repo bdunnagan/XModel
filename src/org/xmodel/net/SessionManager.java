@@ -5,14 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import org.xmodel.net.Protocol.SessionInfo;
 
 class SessionManager
 {
-  public SessionManager( Protocol protocol)
+  public SessionManager()
   {
-    this.protocol = protocol;
     this.random = new Random();
     this.sessions = new HashMap<ILink, Map<Integer, SessionInfo>>();
   }
@@ -48,7 +46,7 @@ class SessionManager
   public synchronized void register( ILink link, int session)
   {
     Map<Integer, SessionInfo> map = getSessionMap( link);
-    map.put( session, protocol.new SessionInfo());
+    map.put( session, new Protocol.SessionInfo( session));
   }
   
   /**
@@ -90,7 +88,6 @@ class SessionManager
     return map;
   }
 
-  private Protocol protocol;
   private Random random;
   private Map<ILink, Map<Integer, SessionInfo>> sessions; 
 }

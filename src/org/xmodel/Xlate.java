@@ -1249,5 +1249,371 @@ public class Xlate
   public static <T extends Object> T childSet( IModelObject parent, String childType, T value)
   {
     return set( parent.getCreateChild( childType), value);
+  }  
+  
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static boolean pathGet( IModelObject parent, String path, boolean defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static short pathGet( IModelObject parent, String path, short defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static int pathGet( IModelObject parent, String path, int defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static long pathGet( IModelObject parent, String path, long defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static float pathGet( IModelObject parent, String path, float defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static double pathGet( IModelObject parent, String path, double defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static byte pathGet( IModelObject parent, String path, byte defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static byte[] pathGet( IModelObject parent, String path, byte[] defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static char pathGet( IModelObject parent, String path, char defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static char[] pathGet( IModelObject parent, String path, char[] defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static String pathGet( IModelObject parent, String path, String defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static IExpression pathGet( IModelObject parent, String path, IExpression defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Convert the value of the element on the specified path relative to the specified parent to the specified return value.
+   * The default value is returned if the parent is null or if the element does not exist.
+   * @param object The parent object.
+   * @param path The relative path of the element.
+   * @param defaultValue The default value if the value does not exist.
+   * @return Returns the value.
+   */
+  public static <T extends Object> T pathGet( IModelObject parent, String path, T defaultValue)
+  {
+    if ( parent == null) return defaultValue;
+    return get( evaluate( parent, path), defaultValue);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static boolean pathSet( IModelObject parent, String path, boolean value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static short pathSet( IModelObject parent, String path, short value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static int pathSet( IModelObject parent, String path, int value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static long pathSet( IModelObject parent, String path, long value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static float pathSet( IModelObject parent, String path, float value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static double pathSet( IModelObject parent, String path, double value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static byte pathSet( IModelObject parent, String path, byte value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static byte[] pathSet( IModelObject parent, String path, byte[] value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static char pathSet( IModelObject parent, String path, char value)
+  {
+    IPath xpath = XPath.createPath( path);
+    xpath.createSubtree( parent);
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static char[] pathSet( IModelObject parent, String path, char[] value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static String pathSet( IModelObject parent, String path, String value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static IExpression pathSet( IModelObject parent, String path, IExpression value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent.
+   * @param path The type of the child.
+   * @param value The value.
+   * @return Returns the previous value.
+   */
+  public static <T extends Object> T pathSet( IModelObject parent, String path, T value)
+  {
+    return set( evaluate( parent, path), value);
+  }
+  
+  /**
+   * Evaluate the specified simple, relative xpath, creating elements as necessary to complete it.
+   * @param parent The parent element.
+   * @param path A simple, relative path (only child axes, no predicates).
+   * @return Returns the first node on the path.
+   */
+  private static IModelObject evaluate( IModelObject parent, String path)
+  {
+    IPath xpath = XPath.createPath( path);
+    xpath.createSubtree( parent);
+    return xpath.queryFirst( parent);
   }
 }

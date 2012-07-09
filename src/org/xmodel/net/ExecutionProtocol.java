@@ -66,7 +66,7 @@ public class ExecutionProtocol
     ModelObject response = new ModelObject( "response");
 
     // store variable assignments
-    buildScope( context, null, response);
+    //buildScope( context, null, response);
 
     // store results
     if ( objects != null)
@@ -82,6 +82,8 @@ public class ExecutionProtocol
         List<IModelObject> nodes = tryCastToList( object);
         if ( nodes != null)
         {
+          result.setAttribute( "type", "nodes");
+          
           for( IModelObject node: nodes)
           {
             ModelObject item = new ModelObject( "item");
@@ -149,7 +151,7 @@ public class ExecutionProtocol
       for( IModelObject result: results.getChildren( "result"))
       {
         List<IModelObject> items = result.getChildren();
-        if ( items.size() > 0)
+        if ( Xlate.get( result, "type", "").equals( "nodes"))
         {
           List<IModelObject> nodes = new ArrayList<IModelObject>( items.size());
           

@@ -29,6 +29,8 @@ import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
+import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
@@ -364,6 +366,26 @@ public class XActionDocument
     return expression;
   }
    
+  /**
+   * Parse a script from the specified xml.
+   * @param xml The script xml.
+   * @return Returns the script.
+   */
+  public static ScriptAction parseScript( String xml)
+  {
+    try
+    {
+      IModelObject element = new XmlIO().read( xml);
+      XActionDocument doc = new XActionDocument( element);
+      return doc.createScript();
+    }
+    catch( XmlException e)
+    {
+      SLog.exception( XActionDocument.class, e);
+      return null;
+    }
+  }
+  
   /**
    * Create a script from the children of the root of this document ignoring the specified element names.
    * @param ignore The names of children to be ignored.

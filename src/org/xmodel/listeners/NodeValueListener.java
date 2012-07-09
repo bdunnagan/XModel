@@ -56,9 +56,11 @@ public abstract class NodeValueListener extends ExpressionListener
     
     if ( node != null && nodes.contains( node))
     {
-      nodes = expression.query( context, null);
+      List<IModelObject> remaining = expression.query( context, null);
+      remaining.removeAll( nodes);
+      
       Object oldValue = (node != null)? node.getValue(): null;
-      node = (nodes.size() > 0)? nodes.get( 0): null;
+      node = (remaining.size() > 0)? remaining.get( 0): null;
       Object newValue = (node != null)? node.getValue(): null;
       notifyValue( context, newValue, oldValue);
     }

@@ -1,8 +1,5 @@
 package org.xmodel.log;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Yet another logging facility.
@@ -74,16 +71,13 @@ public final class Log
   }
     
   /**
-   * Returns the log with the specified name.
+   * Returns the log with the specified class name.
    * @param name The name of the log.
    * @return Returns the log with the specified name.
    */
   public synchronized static Log getLog( String name)
   {
-    Log log = logs.get( name);
-    if ( log == null) log = new Log();
-    logs.put( name, log);
-    return log;
+    return map.getCreateOne( name);
   }
   
   /**
@@ -113,7 +107,31 @@ public final class Log
     return getLog( object.getClass().getName());
   }
   
-  private Log()
+  /**
+   * Set the logging level for all logs whose names begin with the specified prefix. Calling
+   * this operation may globally impact performance of users of this logging framework.
+   * @param prefix The prefix.
+   * @param level The new logging level.
+   */
+  public synchronized static void setLevel( String prefix, int level)
+  {
+    for( Log log: map.getAll( prefix))
+      log.setLevel( level);
+  }
+  
+  /**
+   * Set the sink to be used by all logs whose names begin with the specified prefix. Calling
+   * this operation may globally impact performance of users of this logging framework.
+   * @param prefix The prefix.
+   * @param sink The sink.
+   */
+  public synchronized static void setSink( String prefix, ILogSink sink)
+  {
+    for( Log log: map.getAll( prefix))
+      log.setSink( sink);
+  }
+  
+  protected Log()
   {
     this.mask = problems | info;
     this.sink = null;
@@ -127,6 +145,12 @@ public final class Log
     
     //sink = new FormatSink( new MultiSink( fileSink, consoleSink, syslogSink));
     sink = new FormatSink( new MultiSink( fileSink, consoleSink));
+  }
+  
+  protected Log( Log log)
+  {
+    this.mask = log.mask;
+    this.sink = log.sink;
   }
   
   /**
@@ -445,11 +469,8 @@ public final class Log
       log( error, String.format( "Caught exception in log event for message with format, '%s'", format), e);
     }
   }
-
-  /**
-   * Map of logs by name.
-   */
-  private static Map<String, Log> logs = Collections.synchronizedMap( new HashMap<String, Log>());
+  
+  protected static PackageMap map = new PackageMap();
   
   private static FileSink fileSink;
   private static ConsoleSink consoleSink;

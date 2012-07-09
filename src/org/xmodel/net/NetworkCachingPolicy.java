@@ -34,6 +34,21 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Object#finalize()
+   */
+  @Override
+  protected void finalize() throws Throwable
+  {
+    if ( client != null) 
+    {
+      try { client.disconnect();} catch( Exception e) {}
+      client = null;
+    }
+    
+    super.finalize();
+  }
+
   /**
    * @return Returns the client used to communicate with the remote host.
    */
@@ -134,7 +149,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       throw new CachingException( message, e);
     }
   }
-
+  
   private final static int reconnectDelay = 1000;
   
   private Client client;

@@ -129,7 +129,8 @@ public final class Connection implements ILink
   }
   
   /**
-   * Write the content of the specified buffer to the connection.
+   * Write the content of the specified buffer to the connection. The content of the buffer is processed
+   * by another thread, so the client must discard their reference to the buffer after calling this method.
    * @param buffer The buffer.
    */
   public void send( ByteBuffer buffer) throws IOException
