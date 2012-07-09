@@ -473,7 +473,8 @@ public class Protocol implements ILink.IListener
     IExternalReference reference = null;
     
     SessionInfo info = sessionManager.getSessionInfo( link, session);
-    if ( info != null && info.isAttachClient) reference = (IExternalReference)info.element;
+    if ( info != null && info.isAttachClient && info.element instanceof IExternalReference) 
+      reference = (IExternalReference)info.element;
     
     doDetach( link, session);
     sessionManager.deallocate( link, session);
