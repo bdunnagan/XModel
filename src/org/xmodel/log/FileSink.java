@@ -142,24 +142,13 @@ public final class FileSink implements ILogSink
 
     files.add( name);
     
-    while( files.size() > maxCount)
+    int extra = files.size() - maxCount;
+    for( int i=0; i<extra; i++)
     {
-      System.gc();
-      
-      int extra = files.size() - maxCount;
-      for( int i=0; i<extra; i++)
-      {
-        File file = new File( path, files.get( 0));
-        files.remove( 0);
-        if ( file.delete())
-        {
-          file = null;
-        }
-        else
-        {
-          files.add( 0, file.getAbsolutePath());
-        }
-      }
+      File file = new File( path, files.get( 0));
+      files.remove( 0);
+      file.delete();
+      file = null;
     }
   }
   

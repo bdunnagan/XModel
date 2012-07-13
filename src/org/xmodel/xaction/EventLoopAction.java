@@ -19,6 +19,7 @@ public class EventLoopAction extends GuardedAction
     IDispatcher dispatcher = context.getModel().getDispatcher();
     if ( !(dispatcher instanceof BlockingDispatcher))
     {
+      System.err.println( (dispatcher != null)? dispatcher.getClass().getName(): "Dispatcher is null!"); 
       throw new IllegalStateException( 
           "EventLoopAction requires a BlockingDispatcher on the context model.");
     }
