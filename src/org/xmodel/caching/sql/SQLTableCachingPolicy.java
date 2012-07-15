@@ -98,6 +98,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     
+    IExpression whereExpr = Xlate.childGet( annotation, "where", (IExpression)null);
+    if ( whereExpr != null) where = whereExpr.evaluateString( context);
+    
     xmlColumns = new HashSet<String>( 1);
     for( IModelObject column: annotation.getChildren( "xml"))
       xmlColumns.add( Xlate.get( column, (String)null));
@@ -424,7 +427,15 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( "*");
     }
     
-    sb.append( " FROM "); sb.append( tableName);
+    sb.append( " FROM "); 
+    sb.append( tableName);
+    
+    // optional configured predicate
+    if ( where != null)
+    {
+      sb.append( " WHERE ");
+      sb.append( where);
+    }
     
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
@@ -789,6 +800,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private ISQLProvider provider;
   private IModelObjectFactory factory;
   private boolean stub;
+  private String where;
   private SQLRowCachingPolicy rowCachingPolicy;
   private String catalog;
   private String tableName;
