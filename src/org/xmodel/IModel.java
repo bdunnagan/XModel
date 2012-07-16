@@ -87,13 +87,13 @@ public interface IModel
    * around IModelListener notifications.  For convenience, this method does nothing with a null argument.
    * @param object The object whose state will be locked or null.
    */
-  public void lock( IModelObject object);
+  public void freeze( IModelObject object);
   
   /**
    * Unlock the specified object. Updates will be processed when the <code>endUpdate</code> method is called.
    * @param object The object whose state will be unlocked.
    */
-  public void unlock( IModelObject object);
+  public void unfreeze( IModelObject object);
   
   /**
    * Returns the IChangeSet which should be used to defer updates for the specified object
@@ -102,7 +102,7 @@ public interface IModel
    * @param object The object being updated.
    * @return Returns null or the deferral change set.
    */
-  public IChangeSet isLocked( IModelObject object);
+  public IChangeSet isFrozen( IModelObject object);
   
   /**
    * Start a new update. When changes are being made to the model from listeners, it is 
@@ -172,20 +172,4 @@ public interface IModel
    * @param e The exception.
    */
   public void handleException( Exception e);
-
-  /**
-   * Set the implementation of the specified feature for this model.  The feature class should be an interface
-   * implemented by the implementation.  The argument is provided so that the caller can decide how to register
-   * the implementation.
-   * @param feature The feature class.
-   * @param implementation The implementation.
-   */
-  public <T> void setFeature( Class<?> feature, T implementation);
-  
-  /**
-   * Returns null or an instance of the specified feature.
-   * @param clss The interface class.
-   * @return Returns null or an instance of the specified feature.
-   */
-  public <T> T getFeature( Class<T> clss);  
 }

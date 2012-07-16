@@ -165,7 +165,7 @@ public class ModelObject implements IModelObject
     }
     
     IModel model = getModel();
-    IChangeSet transaction = model.isLocked( this);
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.setAttribute( this, attrName, attrValue);
@@ -178,11 +178,11 @@ public class ModelObject implements IModelObject
       setAttributeImpl( attrName, attrValue);
       
       // lock state and notify
-      model.lock( this);
+      model.freeze( this);
       notifyChange( attrName, attrValue, oldValue);
       
       // unlock state and end update
-      model.unlock( this);
+      model.unfreeze( this);
       model.endUpdate();
       return oldValue;
     }
@@ -230,7 +230,7 @@ public class ModelObject implements IModelObject
     if ( oldValue == null) return null;
     
     IModel model = getModel();
-    IChangeSet transaction = model.isLocked( this);
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.removeAttribute( this, attrName);
@@ -243,11 +243,11 @@ public class ModelObject implements IModelObject
       removeAttributeImpl( attrName);
       
       // lock state and notify
-      model.lock( this);
+      model.freeze( this);
       notifyClear( attrName, oldValue);
       
       // unlock state and end update
-      model.unlock( this);
+      model.unfreeze( this);
       model.endUpdate();
       return oldValue;
     }
@@ -319,7 +319,7 @@ public class ModelObject implements IModelObject
     if ( child == this) throw new IllegalArgumentException();
     
     IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
+    IChangeSet transaction = getModel().isFrozen( this);
     if ( transaction != null)
     {
       transaction.addChild( this, child, index);
@@ -343,14 +343,14 @@ public class ModelObject implements IModelObject
         addChildImpl( child, index);
         
         // lock state and notify
-        model.lock( this); 
-        model.lock( child);
+        model.freeze( this); 
+        model.freeze( child);
         notifyRemoveChild( child, oldIndex);
         notifyAddChild( child, index);
         
         // unlock state and end update
-        model.unlock( this); 
-        model.unlock( child);
+        model.unfreeze( this); 
+        model.unfreeze( child);
         model.endUpdate();
       }
       else
@@ -374,18 +374,18 @@ public class ModelObject implements IModelObject
         addChildImpl( child, index);
         
         // lock state and notify
-        model.lock( this); 
-        model.lock( oldParent); 
-        model.lock( child);
+        model.freeze( this); 
+        model.freeze( oldParent); 
+        model.freeze( child);
         
         child.internal_notifyParent( this, oldParent);
         if ( oldParent != null) oldParent.internal_notifyRemoveChild( child, oldIndex);
         notifyAddChild( child, index);
         
         // unlock state and end update
-        model.unlock( this); 
-        model.unlock( oldParent); 
-        model.unlock( child);
+        model.unfreeze( this); 
+        model.unfreeze( oldParent); 
+        model.unfreeze( child);
         model.endUpdate();
       }
     }
@@ -408,7 +408,7 @@ public class ModelObject implements IModelObject
   public IModelObject removeChild( int index)
   {
     IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
+    IChangeSet transaction = getModel().isFrozen( this);
     if ( transaction != null)
     {
       // bail if no children
@@ -436,13 +436,13 @@ public class ModelObject implements IModelObject
         child.internal_setParent( null);
         
         // lock state and notify
-        model.lock( this);
-        model.lock( child);
+        model.freeze( this);
+        model.freeze( child);
         notifyRemoveChild( child, index);
         
         // unlock state and end update
-        model.unlock( this);
-        model.unlock( child);
+        model.unfreeze( this);
+        model.unfreeze( child);
         model.endUpdate();
       }
       return child;
@@ -455,7 +455,7 @@ public class ModelObject implements IModelObject
   public void removeChild( IModelObject child)
   {
     IModel model = getModel();
-    IChangeSet transaction = getModel().isLocked( this);
+    IChangeSet transaction = getModel().isFrozen( this);
     if ( transaction != null)
     {
       transaction.removeChild( this, child);
@@ -477,13 +477,13 @@ public class ModelObject implements IModelObject
         child.internal_setParent( null);
 
         // lock state and notify
-        model.lock( this);
-        model.lock( child);
+        model.freeze( this);
+        model.freeze( child);
         notifyRemoveChild( child, index);
         
         // unlock state and end update
-        model.unlock( this);
-        model.unlock( child);
+        model.unfreeze( this);
+        model.unfreeze( child);
         model.endUpdate();
       }
     }

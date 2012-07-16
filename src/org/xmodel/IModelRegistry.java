@@ -31,11 +31,4 @@ public interface IModelRegistry
    * @return Returns the IModel associated with the current thread.
    */
   public IModel getModel();
-  
-  /**
-   * Create a collection with the specified name and root element.
-   * @param name The name of the collection and the root element.
-   * @return Returns the root of the collection.
-   */
-  public IModelObject createCollection( String name);
 }

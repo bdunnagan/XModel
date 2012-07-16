@@ -101,6 +101,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     IExpression whereExpr = Xlate.childGet( annotation, "where", (IExpression)null);
     if ( whereExpr != null) where = whereExpr.evaluateString( context);
     
+    IExpression orderbyExpr = Xlate.childGet( annotation, "orderby", (IExpression)null);
+    if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
+    
+    IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
+    if ( limitExpr != null) limit = (int)limitExpr.evaluateNumber( context);
+    
     xmlColumns = new HashSet<String>( 1);
     for( IModelObject column: annotation.getChildren( "xml"))
       xmlColumns.add( Xlate.get( column, (String)null));
@@ -437,10 +443,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( where);
     }
     
+    // optional ordering
+    if ( orderby != null)
+    {
+      sb.append( " ORDER BY ");
+      sb.append( orderby);
+    }
+    
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
     
-    return connection.prepareStatement( sb.toString());
+    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    if ( limit > 0) statement.setMaxRows( limit);
+    return statement;
   }
   
   /**
@@ -801,6 +816,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private IModelObjectFactory factory;
   private boolean stub;
   private String where;
+  private String orderby;
+  private int limit;
   private SQLRowCachingPolicy rowCachingPolicy;
   private String catalog;
   private String tableName;

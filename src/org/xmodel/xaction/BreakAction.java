@@ -83,7 +83,6 @@ public class BreakAction extends GuardedAction
   {
     super.configure( document);
     
-    // configure
     history = new ArrayList<String>( 1);
     reader = new BufferedReader( new InputStreamReader( System.in));
     
@@ -92,8 +91,6 @@ public class BreakAction extends GuardedAction
     watches = new ArrayList<IExpression>();
     for( IModelObject watchSpec: document.getRoot().getChildren( "watch")) 
       watches.add( document.getExpression( watchSpec));
-    
-    
   }
   
   /* (non-Javadoc)
@@ -335,7 +332,8 @@ public class BreakAction extends GuardedAction
     // parse @ by itself
     if ( input.equals( "@"))
     {
-      showElement( prefix, location, maxLines);
+      IModelObject clone = clonePartialBranch( location);
+      showElement( prefix, clone.getRoot(), maxLines);
       return false;
     }
     
@@ -513,7 +511,8 @@ public class BreakAction extends GuardedAction
   {
     try
     {
-      String xml = xmlIO.write( clonePartialBranch( element));
+      IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
+      String xml = xmlIO.write( clone);
       showText( prefix, xml, maxLines);
     }
     catch( Exception e)
@@ -528,19 +527,15 @@ public class BreakAction extends GuardedAction
    */
   private IModelObject clonePartialBranch( IModelObject element)
   {
-    IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
+    IModelObject clone = ModelAlgorithms.cloneBranch( element, factory);
+    IModelObject parent = clone.getParent();
+    if ( parent != null)
+    {
+      int index = parent.getChildren().indexOf( clone) + 1;
+      for( int i=index; i<parent.getNumberOfChildren(); i++)
+        parent.removeChild( index);
+    }
     return clone;
-//    IModelObject parent = element.getParent();
-//    IModelObject child = clone;
-//    IModelObject parentClone = parent.cloneObject();
-//    while( parent != null)
-//    {
-//      parentClone.addChild( child);
-//      child = parentClone;
-//      parent = parent.getParent();
-//      if ( parent != null) parentClone = parent.cloneObject();
-//    }
-//    return parentClone;
   }
 
   /**

@@ -44,17 +44,6 @@ public class ModelRegistry implements IModelRegistry
     }
     return model;
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelRegistry#createCollection(java.lang.String)
-   */
-  public IModelObject createCollection( String name)
-  {
-    ModelObject root = new ModelObject( name);
-    getModel().addRoot( name, root);
-    return root;
-  }
-  
   /**
    * Returns the singleton.
    * @return Returns the singleton.

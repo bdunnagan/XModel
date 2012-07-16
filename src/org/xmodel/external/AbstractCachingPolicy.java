@@ -506,8 +506,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     
     // unlock reference so that the reference can be updated in the stack frame of the
     // notification for its being inserted into the model dirty
-    boolean wasLocked = (model.isLocked( reference) != null);
-    model.unlock( reference);
+    boolean wasLocked = (model.isFrozen( reference) != null);
+    model.unfreeze( reference);
     
     try
     {
@@ -531,7 +531,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     finally
     {
       // relock reference if it was previously locked
-      if ( wasLocked) model.lock( reference);
+      if ( wasLocked) model.freeze( reference);
     }
   }
   

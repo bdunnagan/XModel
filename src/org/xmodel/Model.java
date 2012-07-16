@@ -40,7 +40,7 @@ public class Model implements IModel
   {
     updateStack = new ArrayList<Update>();
     updateObjects = new ArrayList<Update>();
-    locked = new ArrayList<IModelObject>();
+    frozen = new ArrayList<IModelObject>();
     collections = new HashMultiMap<String, IModelObject>();
     dispatcher = new BlockingDispatcher();
 
@@ -149,17 +149,17 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModel#lock(org.xmodel.IModelObject)
    */
-  public void lock( IModelObject object)
+  public void freeze( IModelObject object)
   {
-    if ( object != null) locked.add( object);
+    if ( object != null) frozen.add( object);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModel#unlock(org.xmodel.IModelObject)
    */
-  public void unlock( IModelObject object)
+  public void unfreeze( IModelObject object)
   {
-    if ( object != null) locked.remove( object);
+    if ( object != null) frozen.remove( object);
   }
 
   /* (non-Javadoc)
@@ -167,15 +167,15 @@ public class Model implements IModel
    */
   public void unlock()
   {
-    locked.clear();
+    frozen.clear();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModel#isLocked(org.xmodel.IModelObject)
    */
-  public IChangeSet isLocked( IModelObject object)
+  public IChangeSet isFrozen( IModelObject object)
   {
-    if ( !locked.contains( object)) return null;
+    if ( !frozen.contains( object)) return null;
     return getCurrentUpdate().getDeferredChangeSet();
   }
 
@@ -312,27 +312,6 @@ public class Model implements IModel
     log.exception( e);
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#setFeature(java.lang.Class, java.lang.Object)
-   */
-  @Override
-  public <T> void setFeature( Class<?> feature, T implementation)
-  {
-    if ( features == null) features = new HashMap<Class<?>, Object>();
-    features.put( feature, implementation);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#getFeature(java.lang.Class)
-   */
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T> T getFeature( Class<T> clss)
-  {
-    if ( features != null) return (T)features.get( clss);
-    return null;
-  }
-
   private static Log log = Log.getLog( "org.xmodel");
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
@@ -341,10 +320,9 @@ public class Model implements IModel
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;
   private List<Update> updateObjects;
-  private List<IModelObject> locked;
+  private List<IModelObject> frozen;
   private int counter;
   private IDispatcher dispatcher;
   private boolean syncLock;
-  private Map<Class<?>, Object> features;
   private boolean isReverted;
 }
