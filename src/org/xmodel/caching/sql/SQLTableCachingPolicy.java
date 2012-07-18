@@ -260,7 +260,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       row.setAttribute( column, value);
     }
-    else if ( xmlColumns.contains( column))
+    else if ( xmlColumns.contains( column) && value != null)
     {
       try
       {
