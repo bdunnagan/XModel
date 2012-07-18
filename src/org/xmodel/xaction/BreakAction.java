@@ -20,27 +20,25 @@
 package org.xmodel.xaction;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Stack;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.log.Log;
-import org.xmodel.xml.XmlException;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
+import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 
@@ -56,23 +54,9 @@ public class BreakAction extends GuardedAction
 {
   public BreakAction()
   {
-    state = State.stepOver;
-    
     xmlIO = new XmlIO();
     xmlIO.skipOutputPrefix( "break");
     xmlIO.setOutputStyle( Style.printable);
-  }
-  
-  /**
-   * Returns the BreakAction currently registered for the calling thread or null.
-   * @return Returns the BreakAction currently registered for the calling thread or null.
-   */
-  public static BreakAction getThreadBreakAction()
-  {
-    if ( threadBreakStacks == null) threadBreakStacks = new ThreadLocal<Stack<BreakAction>>();
-    Stack<BreakAction> stack = threadBreakStacks.get();
-    if ( stack != null && !stack.empty()) return stack.peek();
-    return null;
   }
   
   /* (non-Javadoc)
@@ -85,12 +69,6 @@ public class BreakAction extends GuardedAction
     
     history = new ArrayList<String>( 1);
     reader = new BufferedReader( new InputStreamReader( System.in));
-    
-    script = document.createScript( "skip", "lines", "watch");
-    
-    watches = new ArrayList<IExpression>();
-    for( IModelObject watchSpec: document.getRoot().getChildren( "watch")) 
-      watches.add( document.getExpression( watchSpec));
   }
   
   /* (non-Javadoc)
@@ -99,101 +77,15 @@ public class BreakAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    try
-    {
-      // push this breakpoint on the stack
-      pushThreadBreak();
-      
-      // read past input
-      try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
-      
-      // execute script if any
-      if ( script.getActions().size() > 0)
-      {
-        showElement( prefix, getDocument().getRoot(), maxLines);
-        Object[] result = script.run( context);
-        if ( result != null) return result;
-        prompt( context, null);
-      }
-      else
-      {
-        // prompt
-        prompt( context, document.getRoot());
-      }
-    }
-    finally
-    {
-      // pop this breakpoint off the stack
-      popThreadBreak();
-    }
+    // read past input
+    try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
+    
+    // prompt
+    StatefulContext breakContext = new StatefulContext( context);
+    breakContext.set( "_", document.getRoot());
+    prompt( breakContext, document.getRoot());
     
     return null;
-  }
-  
-  /**
-   * Called by XAction when the specified action is started and before <code>prompt</code> is called.
-   * @param action The action to be executed.
-   * @return Returns true if action should prompt before executing.
-   */
-  protected boolean startAction( IXAction action)
-  {
-    // hacked and tested to stability
-    switch( state)
-    {
-      case stepIn:
-      {
-        current = action;
-        return true;
-      }
-      
-      case stepOver:
-      {
-        if ( current == null)
-        {
-          current = action;
-          return true;
-        }
-        return false;
-      }
-      
-      case stepOut:
-      {
-        stepOutDepth++;
-        return false;
-      }
-    }
-    
-    return true;
-  }
-  
-  /**
-   * Called by XAction when the specified action has completed.
-   * @param action
-   */
-  protected void endAction( IXAction action)
-  {
-    // hacked and tested to stability
-    switch( state)
-    {
-      case stepIn:
-      {
-        current = null;
-      }
-      break;
-      
-      case stepOver:
-      {
-        if ( action == current) current = null;
-      }
-      break;
-      
-      case stepOut:
-      {
-        if ( stepOutDepth-- < 0) state = State.stepOver;
-        if ( action == current) current = null;
-      }
-      break;
-    }
   }
   
   /**
@@ -203,57 +95,43 @@ public class BreakAction extends GuardedAction
    */
   protected void prompt( IContext context, IModelObject location)
   {
-    if ( condition == null || condition.evaluateBoolean( context))
+    // loop until recognized input
+    while( true)
     {
-      // show/set location
-      this.location = location;
-      if ( location != null) showElement( prefix, location, maxLines);
-      
-      // show watch list
-      if ( watches.size() > 0)
+      try
       {
-        for( IExpression watch: watches)
-          showText( prefix+watch.toString()+"=", watch.evaluateString( context), 1);
-      }
-      
-      // loop until recognized input
-      while( true)
-      {
-        try
+        // flush stderr
+        System.err.flush();
+        
+        // prompt
+        System.out.printf( "-> ");
+        
+        // get input
+        StringBuilder builder = new StringBuilder();
+        while( true)
         {
-          // flush stderr
-          System.err.flush();
-          
-          // prompt
-          System.out.printf( "-> ");
-          
-          // get input
-          StringBuilder builder = new StringBuilder();
-          while( true)
+          String line = readLine();
+          line = line.trim();
+          if ( line.length() > 1 && line.charAt( line.length() - 1) == '+')
           {
-            String line = readLine();
-            line = line.trim();
-            if ( line.length() > 1 && line.charAt( line.length() - 1) == '+')
-            {
-              builder.append( line);
-              builder.deleteCharAt( builder.length() - 1);
-              System.out.print( prefix+"+> ");
-            }
-            else
-            {
-              builder.append( line);
-              break;
-            }
+            builder.append( line);
+            builder.deleteCharAt( builder.length() - 1);
+            System.out.print( prefix+"+> ");
           }
-          
-          String input = builder.toString();
-          if ( input.length() > 0) history.add( input);
-          if ( process( context, input)) break;
+          else
+          {
+            builder.append( line);
+            break;
+          }
         }
-        catch( IOException e)
-        {
-          log.exception( e);
-        }
+        
+        String input = builder.toString();
+        if ( input.length() > 0) history.add( input);
+        if ( process( context, input)) break;
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
       }
     }
   }
@@ -289,23 +167,19 @@ public class BreakAction extends GuardedAction
     // parse empty
     if ( input.length() == 0)
     {
-      state = State.stepOver;
       return true;
     }
     
     // parse >
     if ( input.equals( ">"))
     {
-      state = State.stepIn;
-      return true;
+      throw new UnsupportedOperationException();
     }
     
     // parse <
     if ( input.equals( "<"))
     {
-      state = State.stepOut;
-      stepOutDepth = 0;
-      return true;
+      throw new UnsupportedOperationException();
     }
     
     // parse $
@@ -315,25 +189,10 @@ public class BreakAction extends GuardedAction
       return false;
     }
     
-    // parse |
-    if ( input.charAt( 0) == '|')
-    {
-      runAction( context, input.substring( 1).trim());
-      return false;
-    }
-    
     // parse ~
     if ( input.charAt( 0) == '~')
     {
       showStack( prefix);
-      return false;
-    }
-    
-    // parse @ by itself
-    if ( input.equals( "@"))
-    {
-      IModelObject clone = clonePartialBranch( location);
-      showElement( prefix, clone.getRoot(), maxLines);
       return false;
     }
     
@@ -385,20 +244,7 @@ public class BreakAction extends GuardedAction
     try
     {
       IExpression expression = XPath.compileExpression( input);
-      ResultType type = expression.getType( context);
-      if ( expression != null) 
-      {
-        if ( type != ResultType.BOOLEAN)
-        {
-          showResult( expression, context);
-        }
-        else
-        {
-          condition = expression;
-          showText( prefix, "Breakpoint condition: "+condition, maxLines);
-          return true;
-        }
-      }
+      if ( expression != null) showResult( expression, context);
       return false;
     }
     catch( Exception e)
@@ -443,10 +289,8 @@ public class BreakAction extends GuardedAction
     System.out.printf( "%s  > to step into the next action.\n", prefix);
     System.out.printf( "%s  An expression to be evaluated in the current context.\n", prefix);
     System.out.printf( "%s  $ to print a summary of all context defined variables.\n", prefix);
-    System.out.printf( "%s  @ to reprint the current breakpoint location.\n", prefix);
     System.out.printf( "%s  # to dump the context stack.\n", prefix);
     System.out.printf( "%s  ~ will dump a stack trace to the console.\n", prefix);
-    System.out.printf( "%s  | followed by a file path to execute an XAction from a file.\n", prefix);
     System.out.printf( "%s  !, by itself, to show history.\n", prefix);
     System.out.printf( "%s  ! followed by the index of the command to execute.\n", prefix);
     System.out.printf( "%s  ! followed by the first few letters of the command to execute.\n", prefix);
@@ -520,24 +364,6 @@ public class BreakAction extends GuardedAction
     }
   }
   
-  /**
-   * Clone the specified element and all ancestors and preceding siblings.
-   * @param element The element.
-   * @return Returns the partial clone.
-   */
-  private IModelObject clonePartialBranch( IModelObject element)
-  {
-    IModelObject clone = ModelAlgorithms.cloneBranch( element, factory);
-    IModelObject parent = clone.getParent();
-    if ( parent != null)
-    {
-      int index = parent.getChildren().indexOf( clone) + 1;
-      for( int i=index; i<parent.getNumberOfChildren(); i++)
-        parent.removeChild( index);
-    }
-    return clone;
-  }
-
   /**
    * Count the lines in the specified text.
    * @param text The text.
@@ -637,66 +463,6 @@ public class BreakAction extends GuardedAction
   }
   
   /**
-   * Run the XAction defined in the specified file.
-   * @parma context The execution context.
-   * @param file The file.
-   */
-  private void runAction( IContext context, String file)
-  {
-    try
-    {
-      IModelObject element = xmlIO.read( new FileInputStream( file));
-      if ( element != null) runAction( context, element);
-    }
-    catch( IOException e)
-    {
-      System.out.printf( "%sFile not found.", prefix);
-    }
-    catch( XmlException e)
-    {
-      System.out.printf( "%sInvalid xml document.", prefix);
-    }
-  }
-  
-  /**
-   * Run the XAction defined in the specified element.
-   * @parma context The execution context.
-   * @param element The element.
-   */
-  private void runAction( IContext context, IModelObject element)
-  {
-    // create new root document
-    XActionDocument document = getDocument().getDocument( element);
-    
-    // get action
-    IXAction action = document.getAction( element);
-    if ( action != null) action.run( context);
-  }
-  
-  /**
-   * Push this BreakAction onto the thread-local break stack.
-   */
-  private void pushThreadBreak()
-  {
-    Stack<BreakAction> stack = threadBreakStacks.get();
-    if ( stack == null)
-    {
-      stack = new Stack<BreakAction>();
-      threadBreakStacks.set( stack);
-    }
-    stack.push( this);
-  }
-  
-  /**
-   * Pop this BreakAction off of the thread-local break stack.
-   */
-  private void popThreadBreak()
-  {
-    Stack<BreakAction> stack = threadBreakStacks.get();
-    stack.pop();
-  }
-  
-  /**
    * Factory which removes certain XActionDocument attributes.
    */
   private IModelObjectFactory factory = new ModelObjectFactory() {
@@ -713,17 +479,7 @@ public class BreakAction extends GuardedAction
   
   private XmlIO xmlIO;
   private BufferedReader reader;
-  private IExpression condition;
-  private ScriptAction script;
-  private List<IExpression> watches;
   private List<String> history;
-  private IModelObject location;
   
-  private enum State { stepIn, stepOver, stepOut};
-  private State state;
-  private IXAction current;
-  private int stepOutDepth;
-  
-  private static ThreadLocal<Stack<BreakAction>> threadBreakStacks = new ThreadLocal<Stack<BreakAction>>();
   private static Log log = Log.getLog( "org.xmodel.xaction");
 }

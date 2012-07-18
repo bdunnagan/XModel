@@ -325,6 +325,7 @@ public class Protocol implements ILink.IListener
         info.listener = new Listener( sender, session, xpath, target, null);
         info.listener.install( target);
       }
+      
       sendAttachResponse( sender, session, correlation, copy);
     }
     catch( Exception e)
@@ -687,6 +688,8 @@ public class Protocol implements ILink.IListener
    */
   public final void sendError( ILink link, int session, int correlation, String message) throws IOException
   {
+    if ( message == null) message = "";
+    
     byte[] bytes = message.getBytes();
     ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes, 0, bytes.length);
@@ -759,8 +762,11 @@ public class Protocol implements ILink.IListener
     byte[] response = send( link, session, correlation, buffer, timeout);
     if ( response != null)
     {
-      IModelObject element = info.compressor.decompress( new ByteArrayInputStream( response));
-      handleAttachResponse( link, session, element);
+      if ( response.length > 0)
+      {
+        IModelObject element = info.compressor.decompress( new ByteArrayInputStream( response));
+        handleAttachResponse( link, session, element);
+      }
     }
   }
   
@@ -802,7 +808,7 @@ public class Protocol implements ILink.IListener
   {
     SessionInfo info = sessionManager.getSessionInfo( link, session);
     
-    byte[] bytes = info.compress( element);
+    byte[] bytes = (element != null)? info.compress( element): new byte[ 0];
     ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.attachResponse, session, correlation);
