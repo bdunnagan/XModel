@@ -22,6 +22,9 @@ package org.xmodel.xpath.function.custom;
 import java.util.Formatter;
 import java.util.List;
 import org.xmodel.IModelObject;
+import org.xmodel.xml.XmlIO;
+import org.xmodel.xpath.AttributeNode;
+import org.xmodel.xpath.TextNode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -89,8 +92,19 @@ public class FormatFunction extends Function
           break;
           
         case NODES:
-          params[ i] = arg.evaluateString( context);
-          break;
+        {
+          StringBuilder sb = new StringBuilder();
+          XmlIO xmlIO = new XmlIO();
+          for( IModelObject node: arg.evaluateNodes( context))
+          {
+            if ( node instanceof AttributeNode || node instanceof TextNode)
+              sb.append( node.getValue());
+            else
+              sb.append( xmlIO.write( node));
+          }
+          params[ i] = sb.toString();
+        }
+        break;
       }
     }
     

@@ -183,7 +183,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else
         {
-          throw new UnsupportedOperationException();
+          populateRowElement( result, row);
         }
         
         parent.addChild( row);
@@ -217,24 +217,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 
       statement = createRowSelectStatement( reference);
       ResultSet result = statement.executeQuery();
-      if ( result.next())
-      {      
-        for( int i=0; i<columnNames.size(); i++)
-        {
-          String columnName = columnNames.get( i);
-          if ( columnName.equals( primaryKey)) continue;
-
-          Object value = result.getObject( i+1);
-          if ( otherKeys.contains( columnName))
-          {
-            object.setAttribute( columnName, value);
-          }
-          else
-          {
-            importColumn( object, columnName, value);
-          }
-        }        
-      }
+      if ( result.next()) populateRowElement( result, object);
 
       return object;
     }
@@ -246,6 +229,30 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( statement != null) close( statement);
     }
+  }
+  
+  /**
+   * Populate a row element from the current row in the specified result set.
+   * @param result The result set.
+   * @param object The row element to be populated.
+   */
+  protected void populateRowElement( ResultSet result, IModelObject object) throws SQLException
+  {
+    for( int i=0; i<columnNames.size(); i++)
+    {
+      String columnName = columnNames.get( i);
+      if ( columnName.equals( primaryKey)) continue;
+
+      Object value = result.getObject( i+1);
+      if ( otherKeys.contains( columnName))
+      {
+        object.setAttribute( columnName, value);
+      }
+      else
+      {
+        importColumn( object, columnName, value);
+      }
+    }        
   }
 
   /**
