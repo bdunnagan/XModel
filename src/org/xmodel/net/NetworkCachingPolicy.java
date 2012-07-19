@@ -86,7 +86,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       throw new CachingException( "Problem creating client.", e);
     }
-    
+
+    pubsub = Xlate.get( annotation, "mode", Xlate.childGet( annotation, "mode", "mirror")).equals( "pubsub");
     query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
     validate( query);
   }
@@ -123,7 +124,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       try
       {
-        session.attach( query, reference);
+        session.attach( query, pubsub, reference);
       }
       catch( IOException e)
       {
@@ -153,6 +154,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private final static int reconnectDelay = 1000;
   
   private Client client;
+  private boolean pubsub;
   private String query;
   private int timeout;
 }

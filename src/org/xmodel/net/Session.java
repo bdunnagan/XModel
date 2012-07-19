@@ -28,14 +28,15 @@ public final class Session
   
   /**
    * Attach to the element on the specified xpath.
+   * @param pubsub True for publish/subscribe mode.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( String xpath, IExternalReference reference) throws IOException
+  public void attach( String xpath, boolean pubsub, IExternalReference reference) throws IOException
   {
-    protocol.attach( link, session, xpath, reference);
+    protocol.attach( link, session, pubsub, xpath, reference);
   }
-
+  
   /**
    * Detach the element that was previously attached.
    */
@@ -43,7 +44,7 @@ public final class Session
   {
     protocol.detach( link, session);
   }
-
+  
   /**
    * Perform a remote query.
    * @param context The local context.

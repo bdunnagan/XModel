@@ -178,13 +178,20 @@ public class Protocol implements ILink.IListener
   }
   
   /**
-   * Attach to the element on the specified xpath.
+   * Attach to the element on the specified xpath.  An attachment functions in one of two ways: mirroring, or
+   * publish/subscribe.  A mirroring attachment mirrors updates between the client and the server.  In the
+   * publish/subscribe mode, updates are only sent from the server to the client, and only add-child events
+   * are sent.  Furthermore, add-child events do not include an insertion index - the child is assumed to be
+   * added to the end of the list of children.  This is an efficient mechanism for sending events.  The client
+   * and the server are responsible for managing the size of their event lists by deleting event elements that
+   * have been processed.
    * @param link The link.
    * @param session The session number.
+   * @param pubsub True if attachment is pub/sub model.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( ILink link, int session, String xpath, IExternalReference reference) throws IOException
+  public void attach( ILink link, int session, boolean pubsub, String xpath, IExternalReference reference) throws IOException
   {
     if ( link != null && link.isOpen())
     {
@@ -197,6 +204,7 @@ public class Protocol implements ILink.IListener
       info.xpath = xpath;
       info.element = new WeakReference<IModelObject>( reference);
       info.isAttachClient = true;
+      info.isAttachPubsub = pubsub;
       info.dispatcher = reference.getModel().getDispatcher();
       
       if ( info.dispatcher == null) 
@@ -204,10 +212,16 @@ public class Protocol implements ILink.IListener
         throw new IllegalStateException( "Client must define dispatcher.");
       }
       
-      sendAttachRequest( link, session, xpath);
-      
-      info.listener = new Listener( link, session, xpath, reference, random);
-      info.listener.install( reference);
+      sendAttachRequest( link, session, pubsub, xpath);
+
+      //
+      // In publish/subscribe mode, all updates are events and updates are only sent from the server. 
+      //
+      if ( !pubsub)
+      {
+        info.listener = new Listener( link, session, pubsub, xpath, reference, random);
+        info.listener.install( reference);
+      }
     }
     else
     {
@@ -303,9 +317,10 @@ public class Protocol implements ILink.IListener
    * @param sender The sender.
    * @param session The session number.
    * @param correlation The correlation number.
+   * @param pubsub True if attachment is publish/subscribe.
    * @param xpath The xpath expression.
    */
-  protected void doAttach( ILink sender, int session, int correlation, String xpath) throws IOException
+  protected void doAttach( ILink sender, int session, int correlation, boolean pubsub, String xpath) throws IOException
   {
     try
     {
@@ -315,6 +330,7 @@ public class Protocol implements ILink.IListener
       if ( target != null)
       {
         SessionInfo info = sessionManager.getSessionInfo( sender, session);
+        info.isAttachPubsub = pubsub;
         info.xpath = xpath;
         info.element = new WeakReference<IModelObject>( target);
         
@@ -322,7 +338,7 @@ public class Protocol implements ILink.IListener
         target.getChildren();
         copy = encode( sender, session, target, true);
         
-        info.listener = new Listener( sender, session, xpath, target, null);
+        info.listener = new Listener( sender, session, pubsub, xpath, target, null);
         info.listener.install( target);
       }
       
@@ -743,20 +759,22 @@ public class Protocol implements ILink.IListener
    * Send an attach request message.
    * @param link The link.
    * @param session The session number.
+   * @param pubsub True if attachment is publish/subscribe.
    * @param query The query.
    */
-  public final void sendAttachRequest( ILink link, int session, String query) throws IOException
+  public final void sendAttachRequest( ILink link, int session, boolean pubsub, String query) throws IOException
   {
     SessionInfo info = sessionManager.getSessionInfo( link, session);
     int correlation = info.correlation.incrementAndGet();
     
     byte[] bytes = query.getBytes();
-    ByteBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( 1 + bytes.length);
+    buffer.put( pubsub? (byte)1: (byte)0);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachRequest, session, correlation);
 
     // log
-    SLog.debugf( this, "Attach Request: session=%X, correlation=%d, query=%s", session, correlation, query);
+    SLog.debugf( this, "Attach Request: session=%X, correlation=%d, pubsub=%s, query=%s", session, correlation, pubsub, query);
     
     // send and wait for response
     byte[] response = send( link, session, correlation, buffer, timeout);
@@ -780,9 +798,10 @@ public class Protocol implements ILink.IListener
    */
   private final void handleAttachRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
-    byte[] bytes = new byte[ length];
+    boolean pubsub = (buffer.get() == 1)? true: false;
+    byte[] bytes = new byte[ length - 1];
     buffer.get( bytes);
-    handleAttachRequest( link, session, correlation, new String( bytes));
+    handleAttachRequest( link, session, correlation, pubsub, new String( bytes));
   }
   
   /**
@@ -790,11 +809,12 @@ public class Protocol implements ILink.IListener
    * @param link The link.
    * @param session The session number.
    * @param correlation The correlation number.
+   * @param pubsub True if attachment is publish/subscribe.
    * @param xpath The xpath.
    */
-  protected void handleAttachRequest( ILink link, int session, int correlation, String xpath)
+  protected void handleAttachRequest( ILink link, int session, int correlation, boolean pubsub, String xpath)
   {
-    dispatch( sessionManager.getSessionInfo( link, session), new AttachRunnable( link, session, correlation, xpath));
+    dispatch( sessionManager.getSessionInfo( link, session), new AttachRunnable( link, session, correlation, pubsub, xpath));
   }
 
   /**
@@ -1064,7 +1084,19 @@ public class Protocol implements ILink.IListener
         if ( parent != null) 
         {
           IModelObject childElement = decode( link, session, child);
-          parent.addChild( childElement, index);
+          if ( info.isAttachPubsub && parent == attached) 
+          {
+            //
+            // In publish/subscribe mode, the root element is considered to be the topic, and its children
+            // are considered to be events.  Events are always appended to the end of the list, and the client
+            // and the server manage removing events from their lists.
+            //
+            parent.addChild( childElement);
+          }
+          else
+          {
+            parent.addChild( childElement, index);
+          }
         }
       }
     }
@@ -2394,11 +2426,12 @@ public class Protocol implements ILink.IListener
   
   private final class AttachRunnable implements Runnable
   {
-    public AttachRunnable( ILink sender, int session, int correlation, String xpath)
+    public AttachRunnable( ILink sender, int session, int correlation, boolean pubsub, String xpath)
     {
       this.sender = sender;
       this.session = session;
       this.correlation = correlation;
+      this.pubsub = pubsub;
       this.xpath = xpath;
     }
     
@@ -2406,7 +2439,7 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        doAttach( sender, session, correlation, xpath);
+        doAttach( sender, session, correlation, pubsub, xpath);
       } 
       catch( IOException e)
       {
@@ -2417,6 +2450,7 @@ public class Protocol implements ILink.IListener
     private ILink sender;
     private int session;
     private int correlation;
+    private boolean pubsub;
     private String xpath;
   }
   
@@ -2524,10 +2558,11 @@ public class Protocol implements ILink.IListener
   
   protected class Listener extends NonSyncingListener
   {
-    public Listener( ILink sender, int session, String xpath, IModelObject root, Random random)
+    public Listener( ILink sender, int session, boolean pubsub, String xpath, IModelObject root, Random random)
     {
       this.sender = sender;
       this.session = session;
+      this.pubsub = pubsub;
       this.xpath = xpath;
       this.root = root;
       this.random = random;
@@ -2570,6 +2605,13 @@ public class Protocol implements ILink.IListener
       super.notifyRemoveChild( parent, child, index);
       
       if ( updating == sender) return;
+      
+      //
+      // In publish/subscribe mode, the root is considered a topic, and the children are considered to be events.
+      // Events are removed by the client and the server independently, and are always added to the end of the 
+      // client list.
+      //
+      if ( pubsub && parent == root) return;
       
       try
       {
@@ -2676,6 +2718,7 @@ public class Protocol implements ILink.IListener
 
     private ILink sender;
     private int session;
+    private boolean pubsub;
     private String xpath;
     private IModelObject root;
     private Random random;
@@ -2755,6 +2798,7 @@ public class Protocol implements ILink.IListener
     public IDispatcher dispatcher;
     public String xpath;
     public boolean isAttachClient;
+    public boolean isAttachPubsub;
     public WeakReference<IModelObject> element;
     public Map<Long, WeakReference<IModelObject>> attachMap;
     public Listener listener;
