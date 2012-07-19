@@ -75,7 +75,6 @@ public class ProtocolMirrorTest
     {
       Session session = clients.get( i);
       String xpath = String.format( "client[ @id = %d]", i);
-      session.attach( xpath, 
     }
   }
   
