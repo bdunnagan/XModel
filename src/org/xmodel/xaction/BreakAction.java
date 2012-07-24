@@ -26,12 +26,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
+import org.xmodel.xaction.debug.Debugger;
+import org.xmodel.xaction.debug.IBreakHandler;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -41,7 +44,6 @@ import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * A GuardedAction which pauses execution and attempts to read the standard input device.
  * This action is intended for debugging purposes. If a parsable integer is entered, then
@@ -50,25 +52,44 @@ import org.xmodel.xpath.variable.IVariableScope;
  * be parsed as an XPath expression, then the XPath becomes the guard condition of the 
  * action.
  */
-public class BreakAction extends GuardedAction
+public class BreakAction extends GuardedAction implements IBreakHandler
 {
   public BreakAction()
   {
     xmlIO = new XmlIO();
     xmlIO.skipOutputPrefix( "break");
     xmlIO.setOutputStyle( Style.printable);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
-   */
-  @Override
-  public void configure( XActionDocument document)
-  {
-    super.configure( document);
     
     history = new ArrayList<String>( 1);
     reader = new BufferedReader( new InputStreamReader( System.in));
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.debug.IBreakHandler#breakpoint(org.xmodel.xpath.expression.IContext)
+   */
+  @Override
+  public void breakpoint( IContext context)
+  {
+    // read past input
+    try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
+
+    // get current location
+    Debugger debugger = getDebugger();
+    IXAction frame = debugger.getCurrentFrame( debugger.getDebugThreadID());
+    IModelObject location = (frame != null)? frame.getDocument().getRoot(): new ModelObject( "(none)");
+    
+    // prompt
+    StatefulContext breakContext = new StatefulContext( context);
+    breakContext.set( "@", location);
+    prompt( breakContext, location);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.debug.IBreakHandler#resume()
+   */
+  @Override
+  public void resume()
+  {
   }
   
   /* (non-Javadoc)
@@ -77,13 +98,16 @@ public class BreakAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    // read past input
-    try { while( System.in.available() != 0) System.in.read();} catch( Exception e) {}
-    
-    // prompt
-    StatefulContext breakContext = new StatefulContext( context);
-    breakContext.set( "_", document.getRoot());
-    prompt( breakContext, document.getRoot());
+    Debugger debugger = getDebugger();
+    if ( debugger == null)
+    {
+      SLog.warnf( this, "Not in debug mode at, %s", this);
+      return null;
+    }
+
+    // TODO: IBreakHandler should be factored out of BreakAction
+    debugger.setBreakHandler( this);
+    debugger.breakpoint( context);
     
     return null;
   }
@@ -104,6 +128,7 @@ public class BreakAction extends GuardedAction
         System.err.flush();
         
         // prompt
+        System.out.println( ModelAlgorithms.createIdentityPath( location, true));
         System.out.printf( "-> ");
         
         // get input
@@ -167,44 +192,57 @@ public class BreakAction extends GuardedAction
     // parse empty
     if ( input.length() == 0)
     {
+      Debugger debugger = getDebugger();
+      debugger.stepOver( debugger.getDebugThreadID());
+      return true;
+    }
+    
+    else if ( input.equals( ">>"))
+    {
+      Debugger debugger = getDebugger();
+      debugger.resume( debugger.getDebugThreadID());
       return true;
     }
     
     // parse >
-    if ( input.equals( ">"))
+    else if ( input.equals( ">"))
     {
-      throw new UnsupportedOperationException();
+      Debugger debugger = getDebugger();
+      debugger.stepIn( debugger.getDebugThreadID());
+      return true;
     }
     
     // parse <
-    if ( input.equals( "<"))
+    else if ( input.equals( "<"))
     {
-      throw new UnsupportedOperationException();
+      Debugger debugger = getDebugger();
+      debugger.stepOut( debugger.getDebugThreadID());
+      return true;
     }
     
     // parse $
-    if ( input.equals( "$"))
+    else if ( input.equals( "$"))
     {
       showVariables( context);
       return false;
     }
     
     // parse ~
-    if ( input.charAt( 0) == '~')
+    else if ( input.charAt( 0) == '~')
     {
       showStack( prefix);
       return false;
     }
     
     // parse # by itself
-    if ( input.equals( "#"))
+    else if ( input.equals( "#"))
     {
       showContext( context);
       return false;
     }
     
     // parse !
-    if ( input.charAt( 0) == '!')
+    else if ( input.charAt( 0) == '!')
     {
       history.remove( history.size() - 1);
       String pattern = input.substring( 1);
@@ -284,9 +322,10 @@ public class BreakAction extends GuardedAction
     System.out.println( prefix);
     System.out.printf( "%sEnter one of the following:\n", prefix);
     System.out.printf( "%s  ? to repeat this message.\n", prefix);
-    System.out.printf( "%s  [Return] to step over the next action.\n", prefix);
+    System.out.printf( "%s  [RETURN] to step over the next action.\n", prefix);
     System.out.printf( "%s  < to step out of the current action.\n", prefix);
     System.out.printf( "%s  > to step into the next action.\n", prefix);
+    System.out.printf( "%s  >> to resume.\n", prefix);
     System.out.printf( "%s  An expression to be evaluated in the current context.\n", prefix);
     System.out.printf( "%s  $ to print a summary of all context defined variables.\n", prefix);
     System.out.printf( "%s  # to dump the context stack.\n", prefix);

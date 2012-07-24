@@ -84,7 +84,7 @@ public abstract class XAction implements IXAction
   /**
    * @return Returns the debugger or null.
    */
-  public final static Debugger getDebugger()
+  public final static synchronized Debugger getDebugger()
   {
     return debugger;
   }
@@ -94,7 +94,7 @@ public abstract class XAction implements IXAction
    */
   public final static boolean isDebugging()
   {
-    return debugging;
+    return debugger != null;
   }
   
   /* (non-Javadoc)
@@ -113,12 +113,7 @@ public abstract class XAction implements IXAction
     return path.toString(); 
   }
 
-  //
-  // Using a system property to enable debugging is appropriate because the debugger is static, and
-  // therefore debugging is either enabled or disabled for the entire VM.
-  //
-  private final static boolean debugging = System.getProperty( Debugger.debugProperty) != null;
-  private final static Debugger debugger = debugging? new Debugger(): null;
+  private final static Debugger debugger = (System.getProperty( "xaction.debug") != null)? new Debugger(): null;
   
   protected XActionDocument document;
 }

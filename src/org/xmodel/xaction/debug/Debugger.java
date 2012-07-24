@@ -2,20 +2,14 @@ package org.xmodel.xaction.debug;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.ThreadPoolDispatcher;
 import org.xmodel.Xlate;
-import org.xmodel.log.SLog;
-import org.xmodel.net.Server;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -24,58 +18,52 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public class Debugger
 {
-  public final static String debugProperty = "xaction:debug";
-  
   public static enum Operation { sync, stepOver, stepIn, stepOut, pause, resume};
   
   public Debugger()
   {
     threads = new ThreadLocal<DebugThread>();
     threadList = new ArrayList<DebugThread>();
-    lock = new Semaphore( 0);
-    
-    try
-    {
-      int port = Integer.parseInt( System.getProperty( debugProperty));
-      server = new Server( "localhost", port, Integer.MAX_VALUE);
-      server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
-      server.setServerContext( new StatefulContext());
-      server.start( true);
-    }
-    catch( Exception e)
-    {
-      SLog.exception( this, e);
-    }
   }    
-
-  public synchronized void stepOver( String threadName)
+  
+  public synchronized void setBreakHandler( IBreakHandler breaker)
   {
-    DebugThread thread = getDebugThread( threadName);
+    this.breaker = breaker;
+  }
+  
+  public synchronized IBreakHandler getBreakHandler()
+  {
+    return breaker;
+  }
+
+  public synchronized void stepOver( String threadID)
+  {
+    DebugThread thread = getDebugThread( threadID);
     thread.op = Operation.stepOver;
-    unblock();
+    breaker.resume();
   }
 
-  public synchronized void stepIn( String threadName)
+  public synchronized void stepIn( String threadID)
   {
-    DebugThread thread = getDebugThread( threadName);
+    DebugThread thread = getDebugThread( threadID);
     thread.op = Operation.stepIn;
-    unblock();
+    breaker.resume();
   }
 
-  public synchronized void stepOut( String threadName)
+  public synchronized void stepOut( String threadID)
   {
-    DebugThread thread = getDebugThread( threadName);
+    DebugThread thread = getDebugThread( threadID);
     thread.op = Operation.stepOut;
-    unblock();
+    breaker.resume();
   }
 
-  public synchronized void pause( String threadName)
+  public synchronized void pause( String threadID)
   {
-    DebugThread thread = getDebugThread( threadName);
+    DebugThread thread = getDebugThread( threadID);
     thread.op = Operation.pause;
   }
   
-  public void breakpoint()
+  public void breakpoint( IContext context)
   {
     synchronized( this)
     {
@@ -83,16 +71,16 @@ public class Debugger
       thread.op = Operation.pause;
     }
     
-    block();
+    breaker.breakpoint( context);
   }
   
-  public synchronized void resume( String threadName)
+  public synchronized void resume( String threadID)
   {
-    DebugThread thread = getDebugThread( threadName);
+    DebugThread thread = getDebugThread( threadID);
     if ( thread.op != Operation.resume)
     {
       thread.op = Operation.resume;
-      unblock();
+      breaker.resume();
     }
   }
   
@@ -117,7 +105,7 @@ public class Debugger
       op = thread.op;
     }
 
-    if ( op == Operation.pause) block();
+    if ( op == Operation.pause || op == Operation.stepOver) breaker.breakpoint( context);
     
     try
     {
@@ -133,9 +121,9 @@ public class Debugger
     }
   }
 
-  public void pop()
+  public void pop( IContext context)
   {
-    boolean end = false;
+    boolean shouldBreak = false;
     
     synchronized( this)
     {
@@ -146,32 +134,18 @@ public class Debugger
       {
         threads.set( null);
         threadList.remove( thread);
-        if ( thread.op == Operation.pause || thread.op == Operation.stepOver) end = true;
       }
+      
+      if ( thread.op == Operation.pause || thread.op == Operation.stepOver) 
+        shouldBreak = true;
+      
+      if ( thread.op == Operation.stepOut)
+        thread.op = Operation.pause;
     }
     
-    if ( end) block();
+    if ( shouldBreak) breaker.breakpoint( context);
   }
   
-  private void block()
-  {
-    try 
-    { 
-      lock.drainPermits();
-      lock.acquire();
-    } 
-    catch( InterruptedException e) 
-    {
-      Thread.interrupted();
-      SLog.warnf( this, "Debugger breakpoint interrupted.");
-    }
-  }
-
-  private void unblock()
-  {
-    lock.release();
-  }
-    
   public synchronized IModelObject getStack()
   {
     IModelObject stackNode = new ModelObject( "stack");
@@ -212,6 +186,16 @@ public class Debugger
     return stackNode;
   }
   
+  public synchronized IXAction getCurrentFrame( String threadID)
+  {
+    DebugThread thread = getDebugThread( threadID);
+    if ( thread.frames != null && thread.frames.size() > 0)
+    {
+      return thread.frames.get( thread.frames.size() - 1).action;
+    }
+    return null;
+  }
+  
   /**
    * Serialize the specified variable value into the specified stack variable node.
    * @param varNode The stack variable node.
@@ -232,6 +216,12 @@ public class Debugger
       Xlate.set( varNode, "type", "value");
       varNode.setValue( value);
     }
+  }
+  
+  public final synchronized String getDebugThreadID()
+  {
+    DebugThread thread = getDebugThread();
+    return String.format( "%X", thread.hashCode());
   }
   
   private final synchronized DebugThread getDebugThread()
@@ -288,9 +278,8 @@ public class Debugger
     public IContext context;
     public IXAction action;
   }
-  
+ 
+  private IBreakHandler breaker;
   private ThreadLocal<DebugThread> threads;
   private List<DebugThread> threadList;
-  private Semaphore lock;
-  private Server server;
 }

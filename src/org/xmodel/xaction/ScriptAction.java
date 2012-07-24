@@ -20,11 +20,9 @@
 package org.xmodel.xaction;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
@@ -107,9 +105,9 @@ public class ScriptAction extends GuardedAction
    * Returns the actions in the script.
    * @return Returns the actions in the script.
    */
-  public List<IXAction> getActions()
+  public IXAction[] getActions()
   {
-    if ( actions == null) return Collections.emptyList();
+    if ( actions == null) return new IXAction[ 0];
     return actions;
   }
   
@@ -128,7 +126,7 @@ public class ScriptAction extends GuardedAction
     IfAction ifAction = null;
     
     // create script operations
-    actions = new ArrayList<IXAction>();
+    List<IXAction> list = new ArrayList<IXAction>();
     for( IModelObject element: document.getRoot().getChildren())
     {
       if ( !ignore.contains( element.getType()))
@@ -145,10 +143,12 @@ public class ScriptAction extends GuardedAction
           
           if ( action instanceof IfAction) ifAction = (IfAction)action;
           
-          actions.add( action);
+          list.add( action);
         }
       }
     }
+    
+    actions = list.toArray( new IXAction[ 0]);
   }
   
   /* (non-Javadoc)
@@ -161,9 +161,9 @@ public class ScriptAction extends GuardedAction
     
     if ( !isDebugging())
     {
-      for( IXAction action: actions)
+      for( int i=0; i<actions.length; i++)
       {
-        Object[] result = action.run( context);
+        Object[] result = actions[ i].run( context);
         if ( result != null) return result;
       }
       return null;
@@ -174,9 +174,9 @@ public class ScriptAction extends GuardedAction
       try
       {
         debugger.push( context, this);
-        for( IXAction action: actions)
+        for( int i=0; i<actions.length; i++)
         {
-          Object[] result = debugger.run( context, action);
+          Object[] result = debugger.run( context, actions[ i]);
           if ( result != null) return result;
         }
       }
@@ -187,7 +187,7 @@ public class ScriptAction extends GuardedAction
       }
       finally
       {
-        debugger.pop();
+        debugger.pop( context);
       }
       
       return null;
@@ -205,5 +205,5 @@ public class ScriptAction extends GuardedAction
 
   private boolean privateScope;
   private Set<String> ignore;
-  private List<IXAction> actions;
+  private IXAction[] actions;
 }
