@@ -20,22 +20,34 @@
 package org.xmodel;
 
 /**
- * An implementation of IModelRegistry which allows IModel instances to be associated with threads
- * an accessed via thread-local data.
+ * The registry where IModel instances are acquired. IModel instances are always associated 
+ * with a particular thread. By default, IModel instances are created on demand and stored
+ * in thread local data when the <code>getModel</code> method is called.  However, one 
+ * instance of IModel may be associated with multiple threads by calling the <code>setModel</code>
+ * method.
  */
-public class ModelRegistry implements IModelRegistry
+public class ModelRegistry
 {
-  public ModelRegistry()
+  private ModelRegistry()
   {
-    instance = new ThreadLocal<ModelRegistry>();
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelRegistry#getModel()
+
+  /**
+   * Set the implementation of IModel for the current thread. 
+   * This method may only be called once for a given thread.
+   * @param model The implementation.
    */
-  public IModel getModel()
+  public synchronized void setModel( IModel model)
   {
-    if ( threadModel == null) threadModel = new ThreadLocal<IModel>();
+    if ( threadModel.get() != null) throw new IllegalStateException();
+    threadModel.set( model);
+  }
+
+  /**
+   * @return Returns the implementation of IModel for the current thread.
+   */
+  public synchronized IModel getModel()
+  {
     IModel model = threadModel.get();
     if ( model == null)
     {
@@ -44,21 +56,17 @@ public class ModelRegistry implements IModelRegistry
     }
     return model;
   }
+  
   /**
    * Returns the singleton.
    * @return Returns the singleton.
    */
-  public static ModelRegistry getInstance()
+  public static synchronized ModelRegistry getInstance()
   {
-    ModelRegistry registry = instance.get();
-    if ( registry == null)
-    {
-      registry = new ModelRegistry();
-      instance.set( registry);
-    }
-    return registry;
+    if ( instance == null) instance = new ModelRegistry();
+    return instance;
   }
-  
-  private static ThreadLocal<ModelRegistry> instance = new ThreadLocal<ModelRegistry>();
-  private static ThreadLocal<IModel> threadModel;
+
+  private static ModelRegistry instance;
+  private static ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
 }

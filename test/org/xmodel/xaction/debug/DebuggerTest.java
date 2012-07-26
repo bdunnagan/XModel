@@ -20,7 +20,7 @@ public class DebuggerTest
   
   @Test public void breakpointTest() throws Exception
   {
-    System.setProperty( Debugger.debugProperty, "true");
+    System.setProperty( "xaction.debug", "true");
     
     StatefulContext context = new StatefulContext();
     
