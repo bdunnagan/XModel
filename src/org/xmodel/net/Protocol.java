@@ -21,6 +21,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.xmodel.BreadthFirstIterator;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -408,17 +410,37 @@ public class Protocol implements ILink.IListener
    * @param sender The sender.
    * @param session The session number.
    * @param correlation The correlation number.
-   * @param context The execution context.
-   * @param script The script.
+   * @param request The request.
    */
-  protected void doExecute( ILink sender, int session, int correlation, IContext context, IModelObject script)
+  protected void doExecute( ILink sender, int session, int correlation, IModelObject request)
   {
+    // denature request
+    BreadthFirstIterator iter = new BreadthFirstIterator( request);
+    while( iter.hasNext()) iter.next().clearModel();
+    
+    // create execution context and extract script from request
+    StatefulContext context = new StatefulContext( this.context);
+    IModelObject script = ExecutionProtocol.readRequest( request, context);
+
+    // check privilege
+    if ( privilege != null && !privilege.isPermitted( context, script))
+    {
+      try
+      {
+        sendError( sender, session, correlation, "Script contains restricted operations.");
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
+      }
+    }
+    
+    // compile script and execute
     XActionDocument doc = new XActionDocument( script);
     for( String packageName: packageNames)
       doc.addPackage( packageName);
 
     Object[] results = null;
-    
     try
     {
       IXAction action = doc.getAction( script);
@@ -1563,6 +1585,7 @@ public class Protocol implements ILink.IListener
     }
 
     AsyncCallback runnable = new AsyncCallback( context, callback);
+    context.getModel();
     
     if ( timeout != Integer.MAX_VALUE)
       scheduleTimeout( timeout, new TimeoutTask( runnable));
@@ -1650,37 +1673,9 @@ public class Protocol implements ILink.IListener
       String xml = XmlIO.write( Style.compact, request);
       SLog.debugf( this, "Handle Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
     }
-    
-    StatefulContext context = new StatefulContext( this.context);
-    IModelObject script = ExecutionProtocol.readRequest( request, context);
-    handleExecuteRequest( link, session, correlation, context, script);
-  }
-  
-  /**
-   * Handle an execute request.
-   * @param link The link.
-   * @param session The session number.
-   * @param correlation The correlation number.
-   * @param context The execution context.
-   * @param script The script to execute.
-   */
-  protected void handleExecuteRequest( ILink link, int session, int correlation, IContext context, IModelObject script)
-  {
-    // check privilege
-    if ( privilege != null && !privilege.isPermitted( context, script))
-    {
-      try
-      {
-        sendError( link, session, correlation, "Script contains restricted operations.");
-      }
-      catch( Exception e)
-      {
-        SLog.exception( this, e);
-      }
-    }
-    
+
     // dispatch
-    dispatch( sessionManager.getSessionInfo( link, session), new ExecuteRunnable( link, session, correlation, context, script));
+    dispatch( info, new ExecuteRunnable( link, session, correlation, request));
   }
   
   /**
@@ -2501,25 +2496,23 @@ public class Protocol implements ILink.IListener
   
   private final class ExecuteRunnable implements Runnable
   {
-    public ExecuteRunnable( ILink sender, int session, int correlation, IContext context, IModelObject script)
+    public ExecuteRunnable( ILink sender, int session, int correlation, IModelObject request)
     {
       this.sender = sender;
       this.session = session;
       this.correlation = correlation;
-      this.context = context;
-      this.script = script;
+      this.request = request;
     }
     
     public void run()
     {
-      doExecute( sender, session, correlation, context, script.cloneTree());
+      doExecute( sender, session, correlation, request);
     }
     
     private ILink sender;
     private int session;
     private int correlation;
-    private IContext context;
-    private IModelObject script;
+    private IModelObject request;
   }
   
   private final class SessionCloseRunnable implements Runnable
