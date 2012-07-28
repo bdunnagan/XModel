@@ -172,7 +172,14 @@ public class RunAction extends GuardedAction
       else
       {
         Callback callback = new Callback( client, onComplete, onSuccess, onError);
-        session.execute( (StatefulContext)context, varArray, getScriptNode( context), callback, timeout);
+        if ( session != null)
+        {
+          session.execute( (StatefulContext)context, varArray, getScriptNode( context), callback, timeout);
+        }
+        else
+        {
+          callback.onError( context);
+        }
       }
       
       log.debug( "Finished remote.");

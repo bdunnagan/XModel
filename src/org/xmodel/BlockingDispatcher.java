@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.xmodel.log.SLog;
 
 
 /**
@@ -44,6 +46,7 @@ public class BlockingDispatcher implements IDispatcher
    */
   public void execute( Runnable runnable)
   {
+    SLog.verbosef( this, "Enqueue runnable: %s", runnable.getClass().getSimpleName());
     try
     {
       if ( !shutdown.get()) queue.put( runnable);
@@ -77,19 +80,31 @@ public class BlockingDispatcher implements IDispatcher
   {
     try
     {
-      Runnable first = queue.take();
+      SLog.verbose( this, "Waiting for dequeue ...");
+      Runnable first = queue.poll( 5, TimeUnit.SECONDS);
       
       if ( shutdown.get() && immediate)
         return false;
       
-      dequeued.add( first);
-      queue.drainTo( dequeued);
+      if ( first != null)
+      {
+        dequeued.add( first);
+        queue.drainTo( dequeued);
+        
+        SLog.verbosef( this, "Dequeued %d runnables: ", dequeued.size());
+        for( Runnable runnable: dequeued)
+        {
+          if ( runnable != null) 
+          {
+            SLog.verbosef( this, "Executing runnable: %s", runnable.getClass().getSimpleName());
+            runnable.run();
+            SLog.verbose( this, "Done.");
+          }
+        }
+        
+        dequeued.clear();
+      }
       
-      for( Runnable runnable: dequeued)
-        if ( runnable != null) 
-          runnable.run();
-      
-      dequeued.clear();
       return true;
     }
     catch( InterruptedException e)
