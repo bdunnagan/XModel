@@ -49,7 +49,7 @@ public final class Log
     int i = 0;
     while( i < name.length())
     {
-      int j = name.indexOf( ',');
+      int j = name.indexOf( ',', i);
       if ( j < 0) j = name.length();
 
       String part = name.substring( i, j).trim();
@@ -110,12 +110,16 @@ public final class Log
   /**
    * Set the logging level for all logs whose names begin with the specified prefix. Calling
    * this operation may globally impact performance of users of this logging framework.
-   * @param prefix The prefix.
+   * @param query The log query.
    * @param level The new logging level.
    */
-  public synchronized static void setLevel( String prefix, int level)
+  public synchronized static void setLevel( String query, int level)
   {
-    for( Log log: map.getAll( prefix))
+    // make sure log exists
+    map.getCreateOne( query);
+    
+    // iterate over matching logs
+    for( Log log: map.getAll( query))
       log.setLevel( level);
   }
   

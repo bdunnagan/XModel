@@ -97,7 +97,14 @@ public class BlockingDispatcher implements IDispatcher
           if ( runnable != null) 
           {
             SLog.verbosef( this, "Executing runnable: %s", runnable.getClass().getSimpleName());
-            runnable.run();
+            try
+            {
+              runnable.run();
+            }
+            catch( Exception e)
+            {
+              SLog.exception( this, e);
+            }
             SLog.verbose( this, "Done.");
           }
         }

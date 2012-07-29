@@ -102,6 +102,8 @@ public abstract class TcpBase
     
     SocketChannel channel = SocketChannel.open();
     channel.configureBlocking( false);
+    channel.socket().setKeepAlive( true);
+    channel.socket().setTrafficClass( 0x04);
     
     channel.connect( new InetSocketAddress( host, port));
     Connection connection = createConnection( channel, listener);

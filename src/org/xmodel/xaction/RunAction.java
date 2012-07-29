@@ -145,7 +145,6 @@ public class RunAction extends GuardedAction
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     String[] varArray = vars.split( "\\s*,\\s*");
 
-    Client client = null;
     try
     {
       if ( log.isLevelEnabled( Log.debug))
@@ -153,21 +152,20 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote on %s:%d, %s ...", host, port, getScriptDescription( context));
       }
 
-      client = new Client( host, port, timeout, false);
-      Session session = client.connect( timeout);
+      if ( client != null && !client.isConnected())
+        client = null;
+      
+      if ( client == null)
+      {
+        client = new Client( host, port, timeout, false);
+        session = client.connect( timeout);
+      }
       
       // execute synchronously unless on of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
-        try
-        {
-          Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
-          if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
-        }
-        finally
-        {
-          if ( client != null) try { client.disconnect();} catch( Exception e) {}
-        }
+        Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
+        if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
       }
       else
       {
@@ -273,7 +271,6 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-      if ( client != null) try { client.disconnect();} catch( Exception e) {}
     }
 
     /* (non-Javadoc)
@@ -313,4 +310,6 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
+  private Client client;
+  private Session session;
 }

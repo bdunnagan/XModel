@@ -69,7 +69,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
     
-    rowCachingPolicy = new SQLRowCachingPolicy( cache);
+    rowCachingPolicy = new SQLRowCachingPolicy( this, cache);
     updateMonitor = new SQLEntityListener();
     
     rowInserts = new HashMap<IModelObject, List<IModelObject>>();
@@ -616,7 +616,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
-      connection.setCatalog( catalog);
       commit( connection);
     }
     catch( SQLException e)
@@ -635,6 +634,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void commit( Connection connection) throws SQLException
   {
+    connection.setCatalog( catalog);
+    
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
@@ -708,6 +709,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         if ( isTable( parent))
         {
+          SQLRowCachingPolicy cachingPolicy = (SQLRowCachingPolicy)((IExternalReference)child).getCachingPolicy();
+          cachingPolicy.parent = SQLTableCachingPolicy.this;
+          
           List<IModelObject> inserts = rowInserts.get( parent);
           if ( inserts == null)
           {

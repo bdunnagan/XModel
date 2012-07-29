@@ -23,12 +23,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.external.NonSyncingListener;
-import org.xmodel.log.Log;
-import org.xmodel.util.Aggregator;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.ExpressionListener;
@@ -56,15 +53,7 @@ public class EntityTrigger extends AbstractTrigger
     super.configure( document);
 
     entityExpr = document.getExpression( "entity", true);
-    
-    // get actions
     script = document.createScript( "entity");
-    
-    // get aggregator
-    aggregator = new Aggregator( Xlate.get( document.getRoot(), "delay", 50));
-    
-    // get index
-    dispatchIndex = aggregator.add( document.getRoot().getModel().getDispatcher(), updateRunnable);
   }
   
   /* (non-Javadoc)
@@ -72,10 +61,7 @@ public class EntityTrigger extends AbstractTrigger
    */
   public void activate( IContext context)
   {
-    if ( context instanceof StatefulContext) 
-      this.context = (StatefulContext)context;
-    
-    aggregator.start();
+    this.context = (StatefulContext)context;
     entityExpr.addNotifyListener( context, entityListener);
   }
   
@@ -85,19 +71,23 @@ public class EntityTrigger extends AbstractTrigger
   public void deactivate( IContext context)
   {
     entityExpr.removeListener( context, entityListener);
-    aggregator.stop();
   }
 
+  private void dispatch()
+  {
+    context.getModel().getDispatcher().execute( dispatch1);
+  }
+  
   final IExpressionListener entityListener = new ExpressionListener() {
     public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
     {
+      if ( touched.size() == 0) dispatch();
       for( IModelObject node: nodes) listener.install( node);
-      aggregator.dispatch( dispatchIndex);
     }
     public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
     {
+      if ( touched.size() == 0) dispatch();
       for( IModelObject node: nodes) listener.uninstall( node);
-      aggregator.dispatch( dispatchIndex);
     }
   };
   
@@ -105,32 +95,38 @@ public class EntityTrigger extends AbstractTrigger
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
+      if ( touched.size() == 0) dispatch();
       touched.add( parent);
-      aggregator.dispatch( dispatchIndex);
     }
     public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
+      if ( touched.size() == 0) dispatch();
       touched.add( parent);
-      aggregator.dispatch( dispatchIndex);
     }
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
+      if ( touched.size() == 0) dispatch();
       touched.add( object);
-      aggregator.dispatch( dispatchIndex);
     }
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
+      if ( touched.size() == 0) dispatch();
       touched.add( object);
-      aggregator.dispatch( dispatchIndex);
     }
   };
   
-  // classes for asynchronous notification
-  private final Runnable updateRunnable = new Runnable() {
+  private final Runnable dispatch1 = new Runnable() {
     public void run()
     {
-      log.debugf( "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());
+      context.getModel().getDispatcher().execute( dispatch2);
+    }
+  };
+  
+  private final Runnable dispatch2 = new Runnable() {
+    public void run()
+    {
+      SLog.debugf( EntityTrigger.this, "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());
       context.set( "changes", new ArrayList<IModelObject>( touched));
       script.run( context);
       touched.clear();
@@ -145,13 +141,9 @@ public class EntityTrigger extends AbstractTrigger
   {
     return String.format( "EntityTrigger: %s", entityExpr);
   }
-
+  
   private IExpression entityExpr;
-  private Aggregator aggregator;
-  private int dispatchIndex;
   private ScriptAction script;
   private StatefulContext context;
   private Set<IModelObject> touched;
-  
-  private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
 }

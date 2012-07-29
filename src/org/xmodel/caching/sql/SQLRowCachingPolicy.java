@@ -18,6 +18,12 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
     super( cache);
   }
   
+  public SQLRowCachingPolicy( SQLTableCachingPolicy parent, ICache cache)
+  {
+    super( cache);
+    this.parent = parent;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.AbstractCachingPolicy#addStaticAttribute(java.lang.String)
    */
@@ -67,5 +73,5 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
     return parent.transaction();
   }
   
-  private SQLTableCachingPolicy parent;
+  protected SQLTableCachingPolicy parent;
 }

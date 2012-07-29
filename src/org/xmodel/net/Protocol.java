@@ -566,14 +566,17 @@ public class Protocol implements ILink.IListener
       int correlation = readMessageCorrelation( byte0, buffer);
       
       int length = readMessageLength( byte0, buffer);
-      //SLog.infof( this, "handle: %d, %d", length, buffer.remaining());
-      
       if ( length > buffer.remaining()) return false;
-      
-      if ( SLog.isLevelEnabled( this, Log.verbose)) 
+
+      Log log = Log.getLog( this);
+      if ( log.isLevelEnabled( Log.debug)) 
+      {
+        log.debugf( "recv: session=%X, correlation=%d, content-length=%d", session, correlation, length);
+      }
+      if ( log.isLevelEnabled( Log.verbose)) 
       {
         String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
-        SLog.verbosef( this, "recv: session=%X, correlation=%d, content-length=%d\n%s", session, correlation, length, bytes);
+        log.verbosef( "bytes received:\n%s", bytes);
       }
 
       switch( type)
@@ -1786,11 +1789,16 @@ public class Protocol implements ILink.IListener
    */
   private byte[] send( ILink link, int session, int correlation, ByteBuffer buffer, int timeout) throws IOException
   {
-    if ( SLog.isLevelEnabled( this, Log.verbose)) 
+    Log log = Log.getLog( this);
+    if ( log.isLevelEnabled( Log.debug)) 
+    {
+      int length = buffer.limit() - buffer.position();
+      log.debugf( "send: session=%X, correlation=%d, total-length=%d", session, correlation, length);
+    }
+    if ( log.isLevelEnabled( Log.verbose)) 
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
-      int length = buffer.limit() - buffer.position();
-      SLog.verbosef( this, "send: session=%X, correlation=%d, total-length=%d\n%s", session, correlation, length, bytes);
+      log.verbosef( "bytes sent:\n%s", bytes);
     }
     
     SessionInfo info = sessionManager.getSessionInfo( link, session);
@@ -1821,11 +1829,16 @@ public class Protocol implements ILink.IListener
    */
   private void send( ILink link, ByteBuffer buffer, int session) throws IOException
   {
-    if ( SLog.isLevelEnabled( this, Log.verbose)) 
+    Log log = Log.getLog( this);
+    if ( log.isLevelEnabled( Log.debug)) 
+    {
+      int length = buffer.limit() - buffer.position();
+      log.debugf( "send: session=%X, total-length=%d", session, length);
+    }
+    if ( log.isLevelEnabled( Log.verbose)) 
     {
       String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
-      int length = buffer.limit() - buffer.position();
-      SLog.verbosef( this, "send: session=%X, total-length=%d\n%s", session, length, bytes);
+      log.verbosef( "bytes sent:\n%s", bytes);
     }
     
     link.send( buffer);

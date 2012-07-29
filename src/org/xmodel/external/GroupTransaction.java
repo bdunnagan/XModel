@@ -2,6 +2,7 @@ package org.xmodel.external;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.xmodel.log.SLog;
 
 /**
  * An implementation of ITransaction that atomically operates on one or more nested instances of ITranscation.
@@ -99,8 +100,9 @@ public class GroupTransaction implements ITransaction
         if ( !transaction.commit()) break;
         ++commited;
       }
-      finally
+      catch( Exception e)
       {
+        SLog.exception( this, e);
         corrupt.add( transaction);
       }
     }
@@ -114,8 +116,9 @@ public class GroupTransaction implements ITransaction
         {
           if ( !transaction.rollback()) corrupt.add( transaction);
         }
-        finally
+        catch( Exception e)
         {
+          SLog.exception( this, e);
           corrupt.add( transaction);
         }
       }
@@ -142,8 +145,9 @@ public class GroupTransaction implements ITransaction
         if ( !transaction.rollback())
           corrupt.add( transaction);
       }
-      finally
+      catch( Exception e)
       {
+        SLog.exception( this, e);
         corrupt.add( transaction);
       }
     }

@@ -2,6 +2,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -23,9 +24,18 @@ public class EventLoopAction extends GuardedAction
       throw new IllegalStateException( 
           "EventLoopAction requires a BlockingDispatcher on the context model.");
     }
+   
+    try
+    {
+      BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
+      while( blocking.process());
+    }
+    catch( RuntimeException e)
+    {
+      SLog.exception( this, e);
+      throw e;
+    }
     
-    BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
-    while( blocking.process());
     return null;
   }
 }

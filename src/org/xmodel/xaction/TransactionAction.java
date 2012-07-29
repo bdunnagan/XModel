@@ -22,7 +22,7 @@ public class TransactionAction extends ScriptAction
   {
     super.configure( document);
     
-    var = Conventions.getVarName( document.getRoot(), true);
+    var = Conventions.getVarName( document.getRoot(), false);
     setExpr = document.getExpression( "set", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
@@ -33,6 +33,9 @@ public class TransactionAction extends ScriptAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    List<IModelObject> set = setExpr.evaluateNodes( context);
+    if ( set.size() == 0) return null;
+    
     GroupTransaction group = getTransaction( context);
     if ( group == null)
     {
@@ -40,7 +43,7 @@ public class TransactionAction extends ScriptAction
       setTransaction( context, group);
     }
     
-    for( IModelObject node: setExpr.evaluateNodes( context))
+    for( IModelObject node: set)
     {
       if ( !(node instanceof IExternalReference)) continue;
       
@@ -62,7 +65,16 @@ public class TransactionAction extends ScriptAction
       if ( group.state() == State.lock)
       {
         boolean result = group.commit();
-        context.getScope().set( var, result);
+        if ( var != null)
+        {
+          context.getScope().set( var, result);
+        }
+        else if ( !result)
+        {
+          throw new XActionException( String.format(
+            "Transaction commit failed for %s", setExpr
+            ));
+        }
       }
     }
     finally
