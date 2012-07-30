@@ -82,11 +82,13 @@ public class EntityTrigger extends AbstractTrigger
     public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
     {
       if ( touched.size() == 0) dispatch();
+      touched.addAll( nodes);
       for( IModelObject node: nodes) listener.install( node);
     }
     public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
     {
       if ( touched.size() == 0) dispatch();
+      touched.addAll( nodes);
       for( IModelObject node: nodes) listener.uninstall( node);
     }
   };
