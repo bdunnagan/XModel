@@ -59,6 +59,11 @@ public class ForAction extends GuardedAction
     Object when = config.removeAttribute( "when");
     script = document.createScript( "source");
     if ( when != null) config.setAttribute( "when", when);
+    
+    // hookup continue actions
+    for( IXAction action: script.getActions())
+      if ( action instanceof ContinueAction)
+        ((ContinueAction)action).setFor( this);
   }
 
   /* (non-Javadoc)
@@ -86,7 +91,8 @@ public class ForAction extends GuardedAction
         else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
         
         Object[] result = script.run( context);
-        if ( result != null) return result;
+        if ( result != null && !continued) return result;
+        if ( continued) continued = false;
       }
     }
     
@@ -102,7 +108,8 @@ public class ForAction extends GuardedAction
         {
           scope.set( var, i);
           Object[] result = script.run( context);
-          if ( result != null) return result;
+          if ( result != null && !continued) return result;
+          if ( continued) continued = false;
         }
       }
       else
@@ -111,12 +118,21 @@ public class ForAction extends GuardedAction
         {
           scope.set( var, i);
           Object[] result = script.run( context);
-          if ( result != null) return result;
+          if ( result != null && !continued) return result;
+          if ( continued) continued = false;
         }
       }
     }
     
     return null;
+  }
+  
+  /**
+   * Called from ContinueAction.
+   */
+  protected final void doContinue()
+  {
+    continued = true;
   }
 
   private String var;
@@ -125,4 +141,5 @@ public class ForAction extends GuardedAction
   private IExpression toExpr;
   private IExpression byExpr;
   private ScriptAction script;
+  private boolean continued;
 }

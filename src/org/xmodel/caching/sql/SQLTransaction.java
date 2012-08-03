@@ -53,24 +53,27 @@ public class SQLTransaction implements ITransaction
   @Override
   public void unlock()
   {
-    try
+    if ( connection != null)
     {
-      connection.setAutoCommit( false);
-      state = State.ready;
-    }
-    catch( SQLException e)
-    {
-      SLog.error( this, e.getMessage());
-      
-      throw new CachingException( String.format(
-          "Failed to restore database to auto commit mode: %s",
-          connection), e);
-    }
-    finally
-    {
-      cachingPolicy.getSQLProvider().releaseConnection( connection);
-      cachingPolicy.transactionComplete( this);
-      connection = null;
+      try
+      {
+        connection.setAutoCommit( false);
+        state = State.ready;
+      }
+      catch( SQLException e)
+      {
+        SLog.error( this, e.getMessage());
+        
+        throw new CachingException( String.format(
+            "Failed to restore database to auto commit mode: %s",
+            connection), e);
+      }
+      finally
+      {
+        cachingPolicy.getSQLProvider().releaseConnection( connection);
+        cachingPolicy.transactionComplete( this);
+        connection = null;
+      }
     }
   }
 

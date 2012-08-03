@@ -6,6 +6,8 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 
 /**
  * An implementation of Log.ISink that logs to a syslog host.
@@ -23,6 +25,17 @@ public final class SyslogSink implements ILogSink
     address = new InetSocketAddress( host, 514);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IModelObject config)
+  {
+    String host = Xlate.get( config, "host", Xlate.childGet( config, "host", "localhost"));
+    int port = Xlate.get( config, "port", Xlate.childGet( config, "port", 514));
+    address = new InetSocketAddress( host, port);
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */

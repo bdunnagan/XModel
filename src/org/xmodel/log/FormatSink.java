@@ -5,11 +5,15 @@ import java.util.Calendar;
 /**
  * An implementation of Log.ISink performs basic formatting and delegates logging.
  */
-public final class FormatSink implements ILogSink
+public final class FormatSink extends MultiSink
 {
-  public FormatSink( ILogSink delegate)
+  public FormatSink()
   {
-    this.delegate = delegate;
+  }
+  
+  public FormatSink( ILogSink... delegates)
+  {
+    super( delegates);
   }
 
   /* (non-Javadoc)
@@ -33,7 +37,7 @@ public final class FormatSink implements ILogSink
     
     sb.append( message);
     
-    delegate.log( log, level, sb.toString());
+    super.log( log, level, sb.toString());
   }
 
   /* (non-Javadoc)
@@ -85,7 +89,7 @@ public final class FormatSink implements ILogSink
       sb.append( '\n');
     }
     
-    delegate.log( log, level, sb.toString());
+    super.log( log, level, sb.toString());
   }
 
   /**
@@ -96,7 +100,7 @@ public final class FormatSink implements ILogSink
   private void formatDate( Calendar calendar, StringBuilder message)
   {
     int year = calendar.get( Calendar.YEAR) - 2000;
-    int month = calendar.get( Calendar.MONTH);
+    int month = calendar.get( Calendar.MONTH) + 1;
     int day = calendar.get( Calendar.DAY_OF_MONTH);
     
     int hour = calendar.get( Calendar.HOUR);
@@ -104,7 +108,27 @@ public final class FormatSink implements ILogSink
     int sec = calendar.get( Calendar.SECOND);
     int msec = calendar.get( Calendar.MILLISECOND);
     
-    message.append( String.format( "%02d-%02d-%02d %02d:%02d:%02d.%03d", month, day, year, hour, min, sec, msec));
+    if ( month < 10) message.append( '0');
+    message.append( Integer.toString( month)); message.append( '-');
+    
+    if ( day < 10) message.append( '0');
+    message.append( Integer.toString( day)); message.append( '-');
+    
+    if ( year < 10) message.append( '0');
+    message.append( Integer.toString( year)); message.append( ' ');
+    
+    if ( hour < 10) message.append( '0');
+    message.append( Integer.toString( hour)); message.append( ':');
+    
+    if ( min < 10) message.append( '0');
+    message.append( Integer.toString( min)); message.append( ':');
+    
+    if ( sec < 10) message.append( '0');
+    message.append( Integer.toString( sec)); message.append( '.');
+    
+    if ( msec < 10) message.append( "00");
+    else if ( msec < 100) message.append( '0');
+    message.append( Integer.toString( msec));
   }
   
   /**
@@ -130,6 +154,4 @@ public final class FormatSink implements ILogSink
 
     return className + "." + stack[ start].getMethodName();
   }
-  
-  private ILogSink delegate;
 }

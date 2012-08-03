@@ -1,10 +1,20 @@
 package org.xmodel.log;
 
+import org.xmodel.IModelObject;
+
 /**
  * An implementation of Log.ISink that logs to the console with a timestamp.
  */
 public final class ConsoleSink implements ILogSink
 {
+  /* (non-Javadoc)
+   * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IModelObject config)
+  {
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String)
    */

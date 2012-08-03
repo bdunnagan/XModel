@@ -47,6 +47,7 @@ public class BlockingDispatcher implements IDispatcher
   public void execute( Runnable runnable)
   {
     SLog.verbosef( this, "Enqueue runnable: %s", runnable.getClass().getSimpleName());
+    if ( !receiving) SLog.warn( this, "process() has not been called, yet.");
     try
     {
       if ( !shutdown.get()) queue.put( runnable);
@@ -78,6 +79,8 @@ public class BlockingDispatcher implements IDispatcher
    */
   public boolean process()
   {
+    receiving = true;
+    
     try
     {
       SLog.verbose( this, "Waiting for dequeue ...");
@@ -125,4 +128,5 @@ public class BlockingDispatcher implements IDispatcher
   private List<Runnable> dequeued;
   private AtomicBoolean shutdown;
   private boolean immediate;
+  private boolean receiving;
 }

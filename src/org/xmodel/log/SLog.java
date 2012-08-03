@@ -1,6 +1,5 @@
 package org.xmodel.log;
 
-
 /**
  * A class that provides static logging methods.
  */

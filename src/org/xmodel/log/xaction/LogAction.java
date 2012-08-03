@@ -3,7 +3,9 @@ package org.xmodel.log.xaction;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.log.ILogSink;
 import org.xmodel.log.Log;
+import org.xmodel.log.MultiSink;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
@@ -58,7 +60,10 @@ public class LogAction extends GuardedAction
     
     if ( messageExpr == null)
     {
-      Log.setLevel( logName, level);
+      Log log = Log.getLog( logName);
+      log.setLevel( level);
+      ILogSink sink = getSink();
+      if ( sink != null) log.setSink( sink);
     }
     else
     {
@@ -71,6 +76,19 @@ public class LogAction extends GuardedAction
     }
     
     return null;
+  }
+  
+  /**
+   * Returns null or a new ILogSink.
+   * @return Returns null or a new ILogSink.
+   */
+  private ILogSink getSink()
+  {
+    if ( document.getRoot().getChildren( "sink").size() == 0) return null;
+    
+    MultiSink sink = new MultiSink();
+    sink.configure( document.getRoot());
+    return sink;
   }
 
   private String logName;

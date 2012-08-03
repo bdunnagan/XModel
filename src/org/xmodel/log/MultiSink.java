@@ -1,10 +1,11 @@
 package org.xmodel.log;
 
+import org.xmodel.IModelObject;
 
 /**
  * An implementation of Log.ISink that logs to one or more delegate ISink instances.
  */
-public final class MultiSink implements ILogSink
+public class MultiSink implements ILogSink
 {
   /**
    * Create a MultiSink with the specified delegates.
@@ -15,6 +16,15 @@ public final class MultiSink implements ILogSink
     this.delegates = delegates;
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IModelObject config)
+  {
+    delegates = ConfigMonitor.configure( config);
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.log.Log.ISink#log(org.xmodel.log.Log, int, java.lang.String, java.lang.Throwable)
    */
@@ -48,5 +58,5 @@ public final class MultiSink implements ILogSink
         sink.log( log, level, throwable);
   }
   
-  private ILogSink[] delegates;
+  protected ILogSink[] delegates;
 }

@@ -56,12 +56,24 @@ public class TabularCompressor extends AbstractCompressor
 {
   public TabularCompressor()
   {
+    this( false);
+  }
+  
+  /**
+   * Create a TabularCompressor that optionally omits the tag table from the compressed output
+   * when no new tags have been added since the previous call to the <code>compress</code>
+   * method.
+   * @param progressive True if tag table can be omitted.
+   */
+  public TabularCompressor( boolean progressive)
+  {
     this.factory = new ModelObjectFactory();
     this.map = new LinkedHashMap<String, Integer>();
     this.table = new ArrayList<String>();
     this.predefined = false;
+    this.progressive = progressive;
   }
-
+  
   /**
    * Predefine the tag table. If the compressor does not encounter tags which are not defined
    * in the table then the table will not be written to the output. This is useful when all
@@ -127,7 +139,8 @@ public class TabularCompressor extends AbstractCompressor
       throw new CompressorException( e);
     }
     
-    predefined = true;
+    if ( progressive)
+      predefined = true;
   }
   
   /* (non-Javadoc)
@@ -354,7 +367,7 @@ public class TabularCompressor extends AbstractCompressor
       hash = hashIndex++;
       table.add( name);
       map.put( name, hash);
-      predefined = false;
+      if ( progressive) predefined = false;
     }
     writeValue( stream, hash);
   }
@@ -495,4 +508,5 @@ public class TabularCompressor extends AbstractCompressor
   private Map<String, Integer> map;
   private int hashIndex;
   private boolean predefined;
+  private boolean progressive;
 }

@@ -14,44 +14,73 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
+import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 
 /**
  * An implementation of Log.ISink that logs to rolling log files.
  */
 public final class FileSink implements ILogSink
 {
+  public FileSink()
+  {
+    this( null, "", 2, (long)1e6);
+  }
+  
   /**
    * Create a FileSink with the specified properties.
-   * @param path The path to the folder where the log files will be written.
-   * @param prefix The prefix for log files.
+   * @param logFolder The path to the folder where the log files will be written.
+   * @param filePrefix The prefix for log files.
    * @param count The maximum number of log files.
    * @param size The maximum size of a log file.
    */
-  public FileSink( String path, String prefix, int maxCount, long maxSize) throws IOException
+  public FileSink( String logFolder, String filePrefix, int maxFileCount, long maxFileSize)
   {
-    this.path = path;
-    this.prefix = (prefix != null)? prefix: "";
-    this.maxCount = maxCount;
-    this.maxSize = maxSize;
+    if ( logFolder == null)
+    {
+      logFolder = System.getProperty( "org.xmodel.log.FileSink.logFolder");
+      if ( logFolder == null) logFolder = "logs";
+    }
+    
+    this.logFolder = new File( logFolder).getAbsoluteFile();
+    this.filePrefix = filePrefix;
+    this.maxFileCount = maxFileCount;
+    this.maxFileSize = maxFileSize;
     this.queue = new LinkedBlockingQueue<String>();
     this.files = new ArrayList<String>();
-    
-    init();
-    start();
+    this.started = new AtomicBoolean( false);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IModelObject config)
+  {
+    logFolder = Xlate.get( config, "logFolder", Xlate.childGet( config, "logFolder", logFolder));
+    filePrefix = Xlate.get( config, "filePrefix", Xlate.childGet( config, "filePrefix", filePrefix));
+    maxFileCount = Xlate.get( config, "maxFileCount", Xlate.childGet( config, "maxFileCount", maxFileCount));
+    maxFileSize = Xlate.get( config, "maxFileSize", Xlate.childGet( config, "maxFileSize", maxFileSize));
+  }
+
+  /**
+   * Start the logging thread.
+   */
   public synchronized void start()
   {
+    init();
+    
     if ( thread != null) stop();
     
-    thread = new Thread( consumerRunnable, "Logging");
+    thread = new Thread( consumerRunnable, "File-Logging");
     thread.setDaemon( true);
     thread.start();
   }
   
   /**
-   * Stop the file sync thread.
+   * Stop the logging thread.
    */
   public synchronized void stop()
   {
@@ -65,6 +94,7 @@ public final class FileSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message)
   {
+    if ( !started.getAndSet( true)) start();
     queue.offer( (message != null)? message.toString(): "null");
   }
 
@@ -74,6 +104,7 @@ public final class FileSink implements ILogSink
   @Override
   public void log( Log log, int level, Throwable throwable)
   {
+    if ( !started.getAndSet( true)) start();
     queue.offer( throwable.toString());
   }
 
@@ -83,6 +114,7 @@ public final class FileSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message, Throwable throwable)
   {
+    if ( !started.getAndSet( true)) start();
     queue.offer( ((message != null)? message: "null") + "\n" + throwable);
   }
   
@@ -101,7 +133,7 @@ public final class FileSink implements ILogSink
         messages.clear();
         messages.add( queue.take());
         queue.drainTo( messages);
-        
+
         for( String message: messages)
         {
           message = message + "\n";
@@ -109,16 +141,37 @@ public final class FileSink implements ILogSink
           stream.write( bytes);
           
           size += bytes.length;
-          if ( size > maxSize) roll();
+          if ( size > maxFileSize) roll();
         }
         
         stream.flush();
       }
     }
-    catch( Exception e)
+    catch( InterruptedException e)
     {
       Thread.interrupted();
-      System.err.println( e.getMessage());
+      try
+      {
+        stream.write( "\n** Logging Thread Interrupted **\n".getBytes());
+        stream.flush();
+      }
+      catch( Exception e2)
+      {
+        System.err.println( e.getMessage());
+      }
+    }
+    catch( Exception e)
+    {
+      try
+      {
+        stream.write( "\n** Logging Thread Caught Exception **\n".getBytes());
+        stream.write( e.getMessage().getBytes());
+        stream.flush();
+      }
+      catch( Exception e2)
+      {
+        System.err.println( e.getMessage());
+      }
     }
   }
   
@@ -134,18 +187,17 @@ public final class FileSink implements ILogSink
       stream = null;
     }
 
-    File folder = new File( path);
-    if ( !folder.exists()) folder.mkdirs();
+    if ( !logFolder.exists()) logFolder.mkdirs();
     
-    String name = String.format( "%s%s.log", prefix, dateFormat.format( new Date()));
-    stream = new FileOutputStream( new File( folder, name));
+    String name = String.format( "%s%s.log", filePrefix, dateFormat.format( new Date()));
+    stream = new FileOutputStream( new File( logFolder, name));
 
     files.add( name);
     
-    int extra = files.size() - maxCount;
+    int extra = files.size() - maxFileCount;
     for( int i=0; i<extra; i++)
     {
-      File file = new File( path, files.get( 0));
+      File file = new File( logFolder, files.get( 0));
       files.remove( 0);
       file.delete();
       file = null;
@@ -155,19 +207,18 @@ public final class FileSink implements ILogSink
   /**
    * Initialize by loading the current log files and creating the first log.
    */
-  private void init() throws IOException
+  private void init()
   {
-    File folder = new File( path);
-    if ( folder.exists())
+    if ( logFolder.exists())
     {
       FilenameFilter filter = new FilenameFilter() {
         @Override public boolean accept( File folder, String name)
         {
-          return name.startsWith( prefix) && fileRegex.matcher( name.substring( prefix.length())).matches();
+          return name.startsWith( filePrefix) && fileRegex.matcher( name.substring( filePrefix.length())).matches();
         }
       };
       
-      for( String name: folder.list( filter))
+      for( String name: logFolder.list( filter))
         files.add( name);
       
       Collections.sort( files, lastModifiedComparator);
@@ -193,13 +244,14 @@ public final class FileSink implements ILogSink
   private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_HHmmss");
   private final static Pattern fileRegex = Pattern.compile( "^\\d{6}_\\d{6}\\.log$");
 
-  private String path;
-  private String prefix;
-  private int maxCount;
-  private long maxSize;
+  private File logFolder;
+  private String filePrefix;
+  private int maxFileCount;
+  private long maxFileSize;
   private long size;
   private List<String> files;
   private OutputStream stream;
   private BlockingQueue<String> queue;
   private Thread thread;
+  private AtomicBoolean started;
 }

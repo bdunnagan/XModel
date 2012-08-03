@@ -1,6 +1,5 @@
 package org.xmodel.log;
 
-
 /**
  * Yet another logging facility.
  */
@@ -138,17 +137,7 @@ public final class Log
   protected Log()
   {
     this.mask = problems | info;
-    this.sink = null;
-    
-    if ( fileSink == null)
-    {
-      consoleSink = new ConsoleSink();
-      try { fileSink = new FileSink( "logs", "", 2, (long)1e6);} catch( Exception e) {}
-      //try { syslogSink = new SyslogSink();} catch( Exception e) {}
-    }
-    
-    //sink = new FormatSink( new MultiSink( fileSink, consoleSink, syslogSink));
-    sink = new FormatSink( new MultiSink( fileSink, consoleSink));
+    this.sink = defaultSink;
   }
   
   protected Log( Log log)
@@ -476,10 +465,9 @@ public final class Log
   
   protected static PackageMap map = new PackageMap();
   
-  private static FileSink fileSink;
-  private static ConsoleSink consoleSink;
   @SuppressWarnings("unused")
-  private static SyslogSink syslogSink;
+  private static ConfigMonitor configMonitor = new ConfigMonitor();
+  private static ILogSink defaultSink = new FormatSink( new MultiSink( new ConsoleSink(), new FileSink()));
   
   private volatile int mask;
   private volatile ILogSink sink;
