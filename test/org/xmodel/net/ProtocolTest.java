@@ -2,14 +2,12 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,15 +34,16 @@ public class ProtocolTest
   
   @Before public void start() throws IOException
   {
-    server = new Server( host, port, timeout);
+    server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setDispatcher( new ImmediateDispatcher());
     server.start( false);
     
 //    Log.getLog( TcpBase.class).setLevel( Log.all);
-//    Log.getLog( Client.class).setLevel( Log.all);
-//    Log.getLog( Server.class).setLevel( Log.all);
 //    Log.getLog( Connection.class).setLevel( Log.all);
-//    Log.getLog( Protocol.class).setLevel( Log.all);
+    //Log.getLog( Client.class).setLevel( Log.all);
+    //Log.getLog( Server.class).setLevel( Log.all);
+    //Log.getLog( Protocol.class).setLevel( Log.all);
   }
   
   @After public void shutdown() throws IOException
@@ -189,7 +188,8 @@ public class ProtocolTest
     clients = new ArrayList<Client>();
     for( int i=0; i<count; i++)
     {
-      Client client = new Client( host, port, timeout, true);
+      Client client = new Client( host, port, true);
+      client.setPingTimeout( timeout);
       clients.add( client);
     }
   }

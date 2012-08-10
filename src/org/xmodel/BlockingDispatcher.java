@@ -21,12 +21,10 @@ package org.xmodel;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.xmodel.log.SLog;
-
+import org.xmodel.log.Log;
 
 /**
  * An implementation of IDispatcher which allows runnables to be executed in the current thread.
@@ -36,9 +34,9 @@ public class BlockingDispatcher implements IDispatcher
 {
   public BlockingDispatcher()
   {
-    queue = new ArrayBlockingQueue<Runnable>( 100);
+    queue = new LinkedBlockingQueue<Runnable>();
     dequeued = new ArrayList<Runnable>();
-    shutdown = new AtomicBoolean();
+    shutdown = 0;
   }
   
   /* (non-Javadoc)
@@ -46,14 +44,16 @@ public class BlockingDispatcher implements IDispatcher
    */
   public void execute( Runnable runnable)
   {
-    SLog.verbosef( this, "Enqueue runnable: %s", runnable.getClass().getSimpleName());
-    if ( !receiving) SLog.warn( this, "process() has not been called, yet.");
+    log.verbosef( "Enqueue runnable: %s", runnable.getClass().getSimpleName());
+    if ( !receiving) 
+      log.warn( "process() has not been called, yet.");
     try
     {
-      if ( !shutdown.get()) queue.put( runnable);
+      if ( shutdown == 0) queue.put( runnable);
     }
     catch( InterruptedException e)
     {
+      log.warnf( "Enqueue was interrupted for runnable, %s", runnable.getClass().getSimpleName());
     }
   }
   
@@ -63,12 +63,12 @@ public class BlockingDispatcher implements IDispatcher
   @Override
   public void shutdown( boolean immediate)
   {
-    this.immediate = immediate;
-    this.shutdown.set( true);
+    shutdown = immediate? 2: 1;
     
     queue.offer( new Runnable() {
       public void run()
       {
+        log.warn( "BlockingDispatcher has been shutdown.");
       }
     });
   }
@@ -83,50 +83,50 @@ public class BlockingDispatcher implements IDispatcher
     
     try
     {
-      SLog.verbose( this, "Waiting for dequeue ...");
-      Runnable first = queue.poll( 5, TimeUnit.SECONDS);
+      if ( shutdown > 0) return false;
       
-      if ( shutdown.get() && immediate)
-        return false;
+      log.verbose( "Waiting for dequeue ...");
+      Runnable first = queue.poll( 10, TimeUnit.SECONDS);
+      
+      if ( shutdown == 2) return false;
       
       if ( first != null)
       {
         dequeued.add( first);
         queue.drainTo( dequeued);
         
-        SLog.verbosef( this, "Dequeued %d runnables: ", dequeued.size());
+        log.verbosef( "Dequeued %d runnables: ", dequeued.size());
         for( Runnable runnable: dequeued)
         {
           if ( runnable != null) 
           {
-            SLog.verbosef( this, "Executing runnable: %s", runnable.getClass().getSimpleName());
+            log.verbosef( "Executing runnable: %s", runnable.getClass().getSimpleName());
             try
             {
               runnable.run();
             }
             catch( Exception e)
             {
-              SLog.exception( this, e);
+              log.exception( e);
             }
-            SLog.verbose( this, "Done.");
           }
         }
         
         dequeued.clear();
       }
-      
-      return true;
     }
     catch( InterruptedException e)
     {
-      shutdown( true);
-      return false;
+      Thread.interrupted();
     }
+    
+    return true;
   }
+
+  private static Log log = Log.getLog( BlockingDispatcher.class);
   
   private BlockingQueue<Runnable> queue;
   private List<Runnable> dequeued;
-  private AtomicBoolean shutdown;
-  private boolean immediate;
-  private boolean receiving;
+  private volatile boolean receiving;
+  private volatile int shutdown;
 }

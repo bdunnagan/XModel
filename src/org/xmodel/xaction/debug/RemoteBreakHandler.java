@@ -22,7 +22,7 @@ public class RemoteBreakHandler implements IBreakHandler
     try
     {
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
-      server = new Server( "localhost", port, Integer.MAX_VALUE);
+      server = new Server( "localhost", port);
       server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
       server.setServerContext( new StatefulContext());
       server.start( true);

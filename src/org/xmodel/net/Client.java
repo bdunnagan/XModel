@@ -1,13 +1,13 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import org.xmodel.log.SLog;
 import org.xmodel.net.stream.SSL;
 import org.xmodel.net.stream.TcpClient;
 
 /**
  * A class that implements the network caching policy protocol. 
- * This class is not thread-safe.
  */
 public class Client extends Protocol
 {
@@ -15,13 +15,10 @@ public class Client extends Protocol
    * Create a CachingClient to connect to the specified server.
    * @param host The server host.
    * @param port The server port.
-   * @param timeout The timeout for network operations in milliseconds.
    * @param daemon True if client thread should be a daemon thread.
    */
-  public Client( String host, int port, int timeout, boolean daemon) throws IOException
+  public Client( String host, int port, boolean daemon) throws IOException
   {
-    super( timeout);
-    
     synchronized( Client.class)
     {
       if ( client == null)
@@ -34,6 +31,7 @@ public class Client extends Protocol
     this.host = host;
     this.port = port;
     this.retries = 1;
+    this.pingTimeout = 30000;
   }
 
   /**
@@ -50,6 +48,15 @@ public class Client extends Protocol
   public int getPort()
   {
     return port;
+  }
+
+  /**
+   * Set the time to wait for a ping response before closing the connection.
+   * @param timeout The timeout in milliseconds.
+   */
+  public void setPingTimeout( int timeout)
+  {
+    pingTimeout = timeout;
   }
   
   /**
@@ -82,23 +89,18 @@ public class Client extends Protocol
     {
       SLog.debugf( this, "Opening connection to %s:%d, timeout=%d", host, port, timeout);
       link = client.connect( host, port, timeout, this);
+      if ( link != null) ping = new Ping( this, link, pingTimeout);
     }
     
     if ( link != null)
     {
       try
       {
-        SLog.debugf( this, "Opening session on %s:%d", host, port);
-        Session session = openSession( link);
-        
-        SLog.debugf( this, "Opened new session, %X", session.getID());
-        return session;
+        return openSession( link);
       }
-      catch( IOException e1)
+      catch( IOException e)
       {
-        SLog.warnf( this, "Open session failed, closing connection, will try again: %s", e1.getMessage());
-        link.close();
-        link = null;
+        SLog.exception( this, e);
       }
     }
 
@@ -114,11 +116,24 @@ public class Client extends Protocol
   {
     if ( isConnected()) 
     {
+      ping.stop();
+      ping = null;
+      
       link.close();
       link = null;
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.Protocol#onReceive(org.xmodel.net.ILink, java.nio.ByteBuffer)
+   */
+  @Override
+  public void onReceive( ILink link, ByteBuffer buffer)
+  {
+    if ( ping != null) ping.onMessageReceived();
+    super.onReceive( link, buffer);
+  }
+
   /**
    * @return Returns true if the client is connected.
    */
@@ -132,4 +147,6 @@ public class Client extends Protocol
   private int port;
   private int retries;
   private ILink link;
+  private volatile Ping ping;
+  private int pingTimeout;
 }

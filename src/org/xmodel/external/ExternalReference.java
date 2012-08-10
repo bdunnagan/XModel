@@ -73,8 +73,14 @@ public class ExternalReference extends ModelObject implements IExternalReference
     this.dirty = dirty;
     if ( wasDirty != dirty) 
     {
-      if ( dirty == true) clearCache();
       notifyDirty( dirty);
+
+      if ( dirty)
+      {
+        // resync immediately if reference has listeners
+        ModelListenerList listeners = getModelListeners();
+        if ( listeners != null && listeners.count() > 0) sync();
+      }
     }
   }
 

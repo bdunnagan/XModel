@@ -24,7 +24,7 @@ public class DebuggerTest
     
     StatefulContext context = new StatefulContext();
     
-    Server server = new Server( host, port, timeout);
+    Server server = new Server( host, port);
     server.setServerContext( context);
     server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 2)));
     server.start( false);
@@ -40,7 +40,7 @@ public class DebuggerTest
         "</script>"
     );
 
-    Client client = new Client( host, port, timeout, false);
+    Client client = new Client( host, port, false);
     Session session = client.connect( timeout);
     session.execute( new StatefulContext(), new String[ 0], script, 0);
     

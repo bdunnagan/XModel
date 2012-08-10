@@ -1,0 +1,21 @@
+<script>
+  <create var="list">
+    <list>
+      <item a="0">1</item>
+      <item a="0">2</item>
+      <item a="0">3</item>
+    </list>
+  </create>
+  
+  <createTrigger var="trigger" entity="$list/*">
+    <print>$changes[ parent::*]</print>
+  </createTrigger>
+  
+  <delete>$list/item</delete>
+  
+  <create parent="$list">
+    <item a="0">4</item>
+  </create>
+  
+  <eventLoop/>
+</script>

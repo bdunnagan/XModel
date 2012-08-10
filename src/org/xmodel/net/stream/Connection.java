@@ -89,13 +89,19 @@ public final class Connection implements ILink
   
   /**
    * Close this connection.
-   * @param nice True if the connection was closed nicely.
    */
-  public void close( boolean nice)
+  public void close()
   {
+    TcpBase.log.debugf( "Closing connection to %s:%d.", getAddress(), getPort());
+    
     try 
     {
-      if ( channel != null) channel.close();
+      if ( channel != null) 
+      {
+        channel.close();
+        channel = null;
+      }
+      
       semaphore.release();
     }
     catch( IOException e)
@@ -146,20 +152,6 @@ public final class Connection implements ILink
   {
     if ( listener != null)
       listener.onReceive( this, buffer);
-  }
-
-  /**
-   * Close this connection.
-   */
-  public void close()
-  {
-    if ( channel != null) 
-    {
-      TcpBase.log.debugf( "Closing connection to %s:%d.", getAddress(), getPort());
-      
-      try { channel.close();} catch( Exception e) {}
-      channel = null;
-    }
   }
 
   /* (non-Javadoc)

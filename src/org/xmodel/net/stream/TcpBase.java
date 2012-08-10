@@ -5,19 +5,23 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.ILink;
 
 /**
@@ -32,12 +36,14 @@ public abstract class TcpBase
   
   public TcpBase( ILink.IListener listener) throws IOException
   {
+    log.debugf( "New TcpBase[%X], listener=%s", hashCode(), (listener != null)? listener.getClass().getName(): null);
+    
     this.listener = listener;
     
     connections = Collections.synchronizedMap( new HashMap<Channel, Connection>());
     selector = SelectorProvider.provider().openSelector();
-    queue = new ConcurrentLinkedQueue<Request>();
-    pending = new HashMap<Channel, Request>();
+    queue = new LinkedBlockingQueue<Request>();
+    pendingWrites = new HashMap<Channel, List<ByteBuffer>>();
   }
 
   /**
@@ -56,6 +62,8 @@ public abstract class TcpBase
    */
   public synchronized void start( boolean daemon) throws IOException
   {
+    log.debugf( "TcpBase[%X].start: daemon=%s", hashCode(), daemon);
+    
     Runnable runnable = new Runnable() {
       public void run()
       {
@@ -74,6 +82,8 @@ public abstract class TcpBase
    */
   public synchronized void stop()
   {
+    log.debugf( "TcpBase[%X].stop", hashCode());
+    
     exit = true;
     selector.wakeup();
   }
@@ -98,12 +108,10 @@ public abstract class TcpBase
    */
   protected Connection connect( String host, int port, int timeout, ILink.IListener listener) throws IOException
   {
-    log.debugf( "Opening a connection to %s:%d, timeout=%d ...", host, port, timeout);
+    log.debugf( "TcpBase[%X].connect: address=%s:%d, timeout=%d", hashCode(), host, port, timeout);
     
     SocketChannel channel = SocketChannel.open();
     channel.configureBlocking( false);
-    channel.socket().setKeepAlive( true);
-    channel.socket().setTrafficClass( 0x04);
     
     channel.connect( new InetSocketAddress( host, port));
     Connection connection = createConnection( channel, listener);
@@ -119,7 +127,7 @@ public abstract class TcpBase
     {
       if ( !connection.waitForConnect( timeout)) 
       {
-        log.debug( "Timeout expired!");
+        log.debugf( "Connection timeout expired: timeout=%d", timeout);
         return null;
       }
     }
@@ -144,7 +152,7 @@ public abstract class TcpBase
   {
     if ( connection.isOpen()) connection.close();
     
-    log.debugf( "Reconnecting to %s:%d, timeout=%d ...", connection.getAddress(), connection.getPort(), timeout);
+    log.debugf( "TcpBase[%X].reconnect: address=%s:%d, timeout=%d", hashCode(), connection.getAddress(), connection.getPort(), timeout);
     
     Request request = new Request();
     request.channel = connection.getChannel();
@@ -157,7 +165,7 @@ public abstract class TcpBase
     {
       if ( !connection.waitForConnect( timeout))
       {
-        log.debug( "Timeout expired!");
+        log.debugf( "Connection timeout expired: timeout=%d", timeout);
         return false;
       }
     }
@@ -179,6 +187,8 @@ public abstract class TcpBase
    */
   void write( SocketChannel channel, byte[] bytes)
   {
+    log.verbosef( "TcpBase[%X] write enqueue: %d bytes", hashCode(), bytes.length);
+    
     ByteBuffer clone = ByteBuffer.allocate( bytes.length);
     clone.put( bytes);
     clone.flip();
@@ -198,6 +208,8 @@ public abstract class TcpBase
    */
   void write( SocketChannel channel, ByteBuffer buffer)
   {
+    log.verbosef( "TcpBase[%X] write enqueue: %d bytes", hashCode(), buffer.remaining());
+    
     Request request = new Request();
     request.channel = channel;
     request.buffer = buffer;
@@ -212,8 +224,17 @@ public abstract class TcpBase
    */
   private void enqueue( Request request)
   {
-    queue.offer( request);
-    selector.wakeup();
+    try
+    {
+      //System.out.println( "->Q");
+      queue.put( request);
+      selector.wakeup();
+    }
+    catch( InterruptedException e)
+    {
+      Thread.interrupted();
+      SLog.exception( this, e);
+    }
   }
   
   /**
@@ -224,6 +245,8 @@ public abstract class TcpBase
    */
   protected Connection createConnection( SocketChannel channel, ILink.IListener listener) throws IOException
   {
+    log.debugf( "TcpBase[%X].createConnection: %s", hashCode(), (listener != null)? listener.getClass().getName(): null);
+    
     Connection connection = new Connection( this, channel, listener);
     connections.put( connection.getChannel(), connection);
     return connection;
@@ -235,21 +258,19 @@ public abstract class TcpBase
    */
   private void connect( SelectionKey key) throws IOException
   {
-    Request request = pending.remove( key.channel());
-    if ( request != null)
+    log.debugf( "TcpBase[%X].connect: key=%s", hashCode(), toLog( key));
+    
+    SocketChannel channel = (SocketChannel)key.channel();
+    Connection connection = getConnection( channel);
+    try
     {
-      SocketChannel channel = (SocketChannel)key.channel();
-      Connection connection = getConnection( channel);
-      try
-      {
-        channel.finishConnect();
-        channel.register( selector, SelectionKey.OP_READ);
-        connection.connected( channel);
-      }
-      catch( IOException e)
-      {
-        connection.close( false);
-      }
+      channel.finishConnect();
+      channel.register( selector, SelectionKey.OP_READ);
+      connection.connected( channel);
+    }
+    catch( IOException e)
+    {
+      connection.close();
     }
   }
   
@@ -265,7 +286,7 @@ public abstract class TcpBase
     connection.getChannel().register( selector, SelectionKey.OP_READ);
     
     InetSocketAddress local = (InetSocketAddress)connection.getChannel().socket().getLocalSocketAddress();
-    log.debugf( "Accepted incoming connection from %s:%d.", local.getAddress().getHostAddress(), local.getPort());
+    log.debugf( "TcpBase[%X].accept: key=%s, address=%s:%d.", hashCode(), toLog( key), local.getAddress().getHostAddress(), local.getPort());
   }
   
   /**
@@ -274,6 +295,8 @@ public abstract class TcpBase
    */
   protected void read( SelectionKey key) throws IOException
   {
+    log.verbosef( "TcpBase[%X].read: key=%s", hashCode(), toLog( key));
+    
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = connections.get( channel);
     try
@@ -289,8 +312,9 @@ public abstract class TcpBase
       else
       {
         nread = channel.read( connection.buffer);
-        //log.debugf( ">>  %s", Util.dump( buffer, ""));
       }
+
+      log.verbosef( "Read %d bytes", nread);
       
       if ( nread > 0)
       {
@@ -343,33 +367,42 @@ public abstract class TcpBase
    */
   protected void write( SelectionKey key) throws IOException
   {
-    Request request = pending.get( key.channel());
-    if ( request != null)
+    log.verbosef( "TcpBase[%X].write: key=%s", hashCode(), toLog( key));
+    
+    SocketChannel channel = (SocketChannel)key.channel();
+    List<ByteBuffer> buffers = pendingWrites.get( channel);
+    if ( buffers.size() == 0)
     {
-      //log.debugf( "WRITE\n%s\n", Util.dump( request.buffer));
-      //int n = request.buffer.remaining();
-      //int wrote = request.channel.write( request.buffer);
-      //log.infof( "wrote: %d - %d = %d", n, wrote, request.buffer.remaining());
+      // this should never happen
+      channel.register( selector, SelectionKey.OP_READ);
+      return;
+    }
+    
+    ByteBuffer buffer = buffers.get( 0);
+    while( buffer != null)
+    {
+      int length = buffer.remaining();
       
       if ( ssl != null)
       {
-        ssl.write( request.channel, request.buffer);
+        ssl.write( channel, buffer);
       }
       else
       {
-        request.channel.write( request.buffer);
+        channel.write( buffer);
       }
+  
+      log.verbosef( "Wrote %d bytes, %d remaining", length - buffer.remaining(), buffer.remaining());
       
-      if ( request.buffer.remaining() == 0)
+      if ( buffer.remaining() == 0)
       {
-        pending.remove( key.channel());
-      
-        // disable write events if queue is empty or next request is for a different channel
-        request = queue.peek();
-        if ( request == null || request.channel != key.channel())
-        {
-          key.channel().register( selector, SelectionKey.OP_READ);
-        }
+        buffers.remove( 0);
+        buffer = (buffers.size() > 0)? buffers.get( 0): null;
+        if ( buffer == null) channel.register( selector, SelectionKey.OP_READ);
+      }
+      else
+      {
+        break;
       }
     }
   }
@@ -380,10 +413,48 @@ public abstract class TcpBase
    */
   private void close( SelectionKey key)
   {
+    log.debugf( "TcpBase[%X].close: key=%s", hashCode(), toLog( key));
+    
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = connections.remove( channel);
-    if ( connection != null) connection.close( false);
+    if ( connection != null) connection.close();
     key.cancel();
+  }
+  
+  /**
+   * Summarize the state of the specified key.
+   * @param key The key.
+   * @return Returns the summary.
+   */
+  private static String toLog( SelectionKey key)
+  {
+    if ( log.isLevelEnabled( Log.debug | Log.verbose))
+    {
+      StringBuilder sb = new StringBuilder();
+      if ( key.isAcceptable()) sb.append( 'A');
+      if ( key.isConnectable()) sb.append( 'C');
+      if ( key.isReadable()) sb.append( 'R');
+      if ( key.isWritable()) sb.append( 'W');
+      if ( key.isValid()) sb.append( 'V');
+      return sb.toString();
+    }
+    return null;
+  }
+  
+  /**
+   * Add a write buffer to the pending buffers for the specified channel.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  private void addWriteBuffer( Channel channel, ByteBuffer buffer)
+  {
+    List<ByteBuffer> buffers = pendingWrites.get( channel);
+    if ( buffers == null)
+    {
+      buffers = new ArrayList<ByteBuffer>();
+      pendingWrites.put( channel, buffers);
+    }
+    buffers.add( buffer);
   }
   
   /* (non-Javadoc)
@@ -391,6 +462,8 @@ public abstract class TcpBase
    */
   protected boolean process( int timeout) throws IOException
   {
+    log.debugf( "TcpBase[%X].process: timeout=%s", hashCode(), timeout);
+    
     // wait for connection
     if ( selector.select( timeout) == 0) return false; 
       
@@ -403,6 +476,8 @@ public abstract class TcpBase
       
       if ( !readyKey.isValid()) continue;
       
+      log.verbosef( "Ready key: %s", toLog( readyKey));
+      
       try
       {
         if ( readyKey.isReadable()) read( readyKey);
@@ -412,11 +487,12 @@ public abstract class TcpBase
       }
       catch( IOException e)
       {
-        log.verbose( e.getMessage());
+        readyKey.cancel();
+        log.error( e.getMessage());
       }
       catch( CancelledKeyException e)
       {
-        log.verbose( e.getMessage());
+        log.warn( e.getMessage());
       }
     }
     
@@ -425,41 +501,68 @@ public abstract class TcpBase
     
   private void thread()
   {
+    log.debugf( "TcpBase[%X].thread", hashCode());
+    
     exit = false;
     while( !exit)
     {
       try
       {
         // process socket events
+        //System.out.printf( "SLEEP: %d\n", queue.size());
         process( 0);
+        //System.out.println( "AWAKE");
         
         // handle requests
-        Request request = queue.peek();
-        if ( request != null) 
+        Request first = queue.poll();
+        if ( first != null)
         {
-          if ( !pending.containsKey( request.channel))
+          List<Request> requests = new ArrayList<Request>();
+          requests.add( first);
+          queue.drainTo( requests);
+          
+          for( Request request: requests)
           {
-            queue.remove();
             try
             {
-              pending.put( request.channel, request);
               if ( request.channel != null)
               {
-                request.channel.register( selector, request.ops);
+                SelectionKey key = request.channel.keyFor( selector);
+                int ops = (key != null)? key.interestOps(): 0;
+                request.channel.register( selector, ops | request.ops);
+              }
+              
+              if ( request.buffer != null)
+              {
+                addWriteBuffer( request.channel, request.buffer);
               }
             }
             catch( CancelledKeyException e)
             {
-              pending.remove( request.channel);
+              log.exception( e);
+            }
+            catch( ClosedChannelException e)
+            {
               log.exception( e);
             }
           }
         }
       }
-      catch( IOException e)
+      catch( Exception e)
       {
+        log.errorf( "TcpBase may be corrupted by the following exception: ");
         log.exception( e);
-        break;
+        
+        try 
+        { 
+          Thread.sleep( 500);
+        }
+        catch( InterruptedException e2)
+        {
+          log.warn( "TcpBase was interrupted - exitting processing loop.");
+          Thread.interrupted();
+          break;
+        }
       }
     }
   }
@@ -477,9 +580,9 @@ public abstract class TcpBase
   private ILink.IListener listener;
   protected Selector selector;
   private Map<Channel, Connection> connections;
-  private Queue<Request> queue;
-  private Map<Channel, Request> pending;
+  private BlockingQueue<Request> queue;
+  private Map<Channel, List<ByteBuffer>> pendingWrites;
   private SSL ssl;
   private Thread thread;
-  private boolean exit;
+  private volatile boolean exit;
 }

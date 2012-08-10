@@ -103,7 +103,7 @@ public final class FormatSink extends MultiSink
     int month = calendar.get( Calendar.MONTH) + 1;
     int day = calendar.get( Calendar.DAY_OF_MONTH);
     
-    int hour = calendar.get( Calendar.HOUR);
+    int hour = calendar.get( Calendar.HOUR_OF_DAY);
     int min = calendar.get( Calendar.MINUTE);
     int sec = calendar.get( Calendar.SECOND);
     int msec = calendar.get( Calendar.MILLISECOND);

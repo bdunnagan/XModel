@@ -1,6 +1,8 @@
 package org.xmodel.log;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -15,7 +17,10 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 
@@ -26,21 +31,23 @@ public final class FileSink implements ILogSink
 {
   public FileSink()
   {
-    this( null, "", 2, (long)1e6);
+    this( null, "", 0, (long)10e6, 0, (long)100e6);
   }
   
   /**
    * Create a FileSink with the specified properties.
    * @param logFolder The path to the folder where the log files will be written.
    * @param filePrefix The prefix for log files.
-   * @param count The maximum number of log files.
-   * @param size The maximum size of a log file.
+   * @param maxFileCount The maximum number of log files.
+   * @param maxFileSize The maximum size of a log file.
+   * @param maxFileAge The maximum age of a log file.
+   * @param maxFolderSize The maximum size of the log folder.
    */
-  public FileSink( String logFolder, String filePrefix, int maxFileCount, long maxFileSize)
+  public FileSink( String logFolder, String filePrefix, int maxFileCount, long maxFileSize, long maxFileAge, long maxFolderSize)
   {
     if ( logFolder == null)
     {
-      logFolder = System.getProperty( "org.xmodel.log.FileSink.logFolder");
+      logFolder = System.getProperty( "org.xmodel.log.folder");
       if ( logFolder == null) logFolder = "logs";
     }
     
@@ -48,6 +55,8 @@ public final class FileSink implements ILogSink
     this.filePrefix = filePrefix;
     this.maxFileCount = maxFileCount;
     this.maxFileSize = maxFileSize;
+    this.maxFileAge = maxFileAge;
+    this.maxFolderSize = maxFolderSize;
     this.queue = new LinkedBlockingQueue<String>();
     this.files = new ArrayList<String>();
     this.started = new AtomicBoolean( false);
@@ -140,8 +149,8 @@ public final class FileSink implements ILogSink
           byte[] bytes = message.getBytes();
           stream.write( bytes);
           
-          size += bytes.length;
-          if ( size > maxFileSize) roll();
+          currentFileSize += bytes.length;
+          if ( currentFileSize > maxFileSize) roll();
         }
         
         stream.flush();
@@ -182,26 +191,19 @@ public final class FileSink implements ILogSink
   {
     if ( stream != null)
     {
-      size = 0;
+      currentFileSize = 0;
       stream.close();
       stream = null;
+      
+      compress();
+      enforceLimits();
     }
 
     if ( !logFolder.exists()) logFolder.mkdirs();
     
-    String name = String.format( "%s%s.log", filePrefix, dateFormat.format( new Date()));
+    String name = String.format( "%s%s_%s.log", filePrefix, Integer.toString( counter++, 36).toUpperCase(), dateFormat.format( new Date()));
     stream = new FileOutputStream( new File( logFolder, name));
-
     files.add( name);
-    
-    int extra = files.size() - maxFileCount;
-    for( int i=0; i<extra; i++)
-    {
-      File file = new File( logFolder, files.get( 0));
-      files.remove( 0);
-      file.delete();
-      file = null;
-    }
   }
   
   /**
@@ -217,14 +219,118 @@ public final class FileSink implements ILogSink
           return name.startsWith( filePrefix) && fileRegex.matcher( name.substring( filePrefix.length())).matches();
         }
       };
-      
+
+      counter = 0;
       for( String name: logFolder.list( filter))
+      {
         files.add( name);
+
+        Matcher matcher = runRegex.matcher( name);
+        if ( matcher.find( filePrefix.length()))
+          counter = Integer.parseInt( matcher.group( 1));
+      }
       
       Collections.sort( files, lastModifiedComparator);
+      
+      compress();
     }
   }
 
+  /**
+   * Compress the specified log file.
+   * @param file The log file.
+   */
+  private void compress()
+  {
+    for( int i=0; i<files.size(); i++)
+    {
+      String name = files.get( i);
+      String compressedName = name + ".zip";
+      if ( name.endsWith( ".zip")) continue;
+      
+      File file = new File( logFolder, name);
+      try
+      {
+        FileInputStream in = new FileInputStream( file);
+        BufferedInputStream fin = new BufferedInputStream( in);
+        File zipFile = new File( logFolder, compressedName);
+        FileOutputStream fout = new FileOutputStream( zipFile);
+        ZipOutputStream out = new ZipOutputStream( fout);
+        
+        ZipEntry entry = new ZipEntry( file.getName());
+        entry.setTime( file.lastModified());
+        out.putNextEntry( entry);
+        
+        byte[] buffer = new byte[ 4096];
+        int read = fin.read( buffer);
+        while( read >= 0)
+        {
+          out.write( buffer, 0, read);
+          read = fin.read( buffer);
+        }
+    
+        out.closeEntry();
+        out.flush();
+        out.close();
+        fin.close();
+        in.close();
+        
+        entry = null; out = null; fout = null; zipFile = null; fin = null; out = null; in = null;
+        System.gc();
+        
+        files.set( i, compressedName);
+        file.delete();
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
+      }
+    }
+  }
+  
+  /**
+   * Enforce the maximum file age, and maximum log folder size limits.
+   */
+  private void enforceLimits()
+  {
+    long now = System.currentTimeMillis();
+    long oldestFileDate = now - maxFileAge;
+
+    long folderSize = getFolderSize();
+    
+    for( int i=0; i<files.size(); i++)
+    {
+      File file = new File( logFolder, files.get( i));
+      long modified = file.lastModified();
+
+      boolean delete = 
+        (maxFileAge > 0 && oldestFileDate > modified) || 
+        (maxFolderSize > 0 && maxFolderSize < folderSize) ||
+        (maxFileCount > 0 && maxFileCount < files.size());
+
+      if ( delete)
+      {
+        folderSize -= file.length();
+        files.remove( i--);
+        file.delete();
+      }
+    }
+  }
+  
+  /**
+   * @return Returns the size of the content of the log folder.
+   */
+  private long getFolderSize()
+  {
+    int folderSize = 0;
+    for( int i=0; i<files.size(); i++)
+    {
+      File file = new File( logFolder, files.get( i));
+      folderSize += file.length();
+    }
+    return folderSize;
+  }
+  
   private Runnable consumerRunnable = new Runnable() {
     public void run()
     {
@@ -242,13 +348,17 @@ public final class FileSink implements ILogSink
   };
 
   private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_HHmmss");
-  private final static Pattern fileRegex = Pattern.compile( "^\\d{6}_\\d{6}\\.log$");
+  private final static Pattern fileRegex = Pattern.compile( ".*\\d{6}_\\d{6}\\.log(\\.zip)?$");
+  private final static Pattern runRegex = Pattern.compile( "(\\d++)_");
 
   private File logFolder;
   private String filePrefix;
   private int maxFileCount;
   private long maxFileSize;
-  private long size;
+  private long maxFolderSize;
+  private long maxFileAge;
+  private long currentFileSize;
+  private int counter;
   private List<String> files;
   private OutputStream stream;
   private BlockingQueue<String> queue;

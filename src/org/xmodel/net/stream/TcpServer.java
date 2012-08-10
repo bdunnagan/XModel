@@ -92,7 +92,7 @@ public final class TcpServer extends TcpBase
     serverChannel = null;
   }
 
-  private final static Log log = Log.getLog( "org.xmodel.net.stream");
+  private final static Log log = Log.getLog( TcpServer.class);
 
   private InetSocketAddress address;
   private ServerSocketChannel serverChannel;

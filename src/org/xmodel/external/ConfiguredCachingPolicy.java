@@ -102,7 +102,7 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
       try
       {
         syncImpl( reference);
-        onSync( reference);
+        if ( onSync != null) onSync( reference);
       }
       catch( CachingException e)
       {

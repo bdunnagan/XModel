@@ -49,7 +49,8 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   {
     try
     {
-      protocol.sendSyncRequest( link, session, key, reference);
+      // TODO: this needs to use the same timeout as root
+      protocol.sendSyncRequest( link, session, Integer.MAX_VALUE, key, reference);
     }
     catch( IOException e)
     {

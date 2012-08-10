@@ -1,8 +1,6 @@
 package org.xmodel.net;
 
-import java.io.IOException;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -74,19 +72,10 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
-    String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
-    int port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", Server.defaultPort));
-    timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", reconnectDelay));
+    host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
+    port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", Server.defaultPort));
+    timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30000));
     
-    try
-    {
-      client = new Client( host, port, timeout, true);
-    }
-    catch( IOException e)
-    {
-      throw new CachingException( "Problem creating client.", e);
-    }
-
     pubsub = Xlate.get( annotation, "mode", Xlate.childGet( annotation, "mode", "mirror")).equals( "pubsub");
     query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
     validate( query);
@@ -104,33 +93,24 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       if ( query == null) throw new CachingException( "Query not defined.");
     }
     
-    Session session = null;
-    while( session == null)
-    {
-      try 
-      { 
-        session = client.connect( timeout);
-        break;
-      } 
-      catch( Exception e) 
-      { 
-        SLog.error( this, e.getMessage());
-      }
-      
-      try { Thread.sleep( reconnectDelay);} catch( InterruptedException e) { break;}
-    }
+    SLog.debugf( this, "sync: %s:%d, %s", host, port, reference);
     
-    if ( session != null) 
+    if ( client != null && client.isConnected())
+      try { client.disconnect();} catch( Exception e) {}
+    
+    try
     {
-      try
-      {
-        session.attach( query, pubsub, reference);
-      }
-      catch( IOException e)
-      {
-        throw new CachingException( String.format( 
-          "Unable to attach to xpath, %s.", query), e);
-      }
+      client = new Client( host, port, true);
+      client.setDispatcher( reference.getModel().getDispatcher());
+      client.setPingTimeout( timeout);
+      
+      Session session = client.connect( timeout);
+      if ( session != null) session.attach( timeout, query, pubsub, reference);
+    }
+    catch( Exception e)
+    {
+      throw new CachingException( String.format( 
+          "Unable to attach to xpath, '%s'", query), e);
     }
   }
 
@@ -151,9 +131,9 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private final static int reconnectDelay = 1000;
-  
   private Client client;
+  private String host;
+  private int port;
   private boolean pubsub;
   private String query;
   private int timeout;

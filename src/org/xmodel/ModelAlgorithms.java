@@ -985,6 +985,23 @@ public class ModelAlgorithms implements IAxis
   }
 
   /**
+   * Create a slave clone of the specified master object.  The slave clone can be used in another thread
+   * and it will be kept synchronized with the master via its thread dispatcher.
+   * @see org.xmodel.concurrent.MasterSlaveListener
+   * @param master The master.
+   * @return Returns the slave clone, or null if the argument is null.
+   */
+  public static IModelObject createSlaveClone( IModelObject master)
+  {
+    if ( master == null) return null;
+    
+    IModelObject slave = master.cloneTree();
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    masterListener.install( master);
+    return slave;
+  }
+
+  /**
    * An IModelObjectFactory which clones ExternalReferences or delegates to another factory.
    */
   private static class ReferenceFactory extends ModelObjectFactory

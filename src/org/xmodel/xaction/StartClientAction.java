@@ -65,7 +65,8 @@ public class StartClientAction extends GuardedAction
       IModelObject clientContextNode = (contextExpr != null)? contextExpr.queryFirst( context): null;
       IContext clientContext = (clientContextNode != null)? new StatefulContext( context.getScope(), clientContextNode): context;
       
-      Client client = new Client( host, port, timeout, daemon);
+      Client client = new Client( host, port, daemon);
+      client.setPingTimeout( timeout);
       client.setServerContext( clientContext);
     }
     catch( IOException e)

@@ -26,7 +26,6 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.ModelRegistry;
 import org.xmodel.diff.IXmlDiffer;
@@ -286,39 +285,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   public void clear( IExternalReference reference) throws CachingException
   {
     if ( reference.isDirty()) return;
-    
-    // mark all next stages not-dirty
     markCleanNextStages( reference);
-    
-    // resync immediately if reference has listeners
-    ModelListenerList listeners = reference.getModelListeners();
-    if ( listeners != null && listeners.count() > 0)
-    {
-      // HACK: this is only necessary until proper reference diffing is implemented
-      reference.removeChildren();
-      
-//System.out.println( "Resyncing: "+reference);
-      // sync
-      sync( reference);
-      
-      // mark next stages dirty (only necessary if children are not removed - see above)
-      //markNextStages( reference);
-    }
-    
-    // remove children and set reference dirty
-    else
-    {
-//System.out.println( "Clearing: "+reference);
-      
-      // removing children here is a fundamental semantic and has two major interactions:
-      //   1. It enables the ICache to manage the space in the cache using this method.
-      //   2. It causes FanoutListener to remove its listeners.
-      //
-      reference.removeChildren();
-
-      // set dirty
-      reference.setDirty( true);
-    }
+    reference.removeChildren();
   }
 
   /* (non-Javadoc)

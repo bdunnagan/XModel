@@ -153,7 +153,8 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote on %s:%d, %s ...", host, port, getScriptDescription( context));
       }
 
-      client = new Client( host, port, timeout, false);
+      client = new Client( host, port, false);
+      client.setPingTimeout( timeout);
       Session session = client.connect( timeout);
       
       // execute synchronously unless one of the async callback scripts exists

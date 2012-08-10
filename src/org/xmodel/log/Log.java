@@ -464,10 +464,10 @@ public final class Log
   }
   
   protected static PackageMap map = new PackageMap();
+  private static ILogSink defaultSink = new FormatSink( new MultiSink( new ConsoleSink(), new FileSink()));
   
   @SuppressWarnings("unused")
   private static ConfigMonitor configMonitor = new ConfigMonitor();
-  private static ILogSink defaultSink = new FormatSink( new MultiSink( new ConsoleSink(), new FileSink()));
   
   private volatile int mask;
   private volatile ILogSink sink;

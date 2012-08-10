@@ -22,7 +22,7 @@ public final class ConfigMonitor implements Runnable
    */
   public ConfigMonitor()
   {
-    period = 5000;
+    period = 10000;
     
     String path = System.getProperty( "org.xmodel.log.config");
     if ( path == null) path = "logging.xml";

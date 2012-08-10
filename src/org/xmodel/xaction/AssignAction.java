@@ -48,15 +48,22 @@ public class AssignAction extends GuardedAction
     
     IModelObject config = document.getRoot();
     var = Conventions.getVarName( config, true, "name");
-    
-    sourceExpr = document.getExpression();
-    if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
+
+    if ( config.getNumberOfChildren() > 0)
+    {
+      inlines = config.getChildren();
+    }
+    else
+    {
+      sourceExpr = document.getExpression();
+      if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
+    }
     
     // load IModelObjectFactory class
     factory = Conventions.getFactory( config);
 
     // flags
-    mode = Xlate.get( config, "mode", "direct");
+    mode = Xlate.get( config, "mode", "assign");
     append = Xlate.get( config, "append", false);
     replace = Xlate.get( config, "replace", false);
     define = Xlate.get( config, "define", false);
@@ -75,7 +82,11 @@ public class AssignAction extends GuardedAction
     IVariableScope scope = findScope( var, context, replace);
     if ( scope == null) return null;
 
-    if ( sourceExpr == null)
+    if ( inlines != null)
+    {
+      scope.set( var, inlines);
+    }
+    else if ( sourceExpr == null)
     {
       scope.set( var, context.getObject());
     }
@@ -90,7 +101,7 @@ public class AssignAction extends GuardedAction
         case NODES:   
         {
           List<IModelObject> sources = sourceExpr.evaluateNodes( context);
-          if ( mode.equals( "direct"))
+          if ( mode.equals( "assign"))
           {
             setVariable( scope, sources);
           }
@@ -127,6 +138,12 @@ public class AssignAction extends GuardedAction
               fks.add( fk);
             }
             setVariable( scope, fks);
+          }
+          else if ( mode.equals( "slave"))
+          {
+            List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
+            for( IModelObject source: sources) clones.add( ModelAlgorithms.createSlaveClone( source));
+            setVariable( scope, clones);
           }
         }
         break;
@@ -192,4 +209,5 @@ public class AssignAction extends GuardedAction
   private boolean define;
   private IModelObjectFactory factory;
   private IExpression sourceExpr;
+  private List<IModelObject> inlines;
 }

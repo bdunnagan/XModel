@@ -28,13 +28,14 @@ public final class Session
   
   /**
    * Attach to the element on the specified xpath.
+   * @param timeout The timeout in milliseconds.
    * @param pubsub True for publish/subscribe mode.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( String xpath, boolean pubsub, IExternalReference reference) throws IOException
+  public void attach( int timeout, String xpath, boolean pubsub, IExternalReference reference) throws IOException
   {
-    protocol.attach( link, session, pubsub, xpath, reference);
+    protocol.attach( link, session, timeout, pubsub, xpath, reference);
   }
   
   /**

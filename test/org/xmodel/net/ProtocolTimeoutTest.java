@@ -3,6 +3,7 @@ package org.xmodel.net;
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.concurrent.Executors;
+import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
@@ -23,6 +24,15 @@ public class ProtocolTimeoutTest
   public final static int timeout = 10000;
   public final static int connectLoops = 3;
 
+  @Before public void start() throws IOException
+  {
+//    Log.getLog( TcpBase.class).setLevel( Log.all);
+//    Log.getLog( Connection.class).setLevel( Log.all);
+//    Log.getLog( Client.class).setLevel( Log.all);
+//    Log.getLog( Server.class).setLevel( Log.all);
+//    Log.getLog( Protocol.class).setLevel( Log.all);
+  }
+  
   @Test public void connectTimeoutTest() throws Exception
   {
     for( int i=0; i<connectLoops; i++)
@@ -32,7 +42,8 @@ public class ProtocolTimeoutTest
       
       try
       {
-        Client client = new Client( host, port, timeout, true);
+        Client client = new Client( host, port, true);
+        client.setPingTimeout( timeout);
         Session session = client.connect( 100, 0);
         assertTrue( "Test-case error: connection was established.", session == null);
       }
@@ -47,13 +58,15 @@ public class ProtocolTimeoutTest
   
   @Test public void executeTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port, timeout);
+    Server server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
     server.start( false);
 
     for( int i=0; i<3; i++)
     {
-      Client client = new Client( host, port, timeout, true);
+      Client client = new Client( host, port, true);
+      client.setPingTimeout( timeout);
       Session session = client.connect( timeout, 0);
   
       Stopwatch sw = new Stopwatch();
@@ -80,13 +93,13 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteSuccessTest() throws Exception
   {
-    Server server = new Server( host, port, timeout);
+    Server server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
     server.start( false);
 
-    Client client = new Client( host, port, timeout, true);
-    BlockingDispatcher dispatcher = new BlockingDispatcher();
-    client.setDispatcher( dispatcher);
+    Client client = new Client( host, port, true);
+    client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
@@ -101,6 +114,7 @@ public class ProtocolTimeoutTest
       Callback callback = new Callback( onComplete, onSuccess, onError);
       session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
   
+      BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
       dispatcher.process();
       
       assertTrue( "Incorrect result string.", context.get( "result").equals( "June 23, 1912"));
@@ -115,13 +129,13 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteErrorTest() throws Exception
   {
-    Server server = new Server( host, port, timeout);
+    Server server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
     server.start( false);
 
-    Client client = new Client( host, port, timeout, true);
-    BlockingDispatcher dispatcher = new BlockingDispatcher();
-    client.setDispatcher( dispatcher);
+    Client client = new Client( host, port, true);
+    client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
@@ -136,6 +150,7 @@ public class ProtocolTimeoutTest
       Callback callback = new Callback( onComplete, onSuccess, onError);
       session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
   
+      BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
       dispatcher.process();
       
       assertTrue( "Result should not have been set.", context.get( "result") == null);
@@ -152,13 +167,13 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port, timeout);
+    Server server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
     server.start( false);
 
-    Client client = new Client( host, port, timeout, true);
-    BlockingDispatcher dispatcher = new BlockingDispatcher();
-    client.setDispatcher( dispatcher);
+    Client client = new Client( host, port, true);
+    client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
@@ -174,6 +189,7 @@ public class ProtocolTimeoutTest
       session.execute( context, new String[ 0], script, callback, 1);
   
       try { Thread.sleep( 500);} catch( Exception e) {}
+      BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
       dispatcher.process();
       
       assertTrue( "Result should not have been set.", context.get( "result") == null);

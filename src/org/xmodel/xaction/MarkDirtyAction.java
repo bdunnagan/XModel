@@ -50,7 +50,7 @@ public class MarkDirtyAction extends GuardedAction
     {
       target = ModelAlgorithms.dereference( target);
       if ( target instanceof IExternalReference)
-        ((IExternalReference)target).clearCache();
+        ((IExternalReference)target).setDirty( true);
     }
     
     return null;

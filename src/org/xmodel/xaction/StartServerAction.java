@@ -84,7 +84,8 @@ public class StartServerAction extends GuardedAction
           return null;
       }
       
-      Server server = new Server( host, port, timeout);
+      Server server = new Server( host, port);
+      server.setPingTimeout( timeout);
       server.setServerContext( serverContext);
       server.start( daemon);
       

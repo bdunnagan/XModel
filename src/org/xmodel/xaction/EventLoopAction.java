@@ -2,6 +2,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
+import org.xmodel.ModelRegistry;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 
@@ -17,7 +18,7 @@ public class EventLoopAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IDispatcher dispatcher = context.getModel().getDispatcher();
+    IDispatcher dispatcher = ModelRegistry.getInstance().getModel().getDispatcher();
     if ( !(dispatcher instanceof BlockingDispatcher))
     {
       System.err.println( (dispatcher != null)? dispatcher.getClass().getName(): "Dispatcher is null!"); 
@@ -25,15 +26,18 @@ public class EventLoopAction extends GuardedAction
           "EventLoopAction requires a BlockingDispatcher on the context model.");
     }
    
-    try
+    BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
+    while( true)
     {
-      BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
-      while( blocking.process());
-    }
-    catch( RuntimeException e)
-    {
-      SLog.exception( this, e);
-      throw e;
+      try
+      {
+        if ( !blocking.process()) break;
+      }
+      catch( RuntimeException e1)
+      {
+        SLog.exception( this, e1);
+        try { Thread.sleep( 500);} catch( Exception e2) {}
+      }
     }
     
     return null;

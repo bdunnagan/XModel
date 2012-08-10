@@ -1,27 +1,18 @@
 package org.xmodel.net;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
 import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelObject;
-import org.xmodel.xml.XmlException;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * Test case for many clients accessing a single server's model.
+ * Test cases for data mirroring.
  */
 public class ProtocolMirrorTest
 {
@@ -34,7 +25,8 @@ public class ProtocolMirrorTest
   {
     context = new StatefulContext();
     
-    server = new Server( host, port, timeout);
+    server = new Server( host, port);
+    server.setPingTimeout( timeout);
     server.setServerContext( context);
     server.setDispatcher( new ImmediateDispatcher());
     server.start( false);
@@ -83,7 +75,8 @@ public class ProtocolMirrorTest
     clients = new ArrayList<Session>();
     for( int i=0; i<count; i++)
     {
-      Client client = new Client( host, port, timeout, true);
+      Client client = new Client( host, port, true);
+      client.setPingTimeout( timeout);
       Session session = client.connect( timeout);
       clients.add( session);
     }
