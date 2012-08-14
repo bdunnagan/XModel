@@ -22,12 +22,9 @@ package org.xmodel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
 import org.xmodel.log.Log;
 import org.xmodel.memento.IMemento;
 import org.xmodel.xml.XmlIO;
@@ -157,7 +154,12 @@ public class Element implements IModelObject
     readAttributeAccess( attrName);
     
     if ( attributes == null) return null;
-    return attributes.get( attrName);
+    
+    for( Attribute attribute: attributes)
+      if ( attribute.name != null && attribute.name.equals( attrName))
+        return attribute.value;
+    
+    return null;
   }
 
   /* (non-Javadoc)
@@ -165,7 +167,7 @@ public class Element implements IModelObject
    */
   public IModelObject getAttributeNode( String attrName)
   {
-    if ( attributes != null && !attributes.containsKey( attrName)) return null;
+    if ( getAttribute( attrName) == null) return null;
     return new AttributeNode( attrName, this);
   }
 
@@ -177,7 +179,12 @@ public class Element implements IModelObject
     readAttributeAccess( null);
     
     if ( attributes == null) return Collections.emptyList();
-    return attributes.keySet();
+    
+    List<String> names = new ArrayList<String>( attributes.length);
+    for( Attribute attribute: attributes)
+      if ( attribute.name != null)
+        names.add( attribute.name);
+    return names;
   }
 
   /* (non-Javadoc)
@@ -228,8 +235,31 @@ public class Element implements IModelObject
    */
   protected Object setAttributeImpl( String attrName, Object attrValue)
   {
-    if ( attributes == null) attributes = new HashMap<String,Object>();
-    return attributes.put( attrName.intern(), attrValue);
+    if ( attributes == null) 
+    {
+      attributes = new Attribute[] { new Attribute( attrName, attrValue)};
+      return null;
+    }
+    
+    Attribute match = null;
+    for( Attribute attribute: attributes)
+      if ( attribute.name.equals( attrName))
+        match = attribute;
+
+    if ( match == null)
+    {
+      Attribute[] newAttributes = new Attribute[ attributes.length + 1];
+      System.arraycopy( attributes, 0, newAttributes, 0, attributes.length);
+      attributes = newAttributes;
+      attributes[ attributes.length - 1] = new Attribute( attrName, attrValue);
+      return null;
+    }
+    else
+    {
+      Object oldValue = match.value;
+      match.value = attrValue;
+      return oldValue;
+    }
   }
 
   /**
@@ -240,7 +270,21 @@ public class Element implements IModelObject
   protected Object removeAttributeImpl( String attrName)
   {
     if ( attributes == null) return null;
-    return attributes.remove( attrName);
+    
+    for( int i=0; i<attributes.length; i++)
+    {
+      if ( attributes[ i].name.equals( attrName))
+      {
+        Object oldValue = attributes[ i].value;
+        Attribute[] newAttributes = new Attribute[ attributes.length - 1];
+        System.arraycopy( attributes, 0, newAttributes, 0, i);
+        System.arraycopy( attributes, i+1, newAttributes, i, attributes.length - i - 1);
+        attributes = newAttributes;
+        return oldValue;
+      }
+    }
+    
+    return null;
   }
   
   /* (non-Javadoc)
@@ -643,7 +687,6 @@ public class Element implements IModelObject
    */
   public void addModelListener( IModelListener listener)
   {
-    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -651,7 +694,6 @@ public class Element implements IModelObject
    */
   public void removeModelListener( IModelListener listener)
   {
-    throw new UnsupportedOperationException();
   }
   
   /* (non-Javadoc)
@@ -659,7 +701,7 @@ public class Element implements IModelObject
    */
   public ModelListenerList getModelListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   /* (non-Javadoc)
@@ -667,7 +709,7 @@ public class Element implements IModelObject
    */
   public PathListenerList getPathListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   /* (non-Javadoc)
@@ -784,12 +826,12 @@ public class Element implements IModelObject
     // attributes
     if ( attributes != null)
     {
-      for( Map.Entry<String, Object> entry: attributes.entrySet())
+      for( Attribute attribute: attributes)
       {
         builder.append( ' ');
-        builder.append( entry.getKey());
+        builder.append( attribute.name);
         builder.append( "='");
-        builder.append( entry.getValue());
+        builder.append( attribute.value);
         builder.append( '\'');
       }
     }
@@ -831,13 +873,25 @@ public class Element implements IModelObject
     if ( object instanceof Reference) return object.equals( this);
     return super.equals( object);
   }
+
+  private final static class Attribute
+  {
+    public Attribute( String name, Object value)
+    {
+      this.name = name;
+      this.value = value;
+    }
+    
+    public String name;
+    public Object value;
+  }
   
   private final static IModelObjectFactory factory = new ElementFactory();
 
   private String type;
   private IModelObject parent;
   private List<IModelObject> children;
-  private Map<String, Object> attributes;
+  private Attribute[] attributes;
   
   private static Log log = Log.getLog( "org.xmodel");
 }

@@ -57,7 +57,7 @@ public class ProfileAction extends GuardedAction
     Object[] result = script.run( context);
     
     long t1 = System.nanoTime();
-    int elapsed = (int)(t1 - t0);
+    double elapsed = (t1 - t0);
     
     // store elapsed time in variable
     IVariableScope scope = null;

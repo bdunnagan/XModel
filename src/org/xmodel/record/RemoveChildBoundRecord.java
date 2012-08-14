@@ -125,7 +125,7 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
       // use index but ensure it is correct
       IModelObject bound = getBoundObject();
       IModelObject object = bound.getChild( index);
-      if ( object == child) bound.removeChild( index); else bound.removeChild( child);
+      if ( object.equals( child)) bound.removeChild( index); else bound.removeChild( child);
     }
     else
     {

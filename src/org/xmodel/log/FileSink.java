@@ -201,7 +201,7 @@ public final class FileSink implements ILogSink
 
     if ( !logFolder.exists()) logFolder.mkdirs();
     
-    String name = String.format( "%s%s_%s.log", filePrefix, Integer.toString( counter++, 36).toUpperCase(), dateFormat.format( new Date()));
+    String name = String.format( "%s%s_%s.log", filePrefix, Integer.toString( ++counter, 36).toUpperCase(), dateFormat.format( new Date()));
     stream = new FileOutputStream( new File( logFolder, name));
     files.add( name);
   }
@@ -220,7 +220,7 @@ public final class FileSink implements ILogSink
         }
       };
 
-      counter = 0;
+      counter = -1;
       for( String name: logFolder.list( filter))
       {
         files.add( name);

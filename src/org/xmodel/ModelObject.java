@@ -57,6 +57,8 @@ import org.xmodel.xpath.AttributeNode;
  */
 public class ModelObject implements IModelObject
 {
+  public static int counter = 0;
+  
   /**
    * Create a ModelObject with the specified type.
    * @param type The type.
@@ -64,6 +66,15 @@ public class ModelObject implements IModelObject
   public ModelObject( String type)
   {
     this.type = type.intern();
+    
+    ++counter;
+    if ( counter < 10 || (counter < 100 && counter % 10 == 0) || 
+        (counter < 1000 && counter % 100 == 0) || 
+        (counter < 10000 && counter % 1000 == 0) ||
+        (counter < 100000 && counter % 10000 == 0) ||
+        (counter < 1000000 && counter % 100000 == 0) ||
+        (counter % 1000000 == 0))
+      System.out.println( counter);
   }
   
   /**

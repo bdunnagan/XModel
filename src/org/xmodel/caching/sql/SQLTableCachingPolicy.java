@@ -31,9 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
@@ -89,14 +87,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
+    super.configure( context, annotation);
+    
     // create SQLManager
     provider = getProvider( annotation);
     
-    factory = new ModelObjectFactory();
     catalog = Xlate.childGet( annotation, "catalog", (String)null);
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
+    readonly = Xlate.childGet( annotation, "readonly", false);
     
     IExpression whereExpr = Xlate.childGet( annotation, "where", (IExpression)null);
     if ( whereExpr != null) where = whereExpr.evaluateString( context);
@@ -105,7 +105,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
     
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
-    if ( limitExpr != null) limit = (int)limitExpr.evaluateNumber( context);
+    limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
     xmlColumns = new HashSet<String>( 1);
     for( IModelObject column: annotation.getChildren( "xml"))
@@ -155,7 +155,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     syncTable( reference);
     
     // install update monitor
-    updateMonitor.install( reference);
+    if ( !readonly) updateMonitor.install( reference);
   }
   
   /**
@@ -164,6 +164,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void syncTable( IExternalReference reference) throws CachingException
   {
+    if ( limit == 0) return;
+    
     PreparedStatement statement = null;
     try
     {
@@ -174,7 +176,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
-        IModelObject row = factory.createObject( reference, rowElementName);
+        IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
           row.setID( result.getString( 1));
@@ -212,7 +214,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = null;
     try
     {
-      IModelObject object = factory.createObject( reference.getParent(), rowElementName);
+      IModelObject object = getFactory().createObject( reference.getParent(), rowElementName);
       ModelAlgorithms.copyAttributes( reference, object);
 
       statement = createRowSelectStatement( reference);
@@ -824,8 +826,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private static Map<String, Class<? extends ISQLProvider>> providers;
 
   private ISQLProvider provider;
-  private IModelObjectFactory factory;
   private boolean stub;
+  private boolean readonly;
   private String where;
   private String orderby;
   private int limit;

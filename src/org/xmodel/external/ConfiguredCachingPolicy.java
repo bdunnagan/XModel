@@ -20,7 +20,9 @@
 package org.xmodel.external;
 
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
@@ -85,6 +87,22 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
     onSync = doc.createChildScript( "onSync");
     onStore = doc.createChildScript( "onStore");
     onError = doc.createChildScript( "onError");
+    
+    // factory
+    String factoryClassName = Xlate.get( annotation, "factory", Xlate.childGet( annotation, "factory", (String)null));
+    if ( factoryClassName != null)
+    {
+      try
+      {
+        Class<?> factoryClass = getClass().getClassLoader().loadClass( factoryClassName);
+        Object factory = factoryClass.newInstance();
+        setFactory( (IModelObjectFactory)factory);
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
+      }
+    }
   }
     
   /* (non-Javadoc)
