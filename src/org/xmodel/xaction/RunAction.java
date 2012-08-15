@@ -184,7 +184,6 @@ public class RunAction extends GuardedAction
       }
       
       log.debug( "Finished remote.");
-      return null;
     }
     catch( IOException e)
     {
@@ -194,9 +193,13 @@ public class RunAction extends GuardedAction
         if ( onError != null) onError.run( context);
         if ( onComplete != null) onComplete.run( context);
       }
-      
-      throw new XActionException( e);
+      else
+      {
+        throw new XActionException( e);
+      }
     }
+    
+    return null;
   }
   
   /**
