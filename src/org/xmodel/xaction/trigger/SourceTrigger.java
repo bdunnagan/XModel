@@ -57,6 +57,7 @@ public class SourceTrigger extends AbstractTrigger
     // get flags
     initialize = Xlate.get( document.getRoot(), "initialize", false);
     finalize = Xlate.get( document.getRoot(), "finalize", false);
+    immediate = Xlate.get( document.getRoot(), "immediate", false);
     
     // backwards compatability
     initialize = Xlate.get( document.getRoot().getFirstChild( "initialize"), initialize);
@@ -122,7 +123,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyAdd runnable = new NotifyAdd();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
       {
@@ -139,7 +140,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyRemove runnable = new NotifyRemove();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
       {
@@ -156,7 +157,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyBooleanChange runnable = new NotifyBooleanChange();
         runnable.context = context;
         runnable.newValue = newValue;
-        context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
       {
@@ -174,7 +175,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
       {
@@ -192,7 +193,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
       {
@@ -211,7 +212,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.node = object;
         runnable.newValue = (newValue != null)? newValue.toString(): "";
         runnable.oldValue = (oldValue != null)? oldValue.toString(): "";
-        contexts[ 0].getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else contexts[ 0].getModel().dispatch( runnable);
       }
       finally
       {
@@ -317,6 +318,7 @@ public class SourceTrigger extends AbstractTrigger
   private ScriptAction script;
   private boolean initialize;
   private boolean finalize;
+  private boolean immediate;
   private boolean updating;
   
   private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
