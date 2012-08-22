@@ -45,8 +45,7 @@ public class BlockingDispatcher implements IDispatcher
   public void execute( Runnable runnable)
   {
     log.verbosef( "Enqueue runnable: %s", runnable.getClass().getSimpleName());
-    if ( !receiving) 
-      log.warn( "process() has not been called, yet.");
+    if ( watchdog == null) log.warn( "process() has not been called, yet.");
     try
     {
       if ( shutdown == 0) queue.put( runnable);
@@ -63,6 +62,12 @@ public class BlockingDispatcher implements IDispatcher
   @Override
   public void shutdown( boolean immediate)
   {
+    if ( watchdog != null)
+    {
+      watchdog.interrupt();
+      watchdog = null;
+    }
+    
     shutdown = immediate? 2: 1;
     
     queue.offer( new Runnable() {
@@ -79,14 +84,19 @@ public class BlockingDispatcher implements IDispatcher
    */
   public boolean process()
   {
-    receiving = true;
+    if ( watchdog == null)
+    {
+      watchdog = new Watchdog( watchdogTimeout * 1000);
+      watchdog.start();
+    }
     
     try
     {
       if ( shutdown > 0) return false;
       
       log.verbose( "Waiting for dequeue ...");
-      Runnable first = queue.poll( 10, TimeUnit.SECONDS);
+      Runnable first = queue.poll( petTimeout, TimeUnit.SECONDS);
+      if ( watchdog != null) watchdog.pet();
       
       if ( shutdown == 2) return false;
       
@@ -101,14 +111,7 @@ public class BlockingDispatcher implements IDispatcher
           if ( runnable != null) 
           {
             log.verbosef( "Executing runnable: %s", runnable.getClass().getSimpleName());
-            try
-            {
-              runnable.run();
-            }
-            catch( Exception e)
-            {
-              log.exception( e);
-            }
+            runnable.run();
           }
         }
         
@@ -123,10 +126,13 @@ public class BlockingDispatcher implements IDispatcher
     return true;
   }
 
+  private static int watchdogTimeout = 5 * 60;
+  private static int petTimeout = 3 * 60;
+  
   private static Log log = Log.getLog( BlockingDispatcher.class);
   
   private BlockingQueue<Runnable> queue;
   private List<Runnable> dequeued;
-  private volatile boolean receiving;
   private volatile int shutdown;
+  private Watchdog watchdog;
 }

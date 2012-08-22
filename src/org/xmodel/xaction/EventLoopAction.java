@@ -3,7 +3,6 @@ package org.xmodel.xaction;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
 import org.xmodel.ModelRegistry;
-import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -22,23 +21,13 @@ public class EventLoopAction extends GuardedAction
     if ( !(dispatcher instanceof BlockingDispatcher))
     {
       System.err.println( (dispatcher != null)? dispatcher.getClass().getName(): "Dispatcher is null!"); 
-      throw new IllegalStateException( 
-          "EventLoopAction requires a BlockingDispatcher on the context model.");
+      throw new IllegalStateException( "EventLoopAction requires a BlockingDispatcher on the context model.");
     }
    
     BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
     while( true)
-    {
-      try
-      {
-        if ( !blocking.process()) break;
-      }
-      catch( RuntimeException e1)
-      {
-        SLog.exception( this, e1);
-        try { Thread.sleep( 500);} catch( Exception e2) {}
-      }
-    }
+      if ( !blocking.process()) 
+        break;
     
     return null;
   }

@@ -67,14 +67,8 @@ public class ModelObject implements IModelObject
   {
     this.type = type.intern();
     
-    ++counter;
-    if ( counter < 10 || (counter < 100 && counter % 10 == 0) || 
-        (counter < 1000 && counter % 100 == 0) || 
-        (counter < 10000 && counter % 1000 == 0) ||
-        (counter < 100000 && counter % 10000 == 0) ||
-        (counter < 1000000 && counter % 100000 == 0) ||
-        (counter % 1000000 == 0))
-      System.out.println( counter);
+    if ( ++counter % 100000 == 99999)
+      log.infof( "%1.0fK objects created", counter / 1e3);
   }
   
   /**
