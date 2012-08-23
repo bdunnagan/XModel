@@ -227,7 +227,7 @@ public final class FileSink implements ILogSink
 
         Matcher matcher = runRegex.matcher( name);
         if ( matcher.find( filePrefix.length()))
-          counter = Integer.parseInt( matcher.group( 1));
+          counter = Integer.parseInt( matcher.group( 1), 36);
       }
       
       Collections.sort( files, lastModifiedComparator);
@@ -349,7 +349,7 @@ public final class FileSink implements ILogSink
 
   private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_HHmmss");
   private final static Pattern fileRegex = Pattern.compile( ".*\\d{6}_\\d{6}\\.log(\\.zip)?$");
-  private final static Pattern runRegex = Pattern.compile( "(\\d++)_");
+  private final static Pattern runRegex = Pattern.compile( "([0-9A-Z]++)_");
 
   private File logFolder;
   private String filePrefix;
