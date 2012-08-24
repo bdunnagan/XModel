@@ -30,7 +30,7 @@ public final class ConfigMonitor implements Runnable
     config = new File( path);
     if ( !config.exists()) 
     {
-      SLog.infof( this, "Logging configuration file not found, %s", new File( path).getAbsolutePath());
+      SLog.warnf( this, "Logging configuration file not found, %s", new File( path).getAbsolutePath());
       config = null;
     }
     

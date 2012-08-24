@@ -21,6 +21,7 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -82,8 +83,6 @@ public class TryAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    Object[] result = null;
-    
     try
     {
       return tryScript.run( context);
@@ -97,23 +96,29 @@ public class TryAction extends GuardedAction
         setExceptionVariable( context, t);
         return catchBlock.script.run( context);
       }
+      else
+      {
+        throw e;
+      }
     }
-    catch( Throwable t)
+    catch( RuntimeException e)
     {
-      CatchBlock catchBlock = findCatchBlock( t);
+      CatchBlock catchBlock = findCatchBlock( e);
       if ( catchBlock != null)
       {
-        setExceptionVariable( context, t);
+        setExceptionVariable( context, e);
         return catchBlock.script.run( context);
+      }
+      else
+      {
+        throw e;
       }
     }
     finally
     {
       if ( finallyScript != null) 
-        result = finallyScript.run( context);
+        finallyScript.run( context);
     }
-    
-    return result;
   }
   
   /**

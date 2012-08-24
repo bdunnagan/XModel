@@ -36,7 +36,9 @@ public class BlockingDispatcher implements IDispatcher
   {
     queue = new LinkedBlockingQueue<Runnable>();
     dequeued = new ArrayList<Runnable>();
+    processing = false;
     shutdown = 0;
+    thread = Thread.currentThread();
   }
   
   /* (non-Javadoc)
@@ -44,15 +46,15 @@ public class BlockingDispatcher implements IDispatcher
    */
   public void execute( Runnable runnable)
   {
-    log.verbosef( "Enqueue runnable: %s", runnable.getClass().getSimpleName());
-    if ( watchdog == null) log.warn( "process() has not been called, yet.");
+    log.verbosef( "[%s] Enqueue runnable: %s", thread.getName(), runnable);
+    if ( !processing) log.warn( "process() has not been called, yet.");
     try
     {
       if ( shutdown == 0) queue.put( runnable);
     }
     catch( InterruptedException e)
     {
-      log.warnf( "Enqueue was interrupted for runnable, %s", runnable.getClass().getSimpleName());
+      log.warnf( "[%s] Enqueue was interrupted for runnable, %s", thread.getName(), runnable);
     }
   }
   
@@ -73,7 +75,7 @@ public class BlockingDispatcher implements IDispatcher
     queue.offer( new Runnable() {
       public void run()
       {
-        log.warn( "BlockingDispatcher has been shutdown.");
+        log.warnf( "[%s] BlockingDispatcher has been shutdown.", thread.getName());
       }
     });
   }
@@ -84,6 +86,8 @@ public class BlockingDispatcher implements IDispatcher
    */
   public boolean process()
   {
+    processing = true;
+    
     if ( watchdog == null)
     {
       watchdog = new Watchdog( watchdogTimeout * 1000);
@@ -94,7 +98,7 @@ public class BlockingDispatcher implements IDispatcher
     {
       if ( shutdown > 0) return false;
       
-      log.verbose( "Waiting for dequeue ...");
+      log.verbosef( "[%s] Waiting for dequeue ...", thread.getName());
       Runnable first = queue.poll( petTimeout, TimeUnit.SECONDS);
       if ( watchdog != null) watchdog.pet();
       
@@ -105,12 +109,12 @@ public class BlockingDispatcher implements IDispatcher
         dequeued.add( first);
         queue.drainTo( dequeued);
         
-        log.verbosef( "Dequeued %d runnables: ", dequeued.size());
+        log.verbosef( "[%s] Dequeued %d runnables: ", thread.getName(), dequeued.size());
         for( Runnable runnable: dequeued)
         {
           if ( runnable != null) 
           {
-            log.verbosef( "Executing runnable: %s", runnable.getClass().getSimpleName());
+            log.verbosef( "[%s] Executing runnable: %s", thread.getName(), runnable);
             runnable.run();
           }
         }
@@ -133,6 +137,8 @@ public class BlockingDispatcher implements IDispatcher
   
   private BlockingQueue<Runnable> queue;
   private List<Runnable> dequeued;
+  private volatile boolean processing;
   private volatile int shutdown;
   private Watchdog watchdog;
+  private Thread thread;
 }

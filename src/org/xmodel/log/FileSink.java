@@ -227,7 +227,16 @@ public final class FileSink implements ILogSink
 
         Matcher matcher = runRegex.matcher( name);
         if ( matcher.find( filePrefix.length()))
-          counter = Integer.parseInt( matcher.group( 1), 36);
+        {
+          try
+          {
+            counter = Integer.parseInt( matcher.group( 1), 36);
+          }
+          catch( NumberFormatException e)
+          {
+            SLog.warnf( this, e.getMessage());
+          }
+        }
       }
       
       Collections.sort( files, lastModifiedComparator);
