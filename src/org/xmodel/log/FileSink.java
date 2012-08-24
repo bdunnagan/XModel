@@ -10,7 +10,7 @@ import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -220,8 +220,11 @@ public final class FileSink implements ILogSink
         }
       };
 
+      String[] names = logFolder.list( filter);
+      Arrays.sort( names, lastModifiedComparator);
+      
       counter = -1;
-      for( String name: logFolder.list( filter))
+      for( String name: names)
       {
         files.add( name);
 
@@ -238,9 +241,7 @@ public final class FileSink implements ILogSink
           }
         }
       }
-      
-      Collections.sort( files, lastModifiedComparator);
-      
+
       compress();
     }
   }

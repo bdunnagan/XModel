@@ -1066,8 +1066,7 @@ public class Protocol implements ILink.IListener
     SessionInfo info = getSessionInfo( link, session);
     byte[] bytes = info.compress( element);
     
-    ByteBuffer buffer = initialize( 16 + bytes.length);
-    buffer.putInt( element.getModel().getUpdateID());
+    ByteBuffer buffer = initialize( 12 + bytes.length);
     buffer.putInt( (int)key);
     writeBytes( buffer, bytes, 0, bytes.length, false);
     buffer.putInt( index);
@@ -1092,11 +1091,10 @@ public class Protocol implements ILink.IListener
    */
   private final void handleAddChild( ILink link, int session, ByteBuffer buffer, int length)
   {
-    int uid = buffer.getInt();
     long key = buffer.getInt();
     byte[] bytes = readBytes( buffer, false);
     int index = buffer.getInt();
-    handleAddChild( link, session, uid, key, bytes, index);
+    handleAddChild( link, session, key, bytes, index);
   }
   
   /**
@@ -1107,10 +1105,10 @@ public class Protocol implements ILink.IListener
    * @param child The child that was added as a compressed byte array.
    * @param index The insertion index.
    */
-  protected void handleAddChild( ILink link, int session, int uid, long key, byte[] child, int index)
+  protected void handleAddChild( ILink link, int session, long key, byte[] child, int index)
   {
-    SLog.verbosef( this, "handleAddChild( %X, %d, %d, %X, %d)\n", link.hashCode(), session, uid, key, index);
-    dispatch( getSessionInfo( link, session), new AddChildEvent( link, session, uid, key, child, index));
+    System.err.printf( "handleAddChild( %X, %d, %X, %d)\n", link.hashCode(), session, key, index);
+    dispatch( getSessionInfo( link, session), new AddChildEvent( link, session, key, child, index));
   }
   
   /**
@@ -1121,7 +1119,7 @@ public class Protocol implements ILink.IListener
    * @param bytes The child that was added.
    * @param index The index of insertion.
    */
-  private void processAddChild( ILink link, int session, int uid, long key, byte[] bytes, int index)
+  private void processAddChild( ILink link, int session, long key, byte[] bytes, int index)
   {
     SessionInfo info = getSessionInfo( link, session);
     try
@@ -1137,7 +1135,7 @@ public class Protocol implements ILink.IListener
         IModelObject parent = parentRef.get();
         IModelObject child = info.decompress( bytes, 0);
         
-        SLog.verbosef( this, "processAddChild( %X, %d, %d, %X, %s, %s, %d)\n", link.hashCode(), session, uid, key, parent, child, index);
+System.err.printf( "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode(), session, key, parent, child, index);
         
         if ( parent != null) 
         {
@@ -1171,10 +1169,9 @@ public class Protocol implements ILink.IListener
    * @param key The remote node key.
    * @param index The insertion index.
    */
-  public final void sendRemoveChild( ILink link, int session, int uid, long key, int index) throws IOException
+  public final void sendRemoveChild( ILink link, int session, long key, int index) throws IOException
   {
-    ByteBuffer buffer = initialize( 12);
-    buffer.putInt( uid);
+    ByteBuffer buffer = initialize( 8);
     buffer.putInt( (int)key);
     buffer.putInt( index);
     finalize( buffer, Type.removeChild, session, 8);
@@ -1197,10 +1194,9 @@ public class Protocol implements ILink.IListener
    */
   private final void handleRemoveChild( ILink link, int session, ByteBuffer buffer, int length)
   {
-    int uid = buffer.getInt();
     long key = buffer.getInt();
     int index = buffer.getInt();
-    handleRemoveChild( link, session, uid, key, index);
+    handleRemoveChild( link, session, key, index);
   }
   
   /**
@@ -1210,9 +1206,9 @@ public class Protocol implements ILink.IListener
    * @param key The remote node key.
    * @param index The insertion index.
    */
-  protected void handleRemoveChild( ILink link, int session, int uid, long key, int index)
+  protected void handleRemoveChild( ILink link, int session, long key, int index)
   {
-    dispatch( getSessionInfo( link, session), new RemoveChildEvent( link, session, uid, key, index));
+    dispatch( getSessionInfo( link, session), new RemoveChildEvent( link, session, key, index));
   }
   
   /**
@@ -1222,7 +1218,7 @@ public class Protocol implements ILink.IListener
    * @param key The remote node key.
    * @param index The index of insertion.
    */
-  private void processRemoveChild( ILink link, int session, int uid, long key, int index)
+  private void processRemoveChild( ILink link, int session, long key, int index)
   {
     SessionInfo info = getSessionInfo( link, session);
     try
@@ -1237,7 +1233,7 @@ public class Protocol implements ILink.IListener
       {
         IModelObject parent = parentRef.get();
         
-        SLog.verbosef( this, "processRemoveChild( %X, %d, %d, %X, %s, %d)\n", link.hashCode(), session, uid, key, parent, index);
+        System.err.printf( "processRemoveChild( %X, %d, %X, %s, %d)\n", link.hashCode(), session, key, parent, index);
         
         if ( parent != null) parent.removeChild( index);
       }
@@ -2299,11 +2295,10 @@ public class Protocol implements ILink.IListener
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( ILink link, int session, int uid, long key, byte[] child, int index)
+    public AddChildEvent( ILink link, int session, long key, byte[] child, int index)
     {
       this.link = link;
       this.session = session;
-      this.uid = uid;
       this.key = key;
       this.child = child;
       this.index = index;
@@ -2311,17 +2306,11 @@ public class Protocol implements ILink.IListener
     
     public void run()
     {
-      processAddChild( link, session, uid, key, child, index);
-    }
-    
-    public String toString()
-    {
-      return String.format( "AddChildEvent: uid=%s, index=%d, parent=%d", uid, index, key);
+      processAddChild( link, session, key, child, index);
     }
     
     private ILink link;
     private int session;
-    private int uid;
     private long key;
     private byte[] child;
     private int index;
@@ -2329,28 +2318,21 @@ public class Protocol implements ILink.IListener
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( ILink link, int session, int uid, long key, int index)
+    public RemoveChildEvent( ILink link, int session, long key, int index)
     {
       this.link = link;
       this.session = session;
-      this.uid = uid;
       this.key = key;
       this.index = index;
     }
     
     public void run()
     {
-      processRemoveChild( link, session, uid, key, index);
-    }
-    
-    public String toString()
-    {
-      return String.format( "RemoveChildEvent: uid=%d, index=%d, parent=%d", uid, index, key);
+      processRemoveChild( link, session, key, index);
     }
     
     private ILink link;
     private int session;
-    private int uid;
     private long key;
     private int index;
   }
@@ -2571,7 +2553,6 @@ public class Protocol implements ILink.IListener
         IModelObject clone = encode( sender, session, child, false);
         long key = Xlate.get( parent, "net:key", 0L);
         if ( key == 0) key = (random != null)? random.nextLong(): System.identityHashCode( parent);
-        SLog.infof( this, "INSERT: uid=%d, parent=%d, index=%d, child=%s", parent.getModel().getUpdateID(), key, index, child.getType());
         sendAddChild( sender, session, key, clone, index);
       } 
       catch( IOException e)
@@ -2601,8 +2582,7 @@ public class Protocol implements ILink.IListener
       {
         long key = Xlate.get( parent, "net:key", 0L);
         if ( key == 0) key = (random != null)? random.nextLong(): System.identityHashCode( parent);
-        SLog.infof( this, "REMOVE: uid=%d, parent=%d, index=%d, child=%s", parent.getModel().getUpdateID(), key, index, child.getType());
-        sendRemoveChild( sender, session, parent.getModel().getUpdateID(), key, index);
+        sendRemoveChild( sender, session, key, index);
       } 
       catch( IOException e)
       {
@@ -2719,7 +2699,7 @@ public class Protocol implements ILink.IListener
   {
     if ( info.dispatcher != null)
     {
-      SLog.verbosef( this, "dispatch1 %X\n", info.dispatcher.hashCode());
+      System.err.printf( "dispatch1 %X\n", info.dispatcher.hashCode());
       info.dispatcher.execute( runnable);
     }
     else
@@ -2727,7 +2707,7 @@ public class Protocol implements ILink.IListener
       IDispatcher dispatcher = getDispatcher();
       if ( dispatcher != null)
       {
-        SLog.verbosef( this, "dispatch2 %X\n", dispatcher.hashCode());
+        System.err.printf( "dispatch2 %X\n", dispatcher.hashCode());
         dispatcher.execute( runnable);
       }
       else

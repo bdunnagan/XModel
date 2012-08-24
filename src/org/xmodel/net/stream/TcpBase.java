@@ -340,15 +340,16 @@ public abstract class TcpBase
    */
   private ByteBuffer prepareReadBuffer( ByteBuffer buffer)
   {
-    if ( buffer.position() < buffer.limit())
-    {
-      buffer.position( buffer.limit());
-      buffer.limit( buffer.capacity());
-    }
-    else
-    {
-      buffer.clear();
-    }
+    buffer.compact();
+//    if ( buffer.position() < buffer.limit())
+//    {
+//      buffer.position( buffer.limit());
+//      buffer.limit( buffer.capacity());
+//    }
+//    else
+//    {
+//      buffer.clear();
+//    }
     
     if ( buffer.position() == buffer.capacity())
     {
