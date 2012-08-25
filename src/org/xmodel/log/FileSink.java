@@ -233,7 +233,8 @@ public final class FileSink implements ILogSink
         {
           try
           {
-            counter = Integer.parseInt( matcher.group( 1), 36);
+            int index = Integer.parseInt( matcher.group( 1), 36);
+            if ( index > counter) counter = index;
           }
           catch( NumberFormatException e)
           {
