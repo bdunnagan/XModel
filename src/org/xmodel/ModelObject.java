@@ -40,7 +40,6 @@ import org.xmodel.memento.SetParentMemento;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 
-
 /**
  * An reference implementation of IModelObject.
  * <p>
@@ -57,8 +56,6 @@ import org.xmodel.xpath.AttributeNode;
  */
 public class ModelObject implements IModelObject
 {
-  public static int counter = 0;
-  
   /**
    * Create a ModelObject with the specified type.
    * @param type The type.
@@ -66,9 +63,6 @@ public class ModelObject implements IModelObject
   public ModelObject( String type)
   {
     this.type = type.intern();
-    
-    if ( ++counter % 100000 == 99999)
-      log.infof( "%1.0fK objects created", counter / 1e3);
   }
   
   /**

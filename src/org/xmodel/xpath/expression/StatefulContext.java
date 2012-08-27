@@ -90,7 +90,7 @@ public class StatefulContext implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  public StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
+  protected StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
   {
     this.object = object;
     this.position = position;

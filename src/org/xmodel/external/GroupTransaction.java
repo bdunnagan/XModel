@@ -45,6 +45,16 @@ public class GroupTransaction implements ITransaction
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.external.ITransaction#track(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public void track( IExternalReference reference)
+  {
+    for( ITransaction transaction: transactions)
+      transaction.track( reference);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.external.ITransaction#lock(int)
    */
   @Override
@@ -64,7 +74,7 @@ public class GroupTransaction implements ITransaction
       return false;
     }
     
-    state = State.lock;
+    state = State.locked;
     transactions.clear();
     return true;
   }
@@ -124,9 +134,9 @@ public class GroupTransaction implements ITransaction
       }
     }
 
-    state = (corrupt.size() == 0)? State.commit: State.error;
+    state = (corrupt.size() == 0)? State.committed: State.error;
     
-    return state == State.commit;
+    return state == State.committed;
   }
   
   /* (non-Javadoc)
@@ -152,9 +162,9 @@ public class GroupTransaction implements ITransaction
       }
     }
     
-    state = (corrupt.size() == 0)? State.rollback: State.error;
+    state = (corrupt.size() == 0)? State.rolledback: State.error;
     
-    return state == State.rollback;
+    return state == State.rolledback;
   }
   
   private State state;

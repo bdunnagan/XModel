@@ -49,6 +49,7 @@ public class TransactionAction extends ScriptAction
       
       IExternalReference reference = (IExternalReference)node;
       ITransaction transaction = reference.getCachingPolicy().transaction();
+      transaction.track( reference);
       group.addTransaction( transaction);
     }
 
@@ -62,7 +63,7 @@ public class TransactionAction extends ScriptAction
       super.doAction( context);
 
       // commit, if necessary
-      if ( group.state() == State.lock)
+      if ( group.state() == State.locked)
       {
         boolean result = group.commit();
         if ( var != null)

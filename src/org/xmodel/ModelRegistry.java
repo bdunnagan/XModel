@@ -28,21 +28,6 @@ package org.xmodel;
  */
 public class ModelRegistry
 {
-  private ModelRegistry()
-  {
-  }
-
-  /**
-   * Set the implementation of IModel for the current thread. 
-   * This method may only be called once for a given thread.
-   * @param model The implementation.
-   */
-  public synchronized void setModel( IModel model)
-  {
-    if ( threadModel.get() != null) throw new IllegalStateException();
-    threadModel.set( model);
-  }
-
   /**
    * @return Returns the implementation of IModel for the current thread.
    */
@@ -61,12 +46,12 @@ public class ModelRegistry
    * Returns the singleton.
    * @return Returns the singleton.
    */
-  public static synchronized ModelRegistry getInstance()
+  public static ModelRegistry getInstance()
   {
-    if ( instance == null) instance = new ModelRegistry();
     return instance;
   }
 
-  private static ModelRegistry instance;
-  private static ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
+  private static ModelRegistry instance = new ModelRegistry();
+  
+  private ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
 }

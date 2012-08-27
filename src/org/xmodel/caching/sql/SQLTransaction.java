@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.xmodel.external.CachingException;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.log.SLog;
 
@@ -28,6 +29,14 @@ public class SQLTransaction implements ITransaction
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.external.ITransaction#track(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  public void track( IExternalReference reference)
+  {
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.external.ITransaction#lock(int)
    */
   @Override
@@ -37,7 +46,7 @@ public class SQLTransaction implements ITransaction
     {
       connection = cachingPolicy.getSQLProvider().leaseConnection();
       connection.setAutoCommit( false);
-      state = State.lock;
+      state = State.locked;
       return true;
     }
     catch( SQLException e)
@@ -87,7 +96,7 @@ public class SQLTransaction implements ITransaction
     {
       cachingPolicy.commit( connection);
       connection.commit();
-      state = State.commit;
+      state = State.committed;
       return true;
     }
     catch( SQLException e)
@@ -109,7 +118,7 @@ public class SQLTransaction implements ITransaction
     try
     {
       connection.rollback();
-      state = State.rollback;
+      state = State.rolledback;
       return true;
     }
     catch( SQLException e)

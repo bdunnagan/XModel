@@ -24,7 +24,6 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
 
-
 /**
  * An interface for the context of an X-Path expression.  The context includes:
  * <ul>
@@ -41,7 +40,6 @@ import org.xmodel.xpath.variable.IVariableScope;
 public interface IContext
 {
   /**
-   * Returns the IModel associated with the object returned by the <code>getObject</code> method.
    * @return Returns the IModel associated with this context.
    */
   public IModel getModel();

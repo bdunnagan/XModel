@@ -31,7 +31,10 @@ import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.external.ITransaction;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.xml.XmlException;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 
 /**
@@ -143,6 +146,38 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    if ( transaction == null) transaction = new FileSystemTransaction( this);
+    return transaction;
+  }
+  
+  /**
+   * Write the specified reference to the file from which it was read.
+   * @param reference The reference.
+   */
+  void commit( IExternalReference reference)
+  {
+    File path = new File( Xlate.get( reference, "path", ""));
+    if ( path.isDirectory())
+      throw new CachingException( String.format( 
+        "Directory updates are not supported, reference=%s", 
+          reference));
+    
+    try
+    {
+      (new XmlIO()).write( reference.getChild( 0), path);
+    }
+    catch( XmlException e)
+    {
+      throw new CachingException( "Unable to commit reference: "+reference, e);
+    }
+  }
+
   /**
    * Replace the tilde at the beginning of the path of the specified element.
    * @param element The element.
@@ -167,27 +202,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     String basePath = Xlate.get( element.getParent(), "path", "");
     return new File( basePath, element.getType());
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#flushImpl(org.xmodel.external.IExternalReference)
-   */
-//  public void flushImpl( IExternalReference reference) throws CachingException
-//  {
-//    File path = new File( Xlate.get( reference, "path", ""));
-//    if ( path.isDirectory())
-//      throw new CachingException( 
-//        "Directory cannot be flushed: "+reference);
-//    
-//    try
-//    {
-//      (new XmlIO()).write( reference.getChild( 0), path);
-//    }
-//    catch( XmlException e)
-//    {
-//      throw new CachingException( "Unable to flush reference: "+reference, e);
-//    }
-//  }
-  
+    
   private final static IFileAssociation csvAssociation = new CsvAssociation();
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();
@@ -196,4 +211,5 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
 
   private IExternalReference fileSystemRoot;
   private Map<String, IFileAssociation> associations;
+  private ITransaction transaction;
 }

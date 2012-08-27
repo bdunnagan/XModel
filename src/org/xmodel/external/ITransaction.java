@@ -5,12 +5,20 @@ package org.xmodel.external;
  */
 public interface ITransaction
 {
-  public enum State { ready, lock, commit, rollback, error};
+  public enum State { ready, locked, committed, rolledback, error};
   
   /**
    * @return Returns the current transaction state.
    */
   public State state();
+  
+  /**
+   * Add the specified reference to the list of references tracked by this transaction.
+   * Note that some implementations of ICachingPolicy track all their references by
+   * default so this method does nothing.
+   * @param reference The reference.
+   */
+  public void track( IExternalReference reference);
   
   /**
    * Lock resources in this transaction.

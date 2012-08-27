@@ -66,15 +66,6 @@ public class Context implements IContext
   }
     
   /**
-   * Create a context for the given context node with position and size equal to one.
-   * @param object The context node.
-   */
-  protected Context( IVariableScope scope, IModelObject object)
-  {
-    this( scope, object, 1, 1);
-  }
-  
-  /**
    * Create a context for the given context node.
    * @param scope The scope to associate with this context.
    * @param object The context node.

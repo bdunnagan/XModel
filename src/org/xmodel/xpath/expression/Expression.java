@@ -25,6 +25,7 @@ import java.util.List;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.NullObject;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.function.BooleanFunction;
 import org.xmodel.xpath.function.NumberFunction;
@@ -286,7 +287,7 @@ public abstract class Expression implements IExpression
    */
   public boolean evaluateBoolean() throws ExpressionException
   {
-    return evaluateBoolean( NullContext.getInstance());
+    return evaluateBoolean( new Context( new NullObject()));
   }
 
   /* (non-Javadoc)
@@ -294,7 +295,7 @@ public abstract class Expression implements IExpression
    */
   public List<IModelObject> evaluateNodes() throws ExpressionException
   {
-    return evaluateNodes( NullContext.getInstance());
+    return evaluateNodes( new Context( new NullObject()));
   }
 
   /* (non-Javadoc)
@@ -302,7 +303,7 @@ public abstract class Expression implements IExpression
    */
   public double evaluateNumber() throws ExpressionException
   {
-    return evaluateNumber( NullContext.getInstance());
+    return evaluateNumber( new Context( new NullObject()));
   }
 
   /* (non-Javadoc)
@@ -310,7 +311,7 @@ public abstract class Expression implements IExpression
    */
   public String evaluateString() throws ExpressionException
   {
-    return evaluateString( NullContext.getInstance());
+    return evaluateString( new Context( new NullObject()));
   }
 
   /* (non-Javadoc)
@@ -444,7 +445,7 @@ public abstract class Expression implements IExpression
    */
   public List<IModelObject> query( List<IModelObject> result)
   {
-    return query( NullContext.getInstance(), result);
+    return query( new Context( new NullObject()), result);
   }
 
   /* (non-Javadoc)
@@ -452,7 +453,7 @@ public abstract class Expression implements IExpression
    */
   public IModelObject queryFirst()
   {
-    return queryFirst( NullContext.getInstance());
+    return queryFirst( new Context( new NullObject()));
   }
 
   /* (non-Javadoc)
