@@ -39,7 +39,6 @@ public final class ConsoleSink implements ILogSink
   @Override
   public void log( Log log, int level, Object message, Throwable throwable)
   {
-    System.out.println( message);
-    System.out.println( throwable.toString());
+    System.out.printf( "%s\n%s\n", message, throwable.toString());
   }
 }

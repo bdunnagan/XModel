@@ -3,6 +3,7 @@ package org.xmodel.log;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelObject;
@@ -15,12 +16,26 @@ import org.xmodel.xml.XmlIO;
  * constructor or in the system property, "org.xmodel.log.config".  The period may be
  * specified in the configuration file element, "reload".
  */
-public final class ConfigMonitor implements Runnable
+public final class LogManager implements Runnable
 {
+  public static class UncaughtExceptionLogger implements UncaughtExceptionHandler
+  {
+    /* (non-Javadoc)
+     * @see java.lang.Thread.UncaughtExceptionHandler#uncaughtException(java.lang.Thread, java.lang.Throwable)
+     */
+    @Override
+    public void uncaughtException( Thread thread, Throwable thrown)
+    {
+      Log log = Log.getLog( LogManager.class);
+      log.severe( thrown.getMessage());
+      log.exception( thrown);
+    }
+  }
+  
   /**
    * Create and start monitoring if the system property is set.
    */
-  public ConfigMonitor()
+  public LogManager()
   {
     period = 10000;
     
@@ -33,6 +48,8 @@ public final class ConfigMonitor implements Runnable
       SLog.warnf( this, "Logging configuration file not found, %s", new File( path).getAbsolutePath());
       config = null;
     }
+
+    Thread.setDefaultUncaughtExceptionHandler( new UncaughtExceptionLogger());
     
     if ( config != null) start();
   }
@@ -77,14 +94,14 @@ public final class ConfigMonitor implements Runnable
       {
         try
         {
-          Class<?> clazz = ConfigMonitor.class.getClassLoader().loadClass( cname);
+          Class<?> clazz = LogManager.class.getClassLoader().loadClass( cname);
           ILogSink sink = (ILogSink)clazz.newInstance();
           sink.configure( child);
           list.add( sink);
         }
         catch( Exception e)
         {
-          SLog.exception( ConfigMonitor.class, e);
+          SLog.exception( LogManager.class, e);
         }
       }
     }
