@@ -1,9 +1,8 @@
 package org.xmodel.xaction.debug;
 
-import java.util.concurrent.Executors;
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.ThreadPoolDispatcher;
+import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.net.Client;
 import org.xmodel.net.Server;
 import org.xmodel.net.Session;
@@ -26,7 +25,7 @@ public class DebuggerTest
     
     Server server = new Server( host, port);
     server.setServerContext( context);
-    server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 2)));
+    server.setDispatcher( new ThreadPoolDispatcher( 2));
     server.start( false);
     
     IModelObject script = new XmlIO().read( 

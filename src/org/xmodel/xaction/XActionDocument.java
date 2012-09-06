@@ -432,10 +432,10 @@ public class XActionDocument
   }
 
   /**
-   * Returns the action defined on the specified view-model object or null.  If the object argument
-   * is null then null is returned.
-   * @param object A view-model action object.
-   * @return Returns the action defined on the specified view-model object or null.
+   * Returns the action defined on the specified script element or null.  
+   * If the object argument is null then null is returned.
+   * @param object The script element.
+   * @return Returns the action defined on the specified script element or null.
    */
   public IXAction getAction( IModelObject object)
   {

@@ -117,7 +117,7 @@ public class AnnotationTransform
         if ( annotated == root) result = transformed; 
       }
       
-      // some caching policies rely on their the configuration of their ancestors
+      // some caching policies rely on the configuration of their ancestors
       annotation.removeFromParent();
     }
     

@@ -20,10 +20,9 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.ThreadPoolDispatcher;
+import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -95,7 +94,7 @@ public class StartServerAction extends GuardedAction
       
       if ( threads > 0)
       {
-        server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( threads)));
+        server.setDispatcher( new ThreadPoolDispatcher( threads));
         cached.dispatcher = server.getDispatcher();
       }
       else

@@ -31,6 +31,14 @@ import java.util.Set;
 public interface IModel
 {
   /**
+   * For debugging purposes, set the thread to which this model belongs. This method is useful
+   * for debugging incorrect thread access when is serially accessed by different threads (see
+   * org.xmodel.concurrent.ThreadPool).
+   * @param thread The thread.
+   */
+  public void setThread( Thread thread);
+  
+  /**
    * Add a document to the specified collection.
    * @param collection The collection.
    * @param root The root node of the document.

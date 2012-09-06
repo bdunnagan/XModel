@@ -2,12 +2,11 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
-import java.util.concurrent.Executors;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.ThreadPoolDispatcher;
+import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;
@@ -60,7 +59,7 @@ public class ProtocolTimeoutTest
   {
     Server server = new Server( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
+    server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
     for( int i=0; i<3; i++)
@@ -95,7 +94,7 @@ public class ProtocolTimeoutTest
   {
     Server server = new Server( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
+    server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
     Client client = new Client( host, port, true);
@@ -131,7 +130,7 @@ public class ProtocolTimeoutTest
   {
     Server server = new Server( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
+    server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
     Client client = new Client( host, port, true);
@@ -169,7 +168,7 @@ public class ProtocolTimeoutTest
   {
     Server server = new Server( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( Executors.newFixedThreadPool( 1)));
+    server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
     Client client = new Client( host, port, true);

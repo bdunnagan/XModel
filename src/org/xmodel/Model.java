@@ -52,6 +52,15 @@ public class Model implements IModel
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModel#setThread(java.lang.Thread)
+   */
+  @Override
+  public void setThread( Thread thread)
+  {
+    if ( debugMap != null) debugMap.put( this, thread);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelRegistry#addRoot(java.lang.String, org.xmodel.IModelObject)
    */
   public void addRoot( String collection, IModelObject root)
@@ -127,7 +136,6 @@ public class Model implements IModel
    */
   public void restore()
   {
-    //System.out.printf( "restore: %s\n", Thread.currentThread().getName());
     for( Update update: updateStack) update.restore();
     
     // reenable syncing

@@ -397,6 +397,7 @@ public class Protocol implements ILink.IListener
     }
     catch( Exception e)
     {
+      SLog.exception( this, e);
       sendError( sender, session, correlation, e.getMessage());
     }
   }
@@ -1107,7 +1108,7 @@ public class Protocol implements ILink.IListener
    */
   protected void handleAddChild( ILink link, int session, long key, byte[] child, int index)
   {
-    System.err.printf( "handleAddChild( %X, %d, %X, %d)\n", link.hashCode(), session, key, index);
+    SLog.verbosef( this, "handleAddChild( %X, %d, %X, %d)\n", link.hashCode(), session, key, index);
     dispatch( getSessionInfo( link, session), new AddChildEvent( link, session, key, child, index));
   }
   
@@ -1135,7 +1136,7 @@ public class Protocol implements ILink.IListener
         IModelObject parent = parentRef.get();
         IModelObject child = info.decompress( bytes, 0);
         
-System.err.printf( "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode(), session, key, parent, child, index);
+        SLog.verbosef( this, "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode(), session, key, parent, child, index);
         
         if ( parent != null) 
         {
@@ -1233,7 +1234,7 @@ System.err.printf( "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode()
       {
         IModelObject parent = parentRef.get();
         
-        System.err.printf( "processRemoveChild( %X, %d, %X, %s, %d)\n", link.hashCode(), session, key, parent, index);
+        SLog.verbosef( this, "processRemoveChild( %X, %d, %X, %s, %d)\n", link.hashCode(), session, key, parent, index);
         
         if ( parent != null) parent.removeChild( index);
       }
@@ -2699,7 +2700,6 @@ System.err.printf( "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode()
   {
     if ( info.dispatcher != null)
     {
-      System.err.printf( "dispatch1 %X\n", info.dispatcher.hashCode());
       info.dispatcher.execute( runnable);
     }
     else
@@ -2707,7 +2707,6 @@ System.err.printf( "processAddChild( %X, %d, %X, %s, %s, %d)\n", link.hashCode()
       IDispatcher dispatcher = getDispatcher();
       if ( dispatcher != null)
       {
-        System.err.printf( "dispatch2 %X\n", dispatcher.hashCode());
         dispatcher.execute( runnable);
       }
       else

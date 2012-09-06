@@ -29,12 +29,32 @@ package org.xmodel;
 public class ModelRegistry
 {
   /**
+   * Sets the implementation of IModel for the current thread.
+   * @param model The model.
+   */
+  public synchronized void setModel( IModel model)
+  {
+    threadModel.set( model);
+  }
+  
+  /**
+   * This method is identical to calling <code>getModel( true)</code>.
    * @return Returns the implementation of IModel for the current thread.
    */
   public synchronized IModel getModel()
   {
+    return getModel( true);
+  }
+  
+  /**
+   * Get and/or create a IModel instance for the current thread.
+   * @param create True if IModel instance should be created if it doesn't already exist.
+   * @return Returns the IModel instance for the current thread.
+   */
+  public synchronized IModel getModel( boolean create)
+  {
     IModel model = threadModel.get();
-    if ( model == null)
+    if ( model == null && create)
     {
       model = new Model();
       threadModel.set( model);
