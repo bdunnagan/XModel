@@ -324,6 +324,7 @@ public class ModelAlgorithms implements IAxis
    * @param object The root of the subtree to clone.
    * @param factory The factory to use when creating objects in the tree.
    * @return Returns a complete clone of the subtree.
+   * TODO: Optimize cloning with backdoor for fast object creation without involving IModel
    */
   public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory)
   {

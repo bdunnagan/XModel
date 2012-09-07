@@ -321,5 +321,5 @@ public class SourceTrigger extends AbstractTrigger
   private boolean immediate;
   private boolean updating;
   
-  private static Log log = Log.getLog( "org.xmodel.xaction.trigger");
+  private static Log log = Log.getLog( SourceTrigger.class);
 }

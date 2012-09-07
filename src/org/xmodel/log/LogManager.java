@@ -161,6 +161,7 @@ public final class LogManager implements Runnable
       {
         timestamp = modified;
         updateConfig();
+        SLog.warn( this, "Reloaded logging configuration.");
       }
 
       if ( period < 0) break;

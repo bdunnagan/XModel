@@ -852,7 +852,6 @@ public class ModelObject implements IModelObject
   public IModelObject cloneObject()
   {
     IModelObject clone = createObject( getType());
-    clone.clearModel();
     ModelAlgorithms.copyAttributes( this, clone);
     return clone;
   }
