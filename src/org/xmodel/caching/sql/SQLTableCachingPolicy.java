@@ -270,13 +270,17 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     else if ( xmlColumns.contains( column) && value != null)
     {
+      //
+      // XML columns can contain multiple root nodes, so parser must be tricked by wrapping the XML
+      // text with a dummy root node.
+      //
       try
       {
-        String xml = value.toString();
+        String xml = "<superroot>"+value.toString()+"</superroot>";
         if ( xml.length() > 0)
         {
-          IModelObject root = new XmlIO().read( xml);
-          row.getCreateChild( column).addChild( root);
+          IModelObject superroot = new XmlIO().read( xml);
+          ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
         }
       }
       catch( XmlException e)
@@ -300,9 +304,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     if ( xmlColumns.contains( column))
     {
-      IModelObject root = row.getFirstChild( column).getChild( 0);
-      if ( root != null) return XmlIO.write( Style.compact, root);
-      return "";
+      StringBuilder sb = new StringBuilder();
+      for( IModelObject child: row.getFirstChild( column).getChildren())
+        sb.append( XmlIO.write( Style.compact, child));
+      return sb.toString();
     }
     else
     {
