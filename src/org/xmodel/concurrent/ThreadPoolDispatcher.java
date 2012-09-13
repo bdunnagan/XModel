@@ -7,12 +7,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
 import org.xmodel.Model;
 import org.xmodel.ModelRegistry;
+import org.xmodel.log.FormatSink;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 
 /**
@@ -84,6 +87,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
     this.queue = queue;
     this.queueSize = new AtomicInteger( 0);
     this.lock = new ReentrantLock();
+    this.lockOwner = new AtomicReference<Thread>();
   }
   
   /* (non-Javadoc)
@@ -121,17 +125,26 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    */
   public void lock() throws InterruptedException
   {
-    if ( !lock.tryLock())
+    if ( log.isLevelEnabled( Log.verbose))
     {
-      SLog.verbosef( this, "Lock.tryLock failed, waiting to acquire lock...");
-      
-      if ( !lock.tryLock( 5, TimeUnit.MINUTES))
+      log.verbosef( "(%X) - Acquiring lock ...", hashCode());
+      if ( !lock.tryLock())
       {
-        SLog.severe( this, "tryLock timed-out!");
-        throw new IllegalStateException();
+        log.verbosef( "(%X) - Lock owned by:\n%s", hashCode(), getLockOwnerStack());
+        if ( !lock.tryLock( 5, TimeUnit.MINUTES))
+        {
+          log.severef( "(%X) Timeout waiting for lock owned by:\n%s", hashCode(), getLockOwnerStack());
+          throw new IllegalStateException();
+        }
       }
       
-      SLog.verbosef( this, "Lock acquired.");
+      lockOwner.set( Thread.currentThread());
+      log.verbosef( "Lock acquired for (%X).", hashCode());
+    }
+    else
+    {
+      if ( !lock.tryLock( 5, TimeUnit.MINUTES))
+        throw new IllegalStateException();
     }
   }
   
@@ -140,7 +153,30 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    */
   public void unlock()
   {
-    lock.unlock();
+    if ( log.isLevelEnabled( Log.verbose))
+    {
+      log.verbosef( "(%X) Releasing lock.", hashCode());
+      
+      if ( lock.isHeldByCurrentThread())
+        lock.unlock();
+      
+      lockOwner.set( null);
+    }
+    else
+    {
+      if ( lock.isHeldByCurrentThread())
+        lock.unlock();
+    }
+  }
+  
+  /**
+   * @return Returns the stack of the lock owner.
+   */
+  private String getLockOwnerStack()
+  {
+    Thread thread = lockOwner.get();
+    if ( thread == null) return "(Lock Not Owned)";
+    return FormatSink.getStack( thread);
   }
   
   /* (non-Javadoc)
@@ -176,11 +212,14 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
         executor.execute( this);
     }
   }
+
+  private final static Log log = Log.getLog( ThreadPoolDispatcher.class);
   
   private ExecutorService executor;
   protected IModel model;
   private ModelRegistry registry;
   private BlockingQueue<Runnable> queue;
   private AtomicInteger queueSize;
-  private Lock lock;
+  private ReentrantLock lock;
+  private AtomicReference<Thread> lockOwner;
 }

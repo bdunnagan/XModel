@@ -37,7 +37,7 @@ public class ThreadPoolContext extends StatefulContext
   }
   
   /**
-   * Unock the model of this context.
+   * Unlock the model of this context.
    */
   public void unlock()
   {

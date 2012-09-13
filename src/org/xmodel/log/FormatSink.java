@@ -29,11 +29,12 @@ public final class FormatSink extends MultiSink
     sb.append( Log.getLevelName( level).toUpperCase());
     sb.append( ' ');
     
-    String thread = Thread.currentThread().getName();
-    sb.append( "["); sb.append( thread); sb.append( "] ");
+    Thread thread = Thread.currentThread();
+    String threadName = thread.getName();
+    sb.append( "["); sb.append( threadName); sb.append( "] ");
     
     //sb.append( "("); sb.append( log.getName()); sb.append( ") - ");
-    sb.append( "("); sb.append( getStack()); sb.append( ") - ");
+    sb.append( "("); sb.append( getStack( thread)); sb.append( ") - ");
     
     sb.append( message);
     
@@ -55,11 +56,12 @@ public final class FormatSink extends MultiSink
   @Override
   public void log( Log log, int level, Object object, Throwable throwable)
   {
+    Thread thread = Thread.currentThread();
+    String threadName = thread.getName();
     String message = object.toString();
-    String thread = Thread.currentThread().getName();
     String levelName = Log.getLevelName( level).toUpperCase();
 
-    String trace = getStack();
+    String trace = getStack( thread);
     StringBuilder date = new StringBuilder();
     formatDate( Calendar.getInstance(), date);
     
@@ -69,7 +71,7 @@ public final class FormatSink extends MultiSink
     {
       sb.append( date); sb.append( ' ');
       sb.append( levelName);
-      sb.append( " ["); sb.append( thread); sb.append( "]");
+      sb.append( " ["); sb.append( threadName); sb.append( "]");
       sb.append( " ("); sb.append( trace); sb.append( ") - ");
       sb.append( message);
       sb.append( '\n');
@@ -77,7 +79,7 @@ public final class FormatSink extends MultiSink
     
     sb.append( date); sb.append( ' ');
     sb.append( levelName);
-    sb.append( " ["); sb.append( thread); sb.append( "]");
+    sb.append( " ["); sb.append( threadName); sb.append( "]");
     sb.append( " ("); sb.append( trace); sb.append( ") - ");
     sb.append( throwable);
     sb.append( '\n');
@@ -132,12 +134,14 @@ public final class FormatSink extends MultiSink
   }
   
   /**
+   * Returns a string showing the stack of the specified thread.
+   * @param thread The thread.
    * @return Return partial stack trace.
    */
-  private String getStack()
+  public static String getStack( Thread thread)
   {
     // get stack trace
-    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+    StackTraceElement[] stack = thread.getStackTrace();
     
     // find first non-logging package stack frame
     int start = 1;
