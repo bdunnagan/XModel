@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import org.xmodel.net.stream.SSL;
 import org.xmodel.net.stream.TcpServer;
 
 /**
@@ -53,15 +52,6 @@ public class Server extends Protocol
   public void setPingTimeout( int timeout)
   {
     pingTimeout = timeout;
-  }
-  
-  /**
-   * Use SSL according to the specified SSL instance (call prior to starting server).
-   * @param ssl The SSL instance.
-   */
-  public final void useSSL( SSL ssl)
-  {
-    server.useSSL( ssl);
   }
   
   /**

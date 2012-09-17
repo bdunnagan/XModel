@@ -47,16 +47,6 @@ public abstract class TcpBase
   }
 
   /**
-   * Set the SSL instance (prior to calling <code>start( boolean)</code>.
-   * @param ssl An SSL instance.
-   */
-  protected synchronized void useSSL( SSL ssl)
-  {
-    if ( thread != null) throw new IllegalStateException();
-    this.ssl = ssl;
-  }
-  
-  /**
    * Start the socket servicing thread.
    * @param daemon True if servicing thread should be a daemon.
    */
@@ -303,16 +293,7 @@ public abstract class TcpBase
     {
       connection.buffer = prepareReadBuffer( connection.buffer);
 
-      // read (optionally use ssl)
-      int nread = 0;
-      if ( ssl != null)
-      {
-        nread = ssl.read( channel, connection);
-      }
-      else
-      {
-        nread = channel.read( connection.buffer);
-      }
+      int nread = channel.read( connection.buffer);
 
       log.verbosef( "Read %d bytes", nread);
       
@@ -383,15 +364,7 @@ public abstract class TcpBase
     while( buffer != null)
     {
       int length = buffer.remaining();
-      
-      if ( ssl != null)
-      {
-        ssl.write( channel, buffer);
-      }
-      else
-      {
-        channel.write( buffer);
-      }
+      channel.write( buffer);
   
       log.verbosef( "Wrote %d bytes, %d remaining", length - buffer.remaining(), buffer.remaining());
       
@@ -583,7 +556,6 @@ public abstract class TcpBase
   private Map<Channel, Connection> connections;
   private BlockingQueue<Request> queue;
   private Map<Channel, List<ByteBuffer>> pendingWrites;
-  private SSL ssl;
   private Thread thread;
   private volatile boolean exit;
 }

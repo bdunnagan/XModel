@@ -9,12 +9,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
 import org.xmodel.Model;
 import org.xmodel.ModelRegistry;
-import org.xmodel.log.FormatSink;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 
@@ -125,21 +123,21 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    */
   public void lock() throws InterruptedException
   {
-    if ( log.isLevelEnabled( Log.verbose))
+    if ( log.isLevelEnabled( Log.verbose | Log.debug))
     {
       log.verbosef( "(%X) - Acquiring lock ...", hashCode());
       if ( !lock.tryLock())
       {
-        log.verbosef( "(%X) - Lock owned by:\n%s", hashCode(), getLockOwnerStack());
+        log.debugf( "(%X) - Waiting for Lock owned by %s", hashCode(), getLockOwner());
         if ( !lock.tryLock( 5, TimeUnit.MINUTES))
         {
-          log.severef( "(%X) Timeout waiting for lock owned by:\n%s", hashCode(), getLockOwnerStack());
+          log.severef( "(%X) Timeout waiting for lock owned by %s", hashCode(), getLockOwner());
           throw new IllegalStateException();
         }
       }
       
       lockOwner.set( Thread.currentThread());
-      log.verbosef( "Lock acquired for (%X).", hashCode());
+      log.verbosef( "(%X) - Lock acquired.", hashCode());
     }
     else
     {
@@ -153,14 +151,13 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    */
   public void unlock()
   {
-    if ( log.isLevelEnabled( Log.verbose))
+    if ( log.isLevelEnabled( Log.verbose | Log.debug))
     {
-      log.verbosef( "(%X) Releasing lock.", hashCode());
-      
       if ( lock.isHeldByCurrentThread())
         lock.unlock();
       
       lockOwner.set( null);
+      log.verbosef( "(%X) - Lock released.", hashCode());
     }
     else
     {
@@ -170,13 +167,23 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
   }
   
   /**
-   * @return Returns the stack of the lock owner.
+   * @return Returns the name and stack-trace of the lock owner.
    */
-  private String getLockOwnerStack()
+  private String getLockOwner()
   {
     Thread thread = lockOwner.get();
     if ( thread == null) return "(Lock Not Owned)";
-    return FormatSink.getStack( thread);
+
+    StringBuilder sb = new StringBuilder();
+    sb.append( '['); sb.append( thread.getName()); sb.append( "]\n"); 
+    
+    for( StackTraceElement element: thread.getStackTrace())
+    {
+      sb.append( element.toString());
+      sb.append( '\n');
+    }
+    
+    return sb.toString();
   }
   
   /* (non-Javadoc)

@@ -11,16 +11,6 @@ public class TcpClient extends TcpBase
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.stream.TcpBase#useSSL(org.xmodel.net.stream.SSL)
-   */
-  @Override
-  public synchronized final void useSSL( SSL ssl)
-  {
-    ssl.getSSLEngine().setUseClientMode( true);
-    super.useSSL( ssl);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.net.stream.TcpManager#connect(java.lang.String, int, int, org.xmodel.net.stream.ITcpListener)
    */
   @Override
