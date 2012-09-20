@@ -127,6 +127,15 @@ public class XmlIO implements IXmlIO
   {
     maxLines = count;
   }
+
+  /**
+   * Set whether a document node is created.
+   * @param useDocument True if a document node should be created.
+   */
+  public void setUseDocument( boolean useDocument)
+  {
+    this.useDocument = useDocument;
+  }
   
   /**
    * Specify whether empty elements are written as compact start+end tags. Default: true.
@@ -677,8 +686,8 @@ public class XmlIO implements IXmlIO
   DefaultHandler contentListener = new DefaultHandler() {
     public void startDocument() throws SAXException
     {
-      root = null;
-      parent = null;
+      root = useDocument? factory.createObject( null, "document"): null;
+      parent = root;
       lines.clear();
     }
     public void endDocument() throws SAXException
@@ -770,8 +779,6 @@ public class XmlIO implements IXmlIO
     }
     public void processingInstruction( String target, String data) throws SAXException
     {
-      //FIXME: XModel documents do not have a document node so there is no where to put
-      // processing instructions at the top of the document!
       if ( parent != null)
       {
         IModelObject pi = factory.createObject( parent, "?"+target);
@@ -834,97 +841,24 @@ public class XmlIO implements IXmlIO
   private int line;
   private List<IModelObject> lines;
   private Locator locator;
+  private boolean useDocument;
   private boolean outputHeader;
   private boolean oneLineElements;
   private boolean recordTextPosition;
   private boolean lineNumberTracking;
   private boolean cycleBreaking;
   
-  private static Log log = Log.getLog( "org.xmodel.xml");
+  private static Log log = Log.getLog( XmlIO.class);
   
   public static void main( String[] args) throws Exception
   {
-    String html = 
-      "<html>\n" + 
-      "  <head>\n" + 
-      "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n" + 
-      "    <meta http-equiv=\"Content-Style-Type\" content=\"text/css\"/>\n" + 
-      "    <title>Xidgets</title>\n" + 
-      "    <link href=\"css/global.css\" rel=\"stylesheet\" type=\"text/css\"/>\n" + 
-      "    <script type=\"text/javascript\" src=\"javascript/global.js\"></script>\n" + 
-      "  </head>\n" + 
-      "  \n" + 
-      "  <body>\n" + 
-      "    <table class=\"panes\">\n" + 
-      "      <tr>\n" + 
-      "        <td class=\"toppane\" colspan=\"2\">\n" + 
-      "          <img class=\"banner\" src=\"images/xidgets.png\" width=\"600\"/>\n" + 
-      "        </td>\n" + 
-      "      </tr>\n" + 
-      "    \n" + 
-      "      <tr>\n" + 
-      "        <td class=\"leftpane\" valign=\"top\">\n" + 
-      "          <div class=\"menuitem selected\" onclick=\"go('index.html');\">Home</div>\n" + 
-      "          <div class=\"menuitem\" onclick=\"go('Downloads.html');\">Download</div>\n" + 
-      "          <div class=\"menuitem\" onclick=\"go('Xidget Overview.html');\">Overview</div>\n" + 
-      "          <div class=\"menuitem\" onclick=\"go('Reference.html');\">Reference</div>\n" + 
-      "          <div class=\"menuitem\" onclick=\"go('About.html');\">About</div>\n" + 
-      "        </td>\n" + 
-      "    \n" + 
-      "        <td class=\"rightpane\">\n" + 
-      "          <h4>What is a Xidget?</h4>\n" + 
-      "          <p>A xidget is an fragment of XML that describes a graphical user-interface component (widget). Every visual and behavioral\n" + 
-      "             characteristic of a widget is defined by an XPath expression, and is updated whenever the result of the XPath expression\n" + 
-      "             changes.</p>\n" + 
-      "             \n" + 
-      "          <h4>What user-interface toolkits are supported?</h4>\n" + 
-      "          <p>The reference implementation of xidgets was programmed with Java 1.5 with a binding for the Swing widget toolkit. Bindings\n" + 
-      "             for C#/WinForms and C++/Qt are in progress.</p>\n" + 
-      "             \n" + 
-      "          <h4>What is required to begin using xidgets?</h4>\n" + 
-      "          <p> Eclipse Java IDE, Java 1.5+ and Subversion 1.6.</p>\n" + 
-      "          \n" + 
-      "          <h4>Is the xidget framework extensible?</h4>\n" + 
-      "          <p>Yes. The xidget framework was designed to be extensible in three areas: widgets, scripting and data-model.</p>\n" + 
-      "          \n" + 
-      "          <h4>What are the terms of the software license?</h4>\n" + 
-      "          <p>Xidgets are distributed under the <a href=\"http://www.apache.org/licenses/LICENSE-2.0.html\"><u>Apache 2.0 software license agreement</u></a> \n" + 
-      "             which allows individuals and companies to develop and market proprietary software that uses the xidget libraries. However, any \n" + 
-      "             modifications to the xidget libraries are open-source.</p>\n" + 
-      "        </td>\n" + 
-      "      </tr>\n" + 
-      "      \n" + 
-      "      <tr>\n" + 
-      "        <td class=\"bottompane\" colspan=\"2\" align=\"center\">\n" + 
-      "          <span class=\"copyright\">Created by Bob Dunnagan &copy;2011</span>\n" + 
-      "        </td>\n" + 
-      "      </tr>\n" + 
-      "    </table>\n" + 
-      "  </body>\n" + 
-      "</html>";
+    String text = 
+        "<?xml-stylesheet href=\"nmap.xsl\" type=\"text/xsl\"?>\n" + 
+        "<root/>";
     
     XmlIO io = new XmlIO();
-    IModelObject root = io.read( new StringReader( html));
+    io.setUseDocument( true);
+    IModelObject root = io.read( new StringReader( text));
     System.out.println( io.write( root));
-    
-//    for( int i=0; i<10; i++)
-//    {
-//      long t0 = System.nanoTime();
-//      
-//      XmlIO xmlIO = new XmlIO();
-//      xmlIO.setRecordElementPosition( true);
-//      xmlIO.setWhitespace( Whitespace.keep);
-//      
-//      IModelObject root = xmlIO.read( new FileInputStream( "lear.xml"));
-//      
-//      long t1 = System.nanoTime();
-//      System.out.printf( "elapsed = %3.1fms\n", ((t1-t0) / 1e6f));
-//    }
-    
-//    List<IModelObject> lines = xmlIO.getLineInformation();
-//    for( int i=0; i < lines.size(); i++)
-//      System.out.printf( "%-4d %s\n", i+1, lines.get( i));
-    
-    //System.out.println( xmlIO.write( o));
   }
 }

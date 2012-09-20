@@ -166,7 +166,7 @@ public final class LogManager implements Runnable
 
       if ( period < 0) break;
       if ( period < 1000) period = 1000;
-      try { Thread.sleep( period);} catch( Exception e) { Thread.interrupted(); break;}
+      try { Thread.sleep( period);} catch( Exception e) { break;}
     }
   }
 

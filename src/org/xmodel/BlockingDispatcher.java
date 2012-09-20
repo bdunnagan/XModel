@@ -124,7 +124,8 @@ public class BlockingDispatcher implements IDispatcher
     }
     catch( InterruptedException e)
     {
-      Thread.interrupted();
+      log.exception( e);
+      return false;
     }
     
     return true;

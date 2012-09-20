@@ -123,7 +123,6 @@ public abstract class TcpBase
     }
     catch( InterruptedException e)
     {
-      Thread.interrupted();
       log.debug( "Thread interrupted.");
       return null;
     }
@@ -162,7 +161,6 @@ public abstract class TcpBase
     catch( InterruptedException e)
     {
       log.debugf( "Thread interrupted!");
-      Thread.interrupted();
       return false;
     }
     
@@ -466,7 +464,7 @@ public abstract class TcpBase
       }
       catch( CancelledKeyException e)
       {
-        log.warn( e.getMessage());
+        log.warnf( "Cancelled Key: %s", toLog( readyKey));
       }
     }
     
@@ -534,7 +532,6 @@ public abstract class TcpBase
         catch( InterruptedException e2)
         {
           log.warn( "TcpBase was interrupted - exitting processing loop.");
-          Thread.interrupted();
           break;
         }
       }

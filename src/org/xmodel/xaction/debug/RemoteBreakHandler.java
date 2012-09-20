@@ -43,7 +43,6 @@ public class RemoteBreakHandler implements IBreakHandler
     } 
     catch( InterruptedException e) 
     {
-      Thread.interrupted();
       SLog.warnf( this, "Debugger breakpoint interrupted.");
     }
   }

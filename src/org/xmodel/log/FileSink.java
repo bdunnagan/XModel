@@ -158,7 +158,6 @@ public final class FileSink implements ILogSink
     }
     catch( InterruptedException e)
     {
-      Thread.interrupted();
       try
       {
         stream.write( "\n** Logging Thread Interrupted **\n".getBytes());

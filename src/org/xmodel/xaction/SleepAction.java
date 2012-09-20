@@ -1,5 +1,6 @@
 package org.xmodel.xaction;
 
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -27,7 +28,7 @@ public class SleepAction extends GuardedAction
       }
       catch( InterruptedException e)
       {
-        Thread.interrupted();
+        SLog.exception( this, e);
       }
     }
     return null;
