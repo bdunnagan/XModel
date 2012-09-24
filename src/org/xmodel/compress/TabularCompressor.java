@@ -19,7 +19,6 @@
  */
 package org.xmodel.compress;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -62,16 +61,34 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Create a TabularCompressor that optionally omits the tag table from the compressed output
    * when no new tags have been added since the previous call to the <code>compress</code>
-   * method.
+   * method.  No post-compression is performed.
    * @param progressive True if tag table can be omitted.
    */
   public TabularCompressor( boolean progressive)
+  {
+    this( progressive, false);
+  }
+  
+  /**
+   * Create a TabularCompressor that optionally omits the tag table from the compressed output
+   * when no new tags have been added since the previous call to the <code>compress</code>
+   * method.
+   * @param progressive True if tag table can be omitted.
+   * @param deflate True if DEFLATE post-compression should be used.
+   */
+  public TabularCompressor( boolean progressive, boolean deflate)
   {
     this.factory = new ModelObjectFactory();
     this.map = new LinkedHashMap<String, Integer>();
     this.table = new ArrayList<String>();
     this.predefined = false;
     this.progressive = progressive;
+    this.deflate = deflate;
+    
+    this.byteIn = new TabularInputStream();
+    this.dataIn = new DataInputStream( byteIn);
+    this.byteOut = new TabularOutputStream();
+    this.dataOut = new DataOutputStream( byteOut);
   }
   
   /**
@@ -99,82 +116,115 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
+   * @see org.xmodel.compress.AbstractCompressor#compress(org.xmodel.IModelObject)
    */
-  public void compress( IModelObject element, OutputStream finalArrayOut) throws CompressorException
+  @Override
+  public byte[] compress( IModelObject element) throws CompressorException
   {
-    ByteArrayOutputStream contentArrayOut = new ByteArrayOutputStream( 1024);
-    DataOutputStream contentOut = new DataOutputStream( contentArrayOut);
-    
     try
     {
-      // create content and decide if compression is required
-      writeElement( contentOut, element);
+      // write body
+      writeElement( dataOut, element);
       
       // write header
-      byte header = 0;
-      if ( predefined) header |= 0x20;
-      finalArrayOut.write( header);
-      
-      // optionally compress everything but header
-      OutputStream rawOut = finalArrayOut;
+      byteOut.setDeflate( deflate);
+      byteOut.setPredefined( predefined);
       
       // write table
       if ( !predefined)
       {
-        DataOutputStream tableOut = new DataOutputStream( rawOut);
-        writeTable( tableOut);
-        tableOut.flush();
+        byteOut.setTableOffset( byteOut.getCount());
+        writeTable( dataOut);
       }
       
-      // write content
-      contentOut.flush();
-      byte[] content = contentArrayOut.toByteArray();
-      rawOut.write( content);
-      rawOut.flush();
-      rawOut.close();
+      // set the predefined flag in preparation for the next compression
+      if ( progressive) predefined = true;
+      
+      return byteOut.toByteArray();
     }
     catch( IOException e)
     {
       throw new CompressorException( e);
     }
-    
-    if ( progressive)
-      predefined = true;
+    finally
+    {
+      byteOut.reset();
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.AbstractCompressor#decompress(byte[], int)
+   */
+  @Override
+  public IModelObject decompress( byte[] bytes, int offset) throws CompressorException
+  {
+    try
+    {
+      byteIn.reset( bytes, offset);
+      
+      if ( !byteIn.isPredefined())
+      {
+        byteIn.pointToTable();
+        readTable( dataIn);
+      }
+      
+      byteIn.pointToBody();
+      return readElement( dataIn);
+    }
+    catch( IOException e)
+    {
+      throw new CompressorException( e);
+    }
+    finally
+    {
+      byteIn.reset();
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
+   */
+  public void compress( IModelObject element, OutputStream stream) throws CompressorException
+  {
+    try
+    {
+      byte[] bytes = compress( element);
+      stream.write( bytes);
+    }
+    catch( IOException e)
+    {
+      throw new CompressorException( e);
+    }
   }
   
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#decompress(java.io.InputStream)
    */
-  public IModelObject decompress( InputStream rawArrayIn) throws CompressorException
+  public IModelObject decompress( InputStream stream) throws CompressorException
   {
     try
     {
-      // read header
-      byte header = (byte)rawArrayIn.read();
-      boolean predefined = (header & 0x20) != 0;
+      byteIn.reset( stream);
       
-      if ( (header & 0xC0) != 0) throw new CompressorException( "Post compression not supported!");
-
-      // optionally decompress everything but header
-      InputStream rawIn = rawArrayIn;
-      DataInputStream dataIn = new DataInputStream( rawIn);
+      if ( !byteIn.isPredefined())
+      {
+        byteIn.pointToTable();
+        readTable( dataIn);
+      }
       
-      // read table
-      if ( !predefined) readTable( dataIn);
-      
-      // read content
-      IModelObject element = readElement( dataIn);
-      dataIn.close();
-      
-      return element;
+      byteIn.pointToBody();
+      return readElement( dataIn);
     }
     catch( IOException e)
     {
-      throw new CompressorException( "Error in data stream: ", e);
+      throw new CompressorException( e);
+    }
+    finally
+    {
+      byteIn.reset();
     }
   }
-
+  
   /**
    * Read an element from the input stream.
    * @param stream The input stream.
@@ -503,10 +553,15 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
-    
+  
   private List<String> table;
   private Map<String, Integer> map;
   private int hashIndex;
   private boolean predefined;
   private boolean progressive;
+  private boolean deflate;
+  private TabularInputStream byteIn;
+  private DataInputStream dataIn;
+  private TabularOutputStream byteOut;
+  private DataOutputStream dataOut;
 }
