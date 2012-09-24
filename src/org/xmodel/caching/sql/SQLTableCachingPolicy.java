@@ -321,8 +321,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
   {
-    IExternalReference reference = rowCachingPolicy.createExternalTree( object, true, parent);
-    parent.addChild( reference);
+    IExternalReference reference = rowCachingPolicy.createExternalTree( object, dirty, parent);
+    parent.addChild( reference, index);
   }
 
   /* (non-Javadoc)

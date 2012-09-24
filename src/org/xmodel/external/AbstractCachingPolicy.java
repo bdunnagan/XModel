@@ -423,7 +423,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   protected void addStaticAttribute( String attrName)
   {
-    this.staticAttributes.add( attrName);
+    if ( !staticAttributes.contains( attrName))
+      staticAttributes.add( attrName);
   }
   
   /**

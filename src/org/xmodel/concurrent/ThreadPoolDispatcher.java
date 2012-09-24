@@ -198,7 +198,8 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
     }
     catch( InterruptedException e)
     {
-      SLog.warn( this, "Lock acquisition interrupted.");
+      SLog.severe( this, "Lock acquisition interrupted.");
+      return;
     }
     
     try

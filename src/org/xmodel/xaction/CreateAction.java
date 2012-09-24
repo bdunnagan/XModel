@@ -28,6 +28,7 @@ import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.caching.AnnotationTransform;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -108,17 +109,29 @@ public class CreateAction extends GuardedAction
       }
     }
     
+    // add to parent if not null
+    if ( parent != null) 
+    {
+      if ( parent instanceof IExternalReference)
+      {
+        IExternalReference pRef = (IExternalReference)parent;
+        int index = parent.getNumberOfChildren();
+        for( IModelObject element: elements)
+          pRef.getCachingPolicy().insert( pRef, element, index++, false);
+      }
+      else
+      {
+        for( IModelObject element: elements)
+          parent.addChild( element);
+      }
+    }
+    
     // set variable if defined
     if ( var != null) 
     {
       IVariableScope scope = context.getScope();
       if ( scope != null) scope.set( var, elements);
     }
-    
-    // add to parent if not null
-    if ( parent != null) 
-      for( IModelObject element: elements)
-        parent.addChild( element);
     
     // add element to collection if not null
     String collection = (collectionExpr != null)? collectionExpr.evaluateString( context): null;

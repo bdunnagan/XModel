@@ -238,11 +238,11 @@ public class Protocol implements ILink.IListener
    * @param link The link.
    * @param session The session number.
    * @param timeout The timeout in milliseconds.
-   * @param pubsub True if attachment is pub/sub model.
+   * @param readonly True if attachment is read-only.
    * @param xpath The XPath expression.
    * @param reference The reference.
    */
-  public void attach( ILink link, int session, int timeout, boolean pubsub, String xpath, IExternalReference reference) throws IOException
+  public void attach( ILink link, int session, int timeout, boolean readonly, String xpath, IExternalReference reference) throws IOException
   {
     if ( link != null && link.isOpen())
     {
@@ -255,7 +255,7 @@ public class Protocol implements ILink.IListener
       info.xpath = xpath;
       info.element = new WeakReference<IModelObject>( reference);
       info.isAttachClient = true;
-      info.isAttachPubsub = pubsub;
+      info.isAttachReadonly = readonly;
       info.dispatcher = reference.getModel().getDispatcher();
       
       if ( info.dispatcher == null) 
@@ -263,14 +263,11 @@ public class Protocol implements ILink.IListener
         throw new IllegalStateException( "Client must define dispatcher.");
       }
       
-      sendAttachRequest( link, session, timeout, pubsub, xpath);
+      sendAttachRequest( link, session, timeout, readonly, xpath);
 
-      //
-      // In publish/subscribe mode, all updates are events and updates are only sent from the server. 
-      //
-      if ( !pubsub)
+      if ( !readonly)
       {
-        info.listener = new Listener( link, session, pubsub, xpath, reference, random);
+        info.listener = new Listener( link, session, readonly, xpath, reference, random);
         info.listener.install( reference);
       }
     }
@@ -368,10 +365,10 @@ public class Protocol implements ILink.IListener
    * @param sender The sender.
    * @param session The session number.
    * @param correlation The correlation number.
-   * @param pubsub True if attachment is publish/subscribe.
+   * @param readonly True if attachment is publish/subscribe.
    * @param xpath The xpath expression.
    */
-  protected void doAttach( ILink sender, int session, int correlation, boolean pubsub, String xpath) throws IOException
+  protected void doAttach( ILink sender, int session, int correlation, boolean readonly, String xpath) throws IOException
   {
     try
     {
@@ -380,14 +377,14 @@ public class Protocol implements ILink.IListener
       if ( target != null)
       {
         SessionInfo info = getSessionInfo( sender, session);
-        info.isAttachPubsub = pubsub;
+        info.isAttachReadonly = readonly;
         info.xpath = xpath;
         info.element = new WeakReference<IModelObject>( target);
         
         IModelObject copy = encode( sender, session, target, true);
         sendAttachResponse( sender, session, correlation, copy);
         
-        info.listener = new Listener( sender, session, pubsub, xpath, target, null);
+        info.listener = new Listener( sender, session, readonly, xpath, target, null);
         info.listener.install( target);
       }
       else
@@ -884,7 +881,7 @@ public class Protocol implements ILink.IListener
     // log
     if ( SLog.isLevelEnabled( this, Log.debug))
     {
-      String xml = XmlIO.write( Style.compact, element);
+      String xml = (element != null)? XmlIO.write( Style.compact, element): "(null)";
       SLog.debugf( this, "Send Attach Response: session=%X, correlation=%d, response=%s", session, correlation, xml);
     }
     
@@ -1141,19 +1138,7 @@ public class Protocol implements ILink.IListener
         if ( parent != null) 
         {
           IModelObject childElement = decode( link, session, child);
-          if ( info.isAttachPubsub && parent == attached) 
-          {
-            //
-            // In publish/subscribe mode, the root element is considered to be the topic, and its children
-            // are considered to be events.  Events are always appended to the end of the list, and the client
-            // and the server manage removing events from their lists.
-            //
-            parent.addChild( childElement);
-          }
-          else
-          {
-            parent.addChild( childElement, index);
-          }
+          parent.addChild( childElement, index);
         }
       }
     }
@@ -2159,7 +2144,7 @@ public class Protocol implements ILink.IListener
         
         if ( lNode instanceof IExternalReference)
         {
-          IExternalReference lRef = (IExternalReference)element;
+          IExternalReference lRef = (IExternalReference)lNode;
           
           // enumerate static attributes for client
           for( String attrName: lRef.getStaticAttributes())
@@ -2176,7 +2161,7 @@ public class Protocol implements ILink.IListener
             // copy static attributes
             for( String attrName: lRef.getStaticAttributes())
             {
-              Object attrValue = element.getAttribute( attrName);
+              Object attrValue = lRef.getAttribute( attrName);
               if ( attrValue != null) rNode.setAttribute( attrName, attrValue);
             }
           }
@@ -2280,6 +2265,7 @@ public class Protocol implements ILink.IListener
     {
       this.sender = sender;
       this.session = session;
+      this.correlation = correlation;
       this.key = key;
     }
     
@@ -2770,7 +2756,7 @@ public class Protocol implements ILink.IListener
       correlation = new AtomicInteger();
       responseQueues = Collections.synchronizedMap( new HashMap<Integer, BlockingQueue<byte[]>>());
       callbacks = Collections.synchronizedMap( new HashMap<Integer, AsyncCallback>());
-      compressor = new TabularCompressor();
+      compressor = new TabularCompressor( true);
       attachMap = new HashMap<Long, WeakReference<IModelObject>>();
     }
     
@@ -2811,7 +2797,7 @@ public class Protocol implements ILink.IListener
     public IDispatcher dispatcher;
     public String xpath;
     public boolean isAttachClient;
-    public boolean isAttachPubsub;
+    public boolean isAttachReadonly;
     public WeakReference<IModelObject> element;
     public Map<Long, WeakReference<IModelObject>> attachMap;
     public Listener listener;

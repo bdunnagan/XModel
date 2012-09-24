@@ -13,25 +13,25 @@ public class Util
   public final static String dump( ByteBuffer buffer, String indent)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( String.format( "%s[%d, %d] ", indent, buffer.position(), buffer.limit()));
+    sb.append( indent);
     
-    int n=0;
-    for( int i=buffer.position(); i<buffer.limit(); i++, n++)
+    int bpl = 64;
+    for( int i=buffer.position(), n=0; i<buffer.limit(); i++)
     {
-      if ( n == 8) sb.append( " ");
-      if ( n == 16) sb.append( "  ");
-      if ( n == 32) 
-      { 
-        sb.append( String.format( "\n%s[%d, %d] ", indent, i, buffer.limit()));
-        n=0;
+      if ( n == 0)
+      {
+        for( int j=0; j<bpl; j+=4)
+          sb.append( String.format( "|%-8d", i + j));
+        sb.append( "\n");
       }
       
-      sb.append( String.format( "%02X", buffer.get( i)));
-      
-      if ( (i - buffer.position()) > 1024)
-      {
-        sb.append( "...");
-        break;
+      if ( (n % 4) == 0) sb.append( "|");
+      sb.append( String.format( "%02x", buffer.get( i)));
+        
+      if ( ++n == bpl) 
+      { 
+        sb.append( String.format( "\n%s", indent));
+        n=0;
       }
     }
     
