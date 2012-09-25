@@ -19,15 +19,13 @@
  */
 package org.xmodel.xaction;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
-import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.xml.XmlException;
@@ -35,7 +33,6 @@ import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
-
 
 /**
  * An XAction which loads an element from a file in compressed or uncompressed form.
@@ -106,9 +103,9 @@ public class FileLoadAction extends GuardedAction
       try
       {
         if ( compressor == null) compressor = new TabularCompressor();
-        element = compressor.decompress( new ByteArrayInputStream( content));
+        element = compressor.decompress( ChannelBuffers.wrappedBuffer( content));
       }
-      catch( CompressorException e)
+      catch( IOException e)
       {
         throw new IllegalArgumentException( "Unable to decompress xml: "+this, e); 
       }

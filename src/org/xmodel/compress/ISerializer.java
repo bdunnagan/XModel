@@ -1,9 +1,8 @@
 package org.xmodel.compress;
 
-import org.xmodel.IModelObject;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.xmodel.IModelObject;
 
 /**
  * An interface for serialization of objects stored in attributes.  This interface is intended for use
@@ -18,7 +17,7 @@ public interface ISerializer
    * @param input The input.
    * @return Returns the object (may be null).
    */
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException;
+  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException;
   
   /**
    * Write an object to the specified output.
@@ -26,5 +25,5 @@ public interface ISerializer
    * @param object The object.
    * @return Returns the number of bytes written.
    */
-  public int writeObject( DataOutputStream output, IModelObject object) throws IOException, CompressorException;
+  public int writeObject( ChannelBuffer output, IModelObject object) throws IOException, CompressorException;
 }

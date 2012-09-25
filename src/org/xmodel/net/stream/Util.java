@@ -20,9 +20,9 @@ public class Util
     {
       if ( n == 0)
       {
-        for( int j=0; j<bpl; j+=4)
-          sb.append( String.format( "|%-8d", i + j));
-        sb.append( "\n");
+        for( int j=0; j<bpl && (i + j) < buffer.limit(); j+=4)
+          sb.append( String.format( "|%-8d", i - buffer.position() + j));
+        sb.append( String.format( "\n%s", indent));
       }
       
       if ( (n % 4) == 0) sb.append( "|");

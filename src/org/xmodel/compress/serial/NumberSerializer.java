@@ -1,10 +1,9 @@
 package org.xmodel.compress.serial;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ISerializer;
@@ -18,7 +17,7 @@ public class NumberSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
   {
     byte type = input.readByte();
     if ( type == 0x13)
@@ -67,7 +66,7 @@ public class NumberSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( DataOutputStream output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
   {
     Object object = node.getValue();
     if ( object instanceof Float) 
@@ -89,7 +88,7 @@ public class NumberSerializer implements ISerializer
       BigInteger unscaled = value.unscaledValue();
       byte[] unscaledBytes = unscaled.toByteArray();
       output.writeByte( (byte)unscaledBytes.length);
-      output.write( unscaledBytes);
+      output.writeBytes( unscaledBytes);
       output.writeInt( value.scale());
       return 1 + unscaledBytes.length + 4;
     }
@@ -123,7 +122,7 @@ public class NumberSerializer implements ISerializer
       BigInteger value = (BigInteger)object;
       byte[] bytes = value.toByteArray();
       output.writeByte( (byte)bytes.length);
-      output.write( bytes);
+      output.writeBytes( bytes);
       return 1 + bytes.length;
     }
     else

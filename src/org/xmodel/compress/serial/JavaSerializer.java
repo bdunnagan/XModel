@@ -2,11 +2,10 @@ package org.xmodel.compress.serial;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ISerializer;
@@ -20,11 +19,11 @@ public class JavaSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
   {
     int length = input.readInt();
     byte[] bytes = new byte[ length];
-    input.readFully( bytes);
+    input.readBytes( bytes);
     
     ByteArrayInputStream byteIn = new ByteArrayInputStream( bytes);
     ObjectInputStream objectIn = new ObjectInputStream( byteIn);
@@ -37,7 +36,7 @@ public class JavaSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( DataOutputStream output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
   {
     ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
     ObjectOutputStream objectOut = new ObjectOutputStream( byteOut);
@@ -46,7 +45,7 @@ public class JavaSerializer implements ISerializer
     
     byte[] bytes = byteOut.toByteArray();
     output.writeInt( bytes.length);
-    output.write( bytes);
+    output.writeBytes( bytes);
     return bytes.length;
   }
 }

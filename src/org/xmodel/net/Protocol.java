@@ -21,6 +21,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
@@ -634,7 +636,7 @@ public class Protocol implements ILink.IListener
       }
       if ( log.isLevelEnabled( Log.verbose)) 
       {
-        String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+        String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
         log.verbosef( "bytes received:\n%s", bytes);
       }
       
@@ -827,7 +829,7 @@ public class Protocol implements ILink.IListener
     {
       if ( response.length > 0)
       {
-        IModelObject element = info.compressor.decompress( new ByteArrayInputStream( response));
+        IModelObject element = info.compressor.decompress( ChannelBuffers.wrappedBuffer( response));
         handleAttachResponse( link, session, element);
       }
     }
@@ -1789,7 +1791,7 @@ public class Protocol implements ILink.IListener
     }
     if ( log.isLevelEnabled( Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
       log.verbosef( "bytes sent:\n%s", bytes);
     }
     
@@ -1829,7 +1831,7 @@ public class Protocol implements ILink.IListener
     }
     if ( log.isLevelEnabled( Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
       log.verbosef( "bytes sent:\n%s", bytes);
     }
     
@@ -1874,11 +1876,10 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        DataOutputStream ds = new DataOutputStream( bs);
-        serializer.writeObject( ds, node);
-        ds.close();
-        return bs.toByteArray();
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        serializer.writeObject( buffer, node);
+        
+        return buffer.
       }
       catch( Exception e)
       {

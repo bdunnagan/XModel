@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
-
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
@@ -109,7 +109,7 @@ public class UrlLoadAction extends GuardedAction
         try
         {
           if ( compressor == null) compressor = new TabularCompressor();
-          element = compressor.decompress( content, 0);
+          element = compressor.decompress( ChannelBuffers.wrappedBuffer( content));
         }
         catch( CompressorException e)
         {

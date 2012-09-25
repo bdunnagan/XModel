@@ -1,10 +1,9 @@
 package org.xmodel.compress;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.serial.BooleanSerializer;
 import org.xmodel.compress.serial.NumberSerializer;
@@ -41,7 +40,7 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
   {
     int classID = input.readShort() & 0xFFFF;
     if ( classID >= serializers.size()) 
@@ -58,7 +57,7 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( DataOutputStream output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
   {
     Object object = node.getValue();
     
