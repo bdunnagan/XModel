@@ -1,6 +1,6 @@
 package org.xmodel.net.stream;
 
-import java.nio.ByteBuffer;
+import org.jboss.netty.buffer.ChannelBuffer;
 
 public class Util
 {
@@ -10,23 +10,26 @@ public class Util
    * @param indent The indentation before each line.
    * @return Returns a string containing the dump.
    */
-  public final static String dump( ByteBuffer buffer, String indent)
+  public final static String dump( ChannelBuffer buffer, String indent)
   {
+    buffer.markReaderIndex();
+    
     StringBuilder sb = new StringBuilder();
     sb.append( indent);
     
     int bpl = 64;
-    for( int i=buffer.position(), n=0; i<buffer.limit(); i++)
+    int count = buffer.readableBytes();
+    for( int i=0, n=0; i<count; i++)
     {
       if ( n == 0)
       {
-        for( int j=0; j<bpl && (i + j) < buffer.limit(); j+=4)
-          sb.append( String.format( "|%-8d", i - buffer.position() + j));
+        for( int j=0; j<bpl && (i + j) < count; j+=4)
+          sb.append( String.format( "|%-8d", i + j));
         sb.append( String.format( "\n%s", indent));
       }
       
       if ( (n % 4) == 0) sb.append( "|");
-      sb.append( String.format( "%02x", buffer.get( i)));
+      sb.append( String.format( "%02x", buffer.readByte()));
         
       if ( ++n == bpl) 
       { 
@@ -35,6 +38,7 @@ public class Util
       }
     }
     
+    buffer.resetReaderIndex();
     return sb.toString();
   }
 }

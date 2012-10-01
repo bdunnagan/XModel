@@ -5,6 +5,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.jboss.netty.channel.Channel;
 import org.xmodel.log.Log;
 
 /**
@@ -12,7 +14,7 @@ import org.xmodel.log.Log;
  */
 class Ping implements Runnable
 {
-  public Ping( Protocol protocol, ILink link, int timeout)
+  public Ping( Protocol protocol, Channel link, int timeout)
   {
     this.protocol = protocol;
     this.link = link;
@@ -54,7 +56,7 @@ class Ping implements Runnable
     {
       log.warnf( "Ping closing for %s", link);
       stop();
-      link.close();
+      link.disconnect();
     }
     else
     {
@@ -77,7 +79,7 @@ class Ping implements Runnable
   private static Log log = Log.getLog( Ping.class);
 
   private Protocol protocol;
-  private volatile ILink link;
+  private volatile Channel link;
   private volatile boolean alive;
   private ScheduledFuture<?> timer;
 }

@@ -1,6 +1,8 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+
+import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.expression.IContext;
@@ -11,7 +13,7 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public final class Session
 {
-  public Session( Protocol protocol, ILink link, int session)
+  public Session( Protocol protocol, Channel link, int session)
   {
     this.protocol = protocol;
     this.link = link;
@@ -94,6 +96,6 @@ public final class Session
   }
 
   private Protocol protocol;
-  private ILink link;
+  private Channel link;
   private int session;
 }

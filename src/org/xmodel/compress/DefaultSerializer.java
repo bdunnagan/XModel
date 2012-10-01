@@ -40,7 +40,7 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException
   {
     int classID = input.readShort() & 0xFFFF;
     if ( classID >= serializers.size()) 
@@ -57,14 +57,14 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException
   {
     Object object = node.getValue();
     
     int classID = findSerializerClassID( object);   
     if ( classID < 0)
     {
-      throw new CompressorException( String.format(
+      throw new IOException( String.format(
         "Class not supported, %s.", object.getClass().getName()));
     }
    

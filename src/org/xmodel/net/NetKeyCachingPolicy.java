@@ -3,6 +3,7 @@ package org.xmodel.net;
 import java.io.IOException;
 import java.util.List;
 
+import org.jboss.netty.channel.Channel;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
@@ -15,7 +16,7 @@ import org.xmodel.external.UnboundedCache;
  */
 class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
-  public NetKeyCachingPolicy( Protocol protocol, ILink link, int session, Long key)
+  public NetKeyCachingPolicy( Protocol protocol, Channel link, int session, Long key)
   {
     this( new UnboundedCache(), protocol);
     
@@ -59,7 +60,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   }
 
   private Protocol protocol;
-  private ILink link;
+  private Channel link;
   private int session;
   private Long key;
 }
