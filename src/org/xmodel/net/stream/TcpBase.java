@@ -246,7 +246,8 @@ public abstract class TcpBase
    */
   private void connect( SelectionKey key) throws IOException
   {
-    log.debugf( "TcpBase[%X].connect: key=%s", hashCode(), toLog( key));
+    if ( log.isLevelEnabled( Log.debug))
+      log.debugf( "TcpBase[%X].connect: key=%s", hashCode(), toLog( key));
     
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = getConnection( channel);
@@ -274,7 +275,11 @@ public abstract class TcpBase
     connection.getChannel().register( selector, SelectionKey.OP_READ);
     
     InetSocketAddress local = (InetSocketAddress)connection.getChannel().socket().getLocalSocketAddress();
-    log.debugf( "TcpBase[%X].accept: key=%s, address=%s:%d.", hashCode(), toLog( key), local.getAddress().getHostAddress(), local.getPort());
+    
+    if ( log.isLevelEnabled( Log.debug))
+    {
+      log.debugf( "TcpBase[%X].accept: key=%s, address=%s:%d.", hashCode(), toLog( key), local.getAddress().getHostAddress(), local.getPort());
+    }
   }
   
   /**
@@ -283,7 +288,8 @@ public abstract class TcpBase
    */
   protected void read( SelectionKey key) throws IOException
   {
-    log.verbosef( "TcpBase[%X].read: key=%s", hashCode(), toLog( key));
+    if ( log.isLevelEnabled( Log.verbose))
+      log.verbosef( "TcpBase[%X].read: key=%s", hashCode(), toLog( key));
     
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = connections.get( channel);
@@ -347,7 +353,8 @@ public abstract class TcpBase
    */
   protected void write( SelectionKey key) throws IOException
   {
-    log.verbosef( "TcpBase[%X].write: key=%s", hashCode(), toLog( key));
+    if ( log.isLevelEnabled( Log.verbose))
+      log.verbosef( "TcpBase[%X].write: key=%s", hashCode(), toLog( key));
     
     SocketChannel channel = (SocketChannel)key.channel();
     List<ByteBuffer> buffers = pendingWrites.get( channel);
@@ -385,7 +392,8 @@ public abstract class TcpBase
    */
   private void close( SelectionKey key)
   {
-    log.debugf( "TcpBase[%X].close: key=%s", hashCode(), toLog( key));
+    if ( log.isLevelEnabled( Log.debug))
+      log.debugf( "TcpBase[%X].close: key=%s", hashCode(), toLog( key));
     
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = connections.remove( channel);
@@ -400,17 +408,20 @@ public abstract class TcpBase
    */
   private static String toLog( SelectionKey key)
   {
-    if ( log.isLevelEnabled( Log.debug | Log.verbose))
+    StringBuilder sb = new StringBuilder();
+    if ( key.isValid())
     {
-      StringBuilder sb = new StringBuilder();
       if ( key.isAcceptable()) sb.append( 'A');
       if ( key.isConnectable()) sb.append( 'C');
       if ( key.isReadable()) sb.append( 'R');
       if ( key.isWritable()) sb.append( 'W');
       if ( key.isValid()) sb.append( 'V');
-      return sb.toString();
     }
-    return null;
+    else
+    {
+      sb.append( "!");
+    }
+    return sb.toString();
   }
   
   /**
@@ -448,7 +459,8 @@ public abstract class TcpBase
       
       if ( !readyKey.isValid()) continue;
       
-      log.verbosef( "Ready key: %s", toLog( readyKey));
+      if ( log.isLevelEnabled( Log.verbose))
+        log.verbosef( "Ready key: %s", toLog( readyKey));
       
       try
       {
@@ -514,6 +526,10 @@ public abstract class TcpBase
               log.exception( e);
             }
             catch( ClosedChannelException e)
+            {
+              log.exception( e);
+            }
+            catch( Exception e)
             {
               log.exception( e);
             }
