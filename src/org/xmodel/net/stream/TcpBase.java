@@ -409,11 +409,18 @@ public abstract class TcpBase
   private static String toLog( SelectionKey key)
   {
     StringBuilder sb = new StringBuilder();
-    if ( key.isAcceptable()) sb.append( 'A');
-    if ( key.isConnectable()) sb.append( 'C');
-    if ( key.isReadable()) sb.append( 'R');
-    if ( key.isWritable()) sb.append( 'W');
-    if ( key.isValid()) sb.append( 'V');
+    if ( key.isValid())
+    {
+      if ( key.isAcceptable()) sb.append( 'A');
+      if ( key.isConnectable()) sb.append( 'C');
+      if ( key.isReadable()) sb.append( 'R');
+      if ( key.isWritable()) sb.append( 'W');
+      if ( key.isValid()) sb.append( 'V');
+    }
+    else
+    {
+      sb.append( "!");
+    }
     return sb.toString();
   }
   
@@ -519,6 +526,10 @@ public abstract class TcpBase
               log.exception( e);
             }
             catch( ClosedChannelException e)
+            {
+              log.exception( e);
+            }
+            catch( Exception e)
             {
               log.exception( e);
             }
