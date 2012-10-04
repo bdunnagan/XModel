@@ -20,8 +20,9 @@
 package org.xmodel.caching;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IModelObject;
@@ -33,6 +34,7 @@ import org.xmodel.Xlate;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.XPath;
@@ -52,6 +54,7 @@ public class AnnotationTransform
   {
     loader = getClass().getClassLoader();
     factory = new ModelObjectFactory();
+    cachingPolicies = new HashMap<IModelObject, ICachingPolicy>();
   }
   
   /**
@@ -100,7 +103,7 @@ public class AnnotationTransform
       if ( annotated.isType( "extern:match"))
       {
         ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, annotated.getChildren());
-        annotated.setAttribute( "extern:cp", cachingPolicy);
+        cachingPolicies.put( annotated, cachingPolicy);
       }
       else
       {
@@ -130,7 +133,7 @@ public class AnnotationTransform
    * @param annotation The annotation.
    * @return Returns the transformed element.
    */
-  public IModelObject transform( IModelObject element, IModelObject annotation)
+  private IModelObject transform( IModelObject element, IModelObject annotation)
   {
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
     if ( cachingPolicy == null) throw new IllegalArgumentException( "Caching policy not found.");
@@ -230,7 +233,7 @@ public class AnnotationTransform
       {
         IExpression stagePath = Xlate.get( stage, "path", (IExpression)null);
         boolean dirty = Xlate.get( stage, "dirty", true);
-        ConfiguredCachingPolicy stageCachingPolicy = (ConfiguredCachingPolicy)stage.getAttribute( "extern:cp");
+        ConfiguredCachingPolicy stageCachingPolicy = (ConfiguredCachingPolicy)cachingPolicies.get( stage);
         
         // inherit parent caching policy if extern:match does not define a caching policy
         if ( stageCachingPolicy == null) stageCachingPolicy = cachingPolicy;
@@ -338,4 +341,5 @@ public class AnnotationTransform
   private ClassLoader loader;
   private IContext parent;
   private IModelObjectFactory factory;
+  private Map<IModelObject, ICachingPolicy> cachingPolicies;
 }

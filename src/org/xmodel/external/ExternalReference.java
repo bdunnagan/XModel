@@ -40,6 +40,16 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
   
   /* (non-Javadoc)
+   * @see java.lang.Object#finalize()
+   */
+  @Override
+  protected void finalize() throws Throwable
+  {
+    System.out.printf( "Finalize: %s\n", getType());
+    super.finalize();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.external.IExternalReference#setCachingPolicy(org.xmodel.external.ICachingPolicy)
    */
   public void setCachingPolicy( ICachingPolicy newCachingPolicy)

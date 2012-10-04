@@ -396,6 +396,8 @@ public abstract class TcpBase
       log.debugf( "TcpBase[%X].close: key=%s", hashCode(), toLog( key));
     
     SocketChannel channel = (SocketChannel)key.channel();
+    pendingWrites.remove( channel);
+    
     Connection connection = connections.remove( channel);
     if ( connection != null) connection.close();
     key.cancel();
