@@ -792,8 +792,7 @@ public class Protocol implements ILink.IListener
       AsyncCallback runnable = info.callbacks.remove( correlation);
       if ( runnable != null && (runnable.task == null || runnable.task.cancel()))
       {
-        runnable.success = false;
-        runnable.context.set( "error", message);
+        runnable.setError( message);
         runnable.context.getModel().getDispatcher().execute( runnable);
       }
     }
@@ -1607,7 +1606,7 @@ public class Protocol implements ILink.IListener
       SLog.debugf( this, "Send Async Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
     }
 
-    AsyncCallback runnable = new AsyncCallback( context, callback);
+    AsyncCallback runnable = new AsyncCallback( info, context, callback);
     context.getModel();
     
     if ( timeout != Integer.MAX_VALUE)
@@ -1758,12 +1757,7 @@ public class Protocol implements ILink.IListener
         AsyncCallback runnable = info.callbacks.remove( correlation);
         if ( runnable != null && (runnable.task == null || runnable.task.cancel()))
         {
-          runnable.success = true;
-          
-          IModelObject element = info.decompress( bytes, 0);
-          Object[] result = ExecutionProtocol.readResponse( element, context);
-          if ( result.length > 0) runnable.context.getScope().set( "result", result[ 0]);
-          
+          runnable.setResponse( bytes);
           runnable.context.getModel().getDispatcher().execute( runnable);
         }
       }
@@ -2716,8 +2710,7 @@ public class Protocol implements ILink.IListener
     @Override
     public void run()
     {
-      callback.success = false;
-      callback.context.set( "error", "timeout");
+      callback.setError( "timeout");
       callback.context.getModel().getDispatcher().execute( callback);
     }
 
@@ -2726,10 +2719,29 @@ public class Protocol implements ILink.IListener
   
   protected class AsyncCallback implements Runnable
   {
-    public AsyncCallback( IContext context, ICallback callback)
+    public AsyncCallback( SessionInfo info, IContext context, ICallback callback)
     {
+      this.info = info;
       this.context = context;
       this.callback = callback;
+    }
+    
+    /**
+     * Set the response.
+     * @param response.
+     */
+    public void setResponse( byte[] response)
+    {
+      this.response = response;
+    }
+    
+    /**
+     * Set the error message.
+     * @param error The error message.
+     */
+    public void setError( String error)
+    {
+      this.error = error;
     }
     
     /* (non-Javadoc)
@@ -2738,13 +2750,21 @@ public class Protocol implements ILink.IListener
     @Override
     public void run()
     {
+      IModelObject element = info.decompress( response, 0);
+      Object[] result = ExecutionProtocol.readResponse( element, context);
+      if ( result.length > 0) context.getScope().set( "result", result[ 0]);
+      
+      if ( error != null) context.getScope().set( "error", error);
+      
       callback.onComplete( context);
-      if ( success) callback.onSuccess( context); else callback.onError( context);
+      if ( error == null) callback.onSuccess( context); else callback.onError( context);
     }
     
+    private SessionInfo info;
     private ICallback callback;
-    protected IContext context;
-    protected boolean success;
+    private IContext context;
+    private byte[] response;
+    private String error;
     protected TimeoutTask task;
   }
   

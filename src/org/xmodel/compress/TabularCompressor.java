@@ -74,30 +74,6 @@ public class TabularCompressor extends AbstractCompressor
     this.progressive = progressive;
   }
   
-  /**
-   * Predefine the tag table. If the compressor does not encounter tags which are not defined
-   * in the table then the table will not be written to the output. This is useful when all
-   * the tags are known in advance.
-   * @param table The table.
-   */
-  public void defineTagTable( List<String> table)
-  {
-    this.table = table;
-    map.clear();
-    for( int i=0; i<table.size(); i++) map.put( table.get( i), i);
-    predefined = true;
-  }
-  
-  /**
-   * Clear the predefined tag table.
-   */
-  public void clearTagTable()
-  {
-    map.clear();
-    table.clear();
-    predefined = false;
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
    */

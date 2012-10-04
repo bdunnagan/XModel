@@ -303,8 +303,11 @@ public abstract class TcpBase
       
       if ( nread > 0)
       {
+        long t0 = System.nanoTime();
         connection.buffer.flip();
         connection.notifyRead( connection.buffer);
+        long t1 = System.nanoTime();
+        log.infof( "latency = %1.0fms", ((t1 - t0) / 1e6));
       }
       else if ( nread == -1)
       {
@@ -495,9 +498,7 @@ public abstract class TcpBase
       try
       {
         // process socket events
-        //System.out.printf( "SLEEP: %d\n", queue.size());
         process( 0);
-        //System.out.println( "AWAKE");
         
         // handle requests
         Request first = queue.poll();
