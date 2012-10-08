@@ -2750,9 +2750,12 @@ public class Protocol implements ILink.IListener
     @Override
     public void run()
     {
-      IModelObject element = info.decompress( response, 0);
-      Object[] result = ExecutionProtocol.readResponse( element, context);
-      if ( result.length > 0) context.getScope().set( "result", result[ 0]);
+      if ( response != null)
+      {
+        IModelObject element = info.decompress( response, 0);
+        Object[] result = ExecutionProtocol.readResponse( element, context);
+        if ( result.length > 0) context.getScope().set( "result", result[ 0]);
+      }
       
       if ( error != null) context.getScope().set( "error", error);
       

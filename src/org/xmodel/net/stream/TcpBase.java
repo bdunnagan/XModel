@@ -304,10 +304,12 @@ public abstract class TcpBase
       if ( nread > 0)
       {
         long t0 = System.nanoTime();
+        
         connection.buffer.flip();
         connection.notifyRead( connection.buffer);
-        long t1 = System.nanoTime();
-        log.infof( "latency = %1.0fms", ((t1 - t0) / 1e6));
+        
+        double elapsed = (System.nanoTime() - t0) / 1e6;
+        if ( elapsed >= 1000) log.warnf( "latency = %1.0fms", elapsed);
       }
       else if ( nread == -1)
       {
