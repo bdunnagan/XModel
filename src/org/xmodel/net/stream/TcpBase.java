@@ -21,7 +21,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.log.Log;
-import org.xmodel.log.SLog;
 import org.xmodel.net.ILink;
 
 /**
@@ -221,7 +220,7 @@ public abstract class TcpBase
     catch( InterruptedException e)
     {
       Thread.interrupted();
-      SLog.exception( this, e);
+      log.exception( e);
     }
   }
   
