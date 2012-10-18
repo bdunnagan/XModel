@@ -1,11 +1,14 @@
 package org.xmodel.net;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,12 +21,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
@@ -55,7 +52,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
  */
-public class Protocol extends SimpleChannelHandler
+public class Protocol implements ILink.IListener
 {
   public final static short version = 3;
   
@@ -485,14 +482,20 @@ public class Protocol extends SimpleChannelHandler
    * @param sender The sender.
    * @param session The session number.
    * @param correlation The correlation number.
-   * @param request The request.
+   * @param bytes The request buffer.
    */
-  protected void doExecute( ILink sender, int session, int correlation, IModelObject request)
+  protected void doExecute( ILink sender, int session, int correlation, byte[] bytes)
   {
-    // denature request
-    BreadthFirstIterator iter = new BreadthFirstIterator( request);
-    while( iter.hasNext()) iter.next().clearModel();
+    SessionInfo info = getSessionInfo( sender, session);
+    IModelObject request = info.decompress( bytes, 0);
     
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, request);
+      SLog.debugf( this, "doExecute: session=%X, correlation=%d, request=%s", session, correlation, xml);
+    }
+        
     // create execution context and extract script from request
     StatefulContext context = new StatefulContext( this.context);
     IModelObject script = ExecutionProtocol.readRequest( request, context);
@@ -568,29 +571,24 @@ public class Protocol extends SimpleChannelHandler
   }
   
   /* (non-Javadoc)
-   * @see org.jboss.netty.channel.SimpleChannelHandler#channelDisconnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
+   * @see org.xmodel.net.IConnection.IListener#onClose(org.xmodel.net.IConnection)
    */
   @Override
-  public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+  public void onClose( ILink link)
   {
-    Channel channel = e.getChannel();
-    if ( !channel.isConnected()) return;
-    
     List<SessionInfo> sessions = new ArrayList<SessionInfo>();
     
     synchronized( this) 
     { 
-      List<SessionInfo> list = sessionMap.remove( channel);
+      List<SessionInfo> list = sessionMap.remove( link);
       if ( list != null) sessions.addAll( list);
     }
     
     for( int i=0; i<sessions.size(); i++)
     {
       SessionInfo info = sessions.get( i);
-      if ( info != null) dispatch( info, new CloseSessionRunnable( channel, info));
+      if ( info != null) dispatch( info, new CloseSessionRunnable( link, info));
     }
-    
-    super.channelDisconnected( ctx, e);
   }
 
   /**
@@ -606,10 +604,10 @@ public class Protocol extends SimpleChannelHandler
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.IConnection.IListener#onReceive(org.xmodel.net.IConnection, java.nio.ChannelBuffer)
+   * @see org.xmodel.net.IConnection.IListener#onReceive(org.xmodel.net.IConnection, java.nio.ByteBuffer)
    */
   @Override
-  public void onReceive( ILink link, ChannelBuffer buffer)
+  public void onReceive( ILink link, ByteBuffer buffer)
   {
     buffer.mark();
     while( handleMessage( link, buffer)) buffer.mark();
@@ -622,7 +620,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns true if a message was handled.
    */
-  private final boolean handleMessage( ILink link, ChannelBuffer buffer)
+  private final boolean handleMessage( ILink link, ByteBuffer buffer)
   {
     try
     {
@@ -642,7 +640,7 @@ public class Protocol extends SimpleChannelHandler
       }
       if ( log.isLevelEnabled( Log.verbose)) 
       {
-        String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
+        String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
         log.verbosef( "bytes received:\n%s", bytes);
       }
       
@@ -689,7 +687,7 @@ public class Protocol extends SimpleChannelHandler
   public final void sendCloseSession( ILink link, int session) throws IOException
   {
     SLog.debugf( this, "Send Close Session: session=%X", session);
-    ChannelBuffer buffer = initialize( 0);
+    ByteBuffer buffer = initialize( 0);
     finalize( buffer, Type.closeSession, session, 0);
     send( link, buffer, session);
   }
@@ -730,7 +728,7 @@ public class Protocol extends SimpleChannelHandler
   public final void sendPingRequest( ILink link) throws IOException
   {
     SLog.debug( this, "Send Ping Request");
-    ChannelBuffer buffer = initialize( 0);
+    ByteBuffer buffer = initialize( 0);
     finalize( buffer, Type.pingRequest, -1);
     send( link, buffer, -1);
   }
@@ -742,7 +740,7 @@ public class Protocol extends SimpleChannelHandler
   public final void sendPingResponse( ILink link) throws IOException
   {
     SLog.debug( this, "Send Ping Response");
-    ChannelBuffer buffer = initialize( 0);
+    ByteBuffer buffer = initialize( 0);
     finalize( buffer, Type.pingResponse, -1);
     send( link, buffer, -1);
   }
@@ -759,7 +757,7 @@ public class Protocol extends SimpleChannelHandler
     if ( message == null) message = "";
     
     byte[] bytes = message.getBytes();
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.error, session, correlation);
 
@@ -777,7 +775,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleError( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleError( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
@@ -800,8 +798,7 @@ public class Protocol extends SimpleChannelHandler
       AsyncCallback runnable = info.callbacks.remove( correlation);
       if ( runnable != null && (runnable.task == null || runnable.task.cancel()))
       {
-        runnable.success = false;
-        runnable.context.set( "error", message);
+        runnable.setError( message);
         runnable.context.getModel().getDispatcher().execute( runnable);
       }
     }
@@ -821,7 +818,7 @@ public class Protocol extends SimpleChannelHandler
     int correlation = info.correlation.incrementAndGet();
     
     byte[] bytes = query.getBytes();
-    ChannelBuffer buffer = initialize( 1 + bytes.length);
+    ByteBuffer buffer = initialize( 1 + bytes.length);
     buffer.put( pubsub? (byte)1: (byte)0);
     buffer.put( bytes, 0, bytes.length);
     finalize( buffer, Type.attachRequest, session, correlation);
@@ -835,7 +832,7 @@ public class Protocol extends SimpleChannelHandler
     {
       if ( response.length > 0)
       {
-        IModelObject element = info.compressor.decompress( ChannelBuffers.wrappedBuffer( response));
+        IModelObject element = info.compressor.decompress( new ByteArrayInputStream( response));
         handleAttachResponse( link, session, element);
       }
     }
@@ -849,7 +846,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachRequest( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleAttachRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     boolean pubsub = (buffer.get() == 1)? true: false;
     byte[] bytes = new byte[ length - 1];
@@ -882,7 +879,7 @@ public class Protocol extends SimpleChannelHandler
     SessionInfo info = getSessionInfo( link, session);
     
     byte[] bytes = (element != null)? info.compress( element): new byte[ 0];
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.attachResponse, session, correlation);
 
@@ -904,7 +901,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAttachResponse( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleAttachResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     queueResponse( link, session, correlation, buffer, length);
   }
@@ -936,7 +933,7 @@ public class Protocol extends SimpleChannelHandler
    */
   public final void sendDetachRequest( ILink link, int session) throws IOException
   {
-    ChannelBuffer buffer = initialize( 0);
+    ByteBuffer buffer = initialize( 0);
     finalize( buffer, Type.detachRequest, session, 0);
     send( link, buffer, session);
   }
@@ -948,7 +945,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleDetachRequest( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleDetachRequest( ILink link, int session, ByteBuffer buffer, int length)
   {
     handleDetachRequest( link, session);
   }
@@ -977,7 +974,7 @@ public class Protocol extends SimpleChannelHandler
     SessionInfo info = getSessionInfo( link, session);
     int correlation = info.correlation.incrementAndGet();
     
-    ChannelBuffer buffer = initialize( 4);
+    ByteBuffer buffer = initialize( 4);
     buffer.putInt( key.intValue());
     finalize( buffer, Type.syncRequest, session, correlation);
     
@@ -1001,7 +998,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncRequest( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleSyncRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     handleSyncRequest( link, session, correlation, key);
@@ -1027,7 +1024,7 @@ public class Protocol extends SimpleChannelHandler
    */
   public final void sendSyncResponse( ILink link, int session, int correlation) throws IOException
   {
-    ChannelBuffer buffer = initialize( 0);
+    ByteBuffer buffer = initialize( 0);
     finalize( buffer, Type.syncResponse, session, correlation);
     
     // log
@@ -1044,7 +1041,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleSyncResponse( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleSyncResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     queueResponse( link, session, correlation, buffer, length);
   }
@@ -1072,7 +1069,7 @@ public class Protocol extends SimpleChannelHandler
     SessionInfo info = getSessionInfo( link, session);
     byte[] bytes = info.compress( element);
     
-    ChannelBuffer buffer = initialize( 12 + bytes.length);
+    ByteBuffer buffer = initialize( 12 + bytes.length);
     buffer.putInt( (int)key);
     writeBytes( buffer, bytes, 0, bytes.length, false);
     buffer.putInt( index);
@@ -1095,7 +1092,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleAddChild( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleAddChild( ILink link, int session, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     byte[] bytes = readBytes( buffer, false);
@@ -1165,7 +1162,7 @@ public class Protocol extends SimpleChannelHandler
    */
   public final void sendRemoveChild( ILink link, int session, long key, int index) throws IOException
   {
-    ChannelBuffer buffer = initialize( 8);
+    ByteBuffer buffer = initialize( 8);
     buffer.putInt( (int)key);
     buffer.putInt( index);
     finalize( buffer, Type.removeChild, session, 8);
@@ -1186,7 +1183,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleRemoveChild( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleRemoveChild( ILink link, int session, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     int index = buffer.getInt();
@@ -1250,7 +1247,7 @@ public class Protocol extends SimpleChannelHandler
     byte[] typeBytes = node.getType().getBytes();
     byte[] valueBytes = serialize( node);
     
-    ChannelBuffer buffer = initialize( 12 + typeBytes.length + valueBytes.length);
+    ByteBuffer buffer = initialize( 12 + typeBytes.length + valueBytes.length);
     buffer.putInt( key.intValue());
     writeBytes( buffer, typeBytes, 0, typeBytes.length, true);
     writeBytes( buffer, valueBytes, 0, valueBytes.length, false);
@@ -1269,7 +1266,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeAttribute( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleChangeAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     String attrName = new String( readBytes( buffer, true));
@@ -1335,7 +1332,7 @@ public class Protocol extends SimpleChannelHandler
   {
     byte[] nameBytes = attrName.getBytes();
     
-    ChannelBuffer buffer = initialize( 8 + nameBytes.length);
+    ByteBuffer buffer = initialize( 8 + nameBytes.length);
     buffer.putInt( (int)key);
     writeBytes( buffer, nameBytes, 0, nameBytes.length, true);
     finalize( buffer, Type.clearAttribute, session);
@@ -1353,7 +1350,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleClearAttribute( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleClearAttribute( ILink link, int session, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     String attrName = new String( readBytes( buffer, true));
@@ -1411,7 +1408,7 @@ public class Protocol extends SimpleChannelHandler
    */
   public final void sendChangeDirty( ILink link, int session, long key, boolean dirty) throws IOException
   {
-    ChannelBuffer buffer = initialize( 5);
+    ByteBuffer buffer = initialize( 5);
     buffer.putInt( (int)key);
     buffer.put( dirty? (byte)1: 0);
     finalize( buffer, Type.changeDirty, session);
@@ -1429,7 +1426,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleChangeDirty( ILink link, int session, ChannelBuffer buffer, int length)
+  private final void handleChangeDirty( ILink link, int session, ByteBuffer buffer, int length)
   {
     long key = buffer.getInt();
     boolean dirty = buffer.get() != 0;
@@ -1498,7 +1495,7 @@ public class Protocol extends SimpleChannelHandler
     IModelObject request = QueryProtocol.buildRequest( context, query);
     byte[] bytes = info.compress( request);
     
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.queryRequest, session, correlation);
     
@@ -1523,7 +1520,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryRequest( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleQueryRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] bytes = new byte[ length];
     buffer.get( bytes);
@@ -1559,7 +1556,7 @@ public class Protocol extends SimpleChannelHandler
     IModelObject response = QueryProtocol.buildResponse( object);
     byte[] bytes = info.compress( response);
     
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.queryResponse, session, correlation);
     
@@ -1581,7 +1578,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleQueryResponse( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleQueryResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     queueResponse( link, session, correlation, buffer, length);
   }
@@ -1604,7 +1601,7 @@ public class Protocol extends SimpleChannelHandler
     IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
     byte[] bytes = info.compress( request);
     
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.executeRequest, session, correlation);
 
@@ -1615,7 +1612,7 @@ public class Protocol extends SimpleChannelHandler
       SLog.debugf( this, "Send Async Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
     }
 
-    AsyncCallback runnable = new AsyncCallback( context, callback);
+    AsyncCallback runnable = new AsyncCallback( info, context, callback);
     context.getModel();
     
     if ( timeout != Integer.MAX_VALUE)
@@ -1654,7 +1651,7 @@ public class Protocol extends SimpleChannelHandler
     IModelObject request = ExecutionProtocol.buildRequest( context, variables, script);
     byte[] bytes = info.compress( request);
     
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.executeRequest, session, correlation);
 
@@ -1690,23 +1687,13 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteRequest( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleExecuteRequest( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     byte[] content = new byte[ length];
     buffer.get( content);
     
     SessionInfo info = getSessionInfo( link, session);
-    IModelObject request = info.decompress( content, 0);
-    
-    // log
-    if ( SLog.isLevelEnabled( this, Log.debug))
-    {
-      String xml = XmlIO.write( Style.compact, request);
-      SLog.debugf( this, "Handle Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
-    }
-
-    // dispatch
-    dispatch( info, new ExecuteRunnable( link, session, correlation, request));
+    dispatch( info, new ExecuteRunnable( link, session, correlation, content));
   }
   
   /**
@@ -1724,7 +1711,7 @@ public class Protocol extends SimpleChannelHandler
     IModelObject response = ExecutionProtocol.buildResponse( context, results);
     byte[] bytes = info.compress( response);
 
-    ChannelBuffer buffer = initialize( bytes.length);
+    ByteBuffer buffer = initialize( bytes.length);
     buffer.put( bytes);
     finalize( buffer, Type.executeResponse, session, correlation);
     
@@ -1746,7 +1733,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  private final void handleExecuteResponse( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private final void handleExecuteResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     SessionInfo info = getSessionInfo( link, session);
     if ( info != null)
@@ -1766,12 +1753,7 @@ public class Protocol extends SimpleChannelHandler
         AsyncCallback runnable = info.callbacks.remove( correlation);
         if ( runnable != null && (runnable.task == null || runnable.task.cancel()))
         {
-          runnable.success = true;
-          
-          IModelObject element = info.decompress( bytes, 0);
-          Object[] result = ExecutionProtocol.readResponse( element, context);
-          if ( result.length > 0) runnable.context.getScope().set( "result", result[ 0]);
-          
+          runnable.setResponse( bytes);
           runnable.context.getModel().getDispatcher().execute( runnable);
         }
       }
@@ -1787,7 +1769,7 @@ public class Protocol extends SimpleChannelHandler
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response bytes.
    */
-  private byte[] send( ILink link, int session, int correlation, ChannelBuffer buffer, int timeout) throws IOException
+  private byte[] send( ILink link, int session, int correlation, ByteBuffer buffer, int timeout) throws IOException
   {
     Log log = Log.getLog( this);
     if ( log.isLevelEnabled( Log.debug)) 
@@ -1797,7 +1779,7 @@ public class Protocol extends SimpleChannelHandler
     }
     if ( log.isLevelEnabled( Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
       log.verbosef( "bytes sent:\n%s", bytes);
     }
     
@@ -1827,7 +1809,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @param session The session number.
    */
-  private void send( ILink link, ChannelBuffer buffer, int session) throws IOException
+  private void send( ILink link, ByteBuffer buffer, int session) throws IOException
   {
     Log log = Log.getLog( this);
     if ( log.isLevelEnabled( Log.debug)) 
@@ -1837,7 +1819,7 @@ public class Protocol extends SimpleChannelHandler
     }
     if ( log.isLevelEnabled( Log.verbose)) 
     {
-      String bytes = org.xmodel.net.stream.Util.dump( buffer, "  ");
+      String bytes = org.xmodel.net.stream.Util.dump( buffer, "\t");
       log.verbosef( "bytes sent:\n%s", bytes);
     }
     
@@ -1852,7 +1834,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer containing the response.
    * @param length The length of the response.
    */
-  private void queueResponse( ILink link, int session, int correlation, ChannelBuffer buffer, int length)
+  private void queueResponse( ILink link, int session, int correlation, ByteBuffer buffer, int length)
   {
     SessionInfo info = getSessionInfo( link, session);
     if ( info != null)
@@ -1882,10 +1864,11 @@ public class Protocol extends SimpleChannelHandler
     {
       try
       {
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        serializer.writeObject( buffer, node);
-        
-        return buffer.
+        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+        DataOutputStream ds = new DataOutputStream( bs);
+        serializer.writeObject( ds, node);
+        ds.close();
+        return bs.toByteArray();
       }
       catch( Exception e)
       {
@@ -1922,9 +1905,9 @@ public class Protocol extends SimpleChannelHandler
    * Create a new buffer with the specified payload capacity.
    * @return Returns the new, initialized buffer.
    */
-  private static ChannelBuffer initialize( int size)
+  private static ByteBuffer initialize( int size)
   {
-    ChannelBuffer buffer = ChannelBuffer.allocate( maxHeaderLength + size);
+    ByteBuffer buffer = ByteBuffer.allocate( maxHeaderLength + size);
     initialize( buffer);
     return buffer;
   }
@@ -1933,7 +1916,7 @@ public class Protocol extends SimpleChannelHandler
    * Reserve the maximum amount of space for the header.
    * @param buffer The buffer.
    */
-  private static void initialize( ChannelBuffer buffer)
+  private static void initialize( ByteBuffer buffer)
   {
     buffer.clear();
     buffer.position( maxHeaderLength);
@@ -1946,7 +1929,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns the correlation number.
    */
-  private static int readMessageCorrelation( int byte0, ChannelBuffer buffer)
+  private static int readMessageCorrelation( int byte0, ByteBuffer buffer)
   {
     if ( (byte0 & correlationHeaderMask) != 0) return buffer.getInt();
     return Integer.MIN_VALUE;
@@ -1958,7 +1941,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns the session number.
    */
-  private static int readMessageSession( int byte0, ChannelBuffer buffer)
+  private static int readMessageSession( int byte0, ByteBuffer buffer)
   {
     int mask = byte0 & sessionHeaderMask;
     if ( mask == 0) return -1;
@@ -1971,7 +1954,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns the message length.
    */
-  private static int readMessageLength( int byte0, ChannelBuffer buffer)
+  private static int readMessageLength( int byte0, ByteBuffer buffer)
   {
     int mask = byte0 & lengthHeaderMask;
     if ( mask == 0) return ((int)buffer.get()) & 0xFF;
@@ -1985,7 +1968,7 @@ public class Protocol extends SimpleChannelHandler
    * @param session The session number.
    * @param length The message length.
    */
-  private static void finalize( ChannelBuffer buffer, Type type, int session)
+  private static void finalize( ByteBuffer buffer, Type type, int session)
   {
     finalize( buffer, type, session, Integer.MIN_VALUE);
   }
@@ -1997,7 +1980,7 @@ public class Protocol extends SimpleChannelHandler
    * @param session The session number.
    * @param correlation The correlation number (Integer.MIN_VALUE to opt out).
    */
-  private static void finalize( ChannelBuffer buffer, Type type, int session, int correlation)
+  private static void finalize( ByteBuffer buffer, Type type, int session, int correlation)
   {
     int length = buffer.position() - maxHeaderLength;
     buffer.limit( buffer.position());
@@ -2042,7 +2025,7 @@ public class Protocol extends SimpleChannelHandler
    * @param small True means 1 or 4 bytes. False means 2 or 4 bytes.
    * @return Returns the length.
    */
-  private static int readLength( ChannelBuffer buffer, boolean small)
+  private static int readLength( ByteBuffer buffer, boolean small)
   {
     buffer.mark();
     if ( small)
@@ -2066,7 +2049,7 @@ public class Protocol extends SimpleChannelHandler
    * @param length The length.
    * @param small True means 1 or 4 bytes. False means 2 or 4 bytes.
    */
-  private static int writeLength( ChannelBuffer buffer, int length, boolean small)
+  private static int writeLength( ByteBuffer buffer, int length, boolean small)
   {
     if ( small)
     {
@@ -2094,7 +2077,7 @@ public class Protocol extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns the bytes read.
    */
-  private static byte[] readBytes( ChannelBuffer buffer, boolean small)
+  private static byte[] readBytes( ByteBuffer buffer, boolean small)
   {
     int length = readLength( buffer, small);
     byte[] bytes = new byte[ length];
@@ -2109,7 +2092,7 @@ public class Protocol extends SimpleChannelHandler
    * @param offset The offset.
    * @param length The length.
    */
-  private int writeBytes( ChannelBuffer buffer, byte[] bytes, int offset, int length, boolean small)
+  private int writeBytes( ByteBuffer buffer, byte[] bytes, int offset, int length, boolean small)
   {
     int prefix = writeLength( buffer, length, small);
     buffer.put( bytes, offset, length);
@@ -2473,7 +2456,7 @@ public class Protocol extends SimpleChannelHandler
   
   private final class ExecuteRunnable implements Runnable
   {
-    public ExecuteRunnable( ILink sender, int session, int correlation, IModelObject request)
+    public ExecuteRunnable( ILink sender, int session, int correlation, byte[] request)
     {
       this.sender = sender;
       this.session = session;
@@ -2489,7 +2472,7 @@ public class Protocol extends SimpleChannelHandler
     private ILink sender;
     private int session;
     private int correlation;
-    private IModelObject request;
+    private byte[] request;
   }
   
   private final class CloseSessionRunnable implements Runnable
@@ -2723,8 +2706,7 @@ public class Protocol extends SimpleChannelHandler
     @Override
     public void run()
     {
-      callback.success = false;
-      callback.context.set( "error", "timeout");
+      callback.setError( "timeout");
       callback.context.getModel().getDispatcher().execute( callback);
     }
 
@@ -2733,10 +2715,29 @@ public class Protocol extends SimpleChannelHandler
   
   protected class AsyncCallback implements Runnable
   {
-    public AsyncCallback( IContext context, ICallback callback)
+    public AsyncCallback( SessionInfo info, IContext context, ICallback callback)
     {
+      this.info = info;
       this.context = context;
       this.callback = callback;
+    }
+    
+    /**
+     * Set the response.
+     * @param response.
+     */
+    public void setResponse( byte[] response)
+    {
+      this.response = response;
+    }
+    
+    /**
+     * Set the error message.
+     * @param error The error message.
+     */
+    public void setError( String error)
+    {
+      this.error = error;
     }
     
     /* (non-Javadoc)
@@ -2745,13 +2746,24 @@ public class Protocol extends SimpleChannelHandler
     @Override
     public void run()
     {
+      if ( response != null)
+      {
+        IModelObject element = info.decompress( response, 0);
+        Object[] result = ExecutionProtocol.readResponse( element, context);
+        if ( result.length > 0) context.getScope().set( "result", result[ 0]);
+      }
+      
+      if ( error != null) context.getScope().set( "error", error);
+      
       callback.onComplete( context);
-      if ( success) callback.onSuccess( context); else callback.onError( context);
+      if ( error == null) callback.onSuccess( context); else callback.onError( context);
     }
     
+    private SessionInfo info;
     private ICallback callback;
-    protected IContext context;
-    protected boolean success;
+    private IContext context;
+    private byte[] response;
+    private String error;
     protected TimeoutTask task;
   }
   

@@ -20,9 +20,11 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.net.Server;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -92,9 +94,9 @@ public class StartServerAction extends GuardedAction
       cached.server = server;
       Conventions.putCache( context, var, cached);
       
-      if ( threads > 0)
+      if ( threads != 0)
       {
-        server.setDispatcher( new ThreadPoolDispatcher( threads));
+        server.setDispatcher( new ServerExecutorDispatcher( threads));
         cached.dispatcher = server.getDispatcher();
       }
       else
@@ -142,6 +144,44 @@ public class StartServerAction extends GuardedAction
   {
     public Server server;
     public IDispatcher dispatcher;
+  }
+  
+  private class ServerExecutorDispatcher implements IDispatcher, ThreadFactory
+  {
+    public ServerExecutorDispatcher( int threads)
+    {
+      executor = (threads == -1)? Executors.newCachedThreadPool( this): Executors.newFixedThreadPool( threads, this);
+    }
+    
+    /* (non-Javadoc)
+     * @see java.util.concurrent.ThreadFactory#newThread(java.lang.Runnable)
+     */
+    @Override
+    public Thread newThread( Runnable runnable)
+    {
+      return new Thread( runnable, "Server-" + (++counter));
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.IDispatcher#execute(java.lang.Runnable)
+     */
+    @Override
+    public void execute( Runnable runnable)
+    {
+      executor.execute( runnable);
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.IDispatcher#shutdown(boolean)
+     */
+    @Override
+    public void shutdown( boolean immediate)
+    {
+      if ( immediate) executor.shutdownNow(); else executor.shutdown();
+    }
+    
+    private ExecutorService executor;
+    private int counter;
   }
   
   private IExpression hostExpr;

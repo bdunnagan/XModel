@@ -65,8 +65,8 @@ public class ProtocolMirrorTest
 
     for( int i=0; i<defaultClientCount; i++)
     {
-      Session session = clients.get( i);
-      String xpath = String.format( "client[ @id = %d]", i);
+//      Session session = clients.get( i);
+//      String xpath = String.format( "client[ @id = %d]", i);
     }
   }
   
