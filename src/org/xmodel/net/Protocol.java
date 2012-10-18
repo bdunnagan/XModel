@@ -21,7 +21,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.xmodel.BreadthFirstIterator;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -482,14 +481,20 @@ public class Protocol implements ILink.IListener
    * @param sender The sender.
    * @param session The session number.
    * @param correlation The correlation number.
-   * @param request The request.
+   * @param bytes The request buffer.
    */
-  protected void doExecute( ILink sender, int session, int correlation, IModelObject request)
+  protected void doExecute( ILink sender, int session, int correlation, byte[] bytes)
   {
-    // denature request
-    BreadthFirstIterator iter = new BreadthFirstIterator( request);
-    while( iter.hasNext()) iter.next().clearModel();
+    SessionInfo info = getSessionInfo( sender, session);
+    IModelObject request = info.decompress( bytes, 0);
     
+    // log
+    if ( SLog.isLevelEnabled( this, Log.debug))
+    {
+      String xml = XmlIO.write( Style.compact, request);
+      SLog.debugf( this, "doExecute: session=%X, correlation=%d, request=%s", session, correlation, xml);
+    }
+        
     // create execution context and extract script from request
     StatefulContext context = new StatefulContext( this.context);
     IModelObject script = ExecutionProtocol.readRequest( request, context);
@@ -1687,17 +1692,7 @@ public class Protocol implements ILink.IListener
     buffer.get( content);
     
     SessionInfo info = getSessionInfo( link, session);
-    IModelObject request = info.decompress( content, 0);
-    
-    // log
-    if ( SLog.isLevelEnabled( this, Log.debug))
-    {
-      String xml = XmlIO.write( Style.compact, request);
-      SLog.debugf( this, "Handle Execute Request: session=%X, correlation=%d, request=%s", session, correlation, xml);
-    }
-
-    // dispatch
-    dispatch( info, new ExecuteRunnable( link, session, correlation, request));
+    dispatch( info, new ExecuteRunnable( link, session, correlation, content));
   }
   
   /**
@@ -2460,7 +2455,7 @@ public class Protocol implements ILink.IListener
   
   private final class ExecuteRunnable implements Runnable
   {
-    public ExecuteRunnable( ILink sender, int session, int correlation, IModelObject request)
+    public ExecuteRunnable( ILink sender, int session, int correlation, byte[] request)
     {
       this.sender = sender;
       this.session = session;
@@ -2476,7 +2471,7 @@ public class Protocol implements ILink.IListener
     private ILink sender;
     private int session;
     private int correlation;
-    private IModelObject request;
+    private byte[] request;
   }
   
   private final class CloseSessionRunnable implements Runnable

@@ -37,6 +37,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
   /**
    * Convenience method for creating a ThreadPoolDispatcher with a fixed thread count and unbounded queue.
    * @param threadCount The number of threads in the thread pool.
+   * @deprecated For testing purposes only.
    */
   public ThreadPoolDispatcher( int threadCount)
   {
@@ -48,6 +49,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    * LinkedBlockingQueue is used, so there is no fairness policy.
    * @param threadCount The number of threads in the thread pool.
    * @param queueSize The dispatch queue size.
+   * @deprecated For testing purposes only.
    */
   public ThreadPoolDispatcher( int threadCount, int queueSize)
   {
@@ -61,6 +63,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
    * @param threadCount The number of threads in the thread pool.
    * @param queueSize The dispatch queue size.
    * @param fair True if a fairness policy should be used.
+   * @deprecated For testing purposes only.
    */
   public ThreadPoolDispatcher( int threadCount, int queueSize, boolean fair)
   {
