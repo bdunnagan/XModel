@@ -1,9 +1,5 @@
 package org.xmodel.net;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
@@ -21,7 +17,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.xmodel.BreadthFirstIterator;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -832,7 +829,7 @@ public class Protocol implements ILink.IListener
     {
       if ( response.length > 0)
       {
-        IModelObject element = info.compressor.decompress( new ByteArrayInputStream( response));
+        IModelObject element = info.compressor.decompress( ChannelBuffers.wrappedBuffer( response));
         handleAttachResponse( link, session, element);
       }
     }
@@ -1864,11 +1861,11 @@ public class Protocol implements ILink.IListener
     {
       try
       {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        DataOutputStream ds = new DataOutputStream( bs);
-        serializer.writeObject( ds, node);
-        ds.close();
-        return bs.toByteArray();
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        serializer.writeObject( buffer, node);
+        byte[] bytes = new byte[ buffer.readableBytes()];
+        buffer.readBytes( bytes);
+        return bytes;
       }
       catch( Exception e)
       {
@@ -1891,9 +1888,7 @@ public class Protocol implements ILink.IListener
     // use java serialization
     try
     {
-      ByteArrayInputStream bs = new ByteArrayInputStream( bytes);
-      DataInputStream ds = new DataInputStream( bs);
-      return serializer.readObject( ds);
+      return serializer.readObject( ChannelBuffers.wrappedBuffer( bytes));
     }
     catch( Exception e)
     {
@@ -2793,9 +2788,12 @@ public class Protocol implements ILink.IListener
      * @param element The element.
      * @return Returns the compressed bytes.
      */
-    public synchronized byte[] compress( IModelObject element)
+    public synchronized byte[] compress( IModelObject element) throws IOException
     {
-      return compressor.compress( element);
+      ChannelBuffer buffer = compressor.compress( element);
+      byte[] bytes = new byte[ buffer.readableBytes()];
+      buffer.readBytes( bytes);
+      return bytes;
     }
     
     /**
@@ -2806,7 +2804,15 @@ public class Protocol implements ILink.IListener
      */
     public synchronized IModelObject decompress( byte[] bytes, int offset)
     {
-      return compressor.decompress( bytes, offset);
+      try
+      {
+        return compressor.decompress( ChannelBuffers.wrappedBuffer( bytes, offset, bytes.length - offset));
+      }
+      catch( IOException e)
+      {
+        SLog.exception( this, e);
+        return null;
+      }
     }
     
     public int id;
