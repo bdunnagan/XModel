@@ -481,7 +481,7 @@ public abstract class TcpBase
       }
       catch( CancelledKeyException e)
       {
-        log.warnf( "Cancelled Key: %s", toLog( readyKey));
+        log.debugf( "Cancelled Key: %s", toLog( readyKey));
       }
     }
     
