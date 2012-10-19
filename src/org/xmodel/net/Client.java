@@ -8,7 +8,7 @@ import org.xmodel.net.stream.TcpClient;
 /**
  * A class that implements the network caching policy protocol. 
  */
-public class Client extends Protocol
+public class Client extends ProtocolOld
 {
   /**
    * Create a CachingClient to connect to the specified server.

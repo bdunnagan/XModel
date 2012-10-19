@@ -1,0 +1,8 @@
+<script>
+  <connectionPool var="pool" minConnections="" maxConnections="" idleLife=""/>
+
+  <networkClient var="client" remoteAddress="" remotePort="" pool="$pool" threads="" connectTimeout="" keepAliveTimeout=""/>
+  <networkServer var="server" localAddress="" localPort="" threads="" timeout=""/>
+  
+  <run remote="$client">
+  </run>

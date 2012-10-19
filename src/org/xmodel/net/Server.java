@@ -10,7 +10,7 @@ import org.xmodel.net.stream.TcpServer;
  * A class that implements the server-side of the network caching policy protocol.
  * This class is not thread-safe.
  */
-public class Server extends Protocol
+public class Server extends ProtocolOld
 {
   public static int defaultPort = 27613;
   

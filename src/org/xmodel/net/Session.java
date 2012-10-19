@@ -11,7 +11,7 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public final class Session
 {
-  public Session( Protocol protocol, ILink link, int session)
+  public Session( ProtocolOld protocol, ILink link, int session)
   {
     this.protocol = protocol;
     this.link = link;
@@ -93,7 +93,7 @@ public final class Session
     try { protocol.closeSession( link, session);} catch( IOException e) {}
   }
 
-  private Protocol protocol;
+  private ProtocolOld protocol;
   private ILink link;
   private int session;
 }

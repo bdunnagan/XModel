@@ -15,7 +15,7 @@ import org.xmodel.external.UnboundedCache;
  */
 class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
-  public NetKeyCachingPolicy( Protocol protocol, ILink link, int session, Long key)
+  public NetKeyCachingPolicy( ProtocolOld protocol, ILink link, int session, Long key)
   {
     this( new UnboundedCache(), protocol);
     
@@ -24,7 +24,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
     this.key = key;
   }
   
-  public NetKeyCachingPolicy( ICache cache, Protocol protocol)
+  public NetKeyCachingPolicy( ICache cache, ProtocolOld protocol)
   {
     super( cache);
     this.protocol = protocol;
@@ -58,7 +58,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
     }
   }
 
-  private Protocol protocol;
+  private ProtocolOld protocol;
   private ILink link;
   private int session;
   private Long key;

@@ -12,7 +12,7 @@ import org.xmodel.log.Log;
  */
 class Ping implements Runnable
 {
-  public Ping( Protocol protocol, ILink link, int timeout)
+  public Ping( ProtocolOld protocol, ILink link, int timeout)
   {
     this.protocol = protocol;
     this.link = link;
@@ -76,7 +76,7 @@ class Ping implements Runnable
   private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1);
   private static Log log = Log.getLog( Ping.class);
 
-  private Protocol protocol;
+  private ProtocolOld protocol;
   private volatile ILink link;
   private volatile boolean alive;
   private ScheduledFuture<?> timer;

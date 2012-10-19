@@ -49,7 +49,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 /**
  * The protocol class for the NetworkCachingPolicy protocol.
  */
-public class Protocol implements ILink.IListener
+public class ProtocolOld implements ILink.IListener
 {
   public final static short version = 3;
   
@@ -83,7 +83,7 @@ public class Protocol implements ILink.IListener
   /**
    * Create an instance of the protocol.
    */
-  public Protocol()
+  public ProtocolOld()
   {
     this.sessionMap = new HashMap<ILink, List<SessionInfo>>();
     this.context = new StatefulContext();
