@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Channel;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -17,8 +16,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.log.Log;
 import org.xmodel.net.ILink;
@@ -41,7 +38,7 @@ public abstract class TcpBase
     
     connections = Collections.synchronizedMap( new HashMap<Channel, Connection>());
     selector = SelectorProvider.provider().openSelector();
-    queue = new LinkedBlockingQueue<Request>();
+    queue = new ArrayList<Request>();
     pendingWrites = new HashMap<Channel, List<ByteBuffer>>();
   }
 
@@ -209,19 +206,21 @@ public abstract class TcpBase
    * Enqueue the specified request and wakeup the selector.
    * @param request The request.
    */
-  private void enqueue( Request request)
+  private synchronized void enqueue( Request request)
   {
-    try
-    {
-      //System.out.println( "->Q");
-      queue.put( request);
-      selector.wakeup();
-    }
-    catch( InterruptedException e)
-    {
-      Thread.interrupted();
-      log.exception( e);
-    }
+    queue.add( request);
+    selector.wakeup();
+  }
+  
+  /**
+   * Dequeue the current list of requests.
+   * @return Returns the list of requests.
+   */
+  private synchronized Request[] dequeue()
+  {
+    Request[] requests = queue.toArray( new Request[ 0]);
+    queue.clear();
+    return requests;
   }
   
   /**
@@ -502,41 +501,35 @@ public abstract class TcpBase
         process( 0);
         
         // handle requests
-        Request first = queue.poll();
-        if ( first != null)
+        for( Request request: dequeue())
         {
-          List<Request> requests = new ArrayList<Request>();
-          requests.add( first);
-          queue.drainTo( requests);
-          
-          for( Request request: requests)
+          try
           {
-            try
+            if ( request.channel != null)
             {
-              if ( request.channel != null)
+              SelectionKey key = request.channel.keyFor( selector);
+              if ( key != null)
               {
-                SelectionKey key = request.channel.keyFor( selector);
-                int ops = (key != null)? key.interestOps(): 0;
-                request.channel.register( selector, ops | request.ops);
+                key.interestOps( key.interestOps() | request.ops);
               }
-              
-              if ( request.buffer != null)
+              else
               {
-                addWriteBuffer( request.channel, request.buffer);
+                request.channel.register( selector, request.ops);
               }
             }
-            catch( CancelledKeyException e)
+            
+            if ( request.buffer != null)
             {
-              log.exception( e);
+              addWriteBuffer( request.channel, request.buffer);
             }
-            catch( ClosedChannelException e)
-            {
-              log.exception( e);
-            }
-            catch( Exception e)
-            {
-              log.exception( e);
-            }
+          }
+          catch( CancelledKeyException e)
+          {
+            log.exception( e);
+          }
+          catch( Exception e)
+          {
+            log.exception( e);
           }
         }
       }
@@ -571,7 +564,7 @@ public abstract class TcpBase
   private ILink.IListener listener;
   protected Selector selector;
   private Map<Channel, Connection> connections;
-  private BlockingQueue<Request> queue;
+  private List<Request> queue;
   private Map<Channel, List<ByteBuffer>> pendingWrites;
   private Thread thread;
   private volatile boolean exit;
