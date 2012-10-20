@@ -257,6 +257,7 @@ public abstract class TcpBase
     }
     catch( IOException e)
     {
+      log.exception( e);
       connection.close();
     }
   }
