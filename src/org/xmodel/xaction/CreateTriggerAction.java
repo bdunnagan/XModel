@@ -76,12 +76,16 @@ public class CreateTriggerAction extends XAction
       Object object = scope.get( var);
       if ( object != null && object instanceof List<?>)
       {
-        IModelObject holder = (IModelObject)((List<?>)object).get( 0);
-        Object trigger = holder.getValue();
-        if ( trigger instanceof ITrigger)
+        List<?> nodes = (List<?>)object;
+        if ( nodes.size() > 0)
         {
-          ((ITrigger)trigger).deactivate( context);
-          holder.setValue( null);
+          IModelObject holder = (IModelObject)nodes.get( 0);
+          Object trigger = holder.getValue();
+          if ( trigger instanceof ITrigger)
+          {
+            ((ITrigger)trigger).deactivate( context);
+            holder.setValue( null);
+          }
         }
       }
       

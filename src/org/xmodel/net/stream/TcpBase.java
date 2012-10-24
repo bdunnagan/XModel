@@ -257,7 +257,7 @@ public abstract class TcpBase
     }
     catch( IOException e)
     {
-      log.exception( e);
+      log.warnf( "Connection refused.");
       connection.close();
     }
   }

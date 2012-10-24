@@ -389,6 +389,7 @@ public class Protocol implements ILink.IListener
       else
       {
         sendAttachResponse( sender, session, correlation, null);
+        SLog.warnf( "Target of attach request not found: %s", xpath);
       }
     }
     catch( Exception e)

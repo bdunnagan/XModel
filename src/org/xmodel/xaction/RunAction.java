@@ -155,7 +155,7 @@ public class RunAction extends GuardedAction
 
       client = new Client( host, port, false);
       client.setPingTimeout( timeout);
-      Session session = client.connect( timeout);
+      Session session = connect( client, timeout);
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
@@ -200,6 +200,23 @@ public class RunAction extends GuardedAction
     }
     
     return null;
+  }
+  
+  /**
+   * Try to connect to the server and employ a retry mechanism.
+   * @param client The client.
+   * @param timeout The timeout.
+   * @return Returns the connection session.
+   */
+  private Session connect( Client client, int timeout) throws IOException
+  {
+    int sleep = 1000;
+    for( int i=0; i<4; i++)
+    {
+      try { return client.connect( timeout);} catch( IOException e) {}
+      try { Thread.sleep( sleep);} catch( InterruptedException e) {}
+    }
+    return client.connect( timeout);
   }
   
   /**
