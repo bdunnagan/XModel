@@ -13,7 +13,7 @@ import org.xmodel.external.UnboundedCache;
 /**
  * An ICachingPolicy that accesses data across a network.
  */
-class NetKeyCachingPolicy extends AbstractCachingPolicy
+public class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
   public NetKeyCachingPolicy( ProtocolOld protocol, ILink link, int session, Long key)
   {

@@ -155,7 +155,7 @@ public class RunAction extends GuardedAction
 
       client = new Client( host, port, false);
       client.setPingTimeout( timeout);
-      Session session = client.connect( timeout);
+      Session session = connect( client, timeout);
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
@@ -179,7 +179,7 @@ public class RunAction extends GuardedAction
         }
         else
         {
-          callback.onError( context);
+          callback.onError( context, "Connection failed.");
         }
       }
       
@@ -200,6 +200,23 @@ public class RunAction extends GuardedAction
     }
     
     return null;
+  }
+  
+  /**
+   * Try to connect to the server and employ a retry mechanism.
+   * @param client The client.
+   * @param timeout The timeout.
+   * @return Returns the connection session.
+   */
+  private Session connect( Client client, int timeout) throws IOException
+  {
+    int sleep = 1000;
+    for( int i=0; i<4; i++)
+    {
+      try { return client.connect( timeout);} catch( IOException e) {}
+      try { Thread.sleep( sleep);} catch( InterruptedException e) {}
+    }
+    return client.connect( timeout);
   }
   
   /**
@@ -267,7 +284,7 @@ public class RunAction extends GuardedAction
     public IXAction script;
   }
   
-  private final static class Callback implements ICallback
+  private final class Callback implements ICallback
   {
     public Callback( Client client, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
@@ -288,21 +305,29 @@ public class RunAction extends GuardedAction
     }
 
     /* (non-Javadoc)
-     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext)
+     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext, java.lang.Object[])
      */
     @Override
-    public void onSuccess( IContext context)
+    public void onSuccess( IContext context, Object[] results)
     {
-      if ( onSuccess != null) onSuccess.run( context);
+      if ( onSuccess != null) 
+      {
+        if ( var != null) context.getScope().set( var, results[ 0]);
+        onSuccess.run( context);
+      }
     }
 
     /* (non-Javadoc)
      * @see org.xmodel.net.ICallback#onError(org.xmodel.xpath.expression.IContext)
      */
     @Override
-    public void onError( IContext context)
+    public void onError( IContext context, String error)
     {
-      if ( onError != null) onError.run( context);
+      if ( onError != null) 
+      {
+        context.set( "error", error);
+        onError.run( context);
+      }
     }
     
     private Client client;
