@@ -49,11 +49,12 @@ public class SyncResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
+    IModelObject element = bundle.clientCompressor.decompress( buffer);
     
-    IModelObject response = bundle.clientCompressor.decompress( buffer);
+    log.debugf( "SyncResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     
     SynchronousQueue<IModelObject> queue = queues.remove( correlation);
-    if ( queue != null) queue.offer( response); 
+    if ( queue != null) queue.offer( element); 
   }
 
   /**

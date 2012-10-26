@@ -6,3 +6,7 @@
   
   <run remote="$client">
   </run>
+
+
+1. Server compessor (compress) is always used from the server model thread.
+2. Client compressor (decompress) is always used from I/O thread. 

@@ -1,15 +1,16 @@
 package org.xmodel.net.bind;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
+import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.nu.ErrorProtocol;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
-import org.xmodel.net.nu.HeaderProtocol;
+import org.xmodel.net.nu.ProtocolException;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -41,12 +42,12 @@ public class BindRequestProtocol
    */
   public IModelObject send( Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
-    int correlation = responseProtocol.nextCorrelation();
+    int correlation = bundle.bindResponseProtocol.nextCorrelation();
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
     
     byte[] queryBytes = query.getBytes();
     
-    ChannelBuffer buffer = headerProtocol.writeHeader( Type.bindRequest, 5 + queryBytes.length);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( Type.bindRequest, 5 + queryBytes.length);
     buffer.writeInt( correlation);
     buffer.writeByte( readonly? 1: 0);
     buffer.writeBytes( queryBytes);
@@ -63,7 +64,7 @@ public class BindRequestProtocol
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  public void handle( Channel channel, ChannelBuffer buffer, long length)
+  public void handle( Channel channel, ChannelBuffer buffer, long length) throws ProtocolException
   {
     int correlation = buffer.readInt();
     boolean readonly = buffer.readByte() == 1;
@@ -71,7 +72,16 @@ public class BindRequestProtocol
     byte[] queryBytes = new byte[ (int)length - 5];
     buffer.readBytes( queryBytes);
     
-    bundle.dispatcher.execute( new BindRunnable( channel, correlation, readonly, new String( queryBytes)));
+    String query = new String( queryBytes);
+    try
+    {
+      IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
+      bundle.dispatcher.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+    }
+    catch( PathSyntaxException e)
+    {
+      throw new ProtocolException( String.format( "Invalid query: {%s}", query), e);
+    }
   }
   
   /**
@@ -79,42 +89,42 @@ public class BindRequestProtocol
    * @param channel The channel.
    * @param correlation The correlation.
    * @param readonly True if the readonly binding is requested.
-   * @param query The path to bind.
+   * @param query The expression string.
+   * @param queryExpr The compiled expression.
    */
-  private void bind( Channel channel, int correlation, boolean readonly, String queryText)
+  private void bind( Channel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
   {
     try
     {
-      IExpression query = XPath.compileExpression( queryText);
-      IModelObject target = query.queryFirst( bundle.context);
+      IModelObject target = queryExpr.queryFirst( bundle.context);
       if ( target != null)
       {
-        responseProtocol.send( channel, correlation, target);
+        bundle.bindResponseProtocol.send( channel, correlation, target);
         
-        UpdateListener listener = new UpdateListener( channel, queryText, target);
+        UpdateListener listener = new UpdateListener( channel, query);
         listener.install( target);
         listeners.put( target, listener);
       }
       else
       {
-        responseProtocol.send( channel, correlation, null);
+        bundle.bindResponseProtocol.send( channel, correlation, null);
       }
     }
-    catch( Exception e)
+    catch( IOException e)
     {
       SLog.exception( this, e);
-      errorProtocol.sendError( channel, correlation, String.format( "Invalid query: {%s}", queryText));
     }
   }
   
   private class BindRunnable implements Runnable
   {
-    public BindRunnable( Channel channel, int correlation, boolean readonly, String query)
+    public BindRunnable( Channel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
     {
       this.channel = channel;
       this.correlation = correlation;
       this.readonly = readonly;
       this.query = query;
+      this.queryExpr = queryExpr;
     }
     
     /* (non-Javadoc)
@@ -123,20 +133,18 @@ public class BindRequestProtocol
     @Override
     public void run()
     {
-      bind( channel, correlation, readonly, query);
+      bind( channel, correlation, readonly, query, queryExpr);
     }
     
     private Channel channel;
     private int correlation;
     private boolean readonly;
     private String query;
+    private IExpression queryExpr;
   }
   
   private final static Log log = Log.getLog( BindRequestProtocol.class);
 
   private BindProtocol bundle;
-  private HeaderProtocol headerProtocol;
-  private BindResponseProtocol responseProtocol;
-  private ErrorProtocol errorProtocol;
   private Map<IModelObject, UpdateListener> listeners;
 }

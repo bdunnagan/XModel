@@ -8,6 +8,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.ProtocolException;
 
 public class UpdateProtocol
 {
@@ -41,22 +42,6 @@ public class UpdateProtocol
   }
   
   /**
-   * Handle an update.
-   * @param channel The channel.
-   * @param buffer The buffer.
-   */
-  public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException
-  {
-    long parentNetID = buffer.readLong();
-    int index = buffer.readInt();
-    IModelObject child = protocol.clientCompressor.decompress( buffer);
-
-    log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
-    
-    protocol.dispatcher.execute( new AddChildEvent( channel, parentNetID, child, index));
-  }
-  
-  /**
    * Send an update.
    * @param channel The channel.
    * @param parent The parent.
@@ -76,21 +61,6 @@ public class UpdateProtocol
     channel.write( buffer);
   }
 
-  /**
-   * Handle an update.
-   * @param channel The channel.
-   * @param buffer The buffer.
-   */
-  public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException
-  {
-    long parentNetID = buffer.readLong();
-    int index = buffer.readInt();
-
-    log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
-    
-    protocol.dispatcher.execute( new RemoveChildEvent( channel, parentNetID, index));
-  }
-  
   /**
    * Send an update.
    * @param channel The channel.
@@ -117,22 +87,6 @@ public class UpdateProtocol
   }
 
   /**
-   * Handle an update.
-   * @param channel The channel.
-   * @param buffer The buffer.
-   */
-  public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException
-  {
-    long netID = buffer.readLong();
-    String attrName = readAttrName( buffer);
-    Object newValue = protocol.serializer.readObject( buffer);
-
-    log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
-    
-    protocol.dispatcher.execute( new ChangeAttributeEvent( channel, netID, attrName, newValue));
-  }
-  
-  /**
    * Send an update.
    * @param channel The channel.
    * @param element The element.
@@ -153,21 +107,6 @@ public class UpdateProtocol
     channel.write( buffer);
   }
 
-  /**
-   * Handle an update.
-   * @param channel The channel.
-   * @param buffer The buffer.
-   */
-  public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException
-  {
-    long netID = buffer.readLong();
-    String attrName = readAttrName( buffer);
-
-    log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
-    
-    protocol.dispatcher.execute( new ClearAttributeEvent( channel, netID, attrName));
-  }
-  
   /**
    * Send an update.
    * @param channel The channel.
@@ -193,112 +132,92 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  {
+    long parentNetID = buffer.readLong();
+    int index = buffer.readInt();
+    IModelObject child = protocol.clientCompressor.decompress( buffer);
+  
+    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
+    if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
+    
+    log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
+    
+    protocol.dispatcher.execute( new AddChildEvent( parent, child, index));
+  }
+
+  /**
+   * Handle an update.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  {
+    long parentNetID = buffer.readLong();
+    int index = buffer.readInt();
+  
+    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
+    if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
+    
+    log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
+    
+    protocol.dispatcher.execute( new RemoveChildEvent( parent, index));
+  }
+
+  /**
+   * Handle an update.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, ProtocolException
+  {
+    long netID = buffer.readLong();
+    String attrName = readAttrName( buffer);
+    Object newValue = protocol.serializer.readObject( buffer);
+  
+    log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
+    
+    IModelObject element = protocol.clientCompressor.findRemote( netID);
+    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    
+    protocol.dispatcher.execute( new ChangeAttributeEvent( element, attrName, newValue));
+  }
+
+  /**
+   * Handle an update.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  {
+    long netID = buffer.readLong();
+    String attrName = readAttrName( buffer);
+  
+    log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
+    
+    IModelObject element = protocol.clientCompressor.findRemote( netID);
+    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    
+    protocol.dispatcher.execute( new ClearAttributeEvent( element, attrName));
+  }
+
+  /**
+   * Handle an update.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
   {
     long netID = buffer.readLong();
     boolean dirty = buffer.readByte() != 0;
 
     log.debugf( "UpdateProtocol.handleChangeDirty: element=%X, dirty=%s", netID, dirty);
     
-    protocol.dispatcher.execute( new ChangeDirtyEvent( channel, netID, dirty));
-  }
-  
-  /**
-   * Process an event.
-   * @param channel The channel.
-   * @param parentNetID The parent network identifier.
-   * @param child The child.
-   * @param index The insertion index.
-   */
-  private void processAddChild( Channel channel, long parentNetID, IModelObject child, int index)
-  {
-    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
-    if ( parent == null)
-    {
-      log.errorf( "UpdateProtocol.processAddChild: parent %X not found", parentNetID);
-      return;
-    }
-    
-    parent.addChild( child, index);
-  }
-
-  /**
-   * Process an event.
-   * @param channel The channel.
-   * @param parentNetID The parent network identifier.
-   * @param index The removal index.
-   */
-  private void processRemoveChild( Channel channel, long parentNetID, int index)
-  {
-    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
-    if ( parent == null)
-    {
-      log.errorf( "UpdateProtocol.processRemoveChild: parent %X not found", parentNetID);
-      return;
-    }
-    
-    parent.removeChild( index);
-  }
-
-  /**
-   * Process an event.
-   * @param channel The channel.
-   * @param netID The network identifier.
-   * @param attrName The name of the attribute.
-   * @param attrValue The new value of the attribute.
-   */
-  private void processChangeAttribute( Channel channel, long netID, String attrName, Object attrValue)
-  {
     IModelObject element = protocol.clientCompressor.findRemote( netID);
-    if ( element == null)
-    {
-      log.errorf( "UpdateProtocol.processChangeAttribute: element %X not found", netID);
-      return;
-    }
+    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    if ( !(element instanceof IExternalReference)) throw new ProtocolException( String.format( "Element %X is not a reference", netID));
     
-    element.setAttribute( attrName, attrValue);
-  }
-  
-  /**
-   * Process an event.
-   * @param channel The channel.
-   * @param netID The network identifier.
-   * @param attrName The name of the attribute.
-   */
-  private void processClearAttribute( Channel channel, long netID, String attrName)
-  {
-    IModelObject element = protocol.clientCompressor.findRemote( netID);
-    if ( element == null)
-    {
-      log.errorf( "UpdateProtocol.processClearAttribute: element %X not found", netID);
-      return;
-    }
-    
-    element.removeAttribute( attrName);
-  }
-  
-  /**
-   * Process an event.
-   * @param channel The channel.
-   * @param netID The network identifier.
-   * @param dirty The new dirty state.
-   */
-  private void processChangeDirty( Channel channel, long netID, boolean dirty)
-  {
-    IModelObject element = protocol.clientCompressor.findRemote( netID);
-    if ( element == null)
-    {
-      log.errorf( "UpdateProtocol.processChangeDirty: element %X not found", netID);
-      return;
-    }
-    
-    if ( !(element instanceof IExternalReference))
-    {
-      log.errorf( "UpdateProtocol.processChangeDirty: element %X is not a reference", netID);
-      return;
-    }
-    
-    ((IExternalReference)element).setDirty( dirty);
+    protocol.dispatcher.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }
   
   /**
@@ -328,100 +247,90 @@ public class UpdateProtocol
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( Channel channel, long parentNetID, IModelObject child, int index)
+    public AddChildEvent( IModelObject parent, IModelObject child, int index)
     {
-      this.channel = channel;
-      this.parentNetID = parentNetID;
+      this.parent = parent;
       this.child = child;
       this.index = index;
     }
     
     public void run()
     {
-      processAddChild( channel, parentNetID, child, index);
+      parent.addChild( child, index);
     }
     
-    private Channel channel;
-    private long parentNetID;
+    private IModelObject parent;
     private IModelObject child;
     private int index;
   }
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( Channel channel, long parentNetID, int index)
+    public RemoveChildEvent( IModelObject parent, int index)
     {
-      this.channel = channel;
-      this.parentNetID = parentNetID;
+      this.parent = parent;
       this.index = index;
     }
     
     public void run()
     {
-      processRemoveChild( channel, parentNetID, index);
+      parent.removeChild( index);
     }
     
-    private Channel channel;
-    private long parentNetID;
+    private IModelObject parent;
     private int index;
   }
   
   private final class ChangeAttributeEvent implements Runnable
   {
-    public ChangeAttributeEvent( Channel channel, long netID, String attrName, Object attrValue)
+    public ChangeAttributeEvent( IModelObject element, String attrName, Object attrValue)
     {
-      this.channel = channel;
-      this.netID = netID;
+      this.element = element;
       this.attrName = attrName;
       this.attrValue = attrValue;
     }
     
     public void run()
     {
-      processChangeAttribute( channel, netID, attrName, attrValue);
+      element.setAttribute( attrName, attrValue);
     }
     
-    private Channel channel;
-    private long netID;
+    private IModelObject element;
     private String attrName;
     private Object attrValue;
   }
   
   private final class ClearAttributeEvent implements Runnable
   {
-    public ClearAttributeEvent( Channel channel, long netID, String attrName)
+    public ClearAttributeEvent( IModelObject element, String attrName)
     {
-      this.channel = channel;
-      this.netID = netID;
+      this.element = element;
       this.attrName = attrName;
     }
     
     public void run()
     {
-      processClearAttribute( channel, netID, attrName);
+      element.removeAttribute( attrName);
     }
     
-    private Channel channel;
-    private long netID;
+    private IModelObject element;
     private String attrName;
   }
   
   private final class ChangeDirtyEvent implements Runnable
   {
-    public ChangeDirtyEvent( Channel channel, long netID, boolean dirty)
+    public ChangeDirtyEvent( IExternalReference reference, boolean dirty)
     {
-      this.channel = channel;
-      this.netID = netID;
+      this.reference = reference;
       this.dirty = dirty;
     }
     
     public void run()
     {
-      processChangeDirty( channel, netID, dirty);
+      reference.setDirty( dirty);
     }
     
-    private Channel channel;
-    private long netID;
+    private IExternalReference reference;
     private boolean dirty;
   }
   

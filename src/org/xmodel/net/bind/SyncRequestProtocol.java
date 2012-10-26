@@ -6,6 +6,7 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.ProtocolException;
 
 public class SyncRequestProtocol
 {
@@ -41,12 +42,18 @@ public class SyncRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer)
+  public void handle( Channel channel, ChannelBuffer buffer) throws ProtocolException
   {
     int correlation = buffer.readInt();
     long netID = buffer.readLong();
     
-    bundle.dispatcher.execute( new SyncRunnable( channel, correlation, netID));
+    IModelObject element = bundle.serverCompressor.findLocal( netID);
+    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    
+    UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
+    if ( listener == null) throw new ProtocolException( String.format( "Listener not found on %X", netID));
+    
+    bundle.dispatcher.execute( new SyncRunnable( channel, correlation, netID, element, listener));
   }
   
   /**
@@ -54,18 +61,11 @@ public class SyncRequestProtocol
    * @param channel The channel.
    * @param correlation The correlation.
    * @param netID The network identifier.
+   * @param element The local element to sync.
+   * @param listener The listener.
    */
-  private void sync( Channel channel, int correlation, long netID)
+  private void sync( Channel channel, int correlation, long netID, IModelObject element, UpdateListener listener)
   {
-    IModelObject element = bundle.serverCompressor.findLocal( netID);
-    
-    UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
-    if ( listener == null)
-    {
-      log.errorf( "UpdateListener not found for element %X", netID);
-      return;
-    }
-    
     try
     {
       // disable updates
@@ -92,11 +92,13 @@ public class SyncRequestProtocol
   
   private class SyncRunnable implements Runnable
   {
-    public SyncRunnable( Channel channel, int correlation, long netID)
+    public SyncRunnable( Channel channel, int correlation, long netID, IModelObject element, UpdateListener listener)
     {
       this.channel = channel;
       this.correlation = correlation;
       this.netID = netID;
+      this.element = element;
+      this.listener = listener;
     }
     
     /* (non-Javadoc)
@@ -105,12 +107,14 @@ public class SyncRequestProtocol
     @Override
     public void run()
     {
-      sync( channel, correlation, netID);
+      sync( channel, correlation, netID, element, listener);
     }
     
     private Channel channel;
     private int correlation;
     private long netID;
+    private IModelObject element;
+    private UpdateListener listener;
   }
   
   private final static Log log = Log.getLog( SyncResponseProtocol.class);

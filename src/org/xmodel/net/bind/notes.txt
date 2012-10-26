@@ -1,0 +1,6 @@
+Notes
+
+Thread use of BindCompressor
+  . Server compessor (compress) is always used from the server model thread.
+  . Client compressor (decompress) is always used from I/O thread. 
+  

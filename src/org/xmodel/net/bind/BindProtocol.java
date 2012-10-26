@@ -17,6 +17,7 @@ public class BindProtocol
     this.headerProtocol = headerProtocol;
     this.bindRequestProtocol = new BindRequestProtocol( this);
     this.bindResponseProtocol = new BindResponseProtocol( this);
+    this.unbindRequestProtocol = new UnbindRequestProtocol( this);
     this.syncRequestProtocol = new SyncRequestProtocol( this);
     this.syncResponseProtocol = new SyncResponseProtocol( this);
     this.updateProtocol = new UpdateProtocol( this);
@@ -31,6 +32,7 @@ public class BindProtocol
   public HeaderProtocol headerProtocol;
   public BindRequestProtocol bindRequestProtocol;
   public BindResponseProtocol bindResponseProtocol;
+  public UnbindRequestProtocol unbindRequestProtocol;
   public SyncRequestProtocol syncRequestProtocol;
   public SyncResponseProtocol syncResponseProtocol;
   public UpdateProtocol updateProtocol;

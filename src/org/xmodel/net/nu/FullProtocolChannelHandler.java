@@ -12,8 +12,6 @@ import org.xmodel.IDispatcher;
 import org.xmodel.log.Log;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
-import org.xmodel.net.execution.ExecutionRequestProtocol;
-import org.xmodel.net.execution.ExecutionResponseProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -100,7 +98,7 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns true if a message was read.
    */
-  private boolean handleMessage( Channel channel, ChannelBuffer buffer)
+  private boolean handleMessage( Channel channel, ChannelBuffer buffer) throws Exception
   {
     Type type = headerProtocol.readType( buffer);
     log.debugf( "Type: %s", type);
@@ -110,24 +108,24 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     
     switch( type)
     {
-      case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); break;
-      case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); break;
+      case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
+      case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
       
-      case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); break;
-      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer); break;
-      case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); break;
+      case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
+      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer); return true;
+      case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); return true;
+      case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); return true;
+      case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); return true;
+      case addChild:        bindProtocol.updateProtocol.handleAddChild( channel, buffer); return true;
+      case removeChild:     bindProtocol.updateProtocol.handleRemoveChild( channel, buffer); return true;
+      case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
+      case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
+      case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
       
-      case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); break;
-      case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); break;
-      
-      case addChild:        bindProtocol.updateProtocol.handleAddChild( channel, buffer); break;
-      case removeChild:     bindProtocol.updateProtocol.handleRemoveChild( channel, buffer); break;
-      case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); break;
-      case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); break;
-      case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); break;
-      
-      case error:           errorProtocol.handleError( channel, buffer); break;
+      case error:           errorProtocol.handleError( channel, buffer); return true;
     }
+    
+    return false;
   }
   
   /* (non-Javadoc)
@@ -136,6 +134,7 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
   @Override
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
+    log.exception( event.getCause());
   }
   
   /**

@@ -11,22 +11,13 @@ import org.xmodel.net.NetworkCachingPolicy;
 
 class UpdateListener extends NonSyncingListener
 {
-  public UpdateListener( Channel channel, String query, IModelObject root)
+  public UpdateListener( Channel channel, String query)
   {
     this.channel = channel;
     this.query = query;
-    this.root = root;
     this.enabled = true;
   }
 
-  /**
-   * Uninstall this listener.
-   */
-  public void uninstall()
-  {
-    uninstall( root);
-  }
-  
   /**
    * Enable/disable updates from this listener.
    * @param enabled True if updates should be sent.
@@ -164,6 +155,5 @@ class UpdateListener extends NonSyncingListener
   private UpdateProtocol updateProtocol;
   private Channel channel;
   private String query;
-  private IModelObject root;
   private boolean enabled;
 };
