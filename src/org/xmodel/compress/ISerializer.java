@@ -2,13 +2,9 @@ package org.xmodel.compress;
 
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
 
 /**
- * An interface for serialization of objects stored in attributes.  This interface is intended for use
- * by implementations of ICommpressor when attribute values that are not CharSequence instances are
- * encountered.  This interface is not provided in preference to standard Java serialization.
- * Note that only one of each type of method should return a non-null value.
+ * A serialization interface for implementing compact representations of a small domain of data-types (e.g. XPath 1.0).
  */
 public interface ISerializer
 {
@@ -25,5 +21,5 @@ public interface ISerializer
    * @param object The object.
    * @return Returns the number of bytes written.
    */
-  public int writeObject( ChannelBuffer output, IModelObject object) throws IOException, CompressorException;
+  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException;
 }

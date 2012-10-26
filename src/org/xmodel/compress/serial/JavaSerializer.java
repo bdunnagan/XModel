@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ISerializer;
 
@@ -36,11 +35,11 @@ public class JavaSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
   {
     ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
     ObjectOutputStream objectOut = new ObjectOutputStream( byteOut);
-    objectOut.writeObject( node.getValue());
+    objectOut.writeObject( object);
     objectOut.close();
     
     byte[] bytes = byteOut.toByteArray();

@@ -1,7 +1,7 @@
 package org.xmodel.net.bind;
 
-import java.io.IOException;
 import org.jboss.netty.channel.Channel;
+import org.xmodel.IModelObject;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
@@ -14,18 +14,18 @@ import org.xmodel.external.UnboundedCache;
  */
 class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
-  public NetKeyCachingPolicy( BindProtocol protocol, Channel channel, long key, int timeout, String[] statics)
+  public NetKeyCachingPolicy( BindProtocol protocol, Channel channel, long netID, int timeout, String[] statics)
   {
-    this( new UnboundedCache(), protocol, channel, key, timeout, statics);
+    this( new UnboundedCache(), protocol, channel, netID, timeout, statics);
   }
   
-  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, Channel channel, long key, int timeout, String[] statics)
+  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, Channel channel, long netID, int timeout, String[] statics)
   {
     super( cache);
     
     this.protocol = protocol;
     this.channel = channel;
-    this.key = key;
+    this.netID = netID;
     this.timeout = timeout;
     
     setStaticAttributes( statics);
@@ -40,9 +40,16 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   {
     try
     {
-      protocol.syncRequestProtocol.send( channel, key, reference, timeout);
+      IModelObject element = protocol.syncRequestProtocol.send( channel, netID, timeout);
+      if ( element == null) 
+      {
+        throw new CachingException( String.format( 
+            "Unable to sync network reference: netID=%X", netID));
+      }
+      
+      update( reference, element);
     }
-    catch( IOException e)
+    catch( Exception e)
     {
       throw new CachingException( "Unable to sync reference: "+reference, e);
     }
@@ -50,6 +57,6 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
 
   private BindProtocol protocol;
   private Channel channel;
-  private long key;
+  private long netID;
   private int timeout;
 }

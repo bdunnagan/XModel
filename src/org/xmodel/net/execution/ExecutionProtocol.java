@@ -2,7 +2,6 @@ package org.xmodel.net.execution;
 
 import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.IDispatcher;
-import org.xmodel.net.bind.SyncResponseProtocol;
 import org.xmodel.net.nu.ErrorProtocol;
 import org.xmodel.net.nu.HeaderProtocol;
 import org.xmodel.xpath.expression.IContext;

@@ -1,5 +1,7 @@
 package org.xmodel.net.bind;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -16,9 +18,28 @@ public class BindRequestProtocol
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
+    this.listeners = new HashMap<IModelObject, UpdateListener>();
   }
   
-  public void send( Channel channel, boolean readonly, String query, int timeout)
+  /**
+   * Returns the UpdateListener installed on the specified element.
+   * @param element The element.
+   * @return Returns null or the listener.
+   */
+  public UpdateListener getListener( IModelObject element)
+  {
+    return listeners.get( element);
+  }
+  
+  /**
+   * Send a bind request.
+   * @param channel The channel.
+   * @param readonly True if binding should be readonly.
+   * @param query The query to bind.
+   * @param timeout The timeout in milliseconds.
+   * @return Returns null or the query result.
+   */
+  public IModelObject send( Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
     int correlation = responseProtocol.nextCorrelation();
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
@@ -32,6 +53,8 @@ public class BindRequestProtocol
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
+    
+    return bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
   }
   
   /**
@@ -70,6 +93,7 @@ public class BindRequestProtocol
         
         UpdateListener listener = new UpdateListener( channel, queryText, target);
         listener.install( target);
+        listeners.put( target, listener);
       }
       else
       {
@@ -114,4 +138,5 @@ public class BindRequestProtocol
   private HeaderProtocol headerProtocol;
   private BindResponseProtocol responseProtocol;
   private ErrorProtocol errorProtocol;
+  private Map<IModelObject, UpdateListener> listeners;
 }

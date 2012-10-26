@@ -42,24 +42,24 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
-   * Create a new upstream compressor.
-   * @param progressive See TabularCompressor for more information.
-   * @return Returns the new compressor.
-   */
-  public static BindCompressor newUpstreamCompressor( boolean progressive)
-  {
-    return new BindCompressor( null, progressive);
-  }
-  
-  /**
-   * Create a new downstream compressor.
+   * Create a new client-side compressor.
    * @param protocol The protocol bundle.
    * @param progressive See TabularCompressor for more information.
    * @return Returns the new compressor.
    */
-  public static BindCompressor newDownstreamCompressor( BindProtocol protocol, boolean progressive)
+  public static BindCompressor newClientCompressor( BindProtocol protocol, boolean progressive)
   {
     return new BindCompressor( protocol, progressive);
+  }
+  
+  /**
+   * Create a new server-side compressor.
+   * @param progressive See TabularCompressor for more information.
+   * @return Returns the new compressor.
+   */
+  public static BindCompressor newServerCompressor( boolean progressive)
+  {
+    return new BindCompressor( null, progressive);
   }
   
   /**
@@ -67,7 +67,7 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findLocal( int netID)
+  public IModelObject findLocal( long netID)
   {
     return localMap.get( netID);
   }
@@ -77,9 +77,19 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findRemote( int netID)
+  public IModelObject findRemote( long netID)
   {
     return localMap.get( netID);
+  }
+  
+  /**
+   * Returns the local network identifier for the specified element.
+   * @param element An element that was previously sent downstream.
+   * @return Returns the local network identifier.
+   */
+  public long getLocalNetID( IModelObject element)
+  {
+    return System.identityHashCode( element);
   }
   
   /**
@@ -147,6 +157,9 @@ public class BindCompressor extends TabularCompressor
 
     // store element by network id
     remoteMap.put( netID, element);
+
+    // disassociate from model so it can be passed to a new thread
+    element.clearModel();
     
     return element;
   }

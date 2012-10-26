@@ -1,8 +1,9 @@
 package org.xmodel.net.bind;
 
+import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.external.IExternalReference;
+import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
 
@@ -17,10 +18,10 @@ public class SyncRequestProtocol
    * Send a sync request.
    * @param channel The channel.
    * @param key The network identifier.
-   * @param reference The reference to be updated.
    * @param timeout The timeout in milliseconds.
+   * @return Returns null or the result of the sync.
    */
-  public void send( Channel channel, long netID, IExternalReference reference, int timeout)
+  public IModelObject send( Channel channel, long netID, int timeout) throws InterruptedException
   {
     int correlation = bundle.syncResponseProtocol.nextCorrelation();
     log.debugf( "SyncRequestProtocol.send (sync): corr=%d, timeout=%d, netID=%X", correlation, timeout, netID);
@@ -31,6 +32,8 @@ public class SyncRequestProtocol
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
+    
+    return bundle.syncResponseProtocol.waitForResponse( correlation, timeout);
   }
 
   /**
@@ -54,7 +57,37 @@ public class SyncRequestProtocol
    */
   private void sync( Channel channel, int correlation, long netID)
   {
+    IModelObject element = bundle.serverCompressor.findLocal( netID);
     
+    UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
+    if ( listener == null)
+    {
+      log.errorf( "UpdateListener not found for element %X", netID);
+      return;
+    }
+    
+    try
+    {
+      // disable updates
+      listener.setEnabled( false);
+      
+      // sync
+      element.getChildren();
+      
+      // send response
+      try
+      {
+        bundle.syncResponseProtocol.send( channel, correlation, element);
+      }
+      catch( IOException e)
+      {
+        log.exceptionf( e, "Failed to send sync response for %X", netID);
+      }
+    }
+    finally
+    {
+      listener.setEnabled( true);
+    }
   }
   
   private class SyncRunnable implements Runnable

@@ -3,7 +3,6 @@ package org.xmodel.compress.serial;
 import java.io.File;
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ISerializer;
 
@@ -34,9 +33,9 @@ public class FileSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
   {
-    File file = (File)node.getValue();
+    File file = (File)object;
     
     byte[] bytes = file.getPath().getBytes();
     int total = bytes.length;

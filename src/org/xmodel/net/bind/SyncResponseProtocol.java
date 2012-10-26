@@ -33,7 +33,7 @@ public class SyncResponseProtocol
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
-    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( element);
+    ChannelBuffer buffer2 = bundle.serverCompressor.compress( element);
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.syncResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
@@ -50,7 +50,7 @@ public class SyncResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.upstreamCompressor.decompress( buffer);
+    IModelObject response = bundle.clientCompressor.decompress( buffer);
     
     SynchronousQueue<IModelObject> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( response); 

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.serial.BooleanSerializer;
 import org.xmodel.compress.serial.NumberSerializer;
 import org.xmodel.compress.serial.StringSerializer;
@@ -32,6 +31,7 @@ public class DefaultSerializer implements ISerializer
    */
   public void register( Class<?> clazz, ISerializer serializer)
   {
+    if ( classes.size() == 256) throw new IndexOutOfBoundsException();
     classes.add( clazz);
     serializers.add( serializer);
   }
@@ -42,7 +42,7 @@ public class DefaultSerializer implements ISerializer
   @Override
   public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
   {
-    int classID = input.readShort() & 0xFFFF;
+    int classID = (int)input.readByte() & 0xFF;
     if ( classID >= serializers.size()) 
     {
       throw new ClassNotFoundException( 
@@ -57,10 +57,8 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
   {
-    Object object = node.getValue();
-    
     int classID = findSerializerClassID( object);   
     if ( classID < 0)
     {
@@ -68,13 +66,10 @@ public class DefaultSerializer implements ISerializer
         "Class not supported, %s.", object.getClass().getName()));
     }
    
-    int total = 2;
-    output.writeShort( classID);
+    output.writeByte( classID);
     
     ISerializer serializer = serializers.get( classID);
-    total += serializer.writeObject( output, node);
-    
-    return total;
+    return 1 + serializer.writeObject( output, object);
   }
   
   /**

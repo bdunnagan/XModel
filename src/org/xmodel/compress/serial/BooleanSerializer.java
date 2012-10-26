@@ -2,7 +2,6 @@ package org.xmodel.compress.serial;
 
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ISerializer;
 
@@ -24,9 +23,9 @@ public class BooleanSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
   {
-    output.writeByte( (Boolean)node.getValue()? 1 : 0);
+    output.writeByte( (Boolean)object? 1 : 0);
     return 1;
   }
 }
