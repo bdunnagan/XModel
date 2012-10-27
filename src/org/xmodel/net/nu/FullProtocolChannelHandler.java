@@ -100,11 +100,14 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
    */
   private boolean handleMessage( Channel channel, ChannelBuffer buffer) throws Exception
   {
+    if ( log.verbose()) log.verbosef( "Buffer:\n%s", toString( "  ", buffer));
+    
     Type type = headerProtocol.readType( buffer);
-    log.debugf( "Type: %s", type);
+    log.debugf( "Message Type: %s", type);
     
     long length = headerProtocol.readLength( buffer);
     if ( buffer.readableBytes() < length) return false;
+    log.debugf( "Message Length: %d", length);
     
     switch( type)
     {
