@@ -389,7 +389,7 @@ public class Protocol implements ILink.IListener
       else
       {
         sendAttachResponse( sender, session, correlation, null);
-        SLog.warnf( "Target of attach request not found: %s", xpath);
+        SLog.warnf( this, "Target of attach request not found: %s", xpath);
       }
     }
     catch( Exception e)
@@ -1125,6 +1125,8 @@ public class Protocol implements ILink.IListener
   private void processAddChild( ILink link, int session, long key, byte[] bytes, int index)
   {
     SessionInfo info = getSessionInfo( link, session);
+    if ( info.listener == null) return;
+    
     try
     {
       info.listener.setEnabled( false);
@@ -1212,6 +1214,8 @@ public class Protocol implements ILink.IListener
   private void processRemoveChild( ILink link, int session, long key, int index)
   {
     SessionInfo info = getSessionInfo( link, session);
+    if ( info.listener == null) return;
+    
     try
     {
       info.listener.setEnabled( false);
@@ -1298,6 +1302,8 @@ public class Protocol implements ILink.IListener
   private void processChangeAttribute( ILink link, int session, long key, String attrName, Object attrValue)
   {
     SessionInfo info = getSessionInfo( link, session);
+    if ( info.listener == null) return;
+    
     try
     {
       info.listener.setEnabled( false);
@@ -1379,6 +1385,8 @@ public class Protocol implements ILink.IListener
   private void processClearAttribute( ILink link, int session, long key, String attrName)
   {
     SessionInfo info = getSessionInfo( link, session);
+    if ( info.listener == null) return;
+    
     try
     {
       info.listener.setEnabled( false);
@@ -1455,6 +1463,8 @@ public class Protocol implements ILink.IListener
   private void processChangeDirty( ILink link, int session, long key, boolean dirty)
   {
     SessionInfo info = getSessionInfo( link, session);
+    if ( info.listener == null) return;
+    
     try
     {
       info.listener.setEnabled( false);

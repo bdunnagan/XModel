@@ -26,6 +26,8 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -144,6 +146,7 @@ public class RunAction extends GuardedAction
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     String[] varArray = vars.split( "\\s*,\\s*");
+    IModelObject scriptNode = getScriptNode( context);
 
     Client client = null;
     try
@@ -155,14 +158,15 @@ public class RunAction extends GuardedAction
 
       client = new Client( host, port, false);
       client.setPingTimeout( timeout);
-      Session session = connect( client, timeout);
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
         try
         {
-          Object[] result = session.execute( (StatefulContext)context, varArray, getScriptNode( context), timeout);
+          Session session = connect( client, timeout);
+          if ( session == null) throw new IOException( "Session not established.");
+          Object[] result = session.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         finally
@@ -173,14 +177,8 @@ public class RunAction extends GuardedAction
       else
       {
         Callback callback = new Callback( client, onComplete, onSuccess, onError);
-        if ( session != null)
-        {
-          session.execute( (StatefulContext)context, varArray, getScriptNode( context), callback, timeout);
-        }
-        else
-        {
-          callback.onError( context);
-        }
+        ConnectionRetryRunnable runnable = new ConnectionRetryRunnable( client, context, varArray, scriptNode, callback, timeout);
+        runnable.run();
       }
       
       log.debug( "Finished remote.");
@@ -210,11 +208,10 @@ public class RunAction extends GuardedAction
    */
   private Session connect( Client client, int timeout) throws IOException
   {
-    int sleep = 1000;
-    for( int i=0; i<4; i++)
+    for( int i=0; i<2; i++)
     {
       try { return client.connect( timeout);} catch( IOException e) {}
-      try { Thread.sleep( sleep);} catch( InterruptedException e) {}
+      try { Thread.sleep( 1000);} catch( InterruptedException e) {}
     }
     return client.connect( timeout);
   }
@@ -274,6 +271,17 @@ public class RunAction extends GuardedAction
     return XmlIO.write( Style.printable, node);
   }
   
+  /**
+   * Schedule connection retry.
+   * @param task The timer task.
+   * @param delay The delay in milliseconds.
+   */
+  private synchronized void scheduleConnectionRetry( TimerTask task, int delay)
+  {
+    if ( connectionRetryTimer == null) connectionRetryTimer = new Timer();
+    connectionRetryTimer.schedule( task, delay);
+  }
+  
   private final static class CompiledAttribute
   {
     public CompiledAttribute( IXAction script)
@@ -327,8 +335,98 @@ public class RunAction extends GuardedAction
     private IXAction onSuccess;
     private IXAction onError;
   }
+  
+  private final class ConnectionRetryRunnable implements Runnable
+  {
+    public ConnectionRetryRunnable( Client client, IContext context, String[] varArray, IModelObject scriptNode, ICallback callback, int timeout)
+    {
+      this.client = client;
+      this.context = context;
+      this.varArray = varArray;
+      this.scriptNode = scriptNode;
+      this.callback = callback;
+      this.timeout = timeout;
+      this.retries = 3;
+    }
+    
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run()
+    {
+      Session session = null;
+      if ( --retries > 0)
+      {
+        try
+        {
+          session = client.connect( timeout);
+        }
+        catch( IOException e)
+        {
+          log.warn( e.getMessage());
+        }
+        
+        if ( session == null)
+        {
+          scheduleConnectionRetry( new RetryTask(), 1000);
+          return;
+        }
+      }
+      else
+      {
+        try
+        {
+          session = client.connect( timeout);
+          if ( session == null) throw new IOException( "Session not established.");
+        }
+        catch( IOException e1)
+        {
+          log.warn( e1.getMessage());
+          context.set( "error", e1.getMessage());
+          try { callback.onError( context);} catch( Exception e2) { log.exception( e2);}
+          try { callback.onComplete( context);} catch( Exception e2) { log.exception( e2);}
+          
+          return;
+        }
+      }
+      
+      try
+      {
+        session.execute( (StatefulContext)context, varArray, scriptNode, callback, timeout);
+      }
+      catch( IOException e1)
+      {
+        log.warn( e1.getMessage());
+        context.set( "error", e1.getMessage());
+        try { callback.onError( context);} catch( Exception e2) { log.exception( e2);}
+        try { callback.onComplete( context);} catch( Exception e2) { log.exception( e2);}
+      }
+    }
+    
+    private class RetryTask extends TimerTask
+    {
+      /* (non-Javadoc)
+       * @see java.util.TimerTask#run()
+       */
+      @Override
+      public void run()
+      {
+        context.getModel().dispatch( ConnectionRetryRunnable.this);
+      }
+    };
+
+    private Client client;
+    private IContext context;
+    private String[] varArray;
+    private IModelObject scriptNode;
+    private ICallback callback;
+    private int timeout;
+    private int retries;
+  }
 
   private final static Log log = Log.getLog( RunAction.class);
+  private static Timer connectionRetryTimer;
   
   private String var;
   private IExpression varsExpr;

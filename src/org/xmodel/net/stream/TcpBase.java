@@ -113,6 +113,7 @@ public abstract class TcpBase
     {
       if ( !connection.waitForConnect( timeout)) 
       {
+        connections.remove( connection.getChannel());
         log.debugf( "Connection timeout expired: timeout=%d", timeout);
         return null;
       }
@@ -163,7 +164,16 @@ public abstract class TcpBase
     log.debug( "Connection re-established.");
     return true;
   }
-
+  
+  /**
+   * Release resources associated with the specified connection.
+   * @param connection The connection.
+   */
+  void discard( Connection connection)
+  {
+    connections.remove( connection.getChannel());
+  }
+  
   /**
    * Enqueue a request to write data.
    * @param channel The channel.
@@ -235,6 +245,7 @@ public abstract class TcpBase
     
     Connection connection = new Connection( this, channel, listener);
     connections.put( connection.getChannel(), connection);
+    log.infof( "Connection map size: %d", connections.size());
     return connection;
   }
   
@@ -257,8 +268,10 @@ public abstract class TcpBase
     }
     catch( IOException e)
     {
-      log.warnf( "Connection refused.");
+      log.warnf( "Connection refused: %s", e.getMessage());
       connection.close();
+      connections.remove( channel);
+      log.infof( "Connection map size: %d", connections.size());
     }
   }
   
@@ -292,6 +305,7 @@ public abstract class TcpBase
     
     SocketChannel channel = (SocketChannel)key.channel();
     Connection connection = connections.get( channel);
+    if ( connection == null) return;
     try
     {
       connection.buffer = prepareReadBuffer( connection.buffer);

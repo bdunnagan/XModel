@@ -9,7 +9,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An implementation of IContext that uses a ThreadPoolDispatcher to dispatch all of its mutative
- * operations, such as setting variables.  Instances of this class are created via ThreadPoolDispatcher.
+ * operations, such as setting variables.
  */
 public class ThreadPoolContext extends StatefulContext
 {
