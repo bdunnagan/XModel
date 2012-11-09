@@ -12,13 +12,13 @@ import org.xmodel.xpath.expression.IExpression.ResultType;
 /**
  * Program to generate the skeleton code for an IScript implementation.
  */
-public class GenerateSkeleton
+public class CodeGen
 {
   public final static int value = 0x01;
   public final static int attribute = 0x02;
   public final static int element = 0x04;
   
-  public GenerateSkeleton()
+  public CodeGen()
   {
     declarations = new ArrayList<Declaration>();
   }
@@ -48,7 +48,7 @@ public class GenerateSkeleton
    */
   public String generateCode( String name)
   {
-    StringBuilder skeleton = new StringBuilder( GenerateSkeleton.skeleton);
+    StringBuilder skeleton = new StringBuilder( CodeGen.skeleton);
     
     String pkg = getPackage( name);
     if ( pkg != null) 
@@ -300,7 +300,7 @@ public class GenerateSkeleton
   
   public static void main( String[] args) throws Exception
   {
-    GenerateSkeleton gen = new GenerateSkeleton();
+    CodeGen gen = new CodeGen();
     
     BufferedReader reader = new BufferedReader( new InputStreamReader( System.in));
     

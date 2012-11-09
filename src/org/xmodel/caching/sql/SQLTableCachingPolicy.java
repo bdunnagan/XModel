@@ -97,6 +97,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
+
+    excluded = new ArrayList<String>( 3);
+    for( IModelObject element: annotation.getChildren( "exclude"))
+      excluded.add( Xlate.get( element, ""));
     
     IExpression whereExpr = Xlate.childGet( annotation, "where", (IExpression)null);
     if ( whereExpr != null) where = whereExpr.evaluateString( context);
@@ -384,17 +388,32 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       columnTypes = new ArrayList<Integer>();
       while( result.next()) 
       {
-        String columnName = result.getString( "COLUMN_NAME");
-        columnNames.add( columnName.toLowerCase());
+        String columnName = result.getString( "COLUMN_NAME").toLowerCase();
+        if ( !excluded.contains( columnName))
+          columnNames.add( columnName.toLowerCase());
         
         int columnType = result.getInt( "DATA_TYPE");
         columnTypes.add( columnType);
       }
       
+      StringBuilder sb = new StringBuilder();
+      sb.append( columnNames.get( 0));
+      for( int i=1; i<columnNames.size(); i++)
+      {
+        sb.append( ",");
+        sb.append( columnNames.get( i));
+      }
+      queryColumns = sb.toString();
+      
       result = meta.getPrimaryKeys( null, null, tableName);
       while( result.next())
       {
         String name = result.getString( "COLUMN_NAME");
+        if ( excluded.contains( name)) 
+        {
+          throw new IllegalArgumentException( String.format(
+            "Primary key columns cannot be excluded."));
+        }
         
         if ( primaryKey != null) 
         {
@@ -410,7 +429,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       while( result.next())
       {
         String columnName = result.getString( "COLUMN_NAME");
-        if ( columnName != null) otherKeys.add( columnName.toLowerCase());
+        if ( columnName != null && !excluded.contains( columnName)) 
+          otherKeys.add( columnName.toLowerCase());
       }
       
       provider.releaseConnection( connection);
@@ -443,7 +463,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     else
     {
-      sb.append( "*");
+      sb.append( queryColumns);
     }
     
     sb.append( " FROM "); 
@@ -479,7 +499,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private PreparedStatement createRowSelectStatement( IExternalReference reference) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( "SELECT * "); sb.append( "FROM "); sb.append( tableName);
+    sb.append( "SELECT "); sb.append( queryColumns); sb.append( " FROM "); sb.append( tableName);
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     Connection connection = provider.leaseConnection();
@@ -832,6 +852,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private ISQLProvider provider;
   private boolean stub;
   private boolean readonly;
+  private List<String> excluded;
   private String where;
   private String orderby;
   private int limit;
@@ -840,6 +861,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private String tableName;
   private List<String> columnNames;
   private List<Integer> columnTypes;
+  private String queryColumns;
   private String primaryKey;
   private List<String> otherKeys;
   private String rowElementName;

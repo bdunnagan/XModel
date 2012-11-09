@@ -11,28 +11,28 @@ import org.xmodel.xpath.expression.IContext;
  * debugging script.  Or, a factory can generate code in a different language such as javascript.  In any
  * case, the factory must respect the semantics defined by the script element.
  */
-public interface IScriptFactory
+public interface IMethodFactory
 {
   /**
    * Compile the specified element.
    * @param context The compilation context.
    * @param element The element.
-   * @return Returns the compiled script.
+   * @return Returns the compiled method.
    */
-  public IScript compile( IContext context, IModelObject element) throws CompileException;
+  public IMethod compile( IContext context, IModelObject element) throws CompileException;
   
   /**
    * Compile the specified elements.
    * @param context The compilation context.
    * @param elements The elements.
-   * @return Returns the compiled script.
+   * @return Returns the compiled method.
    */
-  public IScript compile( IContext context, List<IModelObject> elements) throws CompileException;
+  public IMethod compile( IContext context, List<IModelObject> elements) throws CompileException;
   
   /**
-   * Returns the script that was previously, or is currently, being compiled for the specifed element.
+   * Returns the method that was previously, or is currently, being compiled for the specified element.
    * @param element The element.
-   * @return Returns null or the script associated with the element.
+   * @return Returns null or the method associated with the element.
    */
-  public IScript getScriptByElement( IModelObject element);
+  public IMethod methodFor( IModelObject element);
 }

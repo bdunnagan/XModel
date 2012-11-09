@@ -1,0 +1,42 @@
+<example>
+  <assign var="this">...</assign>
+  <import name="f">org.xmodel.script.File</import>
+  <js>
+    // prefix variables with $ to export them back to enclosing script
+    var $data = file.read( "data.xml").parse();
+  </js>
+  <assign var="x">$data</assign>
+
+  <!-- update lots of things about $x -->  
+  <set target="$x">
+    <x>
+      <p>0</p>
+    </x>
+  </set>
+
+  <!-- update some attributes of $x -->
+  <set target="$x">
+    <x id="{0}"/>
+  </set>
+  
+  <!-- update some children of $x -->
+  <set target="$x/*">
+    <p>0</p>
+  </set>
+
+  <!-- allowing xml in more elements obviates need for seperate create action -->
+  <assign var="x">
+    <x id="{0}">
+      <extern:cache class=""/>
+    </x>
+  </assign>
+  
+  <!-- better function calls through xpath function -->
+  <do xmlns:file="http://www.xidgets.com/lib/file">
+    <assign var="x">file:load( "example.xml")</assign>
+  </do>
+  
+  <!-- i dislike ns decl in attributes, so ... -->
+  <ns name="file">http://www.xidges.com/lib/file</ns>
+  <assign var="x">file:load( "example.xml")</assign>
+</example>
