@@ -16,6 +16,12 @@ import org.xmodel.xpath.expression.IExpression;
 
 public class BindRequestProtocol
 {
+  public final static class BindResult
+  {
+    public IModelObject element;
+    public long netID;
+  }
+  
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
@@ -40,7 +46,7 @@ public class BindRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the query result.
    */
-  public IModelObject send( Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
+  public BindResult send( Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
     int correlation = bundle.bindResponseProtocol.nextCorrelation();
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
@@ -55,7 +61,13 @@ public class BindRequestProtocol
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
     
-    return bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
+    IModelObject element = bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
+    
+    BindResult result = new BindResult();
+    result.element = element;
+    result.netID = bundle.clientCompressor.getRemoteNetID( element);
+    
+    return result;
   }
   
   /**

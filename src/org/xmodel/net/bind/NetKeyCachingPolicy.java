@@ -31,6 +31,14 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
     setStaticAttributes( statics);
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
+  
+  /**
+   * @return Returns the network identifier.
+   */
+  public long getNetID()
+  {
+    return netID;
+  }
 
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.external.IExternalReference)

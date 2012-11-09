@@ -93,6 +93,19 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
+   * Returns the remote network identifier for the specified element.
+   * @param element An element that was previously received from upstream.
+   * @return Returns the remote network identifier.
+   */
+  public long getRemoteNetID( IModelObject element)
+  {
+    if ( !(element instanceof IExternalReference)) return 0;
+    
+    NetKeyCachingPolicy cachingPolicy = (NetKeyCachingPolicy)((IExternalReference)element).getCachingPolicy();
+    return cachingPolicy.getNetID();
+  }
+  
+  /**
    * Set the channel for the next call to the <code>decompress</code> method.
    * @param channel The channel.
    */
