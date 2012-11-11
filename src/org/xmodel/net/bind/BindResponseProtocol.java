@@ -24,6 +24,16 @@ public class BindResponseProtocol
   }
   
   /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    log.debugf( "%s.reset.", getClass().getSimpleName());
+    queues.clear();
+  }
+  
+  /**
    * Send a bind response.
    * @param channel The channel.
    * @param correlation The correlation number.

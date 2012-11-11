@@ -1,8 +1,8 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -25,7 +25,19 @@ public class BindRequestProtocol
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.listeners = new HashMap<IModelObject, UpdateListener>();
+    this.listeners = new ConcurrentHashMap<IModelObject, UpdateListener>();
+  }
+  
+  /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    log.debugf( "%s.reset.", getClass().getSimpleName());
+    for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
+      entry.getValue().uninstall( entry.getKey());
+    listeners.clear();
   }
   
   /**

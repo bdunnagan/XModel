@@ -109,6 +109,19 @@ public class ExecutionSerializer
   }
   
   /**
+   * Create a document containing the variable assignments in the specified context and the specified result array.
+   * @param context The context.
+   * @param throwable An exception that was thrown during remote execution.
+   * @return Returns the document root.
+   */
+  public static IModelObject buildResponse( IContext context, Throwable throwable)
+  {
+    ModelObject response = new ModelObject( "response");
+    response.getCreateChild( "exception").setValue( throwable);
+    return response;
+  }
+  
+  /**
    * Try to cast the specified result to a node-set.
    * @param result The result.
    * @return Returns null or the node-set.
@@ -182,6 +195,17 @@ public class ExecutionSerializer
     }
     
     return objects;
+  }
+  
+  /**
+   * Read the exception from the specified response.
+   * @param response The response.
+   * @return Returns null or the exception.
+   */
+  public static Throwable readResponseException( IModelObject response)
+  {
+    IModelObject child = response.getFirstChild( "exception");
+    return (child != null)? (Throwable)child.getValue(): null;
   }
   
   /**

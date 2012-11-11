@@ -19,6 +19,8 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class NetworkCachingPolicy extends ConfiguredCachingPolicy
 {
+  public final static int defaultPort = 27600;
+  
   public NetworkCachingPolicy()
   {
     this( new UnboundedCache());
@@ -33,38 +35,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /* (non-Javadoc)
-   * @see java.lang.Object#finalize()
-   */
-  @Override
-  protected void finalize() throws Throwable
-  {
-    if ( client != null) 
-    {
-      try { client.disconnect();} catch( Exception e) {}
-      client = null;
-    }
-    
-    super.finalize();
-  }
-
-  /**
-   * @return Returns the client used to communicate with the remote host.
-   */
-  public Client getClient()
-  {
-    return client;
-  }
-
-  /**
-   * Set the static attributes.
-   * @param list The list of static attribute names.
-   */
-  public void setStaticAttributes( List<String> list)
-  {
-    setStaticAttributes( list.toArray( new String[ 0]));
-  }
-  
-  /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
   @Override
@@ -73,7 +43,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
-    port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", Server.defaultPort));
+    port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", defaultPort));
     timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30000));
     
     readonly = Xlate.get( annotation, "readonly", Xlate.childGet( annotation, "readonly", false));

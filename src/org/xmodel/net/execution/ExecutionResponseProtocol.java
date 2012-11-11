@@ -12,10 +12,10 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
-import org.xmodel.compress.ICompressor;
 import org.xmodel.log.Log;
 import org.xmodel.net.ICallback;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.RemoteExecutionException;
 import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionResponseProtocol
@@ -25,8 +25,20 @@ public class ExecutionResponseProtocol
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
     this.queues = Collections.synchronizedMap( new HashMap<Integer, SynchronousQueue<IModelObject>>());
+    this.tasks = Collections.synchronizedMap( new HashMap<Integer, ResponseTask>());
   }
 
+  /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    log.debugf( "%s.reset.", getClass().getSimpleName());
+    queues.clear();
+    tasks.clear();
+  }
+  
   /**
    * Send an execution response.
    * @param channel The channel.
@@ -39,7 +51,28 @@ public class ExecutionResponseProtocol
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
-    ChannelBuffer buffer2 = downstreamCompressor.compress( response);
+    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( response);
+    
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeResponse, buffer2.readableBytes());
+    buffer1.writeInt( correlation);
+    
+    // ignoring write buffer overflow for this type of messaging
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+  }
+  
+  /**
+   * Send an execution response.
+   * @param channel The channel.
+   * @param correlation The correlation.
+   * @param context The execution context.
+   * @param throwable An exception thrown during remote execution.
+   */
+  public void send( Channel channel, int correlation, IContext context, Throwable throwable) throws IOException, InterruptedException
+  {
+    log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
+    
+    IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
+    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( response);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
@@ -57,7 +90,7 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = upstreamCompressor.decompress( buffer);
+    IModelObject response = bundle.upstreamCompressor.decompress( buffer);
     
     SynchronousQueue<IModelObject> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( response);
@@ -95,12 +128,16 @@ public class ExecutionResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected Object[] waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected Object[] waitForResponse( long correlation, int timeout) throws InterruptedException, RemoteExecutionException
   {
     try
     {
       SynchronousQueue<IModelObject> queue = queues.get( correlation);
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      
+      Throwable throwable = ExecutionSerializer.readResponseException( response);
+      if ( throwable != null) throw new RemoteExecutionException( "Remote invocation exception", throwable);
+      
       return ExecutionSerializer.readResponse( response, bundle.context);
     }
     finally
@@ -163,8 +200,17 @@ public class ExecutionResponseProtocol
       
       if ( response != null)
       {
-        Object[] results = ExecutionSerializer.readResponse( response, context);
-        callback.onSuccess( context, results); 
+        Throwable throwable = ExecutionSerializer.readResponseException( response);
+        if ( throwable != null)
+        {
+          log.exceptionf( throwable, "Remote invocation returned exception: ");
+          error = String.format( "%s: %s", throwable.getClass().getName(), throwable.getMessage());
+        }
+        else
+        {
+          Object[] results = ExecutionSerializer.readResponse( response, context);
+          callback.onSuccess( context, results); 
+        }
       }
 
       if ( error != null)
@@ -184,8 +230,6 @@ public class ExecutionResponseProtocol
 
   private ExecutionProtocol bundle;
   private AtomicInteger counter;
-  private ICompressor upstreamCompressor;
-  private ICompressor downstreamCompressor;
   private Map<Integer, SynchronousQueue<IModelObject>> queues;
   private Map<Integer, ResponseTask> tasks;
 }

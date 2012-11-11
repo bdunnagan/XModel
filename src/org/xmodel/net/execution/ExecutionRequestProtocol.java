@@ -9,13 +9,12 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.compress.ICompressor;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.ICallback;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
-import org.xmodel.net.nu.ErrorProtocol;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.RemoteExecutionException;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
@@ -27,6 +26,16 @@ public class ExecutionRequestProtocol
   {
     this.bundle = bundle;
     this.document = new XActionDocument();
+  }
+  
+  /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    log.debugf( "%s.reset.", getClass().getSimpleName());
+    document = new XActionDocument();
   }
   
   /**
@@ -47,13 +56,13 @@ public class ExecutionRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public Object[] send( Channel channel, IContext context, String[] vars, IModelObject element, int timeout) throws IOException, InterruptedException
+  public Object[] send( Channel channel, IContext context, String[] vars, IModelObject element, int timeout) throws RemoteExecutionException, IOException, InterruptedException
   {
     int correlation = bundle.responseProtocol.nextCorrelation();
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = downstreamCompressor.compress( request);
+    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( request);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeRequest, 4 + buffer2.readableBytes());
     buffer1.writeInt( correlation);
@@ -86,7 +95,7 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = downstreamCompressor.compress( request);
+    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( request);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeRequest, 4 + buffer2.readableBytes());
     buffer1.writeInt( correlation);
@@ -104,7 +113,7 @@ public class ExecutionRequestProtocol
   {
     int correlation = buffer.readInt();
 
-    IModelObject element = ExecutionSerializer.readRequest( upstreamCompressor.decompress( buffer), bundle.context);
+    IModelObject element = ExecutionSerializer.readRequest( bundle.upstreamCompressor.decompress( buffer), bundle.context);
     checkPrivileges( element);
     
     IXAction script = compile( element);
@@ -145,16 +154,24 @@ public class ExecutionRequestProtocol
    */
   private void execute( Channel channel, int correlation, IXAction script)
   {
+    StatefulContext context = new StatefulContext( bundle.context);
     try
     {
-      StatefulContext context = new StatefulContext( bundle.context);
       Object[] results = script.run( context);
       bundle.responseProtocol.send( channel, correlation, context, results);
     }
     catch( Exception e)
     {
-      SLog.exception( this, e);
-      new ErrorProtocol().sendError( channel, correlation, e.getMessage());
+      try
+      {
+        bundle.responseProtocol.send( channel, correlation, context, e);
+      }
+      catch( Exception e2)
+      {
+        SLog.warnf( this, "Unable to send exception execution response because %s.", e2.getMessage());
+      }
+      
+      SLog.exceptionf( this, e, "Exception thrown during remote execution: ");
     }
   }
   
@@ -206,6 +223,4 @@ public class ExecutionRequestProtocol
   private ExecutionProtocol bundle;
   private XActionDocument document;
   private ExecutionPrivilege privilege;
-  private ICompressor upstreamCompressor;
-  private ICompressor downstreamCompressor;
 }

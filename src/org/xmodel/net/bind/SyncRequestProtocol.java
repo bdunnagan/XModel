@@ -16,6 +16,15 @@ public class SyncRequestProtocol
   }
   
   /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    log.debugf( "%s.reset.", getClass().getSimpleName());
+  }
+  
+  /**
    * Send a sync request.
    * @param channel The channel.
    * @param key The network identifier.

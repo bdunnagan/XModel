@@ -7,6 +7,14 @@ import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
 public class HeaderProtocol
 {
   /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+  }
+  
+  /**
    * Read the message type of the next message in the specified buffer.
    * Fields must be read in order.
    * @param buffer The buffer.

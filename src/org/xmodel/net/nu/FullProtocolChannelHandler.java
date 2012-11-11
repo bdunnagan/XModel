@@ -20,13 +20,6 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class FullProtocolChannelHandler extends SimpleChannelHandler
 {
-  public FullProtocolChannelHandler( IContext context, IDispatcher dispatcher, ScheduledExecutorService scheduler)
-  {
-    headerProtocol = new HeaderProtocol();
-    executionProtocol = new ExecutionProtocol( headerProtocol, errorProtocol, context, dispatcher, scheduler);
-    bindProtocol = new BindProtocol( headerProtocol, errorProtocol, context, dispatcher);
-  }
-  
   /**
    * Message type field (must be less than 32).
    */
@@ -43,8 +36,30 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     removeChild,
     changeAttribute,
     clearAttribute,
-    changeDirty,
-    error
+    changeDirty
+  }
+  
+  public FullProtocolChannelHandler( IContext context, IDispatcher bindDispatcher, IDispatcher executeDispatcher, ScheduledExecutorService scheduler)
+  {
+    headerProtocol = new HeaderProtocol();
+    executionProtocol = new ExecutionProtocol( headerProtocol, context, bindDispatcher, scheduler);
+    bindProtocol = new BindProtocol( headerProtocol, context, executeDispatcher);
+  }
+  
+  /**
+   * @return Returns the protocol object that implements remote bind.
+   */
+  public BindProtocol getBindProtocol()
+  {
+    return bindProtocol;
+  }
+  
+  /**
+   * @return Returns the protocol that implements remote execution.
+   */
+  public ExecutionProtocol getExecuteProtocol()
+  {
+    return executionProtocol;
   }
   
   /* (non-Javadoc)
@@ -124,8 +139,6 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
       case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
       case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
       case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
-      
-      case error:           errorProtocol.handleError( channel, buffer); return true;
     }
     
     return false;
@@ -180,5 +193,4 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
   private HeaderProtocol headerProtocol;
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;
-  private ErrorProtocol errorProtocol;
 }

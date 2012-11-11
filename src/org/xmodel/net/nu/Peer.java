@@ -3,6 +3,9 @@ package org.xmodel.net.nu;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.net.ICallback;
@@ -14,18 +17,19 @@ import org.xmodel.xpath.expression.IContext;
 /**
  * This class provides methods that are common to both the client-side and the server-side of the protocol.
  */
-public class Peer
+public class Peer implements ChannelPipelineFactory
 {
   /**
    * Create a peer end-point with the specified configuration.
    * @param context The context.
-   * @param dispatcher The dispatcher.
+   * @param bindDispatcher The dispatcher for
    * @param scheduler The scheduler used for protocol timers.
    */
-  protected Peer( IContext context, IDispatcher dispatcher, ScheduledExecutorService scheduler)
+  protected Peer( IContext context, IDispatcher bindDispatcher, IDispatcher executeDispatcher, ScheduledExecutorService scheduler)
   {
-    bind = new BindProtocol( new HeaderProtocol(), new ErrorProtocol(), context, dispatcher);
-    execute = new ExecutionProtocol( new HeaderProtocol(), new ErrorProtocol(), context, dispatcher, scheduler);
+    handler = new FullProtocolChannelHandler( context, dispatcher, scheduler);
+    bind = handler.getBindProtocol();
+    execute = handler.getExecuteProtocol();
   }
   
   /**
@@ -69,7 +73,7 @@ public class Peer
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws IOException, InterruptedException
+  public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws RemoteExecutionException, IOException, InterruptedException
   {
     return execute.requestProtocol.send( channel, context, vars, element, timeout);
   }
@@ -87,7 +91,17 @@ public class Peer
     execute.requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
   
+  /* (non-Javadoc)
+   * @see org.jboss.netty.channel.ChannelPipelineFactory#getPipeline()
+   */
+  @Override
+  public ChannelPipeline getPipeline() throws Exception
+  {
+    return Channels.pipeline( handler);
+  }
+
   protected Channel channel;
+  protected FullProtocolChannelHandler handler;
   protected BindProtocol bind;
   protected ExecutionProtocol execute;
 }

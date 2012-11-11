@@ -42,6 +42,16 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
+   * Reset this instance by releasing internal resources.  This method should be called after 
+   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
+   */
+  public void reset()
+  {
+    localMap.clear();
+    remoteMap.clear();
+  }
+  
+  /**
    * Create a new client-side compressor.
    * @param protocol The protocol bundle.
    * @param progressive See TabularCompressor for more information.
