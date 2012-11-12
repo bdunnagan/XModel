@@ -62,7 +62,7 @@ public class SyncRequestProtocol
     UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
     if ( listener == null) throw new ProtocolException( String.format( "Listener not found on %X", netID));
     
-    bundle.dispatcher.execute( new SyncRunnable( channel, correlation, netID, element, listener));
+    bundle.context.getModel().dispatch( new SyncRunnable( channel, correlation, netID, element, listener));
   }
   
   /**

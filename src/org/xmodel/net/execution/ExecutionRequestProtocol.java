@@ -118,7 +118,7 @@ public class ExecutionRequestProtocol
     
     IXAction script = compile( element);
     RequestRunnable runnable = new RequestRunnable( channel, correlation, script);
-    bundle.dispatcher.execute( runnable);
+    bundle.context.getModel().dispatch( runnable);
   }
   
   /**
@@ -212,7 +212,7 @@ public class ExecutionRequestProtocol
     public void run()
     {
       task.setError( "timeout");
-      bundle.dispatcher.execute( task);
+      bundle.context.getModel().dispatch( task);
     }
 
     private ResponseTask task;

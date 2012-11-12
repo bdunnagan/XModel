@@ -8,7 +8,6 @@ import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.xmodel.IDispatcher;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -18,15 +17,15 @@ public class Client extends Peer
 {
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param context The context.
-   * @param dispatcher The dispatcher.
+   * @param bindContext The context for the remote bind protocol.
+   * @param executeContext The context for the remote execution protocol.
    * @param scheduler The scheduler used for protocol timers.
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public Client( IContext context, IDispatcher dispatcher, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public Client( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    super( context, dispatcher, scheduler);
+    super( bindContext, executeContext, scheduler);
     
     bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setPipelineFactory( this);
@@ -79,7 +78,7 @@ public class Client extends Peer
     execute.reset();
     
     // prepare for another connection
-    handler = new FullProtocolChannelHandler( execute.context, execute.dispatcher, execute.scheduler);
+    handler = new FullProtocolChannelHandler( bind.context, execute.context, execute.scheduler);
   }
 
   private ClientBootstrap bootstrap;

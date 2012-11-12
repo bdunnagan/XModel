@@ -8,7 +8,6 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
-import org.xmodel.IDispatcher;
 import org.xmodel.log.Log;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
@@ -39,11 +38,11 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     changeDirty
   }
   
-  public FullProtocolChannelHandler( IContext context, IDispatcher bindDispatcher, IDispatcher executeDispatcher, ScheduledExecutorService scheduler)
+  public FullProtocolChannelHandler( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler)
   {
     headerProtocol = new HeaderProtocol();
-    executionProtocol = new ExecutionProtocol( headerProtocol, context, bindDispatcher, scheduler);
-    bindProtocol = new BindProtocol( headerProtocol, context, executeDispatcher);
+    bindProtocol = new BindProtocol( headerProtocol, bindContext);
+    executionProtocol = new ExecutionProtocol( headerProtocol, executeContext, scheduler);
   }
   
   /**

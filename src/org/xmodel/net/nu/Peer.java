@@ -6,7 +6,6 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
-import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.net.ICallback;
 import org.xmodel.net.bind.BindProtocol;
@@ -21,13 +20,13 @@ public class Peer implements ChannelPipelineFactory
 {
   /**
    * Create a peer end-point with the specified configuration.
-   * @param context The context.
-   * @param bindDispatcher The dispatcher for
+   * @param bindContext The context for the remote bind protocol.
+   * @param executeContext The context for the remote execution protocol.
    * @param scheduler The scheduler used for protocol timers.
    */
-  protected Peer( IContext context, IDispatcher bindDispatcher, IDispatcher executeDispatcher, ScheduledExecutorService scheduler)
+  protected Peer( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler)
   {
-    handler = new FullProtocolChannelHandler( context, dispatcher, scheduler);
+    handler = new FullProtocolChannelHandler( bindContext, executeContext, scheduler);
     bind = handler.getBindProtocol();
     execute = handler.getExecuteProtocol();
   }

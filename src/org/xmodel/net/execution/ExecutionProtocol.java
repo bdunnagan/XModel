@@ -1,7 +1,6 @@
 package org.xmodel.net.execution;
 
 import java.util.concurrent.ScheduledExecutorService;
-import org.xmodel.IDispatcher;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.net.nu.HeaderProtocol;
@@ -9,10 +8,9 @@ import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionProtocol
 {
-  public ExecutionProtocol( HeaderProtocol headerProtocol, IContext context, IDispatcher dispatcher, ScheduledExecutorService scheduler)
+  public ExecutionProtocol( HeaderProtocol headerProtocol, IContext context, ScheduledExecutorService scheduler)
   {
     this.context = context;
-    this.dispatcher = dispatcher;
     this.headerProtocol = headerProtocol;
     this.requestProtocol = new ExecutionRequestProtocol( this);
     this.responseProtocol = new ExecutionResponseProtocol( this);
@@ -33,7 +31,6 @@ public class ExecutionProtocol
   }
   
   public IContext context;
-  public IDispatcher dispatcher;
   public HeaderProtocol headerProtocol;
   public ExecutionRequestProtocol requestProtocol;
   public ExecutionResponseProtocol responseProtocol;

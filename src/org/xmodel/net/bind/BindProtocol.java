@@ -1,6 +1,5 @@
 package org.xmodel.net.bind;
 
-import org.xmodel.IDispatcher;
 import org.xmodel.compress.DefaultSerializer;
 import org.xmodel.compress.ISerializer;
 import org.xmodel.net.nu.HeaderProtocol;
@@ -8,10 +7,9 @@ import org.xmodel.xpath.expression.IContext;
 
 public class BindProtocol
 {
-  public BindProtocol( HeaderProtocol headerProtocol, IContext context, IDispatcher dispatcher)
+  public BindProtocol( HeaderProtocol headerProtocol, IContext context)
   {
     this.context = context;
-    this.dispatcher = dispatcher;
     this.serializer = new DefaultSerializer();
     this.headerProtocol = headerProtocol;
     this.bindRequestProtocol = new BindRequestProtocol( this);
@@ -42,7 +40,6 @@ public class BindProtocol
   }
   
   public IContext context;
-  public IDispatcher dispatcher;
   public ISerializer serializer;
   public HeaderProtocol headerProtocol;
   public BindRequestProtocol bindRequestProtocol;

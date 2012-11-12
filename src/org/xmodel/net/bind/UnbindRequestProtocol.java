@@ -55,7 +55,7 @@ public class UnbindRequestProtocol
     
     log.debugf( "UnbindRequestProtocol.handle: element=%X", netID);
     
-    bundle.dispatcher.execute( new UnbindRunnable( channel, netID, element));
+    bundle.context.getModel().dispatch( new UnbindRunnable( channel, netID, element));
   }
   
   /**

@@ -152,7 +152,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
     
-    protocol.dispatcher.execute( new AddChildEvent( parent, child, index));
+    protocol.context.getModel().dispatch( new AddChildEvent( parent, child, index));
   }
 
   /**
@@ -170,7 +170,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
     
-    protocol.dispatcher.execute( new RemoveChildEvent( parent, index));
+    protocol.context.getModel().dispatch( new RemoveChildEvent( parent, index));
   }
 
   /**
@@ -189,7 +189,7 @@ public class UpdateProtocol
     IModelObject element = protocol.clientCompressor.findRemote( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
-    protocol.dispatcher.execute( new ChangeAttributeEvent( element, attrName, newValue));
+    protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
   }
 
   /**
@@ -207,7 +207,7 @@ public class UpdateProtocol
     IModelObject element = protocol.clientCompressor.findRemote( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
-    protocol.dispatcher.execute( new ClearAttributeEvent( element, attrName));
+    protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
   }
 
   /**
@@ -226,7 +226,7 @@ public class UpdateProtocol
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new ProtocolException( String.format( "Element %X is not a reference", netID));
     
-    protocol.dispatcher.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
+    protocol.context.getModel().dispatch( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }
   
   /**

@@ -100,7 +100,7 @@ public class BindRequestProtocol
     try
     {
       IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
-      bundle.dispatcher.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+      bundle.context.getModel().dispatch( new BindRunnable( channel, correlation, readonly, query, queryExpr));
     }
     catch( PathSyntaxException e)
     {
