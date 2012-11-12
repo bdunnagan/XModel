@@ -13,7 +13,7 @@ public final class Log
   public final static int error = 0x04;
   public final static int severe = 0x02;
   public final static int fatal = 0x01;
-  public final static int problems = exception | warn | error | severe | fatal;
+  public final static int problems = exception | info | warn | error | severe | fatal;
   public final static int all = 0xff;
 
   /**
@@ -99,7 +99,7 @@ public final class Log
     if ( object instanceof String)
     {
       throw new IllegalArgumentException( String.format(
-          "SLog invocation missing object argument in class: %", 
+          "SLog invocation missing object argument in class: %s", 
           object.getClass().getName()));
     }
   

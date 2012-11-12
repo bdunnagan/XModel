@@ -258,7 +258,10 @@ public abstract class TcpBase
     catch( IOException e)
     {
       log.warnf( "Connection refused.");
+      log.warnf( "Connection refused: %s", e.getMessage());
       connection.close();
+      connections.remove( channel);
+      log.infof( "Connection map size: %d", connections.size());
     }
   }
   

@@ -93,6 +93,8 @@ public final class Connection implements ILink
   public void close()
   {
     TcpBase.log.debugf( "Closing connection to %s:%d.", getAddress(), getPort());
+
+    tcp.discard( this);
     
     try 
     {
