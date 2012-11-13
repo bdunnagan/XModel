@@ -40,6 +40,7 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlException;
@@ -175,6 +176,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       // get row stubs
       statement = createTableSelectStatement( reference);
+      log.debugf( "sync %s with %s", reference.getType(), statement);
+      
       ResultSet result = statement.executeQuery();
 
       IModelObject parent = reference.cloneObject();
@@ -222,6 +225,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       ModelAlgorithms.copyAttributes( reference, object);
 
       statement = createRowSelectStatement( reference);
+      log.debugf( "create %s from %s", reference.getType(), statement);
+      
       ResultSet result = statement.executeQuery();
       if ( result.next()) populateRowElement( result, object);
 
@@ -847,6 +852,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     private boolean enabled;
   }
     
+  private static Log log = Log.getLog( SQLTableCachingPolicy.class);
   private static Map<String, Class<? extends ISQLProvider>> providers;
 
   private ISQLProvider provider;
