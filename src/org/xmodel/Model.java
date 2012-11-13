@@ -25,7 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
@@ -38,6 +39,7 @@ public class Model implements IModel
 {
   public Model()
   {
+    lock = new ReentrantReadWriteLock();
     updateStack = new ArrayList<Update>();
     updateObjects = new ArrayList<Update>();
     frozen = new ArrayList<IModelObject>();
@@ -58,6 +60,49 @@ public class Model implements IModel
   public void setThread( Thread thread)
   {
     if ( debugMap != null) debugMap.put( this, thread);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
+   */
+  @Override
+  public boolean readLock( int timeout, TimeUnit unit) throws InterruptedException
+  {
+    return lock.readLock().tryLock( timeout, unit);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#readUnlock()
+   */
+  @Override
+  public void readUnlock()
+  {
+    lock.readLock().unlock();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeLock(int, java.util.concurrent.TimeUnit)
+   */
+  @Override
+  public boolean writeLock( int timeout, TimeUnit unit) throws InterruptedException
+  {
+    if ( lock.writeLock().tryLock( timeout, unit))
+    {
+      setThread( Thread.currentThread());
+      ModelRegistry.getInstance().setModel( this);
+    }
+    return false;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeUnlock()
+   */
+  @Override
+  public void writeUnlock()
+  {
+    setThread( null);
+    ModelRegistry.getInstance().setModel( null);
+    lock.writeLock().unlock();
   }
 
   /* (non-Javadoc)
@@ -324,7 +369,8 @@ public class Model implements IModel
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
   private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;
-  
+
+  private ReentrantReadWriteLock lock;
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;
   private List<Update> updateObjects;

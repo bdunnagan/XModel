@@ -21,6 +21,7 @@ package org.xmodel;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
@@ -37,6 +38,32 @@ public interface IModel
    * @param thread The thread.
    */
   public void setThread( Thread thread);
+  
+  /**
+   * Acquire a read lock on this model.
+   * @param timeout The timeout.
+   * @param unit The units of the timeout.
+   * @return Returns true if the lock was acquired.
+   */
+  public boolean readLock( int timeout, TimeUnit unit) throws InterruptedException;
+
+  /**
+   * Release the read lock for this model.
+   */
+  public void readUnlock();
+  
+  /**
+   * Acquire a read lock on this model.
+   * @param timeout The timeout.
+   * @param unit The units of the timeout.
+   * @return Returns true if the lock was acquired.
+   */
+  public boolean writeLock( int timeout, TimeUnit unit) throws InterruptedException;
+  
+  /**
+   * Release the write lock for this model.
+   */
+  public void writeUnlock();
   
   /**
    * Add a document to the specified collection.
