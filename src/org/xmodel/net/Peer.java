@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;

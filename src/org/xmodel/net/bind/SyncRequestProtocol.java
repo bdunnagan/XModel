@@ -5,8 +5,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
-import org.xmodel.net.nu.ProtocolException;
+import org.xmodel.net.ProtocolException;
+import org.xmodel.net.FullProtocolChannelHandler.Type;
 
 public class SyncRequestProtocol
 {

@@ -19,21 +19,22 @@
  */
 package org.xmodel.path;
 
+import static org.xmodel.IAxis.ANCESTOR;
+import static org.xmodel.IAxis.ATTRIBUTE;
+import static org.xmodel.IAxis.CHILD;
+import static org.xmodel.IAxis.DESCENDANT;
+import static org.xmodel.IAxis.NESTED;
+import static org.xmodel.IAxis.PARENT;
+import static org.xmodel.IAxis.ROOT;
+import static org.xmodel.IAxis.SELF;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.IPathListener;
-import org.xmodel.path.PathListenerTraceEntry.Event;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.PathExpression;
-
-import static org.xmodel.IAxis.*;
 
 public class ListenerChain implements IListenerChain
 {
@@ -143,130 +144,6 @@ public class ListenerChain implements IListenerChain
   }
 
   /**
-   * Trace the specified path and return the trace object.
-   * @param spec The path or expression to be traced.
-   * @return Returns the object which manages the trace.
-   */
-  public static PathListenerTrace trace( String spec)
-  {
-    synchronized( traces)
-    {
-      IPath compiled = XPath.createPath( spec);
-      if ( compiled == null)
-      {
-        IExpression expression = XPath.createExpression( spec);
-        if ( expression == null) return null;
-        spec = expression.toString();
-      }
-      else
-      {
-        spec = compiled.toString();
-      }
-          
-      PathListenerTrace trace = traces.get( spec);
-      if ( trace == null)
-      {
-        trace = new PathListenerTrace();
-        traces.put( spec, trace);
-      }
-      return trace;
-    }
-  }
-  
-  /**
-   * Clear all traces.
-   */
-  public static void clearTraces()
-  {
-    synchronized( traces)
-    {
-      traces.clear();
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.path.IListenerChain#debugInstall(java.util.List, int)
-   */
-  public void debugInstall( List<IModelObject> list, int pathIndex)
-  {
-    if ( list.size() == 0) return;
-    PathListenerTrace trace = getTrace();
-    if ( trace != null && (!trace.isLeavesOnly() || pathIndex == path.length()))
-    {
-      PathListenerTraceEntry entry = new PathListenerTraceEntry( Event.install, path, pathIndex);
-      entry.addTargets( list);
-      trace.addEntry( entry);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.path.IListenerChain#debugUninstall(java.util.List, int)
-   */
-  public void debugUninstall( List<IModelObject> list, int pathIndex)
-  {
-    if ( list.size() == 0) return;
-    PathListenerTrace trace = getTrace();
-    if ( trace != null && (!trace.isLeavesOnly() || pathIndex == path.length()))
-    {
-      PathListenerTraceEntry entry = new PathListenerTraceEntry( Event.remove, path, pathIndex);
-      entry.addTargets( list);
-      trace.addEntry( entry);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.path.IListenerChain#debugIncrementalInstall(java.util.List, int)
-   */
-  public void debugIncrementalInstall( List<IModelObject> list, int pathIndex)
-  {
-    PathListenerTrace trace = getTrace();
-    if ( trace != null && (!trace.isLeavesOnly() || pathIndex == path.length()))
-    {
-      PathListenerTraceEntry entry = new PathListenerTraceEntry( Event.install, path, pathIndex);
-      entry.addTargets( list);
-      trace.addEntry( entry);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.path.IListenerChain#debugIncrementalUninstall(java.util.List, int)
-   */
-  public void debugIncrementalUninstall( List<IModelObject> list, int pathIndex)
-  {
-    PathListenerTrace trace = getTrace();
-    if ( trace != null && (!trace.isLeavesOnly() || pathIndex == path.length()))
-    {
-      PathListenerTraceEntry entry = new PathListenerTraceEntry( Event.remove, path, pathIndex);
-      entry.addTargets( list);
-      trace.addEntry( entry);
-    }
-  }
-  
-  /**
-   * Returns the trace for the path or for its enclosing expression.
-   * @return Returns the trace for the path or for its enclosing expression.
-   */
-  private PathListenerTrace getTrace()
-  {
-    if ( traces.size() > 0)
-    {
-      PathListenerTrace trace = traces.get( path.toString());
-//      if ( trace == null)
-//      {
-//        ExpressionNavigator navigator = new ExpressionNavigator( this);
-//        if ( navigator != null)
-//        {
-//          navigator = navigator.getHead();
-//          if ( navigator != null) 
-//            trace = traces.get( navigator.toString());
-//        }
-//      }
-      return trace;
-    }
-    return null;
-  }
-
-  /**
    * Add the appropriate IListenerChainLink instances to the chain for the associated path.
    */
   private void buildListenerChain()
@@ -365,8 +242,6 @@ public class ListenerChain implements IListenerChain
     builder.append( ", "); builder.append( context.getObject());
     return builder.toString();
   }
-  
-  static Map<String, PathListenerTrace> traces = new HashMap<String, PathListenerTrace>();
   
   private IListenerChainLink[] links;
   private IPath path;

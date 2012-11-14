@@ -1,8 +1,8 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.FullProtocolChannelHandler.Type;
 
 public class HeaderProtocol
 {

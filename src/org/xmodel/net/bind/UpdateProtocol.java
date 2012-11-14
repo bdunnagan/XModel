@@ -7,8 +7,8 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
-import org.xmodel.net.nu.ProtocolException;
+import org.xmodel.net.ProtocolException;
+import org.xmodel.net.FullProtocolChannelHandler.Type;
 
 public class UpdateProtocol
 {

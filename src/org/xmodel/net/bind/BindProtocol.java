@@ -2,7 +2,7 @@ package org.xmodel.net.bind;
 
 import org.xmodel.compress.DefaultSerializer;
 import org.xmodel.compress.ISerializer;
-import org.xmodel.net.nu.HeaderProtocol;
+import org.xmodel.net.HeaderProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class BindProtocol

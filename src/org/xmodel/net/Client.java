@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;

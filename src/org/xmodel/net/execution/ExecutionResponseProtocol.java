@@ -13,9 +13,9 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
-import org.xmodel.net.nu.ICallback;
-import org.xmodel.net.nu.RemoteExecutionException;
+import org.xmodel.net.ICallback;
+import org.xmodel.net.RemoteExecutionException;
+import org.xmodel.net.FullProtocolChannelHandler.Type;
 import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionResponseProtocol

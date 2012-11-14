@@ -9,8 +9,8 @@ import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
-import org.xmodel.net.nu.ProtocolException;
+import org.xmodel.net.ProtocolException;
+import org.xmodel.net.FullProtocolChannelHandler.Type;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 

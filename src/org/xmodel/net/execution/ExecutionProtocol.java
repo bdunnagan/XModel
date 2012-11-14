@@ -3,7 +3,7 @@ package org.xmodel.net.execution;
 import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.net.nu.HeaderProtocol;
+import org.xmodel.net.HeaderProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionProtocol

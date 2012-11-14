@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;

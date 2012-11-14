@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net;
 
 import java.util.concurrent.ScheduledExecutorService;
 import org.jboss.netty.buffer.ChannelBuffer;
