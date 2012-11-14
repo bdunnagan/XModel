@@ -24,7 +24,7 @@
     <p>0</p>
   </set>
 
-  <!-- allowing xml in more elements obviates need for seperate create action -->
+  <!-- allowing xml in more elements obviates need for separate create action -->
   <assign var="x">
     <x id="{0}">
       <extern:cache class=""/>
