@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
 import org.xmodel.Model;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 
@@ -84,7 +84,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
     this.model.setDispatcher( this);
     
     this.executor = executor;
-    this.registry = ModelRegistry.getInstance();
+    this.registry = GlobalSettings.getInstance();
     this.queue = queue;
     this.queueSize = new AtomicInteger( 0);
     this.lock = new ReentrantLock();
@@ -228,7 +228,7 @@ public class ThreadPoolDispatcher implements IDispatcher, Runnable
   
   private ExecutorService executor;
   protected IModel model;
-  private ModelRegistry registry;
+  private GlobalSettings registry;
   private BlockingQueue<Runnable> queue;
   private AtomicInteger queueSize;
   private ReentrantLock lock;

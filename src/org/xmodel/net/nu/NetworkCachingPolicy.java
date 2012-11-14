@@ -1,6 +1,5 @@
 package org.xmodel.net.nu;
 
-import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -11,6 +10,7 @@ import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
+import org.xmodel.net.bind.BindRequestProtocol.BindResult;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 
@@ -50,39 +50,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
     validate( query);
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  protected void syncImpl( IExternalReference reference) throws CachingException
-  {
-    if ( query == null)
-    {
-      query = Xlate.get( reference, "query", (String)null);
-      if ( query == null) throw new CachingException( "Query not defined.");
-    }
-    
-    SLog.debugf( this, "sync: %s:%d, %s", host, port, reference);
-    
-    if ( client != null && client.isConnected())
-      try { client.disconnect();} catch( Exception e) {}
-    
-    try
-    {
-      client = new Client( host, port, true);
-      client.setDispatcher( reference.getModel().getDispatcher());
-      client.setPingTimeout( timeout);
-      
-      Session session = client.connect( timeout);
-      if ( session != null) session.attach( timeout, query, pubsub, reference);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( String.format( 
-          "Unable to attach to xpath, '%s'", query), e);
-    }
-  }
 
   /**
    * Validate the specified expression.
@@ -101,6 +68,39 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  protected void syncImpl( IExternalReference reference) throws CachingException
+  {
+    if ( query == null)
+    {
+      query = Xlate.get( reference, "query", (String)null);
+      if ( query == null) throw new CachingException( "Query not defined.");
+    }
+    
+    SLog.debugf( this, "sync: %s:%d, %s", host, port, reference);
+    
+    try
+    {
+      if ( client == null) 
+      {
+        client = new Client();
+        client.connect( host, port).await( timeout);
+      }
+
+      BindResult result = client.bind( readonly, query, timeout);
+      if ( result != null) update( reference, result.element);
+    }
+    catch( Exception e)
+    {
+      throw new CachingException( String.format( 
+          "Unable to attach to xpath, '%s'", query), e);
+    }
+  }
+
+  private Client client;
   private String host;
   private int port;
   private boolean readonly;

@@ -11,9 +11,9 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.ICallback;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.ICallback;
 import org.xmodel.net.nu.RemoteExecutionException;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -113,6 +113,12 @@ public class ExecutionRequestProtocol
   {
     int correlation = buffer.readInt();
 
+    if ( bundle.context == null)
+    {
+      bundle.responseProtocol.send( channel, correlation, null, (Object[])null);
+      return;
+    }
+    
     IModelObject element = ExecutionSerializer.readRequest( bundle.upstreamCompressor.decompress( buffer), bundle.context);
     checkPrivileges( element);
     

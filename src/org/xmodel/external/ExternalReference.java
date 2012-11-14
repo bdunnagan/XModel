@@ -123,39 +123,21 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.ModelObject#readAttributeAccess(java.lang.String)
+   * @see org.xmodel.ModelObject#notifyAccessAttributes(java.lang.String, boolean)
    */
   @Override
-  protected void readAttributeAccess( String attrName)
+  protected void notifyAccessAttributes( String name, boolean write)
   {
-    if ( cachingPolicy != null) cachingPolicy.readAttributeAccess( this, attrName);
+    if ( cachingPolicy != null) cachingPolicy.notifyAccessAttributes( this, name, write);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.ModelObject#readChildrenAccess()
+   * @see org.xmodel.ModelObject#notifyAccessChildren(boolean)
    */
   @Override
-  protected void readChildrenAccess()
+  protected void notifyAccessChildren( boolean write)
   {
-    if ( cachingPolicy != null) cachingPolicy.readChildrenAccess( this);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.ModelObject#writeAttributeAccess(java.lang.String)
-   */
-  @Override
-  protected void writeAttributeAccess( String attrName)
-  {
-    if ( cachingPolicy != null) cachingPolicy.writeAttributeAccess( this, attrName);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.ModelObject#writeChildrenAccess()
-   */
-  @Override
-  protected void writeChildrenAccess()
-  {
-    if ( cachingPolicy != null) cachingPolicy.writeChildrenAccess( this);
+    if ( cachingPolicy != null) cachingPolicy.notifyAccessChildren( this, write);
   }
 
   /* (non-Javadoc)

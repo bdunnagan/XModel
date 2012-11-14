@@ -27,7 +27,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.diff.IXmlDiffer;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xpath.expression.Context;
@@ -359,58 +359,30 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#readAttributeAccess(
-   * org.xmodel.external.IExternalReference, java.lang.String)
+   * @see org.xmodel.external.ICachingPolicy#notifyAccessAttributes(org.xmodel.external.IExternalReference, java.lang.String, boolean)
    */
-  public void readAttributeAccess( IExternalReference reference, String attrName)
+  public void notifyAccessAttributes( IExternalReference reference, String name, boolean write)
   {
-    if ( !isStaticAttribute( attrName)) 
+    if ( !isStaticAttribute( name)) 
     {
       if ( cache != null) cache.touch( reference);
       if ( reference.isDirty()) internal_sync( reference);
     }
   }
-
+  
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#readChildrenAccess(
-   * org.xmodel.external.IExternalReference)
+   * @see org.xmodel.external.ICachingPolicy#notifyAccessChildren(org.xmodel.external.IExternalReference, boolean)
    */
-  public void readChildrenAccess( IExternalReference reference)
-  {
-    if ( cache != null) cache.touch( reference);
-    if ( reference.isDirty()) internal_sync( reference);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#writeAttributeAccess(
-   * org.xmodel.external.IExternalReference, java.lang.String)
-   */
-  public void writeAttributeAccess( IExternalReference reference, String attrName)
-  {
-    if ( !isStaticAttribute( attrName)) 
-    {
-      if ( cache != null) cache.touch( reference);
-      if ( reference.isDirty()) internal_sync( reference);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#writeChildrenAccess(
-   * org.xmodel.external.IExternalReference)
-   */
-  public void writeChildrenAccess( IExternalReference reference)
+  public void notifyAccessChildren( IExternalReference reference, boolean write)
   {
     if ( cache != null) cache.touch( reference);
     if ( reference.isDirty()) internal_sync( reference);
   }
   
-  /**
-   * Specify the names of attributes which should not cause synchronization. Two types of 
-   * wildcards can be used. An asterisk by itself means <i>all attributes</i>. A prefix 
-   * ending with a colon followed by an asterisk means <i>all attributes in namespace</i>.
-   * @param attrNames An array of attribute names.
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ICachingPolicy#setStaticAttributes(java.lang.String[])
    */
-  protected void setStaticAttributes( String[] attrNames)
+  public void setStaticAttributes( String[] attrNames)
   {
     this.staticAttributes = Arrays.asList( attrNames);
   }
@@ -509,7 +481,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   public String toString( String indent)
   {
-    IModel model = ModelRegistry.getInstance().getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     boolean syncLock = model.getSyncLock();
     model.setSyncLock( true);
 

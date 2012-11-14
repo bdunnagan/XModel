@@ -89,7 +89,7 @@ public class Model implements IModel
     if ( lock.writeLock().tryLock( timeout, unit))
     {
       setThread( Thread.currentThread());
-      ModelRegistry.getInstance().setModel( this);
+      GlobalSettings.getInstance().setModel( this);
     }
     return false;
   }
@@ -101,7 +101,7 @@ public class Model implements IModel
   public void writeUnlock()
   {
     setThread( null);
-    ModelRegistry.getInstance().setModel( null);
+    GlobalSettings.getInstance().setModel( null);
     lock.writeLock().unlock();
   }
 

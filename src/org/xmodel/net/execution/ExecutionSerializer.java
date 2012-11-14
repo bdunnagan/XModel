@@ -57,8 +57,8 @@ public class ExecutionSerializer
   
   /**
    * Create a document containing the variable assignments in the specified context and the specified result array.
-   * @param context The context.
-   * @param objects The result array.
+   * @param context The context (may be null).
+   * @param objects The result array (may be null).
    * @return Returns the document root.
    */
   public static IModelObject buildResponse( IContext context, Object[] objects)

@@ -137,34 +137,27 @@ public interface ICachingPolicy
   public String[] getStaticAttributes();
   
   /**
-   * Notify the ICachingPolicy that one or more attributes of the specified object have been
-   * accessed for reading. This method is called before the read request is satisfied.
-   * @param reference The reference which was accessed.
-   * @param attrName The attribute being read or null if more than one.
+   * Called just before a request that accesses the attributes of the specified reference is fulfilled.
+   * @param reference The reference that was accessed.
+   * @param name The name of the attribute, or null if all attributes are being accessed.
+   * @param write True if write access.
    */
-  public void readAttributeAccess( IExternalReference reference, String attrName);
+  public void notifyAccessAttributes( IExternalReference reference, String name, boolean write);
   
   /**
-   * Notify the ICachingPolicy that one or more children of the specified object have been accessed
-   * for reading. This method is called before the read request is satisfied.
-   * @param reference The reference which was accessed.
+   * Called just before a request that accesses the children of the specified reference is fulfilled.
+   * @param reference The reference that was accessed.
+   * @param write True if write access.
    */
-  public void readChildrenAccess( IExternalReference reference);
+  public void notifyAccessChildren( IExternalReference reference, boolean write);
   
   /**
-   * Notify the ICachingPolicy that one or more attributes of the specified object have been
-   * accessed for writing. This method is called before the write request is satisfied.
-   * @param reference The reference which was accessed.
-   * @param attrName The attribute being read or null if more than one.
+   * Specify the names of attributes which should not cause synchronization. Two types of 
+   * wildcards can be used. An asterisk by itself means <i>all attributes</i>. A prefix 
+   * ending with a colon followed by an asterisk means <i>all attributes in namespace</i>.
+   * @param attrNames An array of attribute names.
    */
-  public void writeAttributeAccess( IExternalReference reference, String attrName);
-  
-  /**
-   * Notify the ICachingPolicy that one or more children of the specified object have been accessed
-   * for writing. This method is called before the write request is satisfied.
-   * @param reference The reference which was accessed.
-   */
-  public void writeChildrenAccess( IExternalReference reference);
+  public void setStaticAttributes( String[] attrNames);
 
   /**
    * Create a string representation with the specified indentation.

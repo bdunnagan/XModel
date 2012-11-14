@@ -2,12 +2,14 @@ package org.xmodel.net.nu;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -15,6 +17,22 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class Client extends Peer
 {
+  public Client()
+  {
+    this( null, null, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * @param scheduler The scheduler used for protocol timers.
+   * @param bossExecutor The NioClientSocketChannelFactory boss executor.
+   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
+   */
+  public Client( ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  {
+    this( null, null, scheduler, bossExecutor, workerExecutor);
+  }
+  
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param bindContext The context for the remote bind protocol.
@@ -68,7 +86,7 @@ public class Client extends Peer
   /**
    * Release resources and prepare this client to make another connection.
    */
-  public void reset()
+  protected void reset()
   {
     // release netty resources
     bootstrap.getFactory().releaseExternalResources();

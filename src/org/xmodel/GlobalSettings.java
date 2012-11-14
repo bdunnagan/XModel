@@ -19,14 +19,17 @@
  */
 package org.xmodel;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 /**
- * The registry where IModel instances are acquired. IModel instances are always associated 
- * with a particular thread. By default, IModel instances are created on demand and stored
- * in thread local data when the <code>getModel</code> method is called.  However, one 
- * instance of IModel may be associated with multiple threads by calling the <code>setModel</code>
- * method.
+ * Static global settings for the library including global access to an instance of IModel for handling
+ * updates.  The default settings in this class provide conventions that allow the library to be used
+ * without configuration.  However, each setting can be both globally and locally configured.  For example,
+ * while the library will lazily create a global instance of ScheduledExecutorService if requested, instances
+ * may be configured for specific purposes and at specific times.
  */
-public class ModelRegistry
+public class GlobalSettings
 {
   /**
    * Sets the implementation of IModel for the current thread.
@@ -61,17 +64,40 @@ public class ModelRegistry
     }
     return model;
   }
+
+  /**
+   * Set the global scheduler.
+   * @param scheduler The scheduler.
+   * @return Returns null or the previous scheduler.
+   */
+  public synchronized ScheduledExecutorService setScheduler( ScheduledExecutorService scheduler)
+  {
+    ScheduledExecutorService old = this.scheduler;
+    this.scheduler = scheduler;
+    return old;
+  }
+  
+  /**
+   * Returns the global scheduler, creating one if it does not already exist.
+   * @return Returns the global scheduler.
+   */
+  public synchronized ScheduledExecutorService getScheduler()
+  {
+    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
+    return scheduler;
+  }
   
   /**
    * Returns the singleton.
    * @return Returns the singleton.
    */
-  public static ModelRegistry getInstance()
+  public static GlobalSettings getInstance()
   {
     return instance;
   }
 
-  private static ModelRegistry instance = new ModelRegistry();
+  private static GlobalSettings instance = new GlobalSettings();
   
   private ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
+  private ScheduledExecutorService scheduler;
 }

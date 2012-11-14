@@ -120,18 +120,14 @@ public class BindRequestProtocol
   {
     try
     {
-      IModelObject target = queryExpr.queryFirst( bundle.context);
+      IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
+      bundle.bindResponseProtocol.send( channel, correlation, target);
+      
       if ( target != null)
       {
-        bundle.bindResponseProtocol.send( channel, correlation, target);
-        
         UpdateListener listener = new UpdateListener( channel, query);
         listener.install( target);
         listeners.put( target, listener);
-      }
-      else
-      {
-        bundle.bindResponseProtocol.send( channel, correlation, null);
       }
     }
     catch( IOException e)

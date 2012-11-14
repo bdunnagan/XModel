@@ -13,8 +13,8 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.ICallback;
 import org.xmodel.net.nu.FullProtocolChannelHandler.Type;
+import org.xmodel.net.nu.ICallback;
 import org.xmodel.net.nu.RemoteExecutionException;
 import org.xmodel.xpath.expression.IContext;
 
@@ -46,7 +46,7 @@ public class ExecutionResponseProtocol
    * @param context The execution context.
    * @param results The execution results.
    */
-  public void send( Channel channel, int correlation, IContext context, Object[] results) throws IOException, InterruptedException
+  public void send( Channel channel, int correlation, IContext context, Object[] results) throws IOException
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     

@@ -3,7 +3,7 @@ package org.xmodel.concurrent;
 import java.util.List;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -28,7 +28,7 @@ public class ThreadPoolContext extends StatefulContext
     dispatcher.lock();
     
     // configure thread with this model
-    ModelRegistry registry = ModelRegistry.getInstance();
+    GlobalSettings registry = GlobalSettings.getInstance();
     threadPreviousModel = registry.getModel( false);
     registry.setModel( dispatcher.model);
     
@@ -41,7 +41,7 @@ public class ThreadPoolContext extends StatefulContext
    */
   public void unlock()
   {
-    ModelRegistry registry = ModelRegistry.getInstance();
+    GlobalSettings registry = GlobalSettings.getInstance();
     registry.setModel( threadPreviousModel);
     
     dispatcher.unlock();

@@ -7,7 +7,6 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.xmodel.IModelObject;
-import org.xmodel.net.ICallback;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.bind.BindRequestProtocol.BindResult;
 import org.xmodel.net.execution.ExecutionProtocol;

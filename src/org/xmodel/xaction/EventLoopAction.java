@@ -2,7 +2,7 @@ package org.xmodel.xaction;
 
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IDispatcher;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -17,7 +17,7 @@ public class EventLoopAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IDispatcher dispatcher = ModelRegistry.getInstance().getModel().getDispatcher();
+    IDispatcher dispatcher = GlobalSettings.getInstance().getModel().getDispatcher();
     if ( !(dispatcher instanceof BlockingDispatcher))
     {
       System.err.println( (dispatcher != null)? dispatcher.getClass().getName(): "Dispatcher is null!"); 

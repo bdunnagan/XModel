@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.Update;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.VariableMemento;
@@ -298,7 +298,7 @@ public abstract class AbstractVariableScope implements IVariableScope
       bindings[ i] = variable.bindings.get( i);
 
     // update and notify
-    IModel model = ModelRegistry.getInstance().getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     Update update = model.startUpdate();
     update.setVariable( this, name, newValue, oldValue);
     try

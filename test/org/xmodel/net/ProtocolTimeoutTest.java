@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.concurrent.ThreadPoolDispatcher;
+import org.xmodel.net.nu.ICallback;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;

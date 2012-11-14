@@ -7,7 +7,7 @@ import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.SLog;
-import org.xmodel.net.NetworkCachingPolicy;
+import org.xmodel.net.nu.NetworkCachingPolicy;
 
 class UpdateListener extends NonSyncingListener
 {

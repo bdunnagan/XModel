@@ -22,7 +22,7 @@ package org.xmodel.xpath.function;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelRegistry;
+import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -64,7 +64,7 @@ public class CollectionFunction extends Function
     
     IExpression arg0 = getArgument( 0);
     String collection = arg0.evaluateString( context);
-    List<IModelObject> roots = ModelRegistry.getInstance().getModel().getRoots( collection);
+    List<IModelObject> roots = GlobalSettings.getInstance().getModel().getRoots( collection);
     if ( roots == null) return Collections.emptyList();
     return roots;
   }
