@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.MessageEvent;
 import org.xmodel.net.stream.TcpServer;
 
 /**
@@ -72,10 +76,10 @@ public class Server extends ProtocolOld
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#onReceive(org.xmodel.net.ILink, java.nio.ByteBuffer)
+   * @see org.xmodel.net.Protocol#messageReceived(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.MessageEvent)
    */
   @Override
-  public void onReceive( ILink link, ByteBuffer buffer)
+  public void messageReceived( ChannelHandlerContext ctx, MessageEvent e) throws Exception
   {
     Ping ping;
     
@@ -89,22 +93,22 @@ public class Server extends ProtocolOld
       }
     }
     
+
     ping.onMessageReceived();
-    
-    super.onReceive( link, buffer);
+    super.messageReceived( ctx, e);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.Protocol#onClose(org.xmodel.net.ILink)
+   * @see org.xmodel.net.Protocol#channelDisconnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */
   @Override
-  public void onClose( ILink link)
+  public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
     Ping ping;
     synchronized( pings) { ping = pings.remove( link);}
     if ( ping != null) ping.stop();
     
-    super.onClose( link);
+    super.channelDisconnected( ctx, e);
   }
 
   private TcpServer server;
