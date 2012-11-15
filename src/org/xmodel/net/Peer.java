@@ -57,7 +57,7 @@ public class Peer implements ChannelPipelineFactory
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the sync'ed remote element.
    */
-  public IModelObject sync( long netID, int timeout) throws InterruptedException
+  public IModelObject sync( int netID, int timeout) throws InterruptedException
   {
     return bind.syncRequestProtocol.send( channel, netID, timeout);
   }

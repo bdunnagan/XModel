@@ -77,7 +77,7 @@ public class BindRequestProtocol
     
     BindResult result = new BindResult();
     result.element = element;
-    result.netID = bundle.clientCompressor.getRemoteNetID( element);
+    result.netID = bundle.requestCompressor.getRemoteNetID( element);
     
     return result;
   }
@@ -125,7 +125,7 @@ public class BindRequestProtocol
       
       if ( target != null)
       {
-        UpdateListener listener = new UpdateListener( channel, query);
+        UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
         listener.install( target);
         listeners.put( target, listener);
       }

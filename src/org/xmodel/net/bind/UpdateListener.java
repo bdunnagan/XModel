@@ -11,8 +11,9 @@ import org.xmodel.net.NetworkCachingPolicy;
 
 class UpdateListener extends NonSyncingListener
 {
-  public UpdateListener( Channel channel, String query)
+  public UpdateListener( UpdateProtocol updateProtocol, Channel channel, String query)
   {
+    this.updateProtocol = updateProtocol;
     this.channel = channel;
     this.query = query;
     this.enabled = true;

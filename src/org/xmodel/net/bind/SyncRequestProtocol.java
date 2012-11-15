@@ -31,14 +31,14 @@ public class SyncRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the result of the sync.
    */
-  public IModelObject send( Channel channel, long netID, int timeout) throws InterruptedException
+  public IModelObject send( Channel channel, int netID, int timeout) throws InterruptedException
   {
     int correlation = bundle.syncResponseProtocol.nextCorrelation();
     log.debugf( "SyncRequestProtocol.send (sync): corr=%d, timeout=%d, netID=%X", correlation, timeout, netID);
 
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( Type.syncRequest, 12);
     buffer.writeInt( correlation);
-    buffer.writeLong( netID);
+    buffer.writeInt( netID);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
@@ -54,9 +54,9 @@ public class SyncRequestProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws ProtocolException
   {
     int correlation = buffer.readInt();
-    long netID = buffer.readLong();
+    int netID = buffer.readInt();
     
-    IModelObject element = bundle.serverCompressor.findLocal( netID);
+    IModelObject element = bundle.responseCompressor.findLocal( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
     UpdateListener listener = bundle.bindRequestProtocol.getListener( element);

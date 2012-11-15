@@ -43,7 +43,7 @@ public class SyncResponseProtocol
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
-    ChannelBuffer buffer2 = bundle.serverCompressor.compress( element);
+    ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.syncResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
@@ -59,7 +59,7 @@ public class SyncResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
-    IModelObject element = bundle.clientCompressor.decompress( buffer);
+    IModelObject element = bundle.requestCompressor.decompress( buffer);
     
     log.debugf( "SyncResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     

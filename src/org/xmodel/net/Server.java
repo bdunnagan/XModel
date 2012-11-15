@@ -4,11 +4,8 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
@@ -55,24 +52,19 @@ public class Server extends Peer
   public Channel start( String address, int port)
   {
     channel = bootstrap.bind( new InetSocketAddress( address, port));
-    
-    channel.getCloseFuture().addListener( new ChannelFutureListener() {
-      public void operationComplete( ChannelFuture future) throws Exception
-      {
-        reset();
-      }
-    });
-    
     return channel;
   }
   
   /**
    * Stop the server from listening for new connections.
-   * @return Returns null or the future that is notified when the channel is closed.
    */
-  public ChannelFuture stop()
+  public void stop()
   {
-    return (channel != null)? channel.getCloseFuture(): null;
+    if ( channel != null) 
+    {
+      channel.close().awaitUninterruptibly();
+      reset();
+    }
   }
   
   /**

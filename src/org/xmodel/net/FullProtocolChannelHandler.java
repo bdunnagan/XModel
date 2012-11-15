@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.util.concurrent.ScheduledExecutorService;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -43,6 +44,7 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     headerProtocol = new HeaderProtocol();
     bindProtocol = new BindProtocol( headerProtocol, bindContext);
     executionProtocol = new ExecutionProtocol( headerProtocol, executeContext, scheduler);
+    buffer = ChannelBuffers.dynamicBuffer();
   }
   
   /**
@@ -88,9 +90,6 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     // transfer receive buffer to the accumulation buffer
     buffer.writeBytes( (ChannelBuffer)event.getMessage());
     
-    // make sure at least one byte in buffer
-    if ( buffer.readableBytes() == 0) return;
-
     // process messages in buffer
     while( true)
     {
@@ -115,6 +114,8 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
   private boolean handleMessage( Channel channel, ChannelBuffer buffer) throws Exception
   {
     if ( log.verbose()) log.verbosef( "Buffer:\n%s", toString( "  ", buffer));
+    
+    if ( buffer.readableBytes() == 0) return false;
     
     Type type = headerProtocol.readType( buffer);
     log.debugf( "Message Type: %s", type);

@@ -1,0 +1,3 @@
+<logging>
+  <log name="org.xmodel.net.**" level="all"/>
+</logging>

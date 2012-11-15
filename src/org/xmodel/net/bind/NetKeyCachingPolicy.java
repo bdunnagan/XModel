@@ -14,12 +14,12 @@ import org.xmodel.external.UnboundedCache;
  */
 class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
-  public NetKeyCachingPolicy( BindProtocol protocol, Channel channel, long netID, int timeout, String[] statics)
+  public NetKeyCachingPolicy( BindProtocol protocol, Channel channel, int netID, int timeout, String[] statics)
   {
     this( new UnboundedCache(), protocol, channel, netID, timeout, statics);
   }
   
-  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, Channel channel, long netID, int timeout, String[] statics)
+  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, Channel channel, int netID, int timeout, String[] statics)
   {
     super( cache);
     
@@ -35,7 +35,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   /**
    * @return Returns the network identifier.
    */
-  public long getNetID()
+  public int getNetID()
   {
     return netID;
   }
@@ -65,6 +65,6 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
 
   private BindProtocol protocol;
   private Channel channel;
-  private long netID;
+  private int netID;
   private int timeout;
 }

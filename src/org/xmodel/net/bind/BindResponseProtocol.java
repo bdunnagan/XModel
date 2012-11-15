@@ -43,7 +43,7 @@ public class BindResponseProtocol
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
-    ChannelBuffer buffer2 = bundle.serverCompressor.compress( element);
+    ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.bindResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
@@ -59,7 +59,7 @@ public class BindResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
-    IModelObject element = bundle.clientCompressor.decompress( buffer);
+    IModelObject element = bundle.requestCompressor.decompress( buffer);
     
     log.debugf( "BindResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     
@@ -71,7 +71,7 @@ public class BindResponseProtocol
    * Allocates the next correlation number.
    * @return Returns the correlation number.
    */
-  protected int nextCorrelation()
+  protected synchronized int nextCorrelation()
   {
     int correlation = counter.getAndIncrement();
     queues.put( correlation, new SynchronousQueue<IModelObject>());
@@ -88,7 +88,7 @@ public class BindResponseProtocol
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( correlation);
+      SynchronousQueue<IModelObject> queue = queues.get( (int)correlation);
       return queue.poll( timeout, TimeUnit.MILLISECONDS);
     }
     finally

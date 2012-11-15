@@ -48,9 +48,9 @@ public class UnbindRequestProtocol
    */
   public void handle( Channel channel, ChannelBuffer buffer) throws ProtocolException
   {
-    long netID = buffer.readLong();
+    int netID = buffer.readInt();
     
-    IModelObject element = bundle.serverCompressor.findLocal( netID);
+    IModelObject element = bundle.responseCompressor.findLocal( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
     log.debugf( "UnbindRequestProtocol.handle: element=%X", netID);

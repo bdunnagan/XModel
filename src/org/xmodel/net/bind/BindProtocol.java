@@ -18,8 +18,8 @@ public class BindProtocol
     this.syncRequestProtocol = new SyncRequestProtocol( this);
     this.syncResponseProtocol = new SyncResponseProtocol( this);
     this.updateProtocol = new UpdateProtocol( this);
-    this.clientCompressor = BindCompressor.newClientCompressor( this, true);
-    this.serverCompressor = BindCompressor.newServerCompressor( true);
+    this.requestCompressor = BindCompressor.newRequestCompressor( this, true);
+    this.responseCompressor = BindCompressor.newResponseCompressor( true);
   }
   
   /**
@@ -35,8 +35,8 @@ public class BindProtocol
     syncRequestProtocol.reset();
     syncResponseProtocol.reset();
     updateProtocol.reset();
-    clientCompressor.reset();
-    serverCompressor.reset();
+    requestCompressor.reset();
+    responseCompressor.reset();
   }
   
   public IContext context;
@@ -48,6 +48,6 @@ public class BindProtocol
   public SyncRequestProtocol syncRequestProtocol;
   public SyncResponseProtocol syncResponseProtocol;
   public UpdateProtocol updateProtocol;
-  public BindCompressor clientCompressor;
-  public BindCompressor serverCompressor;
+  public BindCompressor requestCompressor;
+  public BindCompressor responseCompressor;
 }

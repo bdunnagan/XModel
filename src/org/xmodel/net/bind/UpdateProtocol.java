@@ -36,14 +36,14 @@ public class UpdateProtocol
    */
   public void sendAddChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
   {
-    long parentNetID = protocol.serverCompressor.getLocalNetID( parent);
+    int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
         
-    ChannelBuffer buffer2 = protocol.serverCompressor.compress( child);
+    ChannelBuffer buffer2 = protocol.responseCompressor.compress( child);
     ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( Type.addChild, 12 + buffer2.readableBytes());
-    buffer1.writeLong( parentNetID);
+    buffer1.writeInt( parentNetID);
     buffer1.writeInt( index);
     
-    long childNetID = protocol.serverCompressor.getLocalNetID( child);
+    long childNetID = protocol.responseCompressor.getLocalNetID( child);
     log.debugf( "UpdateProtocol.sendAddChild: parent=%s/%X, child=%s/%X, index=%d", parent.getType(), parentNetID, child.getType(), childNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
@@ -58,10 +58,10 @@ public class UpdateProtocol
    */
   public void sendRemoveChild( Channel channel, IModelObject parent, int index) throws IOException
   {
-    long parentNetID = protocol.serverCompressor.getLocalNetID( parent);
+    int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.removeChild, 12);
-    buffer.writeLong( parentNetID);
+    buffer.writeInt( parentNetID);
     buffer.writeInt( index);
     
     log.debugf( "UpdateProtocol.sendRemoveChild: parent=%s/%X, index=%d", parent.getType(), parentNetID, index);
@@ -79,14 +79,14 @@ public class UpdateProtocol
    */
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
-    long netID = protocol.serverCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( buffer2, newValue);
     
     ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1 + attrNameBytes.length + attrLength);
-    buffer1.writeLong( netID);
+    buffer1.writeInt( netID);
     writeAttrName( attrName, buffer1);
     
     log.debugf( "UpdateProtocol.sendChangeAttribute: parent=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
@@ -103,11 +103,11 @@ public class UpdateProtocol
    */
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
-    long netID = protocol.serverCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1 + attrNameBytes.length);
-    buffer.writeLong( netID);
+    buffer.writeInt( netID);
     writeAttrName( attrName, buffer);
     
     log.debugf( "UpdateProtocol.sendClearAttribute: parent=%X, attrName=%s", netID, attrName);
@@ -124,10 +124,10 @@ public class UpdateProtocol
    */
   public void sendChangeDirty( Channel channel, IModelObject element, boolean dirty) throws IOException
   {
-    long netID = protocol.serverCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalNetID( element);
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1);
-    buffer.writeLong( netID);
+    buffer.writeInt( netID);
     buffer.writeByte( dirty? 1: 0);
     
     log.debugf( "UpdateProtocol.sendChangeDirty: element=%X, dirty=%s", netID, dirty);
@@ -143,11 +143,11 @@ public class UpdateProtocol
    */
   public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
   {
-    long parentNetID = buffer.readLong();
+    int parentNetID = buffer.readInt();
     int index = buffer.readInt();
-    IModelObject child = protocol.clientCompressor.decompress( buffer);
+    IModelObject child = protocol.requestCompressor.decompress( buffer);
   
-    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
+    IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
     if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
@@ -162,10 +162,10 @@ public class UpdateProtocol
    */
   public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
   {
-    long parentNetID = buffer.readLong();
+    int parentNetID = buffer.readInt();
     int index = buffer.readInt();
   
-    IModelObject parent = protocol.clientCompressor.findRemote( parentNetID);
+    IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
     if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
@@ -180,13 +180,13 @@ public class UpdateProtocol
    */
   public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, ProtocolException
   {
-    long netID = buffer.readLong();
+    int netID = buffer.readInt();
     String attrName = readAttrName( buffer);
     Object newValue = protocol.serializer.readObject( buffer);
   
     log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
-    IModelObject element = protocol.clientCompressor.findRemote( netID);
+    IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
@@ -199,12 +199,12 @@ public class UpdateProtocol
    */
   public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
   {
-    long netID = buffer.readLong();
+    int netID = buffer.readInt();
     String attrName = readAttrName( buffer);
   
     log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
     
-    IModelObject element = protocol.clientCompressor.findRemote( netID);
+    IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
@@ -217,12 +217,12 @@ public class UpdateProtocol
    */
   public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
   {
-    long netID = buffer.readLong();
+    int netID = buffer.readInt();
     boolean dirty = buffer.readByte() != 0;
 
     log.debugf( "UpdateProtocol.handleChangeDirty: element=%X, dirty=%s", netID, dirty);
     
-    IModelObject element = protocol.clientCompressor.findRemote( netID);
+    IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new ProtocolException( String.format( "Element %X is not a reference", netID));
     

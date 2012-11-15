@@ -5,14 +5,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * This class provides an interface for the client-side of the protocol.
@@ -21,7 +19,7 @@ public class Client extends Peer
 {
   public Client()
   {
-    this( null, null, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
+    this( GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
   }
   
   /**
@@ -32,7 +30,17 @@ public class Client extends Peer
    */
   public Client( ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    this( null, null, scheduler, bossExecutor, workerExecutor);
+    this( new StatefulContext(), new StatefulContext(), scheduler, bossExecutor, workerExecutor);
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * @param bindContext The context for the remote bind protocol.
+   * @param executeContext The context for the remote execution protocol.
+   */
+  public Client( IContext bindContext, IContext executeContext)
+  {
+    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
   }
   
   /**
@@ -68,13 +76,6 @@ public class Client extends Peer
     ChannelFuture future = bootstrap.connect( new InetSocketAddress( host, port));
     channel = future.getChannel();
     
-    channel.getCloseFuture().addListener( new ChannelFutureListener() {
-      public void operationComplete( ChannelFuture future) throws Exception
-      {
-        reset();
-      }
-    });
-    
     return future;
   }
   
@@ -87,14 +88,15 @@ public class Client extends Peer
   }
   
   /**
-   * Close the connection that was previously established with a call to the <code>connect</code> method.
-   * If this client is to be reused to make another connection, the connection must not be attempted 
-   * until the ChannelFuture returned by this method provides notification.
-   * @return Returns null or the future that is notified when the channel is closed.
+   * Close the connection.
    */
-  public ChannelFuture close()
+  public void close()
   {
-    return (channel != null)? channel.getCloseFuture(): null;
+    if ( isConnected())
+    {
+      channel.close().awaitUninterruptibly();
+      reset();
+    }
   }
   
   /**

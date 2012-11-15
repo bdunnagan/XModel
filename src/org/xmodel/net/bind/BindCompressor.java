@@ -52,22 +52,22 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
-   * Create a new client-side compressor.
+   * Create a new request compressor.
    * @param protocol The protocol bundle.
    * @param progressive See TabularCompressor for more information.
    * @return Returns the new compressor.
    */
-  public static BindCompressor newClientCompressor( BindProtocol protocol, boolean progressive)
+  public static BindCompressor newRequestCompressor( BindProtocol protocol, boolean progressive)
   {
     return new BindCompressor( protocol, progressive);
   }
   
   /**
-   * Create a new server-side compressor.
+   * Create a new response compressor.
    * @param progressive See TabularCompressor for more information.
    * @return Returns the new compressor.
    */
-  public static BindCompressor newServerCompressor( boolean progressive)
+  public static BindCompressor newResponseCompressor( boolean progressive)
   {
     return new BindCompressor( null, progressive);
   }
@@ -77,7 +77,7 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findLocal( long netID)
+  public IModelObject findLocal( int netID)
   {
     return localMap.get( netID);
   }
@@ -87,9 +87,9 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findRemote( long netID)
+  public IModelObject findRemote( int netID)
   {
-    return localMap.get( netID);
+    return remoteMap.get( netID);
   }
   
   /**
@@ -97,7 +97,7 @@ public class BindCompressor extends TabularCompressor
    * @param element An element that was previously sent downstream.
    * @return Returns the local network identifier.
    */
-  public long getLocalNetID( IModelObject element)
+  public int getLocalNetID( IModelObject element)
   {
     return System.identityHashCode( element);
   }
@@ -107,7 +107,7 @@ public class BindCompressor extends TabularCompressor
    * @param element An element that was previously received from upstream.
    * @return Returns the remote network identifier.
    */
-  public long getRemoteNetID( IModelObject element)
+  public int getRemoteNetID( IModelObject element)
   {
     if ( !(element instanceof IExternalReference)) return 0;
     
