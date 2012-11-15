@@ -30,7 +30,7 @@ public class NettyTest
     server.start( "localhost", 10000);
     
     XioClient client = new XioClient( context, context);
-    client.connect( "localhost", 10000).await();
+    client.connect( "localhost", 10000, 3, 1000, 2).await();
     
     final BindResult result = client.bind( true, "$list", 100);
 

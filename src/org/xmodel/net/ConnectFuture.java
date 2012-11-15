@@ -268,6 +268,9 @@ public class ConnectFuture implements ChannelFuture
       }
       else
       {
+        for( ChannelFutureListener listener: listeners)
+          listener.operationComplete( future);
+        
         semaphore.release();
       }
     }
