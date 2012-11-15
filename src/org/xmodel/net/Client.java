@@ -5,7 +5,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
@@ -50,13 +52,6 @@ public class Client extends Peer
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
     
-    channel.getCloseFuture().addListener( new ChannelFutureListener() {
-      public void operationComplete( ChannelFuture future) throws Exception
-      {
-        reset();
-      }
-    });
-    
     connected = new AtomicBoolean( false);
   }
   
@@ -69,7 +64,26 @@ public class Client extends Peer
   public ChannelFuture connect( String host, int port)
   {
     if ( connected.getAndSet( true)) throw new IllegalStateException( "Client is already connected.");
-    return bootstrap.connect( new InetSocketAddress( host, port));  
+    
+    ChannelFuture future = bootstrap.connect( new InetSocketAddress( host, port));
+    channel = future.getChannel();
+    
+    channel.getCloseFuture().addListener( new ChannelFutureListener() {
+      public void operationComplete( ChannelFuture future) throws Exception
+      {
+        reset();
+      }
+    });
+    
+    return future;
+  }
+  
+  /**
+   * @return Returns true if the connection to the server is established.
+   */
+  public boolean isConnected()
+  {
+    return channel.isConnected();
   }
   
   /**
@@ -98,7 +112,7 @@ public class Client extends Peer
     // prepare for another connection
     handler = new FullProtocolChannelHandler( bind.context, execute.context, execute.scheduler);
   }
-
+    
   private ClientBootstrap bootstrap;
   private AtomicBoolean connected;
 }
