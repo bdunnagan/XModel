@@ -1,6 +1,13 @@
 package org.xmodel.net;
 
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -15,22 +22,45 @@ public class ConnectFuture implements ChannelFuture
 {
   /**
    * Create with the ChannelFuture for the initial connection attempt.
+   * @param address The remote address.
    * @param future The future.
+   * @param scheduler The scheduler for scheduling retries.
+   * @param retries The maximum number of retry attempts.
+   * @param delay The delay between retries in milliseconds.
+   * @param backoff A number that is multiplied by the delay after each retry.
    */
-  public ConnectFuture( ChannelFuture future)
+  public ConnectFuture( SocketAddress address, ChannelFuture future, ScheduledExecutorService scheduler, int retries, int delay, float backoff)
   {
-    delegate = future;
-    delegate.addListener( arg0)
+    if ( backoff < 0) throw new IllegalArgumentException( "backoff < 0");
+    
+    this.address = address;
+    this.scheduler = scheduler;
+    this.retries = retries;
+    this.delay = delay;
+    this.backoff = backoff;
+    this.semaphore = new Semaphore( 0);
+    this.listeners = new ArrayList<ChannelFutureListener>( 3);
+    this.delegate = new AtomicReference<ChannelFuture>( future);
+    
+    future.addListener( delegateListener);
   }
   
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#addListener(org.jboss.netty.channel.ChannelFutureListener)
    */
   @Override
-  public void addListener( ChannelFutureListener arg0)
+  public void addListener( ChannelFutureListener listener)
   {
-    // TODO Auto-generated method stub
-    
+    if ( !listeners.contains( listener)) listeners.add( listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.jboss.netty.channel.ChannelFuture#removeListener(org.jboss.netty.channel.ChannelFutureListener)
+   */
+  @Override
+  public void removeListener( ChannelFutureListener listener)
+  {
+    listeners.remove( listener);
   }
 
   /* (non-Javadoc)
@@ -39,28 +69,26 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public ChannelFuture await() throws InterruptedException
   {
-    // TODO Auto-generated method stub
-    return null;
+    semaphore.acquire();
+    return this;
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#await(long, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean await( long arg0, TimeUnit arg1) throws InterruptedException
+  public boolean await( long timeout, TimeUnit unit) throws InterruptedException
   {
-    // TODO Auto-generated method stub
-    return false;
+    return semaphore.tryAcquire( timeout, unit);
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#await(long)
    */
   @Override
-  public boolean await( long arg0) throws InterruptedException
+  public boolean await( long timeout) throws InterruptedException
   {
-    // TODO Auto-generated method stub
-    return false;
+    return await( timeout, TimeUnit.MILLISECONDS);
   }
 
   /* (non-Javadoc)
@@ -69,28 +97,35 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public ChannelFuture awaitUninterruptibly()
   {
-    // TODO Auto-generated method stub
-    return null;
+    semaphore.acquireUninterruptibly();
+    return this;
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#awaitUninterruptibly(long, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean awaitUninterruptibly( long arg0, TimeUnit arg1)
+  public boolean awaitUninterruptibly( long timeout, TimeUnit unit)
   {
-    // TODO Auto-generated method stub
-    return false;
+    while( true)
+    {
+      try
+      {
+        return semaphore.tryAcquire( timeout, unit);
+      }
+      catch( InterruptedException e)
+      {
+      }
+    }
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#awaitUninterruptibly(long)
    */
   @Override
-  public boolean awaitUninterruptibly( long arg0)
+  public boolean awaitUninterruptibly( long timeout)
   {
-    // TODO Auto-generated method stub
-    return false;
+    return awaitUninterruptibly( timeout, TimeUnit.MILLISECONDS);
   }
 
   /* (non-Javadoc)
@@ -99,8 +134,15 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public boolean cancel()
   {
-    // TODO Auto-generated method stub
-    return false;
+    if ( !cancelled.getAndSet( true))
+    {
+      semaphore.release();
+      
+      ChannelFuture future = delegate.get();
+      if ( future != null) return future.cancel();
+    }
+    
+    return true;
   }
 
   /* (non-Javadoc)
@@ -109,7 +151,8 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public Throwable getCause()
   {
-    // TODO Auto-generated method stub
+    ChannelFuture future = delegate.get();
+    if ( future != null) return future.getCause();
     return null;
   }
 
@@ -119,7 +162,8 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public Channel getChannel()
   {
-    // TODO Auto-generated method stub
+    ChannelFuture future = delegate.get();
+    if ( future != null) return future.getChannel();
     return null;
   }
 
@@ -129,8 +173,7 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public boolean isCancelled()
   {
-    // TODO Auto-generated method stub
-    return false;
+    return cancelled.get();
   }
 
   /* (non-Javadoc)
@@ -139,7 +182,8 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public boolean isDone()
   {
-    // TODO Auto-generated method stub
+    ChannelFuture future = delegate.get();
+    if ( future != null) return future.isDone();
     return false;
   }
 
@@ -149,79 +193,100 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public boolean isSuccess()
   {
-    // TODO Auto-generated method stub
+    ChannelFuture future = delegate.get();
+    if ( future != null) return future.isSuccess();
     return false;
-  }
-
-  /* (non-Javadoc)
-   * @see org.jboss.netty.channel.ChannelFuture#removeListener(org.jboss.netty.channel.ChannelFutureListener)
-   */
-  @Override
-  public void removeListener( ChannelFutureListener arg0)
-  {
-    // TODO Auto-generated method stub
-    
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#rethrowIfFailed()
+   * @throws UnsupportedOperationException
    */
   @Override
   public ChannelFuture rethrowIfFailed() throws Exception
   {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#setFailure(java.lang.Throwable)
+   * @throws UnsupportedOperationException
    */
   @Override
-  public boolean setFailure( Throwable arg0)
+  public boolean setFailure( Throwable cause)
   {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#setProgress(long, long, long)
+   * @throws UnsupportedOperationException
    */
   @Override
-  public boolean setProgress( long arg0, long arg1, long arg2)
+  public boolean setProgress( long amount, long current, long total)
   {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#setSuccess()
+   * @throws UnsupportedOperationException
    */
   @Override
   public boolean setSuccess()
   {
-    // TODO Auto-generated method stub
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#sync()
+   * @throws UnsupportedOperationException
    */
   @Override
   public ChannelFuture sync() throws InterruptedException
   {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.ChannelFuture#syncUninterruptibly()
+   * @throws UnsupportedOperationException
    */
   @Override
   public ChannelFuture syncUninterruptibly()
   {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException();
   }
+    
+  private ChannelFutureListener delegateListener = new ChannelFutureListener() {
+    public void operationComplete( ChannelFuture future) throws Exception
+    {
+      if ( !future.isSuccess() && !future.isCancelled() && --retries > 0)
+      {
+        scheduler.schedule( retryRunnable, delay, TimeUnit.MILLISECONDS);
+        delay *= backoff;
+      }
+      else
+      {
+        semaphore.release();
+      }
+    }
+  };
+  
+  private Runnable retryRunnable = new Runnable() {
+    public void run()
+    {
+      delegate.set( delegate.get().getChannel().connect( address));
+    }
+  };
 
-  private ChannelFuture delegate;
+  private SocketAddress address;
+  private ScheduledExecutorService scheduler;
+  private AtomicReference<ChannelFuture> delegate;
+  private Semaphore semaphore;
+  private AtomicBoolean cancelled;
+  private List<ChannelFutureListener> listeners;
+  private int retries;
+  private int delay;
+  private float backoff;
 }

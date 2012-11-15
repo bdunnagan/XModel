@@ -1,10 +1,10 @@
 package org.xmodel.net;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
@@ -70,8 +70,6 @@ public class XioClient extends XioPeer
         return Channels.pipeline( handler);
       }
     });
-    
-    connected = new AtomicBoolean( false);
   }
   
   /**
@@ -82,11 +80,8 @@ public class XioClient extends XioPeer
    */
   public ChannelFuture connect( String address, int port)
   {
-    if ( connected.getAndSet( true)) throw new IllegalStateException( "Client is already connected.");
-    
     ChannelFuture future = bootstrap.connect( new InetSocketAddress( address, port));
     channel = future.getChannel();
-    
     return future;
   }
   
@@ -95,10 +90,18 @@ public class XioClient extends XioPeer
    * @param address The address of the server.
    * @param port The port of the server.
    * @param retries The maximum number of retries.
+   * @param delay The delay between retries in milliseconds.
+   * @param backoff A number multiplied by the delay after each retry.
    * @return Returns 
    */
-  public boolean connect( String address, int port, int retries)
+  public ConnectFuture connect( String address, int port, int retries, int delay, float backoff)
   {
+    SocketAddress socketAddress = new InetSocketAddress( address, port);
+    
+    ChannelFuture future = bootstrap.connect( socketAddress);
+    channel = future.getChannel();
+    
+    return new ConnectFuture( socketAddress, future, execute.scheduler, retries, delay, backoff);
   }
   
   /**
@@ -138,5 +141,4 @@ public class XioClient extends XioPeer
   }
     
   private ClientBootstrap bootstrap;
-  private AtomicBoolean connected;
 }
