@@ -528,7 +528,7 @@ public final class Log
   }
   
   protected static PackageMap map = new PackageMap();
-  private static ILogSink defaultSink = new FormatSink( new MultiSink( new ConsoleSink(), new FileSink()));
+  private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
   
   @SuppressWarnings("unused")
   private static LogManager configMonitor = new LogManager();

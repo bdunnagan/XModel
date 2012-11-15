@@ -33,9 +33,8 @@ import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.Client;
-import org.xmodel.net.Session;
-import org.xmodel.net.nu.ICallback;
+import org.xmodel.net.XioClient;
+import org.xmodel.net.IXioCallback;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
@@ -148,7 +147,7 @@ public class RunAction extends GuardedAction
     String[] varArray = vars.split( "\\s*,\\s*");
     IModelObject scriptNode = getScriptNode( context);
 
-    Client client = null;
+    XioClient client = null;
     try
     {
       if ( log.isLevelEnabled( Log.debug))
@@ -156,49 +155,32 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote on %s:%d, %s ...", host, port, getScriptDescription( context));
       }
 
-      client = new Client( host, port, false);
-      client.setPingTimeout( timeout);
-<<<<<<< HEAD
-      Session session = connect( client, timeout);
-=======
->>>>>>> branch 'master' of local repository
+      client = new XioClient();
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
         try
         {
-          Session session = connect( client, timeout);
-          if ( session == null) throw new IOException( "Session not established.");
-          Object[] result = session.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+          if ( !connect( client, host, port, timeout)) throw new IOException( "Connection not established.");
+          Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         finally
         {
-          if ( client != null) try { client.disconnect();} catch( Exception e) {}
+          if ( client != null) try { client.close();} catch( Exception e) {}
         }
       }
       else
       {
         Callback callback = new Callback( client, onComplete, onSuccess, onError);
-<<<<<<< HEAD
-        if ( session != null)
-        {
-          session.execute( (StatefulContext)context, varArray, getScriptNode( context), callback, timeout);
-        }
-        else
-        {
-          callback.onError( context, "Connection failed.");
-        }
-=======
         ConnectionRetryRunnable runnable = new ConnectionRetryRunnable( client, context, varArray, scriptNode, callback, timeout);
         runnable.run();
->>>>>>> branch 'master' of local repository
       }
       
       log.debug( "Finished remote.");
     }
-    catch( IOException e)
+    catch( Exception e)
     {
       if ( onComplete != null || onError != null)
       {
@@ -218,25 +200,14 @@ public class RunAction extends GuardedAction
   /**
    * Try to connect to the server and employ a retry mechanism.
    * @param client The client.
+   * @param host The host.
+   * @param port The port.
    * @param timeout The timeout.
-   * @return Returns the connection session.
+   * @return Returns true if the connection was established.
    */
-  private Session connect( Client client, int timeout) throws IOException
+  private boolean connect( XioClient client, String host, int port, int timeout)
   {
-<<<<<<< HEAD
-    int sleep = 1000;
-    for( int i=0; i<4; i++)
-    {
-      try { return client.connect( timeout);} catch( IOException e) {}
-      try { Thread.sleep( sleep);} catch( InterruptedException e) {}
-=======
-    for( int i=0; i<2; i++)
-    {
-      try { return client.connect( timeout);} catch( IOException e) {}
-      try { Thread.sleep( 1000);} catch( InterruptedException e) {}
->>>>>>> branch 'master' of local repository
-    }
-    return client.connect( timeout);
+    
   }
   
   /**
@@ -315,9 +286,9 @@ public class RunAction extends GuardedAction
     public IXAction script;
   }
   
-  private final class Callback implements ICallback
+  private final class Callback implements IXioCallback
   {
-    public Callback( Client client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public Callback( XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
       this.client = client;
       this.onComplete = onComplete;
@@ -361,7 +332,7 @@ public class RunAction extends GuardedAction
       }
     }
     
-    private Client client;
+    private XioClient client;
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;
@@ -369,7 +340,7 @@ public class RunAction extends GuardedAction
   
   private final class ConnectionRetryRunnable implements Runnable
   {
-    public ConnectionRetryRunnable( Client client, IContext context, String[] varArray, IModelObject scriptNode, ICallback callback, int timeout)
+    public ConnectionRetryRunnable( XioClient client, IContext context, String[] varArray, IModelObject scriptNode, IXioCallback callback, int timeout)
     {
       this.client = client;
       this.context = context;
@@ -447,11 +418,11 @@ public class RunAction extends GuardedAction
       }
     };
 
-    private Client client;
+    private XioClient client;
     private IContext context;
     private String[] varArray;
     private IModelObject scriptNode;
-    private ICallback callback;
+    private IXioCallback callback;
     private int timeout;
     private int retries;
   }

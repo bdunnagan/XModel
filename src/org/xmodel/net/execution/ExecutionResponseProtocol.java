@@ -1,21 +1,21 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.ICallback;
-import org.xmodel.net.RemoteExecutionException;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.IXioCallback;
+import org.xmodel.net.XioExecutionException;
 import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionResponseProtocol
@@ -24,8 +24,8 @@ public class ExecutionResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = Collections.synchronizedMap( new HashMap<Integer, SynchronousQueue<IModelObject>>());
-    this.tasks = Collections.synchronizedMap( new HashMap<Integer, ResponseTask>());
+    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.tasks = new ConcurrentHashMap<Integer, ResponseTask>();
   }
 
   /**
@@ -127,7 +127,7 @@ public class ExecutionResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected Object[] waitForResponse( long correlation, int timeout) throws InterruptedException, RemoteExecutionException
+  protected Object[] waitForResponse( int correlation, int timeout) throws InterruptedException, XioExecutionException
   {
     try
     {
@@ -135,7 +135,7 @@ public class ExecutionResponseProtocol
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
       
       Throwable throwable = ExecutionSerializer.readResponseException( response);
-      if ( throwable != null) throw new RemoteExecutionException( "Remote invocation exception", throwable);
+      if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
       
       return ExecutionSerializer.readResponse( response, bundle.context);
     }
@@ -147,7 +147,7 @@ public class ExecutionResponseProtocol
 
   public static class ResponseTask implements Runnable
   {
-    public ResponseTask( IContext context, ICallback callback)
+    public ResponseTask( IContext context, IXioCallback callback)
     {
       this.context = context;
       this.callback = callback;
@@ -219,7 +219,7 @@ public class ExecutionResponseProtocol
     }
 
     private IContext context;
-    private ICallback callback;
+    private IXioCallback callback;
     private ScheduledFuture<?> timer;
     private IModelObject response;
     private String error;

@@ -7,7 +7,7 @@ import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.concurrent.ThreadPoolDispatcher;
-import org.xmodel.net.ICallback;
+import org.xmodel.net.IXioCallback;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;
@@ -42,7 +42,7 @@ public class ProtocolTimeoutTest
       
       try
       {
-        Client client = new Client( host, port, true);
+        XioClient client = new XioClient( host, port, true);
         client.setPingTimeout( timeout);
         Session session = client.connect( 100, 0);
         assertTrue( "Test-case error: connection was established.", session == null);
@@ -58,14 +58,14 @@ public class ProtocolTimeoutTest
   
   @Test public void executeTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port);
+    XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
     for( int i=0; i<3; i++)
     {
-      Client client = new Client( host, port, true);
+      XioClient client = new XioClient( host, port, true);
       client.setPingTimeout( timeout);
       Session session = client.connect( timeout, 0);
   
@@ -93,12 +93,12 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteSuccessTest() throws Exception
   {
-    Server server = new Server( host, port);
+    XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
-    Client client = new Client( host, port, true);
+    XioClient client = new XioClient( host, port, true);
     client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
@@ -129,12 +129,12 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteErrorTest() throws Exception
   {
-    Server server = new Server( host, port);
+    XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
-    Client client = new Client( host, port, true);
+    XioClient client = new XioClient( host, port, true);
     client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
@@ -167,12 +167,12 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port);
+    XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
     server.setDispatcher( new ThreadPoolDispatcher( 1));
     server.start( false);
 
-    Client client = new Client( host, port, true);
+    XioClient client = new XioClient( host, port, true);
     client.setPingTimeout( timeout);
     Session session = client.connect( timeout, 0);
 
@@ -204,7 +204,7 @@ public class ProtocolTimeoutTest
     server.stop();
   }
   
-  private final static class Callback implements ICallback
+  private final static class Callback implements IXioCallback
   {
     public Callback( IXAction onComplete, IXAction onSuccess, IXAction onError)
     {

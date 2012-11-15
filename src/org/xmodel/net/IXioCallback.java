@@ -5,7 +5,7 @@ import org.xmodel.xpath.expression.IContext;
 /**
  * An interface for receiving notifications of asynchronous execution events.
  */
-public interface ICallback
+public interface IXioCallback
 {
   /**
    * Called when an asynchronous remote invocation completes.

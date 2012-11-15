@@ -5,8 +5,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.ProtocolException;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioException;
+import org.xmodel.net.XioChannelHandler.Type;
 
 public class SyncRequestProtocol
 {
@@ -50,16 +50,16 @@ public class SyncRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws ProtocolException
+  public void handle( Channel channel, ChannelBuffer buffer) throws XioException
   {
     int correlation = buffer.readInt();
     int netID = buffer.readInt();
     
     IModelObject element = bundle.responseCompressor.findLocal( netID);
-    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
-    if ( listener == null) throw new ProtocolException( String.format( "Listener not found on %X", netID));
+    if ( listener == null) throw new XioException( String.format( "Listener not found on %X", netID));
     
     bundle.context.getModel().dispatch( new SyncRunnable( channel, correlation, netID, element, listener));
   }

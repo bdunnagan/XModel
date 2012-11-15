@@ -21,8 +21,9 @@ package org.xmodel.net.bind;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -30,6 +31,9 @@ import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.IExternalReference;
 
+/**
+ * A TabularCompressor that does tracks the network identifiers of remote-bound elements.
+ */
 public class BindCompressor extends TabularCompressor
 {
   private BindCompressor( BindProtocol protocol, boolean progressive)
@@ -37,8 +41,8 @@ public class BindCompressor extends TabularCompressor
     super( progressive);
     
     this.protocol = protocol;
-    this.localMap = new HashMap<Integer, IModelObject>();
-    this.remoteMap = new HashMap<Integer, IModelObject>();
+    this.localMap = new ConcurrentHashMap<Integer, IModelObject>();
+    this.remoteMap = new ConcurrentHashMap<Integer, IModelObject>();
   }
   
   /**

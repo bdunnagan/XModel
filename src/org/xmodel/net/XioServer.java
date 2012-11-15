@@ -4,8 +4,12 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
@@ -13,14 +17,14 @@ import org.xmodel.xpath.expression.IContext;
 /**
  * This class provides an interface for the server-side of the protocol.
  */
-public class Server extends Peer
+public class XioServer
 {
   /**
    * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param bindContext The context for the remote bind protocol.
    * @param executeContext The context for the remote execution protocol.
    */
-  public Server( IContext bindContext, IContext executeContext)
+  public XioServer( IContext bindContext, IContext executeContext)
   {
     this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
   }
@@ -33,14 +37,21 @@ public class Server extends Peer
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public Server( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    super( bindContext, executeContext, scheduler);
+    handler = new XioChannelHandler( bindContext, executeContext, scheduler);
     
     bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
-    bootstrap.setPipelineFactory( this);
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
+    
+    bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
+      public ChannelPipeline getPipeline() throws Exception
+      {
+        XioChannelHandler handler = XioServer.this.handler;
+        return Channels.pipeline( sharedHandler? handler: new XioChannelHandler( handler));
+      }
+    });
   }
   
   /**
@@ -51,8 +62,9 @@ public class Server extends Peer
    */
   public Channel start( String address, int port)
   {
-    channel = bootstrap.bind( new InetSocketAddress( address, port));
-    return channel;
+    serverChannel = bootstrap.bind( new InetSocketAddress( address, port));
+    serverChannel.setAttachment( this);
+    return serverChannel;
   }
   
   /**
@@ -60,28 +72,40 @@ public class Server extends Peer
    */
   public void stop()
   {
-    if ( channel != null) 
+    if ( serverChannel != null) 
     {
-      channel.close().awaitUninterruptibly();
-      reset();
+      serverChannel.close().awaitUninterruptibly();
+      bootstrap.getFactory().releaseExternalResources();
+    }
+  }
+
+  /**
+   * Get and/or create an XioPeer instance to represent the specified server connected channel.
+   * @param channel A connected channel.
+   * @return Returns null or the new XioPeer instance.
+   */
+  public static XioPeer getPeer( Channel channel)
+  {
+    synchronized( channel)
+    {
+      XioPeer peer = (XioPeer)channel.getAttachment();
+      if ( peer != null) return peer;
+    
+      Channel serverChannel = channel.getParent();
+      if ( serverChannel == null) return null;
+      
+      XioServer server = (XioServer)serverChannel.getAttachment();
+      XioChannelHandler handler = server.handler;
+      
+      peer = new XioPeer( sharedHandler? handler: new XioChannelHandler( handler));
+      channel.setAttachment( peer);
+      return peer;
     }
   }
   
-  /**
-   * Release resources and prepare this client to make another connection.
-   */
-  protected void reset()
-  {
-    // release netty resources
-    bootstrap.getFactory().releaseExternalResources();
-    
-    // release protocol resources
-    bind.reset();
-    execute.reset();
-    
-    // prepare for another connection
-    handler = new FullProtocolChannelHandler( bind.context, execute.context, execute.scheduler);
-  }
-
+  private final static boolean sharedHandler = false;
+  
   private ServerBootstrap bootstrap;
+  private Channel serverChannel;
+  private XioChannelHandler handler;
 }

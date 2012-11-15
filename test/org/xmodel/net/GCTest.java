@@ -47,7 +47,7 @@ public class GCTest
     IModelObject serverRoot = new ModelObject( "server");
     serverRoot.getCreateChild( "child");
     
-    server = new Server( "localhost", 33333);
+    server = new XioServer( "localhost", 33333);
     server.setServerContext( new StatefulContext( serverRoot));
     server.start( true);
     
@@ -110,5 +110,5 @@ public class GCTest
   
   private StatefulContext clientContext;
   private IXAction script;
-  private Server server;
+  private XioServer server;
 }

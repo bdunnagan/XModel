@@ -4,9 +4,11 @@ import org.xmodel.IModelObject;
 import org.xmodel.ModelListener;
 import org.xmodel.concurrent.ThreadPoolContext;
 import org.xmodel.concurrent.ThreadPoolDispatcher;
+import org.xmodel.log.SLog;
 import org.xmodel.net.bind.BindRequestProtocol.BindResult;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 public class NettyTest
 {
@@ -24,25 +26,33 @@ public class NettyTest
     IModelObject list = new XmlIO().read( xml);
     context.set( "list", list);
     
-    Server server = new Server( context, context);
+    XioServer server = new XioServer( context, context);
     server.start( "localhost", 10000);
     
-    Client client = new Client( context, context);
+    XioClient client = new XioClient( context, context);
     client.connect( "localhost", 10000).await();
     
     final BindResult result = client.bind( true, "$list", 100);
-    System.out.println( XmlIO.toString( result.element));
 
     result.element.getChild( 1).addModelListener( new ModelListener() {
       public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
       {
-        System.out.println( XmlIO.toString( result.element));
+        SLog.info( NettyTest.class, XmlIO.toString( result.element));
       }
     });
     
+    SLog.info( NettyTest.class, XmlIO.toString( result.element));
     list.getChild( 1).setValue( "CHANGE!");
     
     Thread.sleep( 100);
+    
+    xml =
+      "<script name='Test'>" +
+      "  <print>'Hi, Client!'</print>" +
+      "</script>";
+    
+    StatefulContext localContext = new StatefulContext();
+    client.execute( localContext, new String[ 0], new XmlIO().read( xml), 1000);
     
     client.close();
     server.stop();

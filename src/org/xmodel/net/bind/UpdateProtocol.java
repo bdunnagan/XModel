@@ -7,9 +7,12 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.ProtocolException;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioException;
+import org.xmodel.net.XioChannelHandler.Type;
 
+/**
+ * TODO: attrLengthEstimate needs to be progressively refined
+ */
 public class UpdateProtocol
 {
   public UpdateProtocol( BindProtocol protocol)
@@ -140,14 +143,14 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
     IModelObject child = protocol.requestCompressor.decompress( buffer);
   
     IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
-    if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
+    if ( parent == null) throw new XioException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
     
@@ -159,13 +162,13 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
   
     IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
-    if ( parent == null) throw new ProtocolException( String.format( "Parent %X not found", parentNetID));
+    if ( parent == null) throw new XioException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
     
@@ -177,7 +180,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, ProtocolException
+  public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, XioException
   {
     int netID = buffer.readInt();
     String attrName = readAttrName( buffer);
@@ -186,7 +189,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
     IModelObject element = protocol.requestCompressor.findRemote( netID);
-    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
   }
@@ -196,7 +199,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
     String attrName = readAttrName( buffer);
@@ -204,7 +207,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
     
     IModelObject element = protocol.requestCompressor.findRemote( netID);
-    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
+    if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
   }
@@ -214,7 +217,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException, ProtocolException
+  public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
     boolean dirty = buffer.readByte() != 0;
@@ -222,8 +225,8 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.handleChangeDirty: element=%X, dirty=%s", netID, dirty);
     
     IModelObject element = protocol.requestCompressor.findRemote( netID);
-    if ( element == null) throw new ProtocolException( String.format( "Element %X not found", netID));
-    if ( !(element instanceof IExternalReference)) throw new ProtocolException( String.format( "Element %X is not a reference", netID));
+    if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
+    if ( !(element instanceof IExternalReference)) throw new XioException( String.format( "Element %X is not a reference", netID));
     
     protocol.context.getModel().dispatch( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }

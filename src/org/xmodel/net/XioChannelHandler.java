@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -18,11 +19,8 @@ import org.xmodel.xpath.expression.IContext;
  * ChannelHandler responsible for the accumulation buffer and decoding header of all messages and routing 
  * to ChannelHandler for the specified message type.
  */
-public class FullProtocolChannelHandler extends SimpleChannelHandler
+public class XioChannelHandler extends SimpleChannelHandler
 {
-  /**
-   * Message type field (must be less than 32).
-   */
   public enum Type
   {
     executeRequest,
@@ -39,12 +37,17 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     changeDirty
   }
   
-  public FullProtocolChannelHandler( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler)
+  public XioChannelHandler( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler)
   {
     headerProtocol = new HeaderProtocol();
     bindProtocol = new BindProtocol( headerProtocol, bindContext);
     executionProtocol = new ExecutionProtocol( headerProtocol, executeContext, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
+  }
+  
+  public XioChannelHandler( XioChannelHandler handler)
+  {
+    this( handler.bindProtocol.context, handler.executionProtocol.context, handler.executionProtocol.scheduler);
   }
   
   /**
@@ -64,21 +67,15 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
   }
   
   /* (non-Javadoc)
-   * @see org.jboss.netty.channel.SimpleChannelHandler#channelConnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
-   */
-  @Override
-  public void channelConnected( ChannelHandlerContext chc, ChannelStateEvent event) throws Exception
-  {
-  }
-
-  /* (non-Javadoc)
    * @see org.jboss.netty.channel.SimpleChannelHandler#channelDisconnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */
   @Override
-  public void channelDisconnected( ChannelHandlerContext chc, ChannelStateEvent event) throws Exception
+  public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
+    bindProtocol.reset();
+    executionProtocol.reset();
   }
-  
+
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.SimpleChannelHandler#messageReceived(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.MessageEvent)
    */
@@ -187,7 +184,7 @@ public class FullProtocolChannelHandler extends SimpleChannelHandler
     return sb.toString();
   }
 
-  private final static Log log = Log.getLog( FullProtocolChannelHandler.class);
+  private final static Log log = Log.getLog( XioChannelHandler.class);
   
   private ChannelBuffer buffer;
   private HeaderProtocol headerProtocol;

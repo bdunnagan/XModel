@@ -9,8 +9,8 @@ import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.ProtocolException;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioException;
+import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -87,7 +87,7 @@ public class BindRequestProtocol
    * @param buffer The buffer.
    * @param length The length of the message.
    */
-  public void handle( Channel channel, ChannelBuffer buffer, long length) throws ProtocolException
+  public void handle( Channel channel, ChannelBuffer buffer, long length) throws XioException
   {
     int correlation = buffer.readInt();
     boolean readonly = buffer.readByte() == 1;
@@ -103,7 +103,7 @@ public class BindRequestProtocol
     }
     catch( PathSyntaxException e)
     {
-      throw new ProtocolException( String.format( "Invalid query: {%s}", query), e);
+      throw new XioException( String.format( "Invalid query: {%s}", query), e);
     }
   }
   

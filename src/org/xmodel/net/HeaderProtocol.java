@@ -2,7 +2,7 @@ package org.xmodel.net;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioChannelHandler.Type;
 
 public class HeaderProtocol
 {

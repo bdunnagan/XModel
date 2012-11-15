@@ -86,7 +86,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( client == null) 
       {
-        client = new Client();
+        client = new XioClient();
         client.connect( host, port).await( timeout);
       }
 
@@ -100,7 +100,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  private Client client;
+  private XioClient client;
   private String host;
   private int port;
   private boolean readonly;

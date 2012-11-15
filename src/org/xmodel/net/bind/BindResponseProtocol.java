@@ -1,18 +1,18 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.XioChannelHandler.Type;
 
 public class BindResponseProtocol
 {
@@ -20,7 +20,7 @@ public class BindResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = Collections.synchronizedMap( new HashMap<Integer, SynchronousQueue<IModelObject>>());
+    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
   }
   
   /**

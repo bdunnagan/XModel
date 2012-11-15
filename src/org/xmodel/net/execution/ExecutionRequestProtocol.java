@@ -11,9 +11,9 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.ICallback;
-import org.xmodel.net.RemoteExecutionException;
-import org.xmodel.net.FullProtocolChannelHandler.Type;
+import org.xmodel.net.IXioCallback;
+import org.xmodel.net.XioExecutionException;
+import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -55,7 +55,7 @@ public class ExecutionRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public Object[] send( Channel channel, IContext context, String[] vars, IModelObject element, int timeout) throws RemoteExecutionException, IOException, InterruptedException
+  public Object[] send( Channel channel, IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
     int correlation = bundle.responseProtocol.nextCorrelation();
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
@@ -81,7 +81,7 @@ public class ExecutionRequestProtocol
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( Channel channel, IContext context, String[] vars, IModelObject element, ICallback callback, int timeout) throws IOException, InterruptedException
+  public void send( Channel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     ResponseTask task = new ResponseTask( context, callback);
     if ( timeout != Integer.MAX_VALUE)

@@ -25,7 +25,7 @@ public class ProtocolMirrorTest
   {
     context = new StatefulContext();
     
-    server = new Server( host, port);
+    server = new XioServer( host, port);
     server.setPingTimeout( timeout);
     server.setServerContext( context);
     server.setDispatcher( new ImmediateDispatcher());
@@ -75,7 +75,7 @@ public class ProtocolMirrorTest
     clients = new ArrayList<Session>();
     for( int i=0; i<count; i++)
     {
-      Client client = new Client( host, port, true);
+      XioClient client = new XioClient( host, port, true);
       client.setPingTimeout( timeout);
       Session session = client.connect( timeout);
       clients.add( session);
@@ -83,6 +83,6 @@ public class ProtocolMirrorTest
   }
   
   private StatefulContext context;
-  private Server server;
+  private XioServer server;
   private List<Session> clients;
 }

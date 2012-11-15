@@ -3,8 +3,8 @@ package org.xmodel.xaction.debug;
 import org.junit.Test;
 import org.xmodel.IModelObject;
 import org.xmodel.concurrent.ThreadPoolDispatcher;
-import org.xmodel.net.Client;
-import org.xmodel.net.Server;
+import org.xmodel.net.XioClient;
+import org.xmodel.net.XioServer;
 import org.xmodel.net.Session;
 import org.xmodel.xaction.XAction;
 import org.xmodel.xml.IXmlIO.Style;
@@ -23,7 +23,7 @@ public class DebuggerTest
     
     StatefulContext context = new StatefulContext();
     
-    Server server = new Server( host, port);
+    XioServer server = new XioServer( host, port);
     server.setServerContext( context);
     server.setDispatcher( new ThreadPoolDispatcher( 2));
     server.start( false);
@@ -39,7 +39,7 @@ public class DebuggerTest
         "</script>"
     );
 
-    Client client = new Client( host, port, false);
+    XioClient client = new XioClient( host, port, false);
     Session session = client.connect( timeout);
     session.execute( new StatefulContext(), new String[ 0], script, 0);
     

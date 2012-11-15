@@ -35,7 +35,7 @@ public class ProtocolTest
   
   @Before public void start() throws IOException
   {
-    server = new Server( null, null);
+    server = new XioServer( null, null);
     server.start( address, port);
     
 //    Log.getLog( TcpBase.class).setLevel( Log.all);
@@ -47,7 +47,7 @@ public class ProtocolTest
   
   @After public void shutdown() throws IOException
   {
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
       if ( client.isConnected()) client.close();
       client = null;
@@ -63,7 +63,7 @@ public class ProtocolTest
   {
     createClients( defaultClientCount);
     
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
       client.connect( address, port).await();
       assertTrue( "Client is not connected", client.isConnected());
@@ -71,13 +71,13 @@ public class ProtocolTest
     
     Thread.sleep( 2000);
     
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
       client.close().await();
       assertFalse( "Client is not disconnected", client.isConnected());
     }
     
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
       client.connect( address, port).await();
       assertTrue( "Client is not connected", client.isConnected());
@@ -90,7 +90,7 @@ public class ProtocolTest
     int tally = 0;
     for( int i=0; i<passes; i++)
     {
-      for( Client client: clients)
+      for( XioClient client: clients)
       {
         client.connect( address, port).await();
         client.close();
@@ -122,7 +122,7 @@ public class ProtocolTest
     StatefulContext context = new StatefulContext();
     context.set( "payload", payload);
     
-    Client client = clients.get( 0);
+    XioClient client = clients.get( 0);
     client.connect( address, port).await();
     
     IModelObject script = new XmlIO().read( scriptXml);
@@ -154,7 +154,7 @@ public class ProtocolTest
     IModelObject script = new XmlIO().read( scriptXml);
     
     List<ExecuteTask> tasks = new ArrayList<ExecuteTask>();
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
       client.connect( address, port).await();
       tasks.add( new ExecuteTask( client, context, script));
@@ -181,17 +181,17 @@ public class ProtocolTest
   
   private void createClients( int count) throws IOException
   {
-    clients = new ArrayList<Client>();
+    clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      Client client = new Client();
+      XioClient client = new XioClient();
       clients.add( client);
     }
   }
   
   private static class ExecuteTask implements Runnable
   {
-    public ExecuteTask( Client client, StatefulContext context, IModelObject script)
+    public ExecuteTask( XioClient client, StatefulContext context, IModelObject script)
     {
       this.client = client;
       this.context = context;
@@ -215,13 +215,13 @@ public class ProtocolTest
       }
     }
     
-    private Client client;
+    private XioClient client;
     private StatefulContext context;
     private IModelObject script;
     public List<Object[]> results;
     public Exception e;
   }
   
-  private Server server;
-  private List<Client> clients;
+  private XioServer server;
+  private List<XioClient> clients;
 }
