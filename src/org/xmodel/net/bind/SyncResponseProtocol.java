@@ -29,7 +29,6 @@ public class SyncResponseProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
     queues.clear();
   }
   

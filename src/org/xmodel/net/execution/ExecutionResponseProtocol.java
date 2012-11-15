@@ -34,7 +34,6 @@ public class ExecutionResponseProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
     queues.clear();
     tasks.clear();
   }

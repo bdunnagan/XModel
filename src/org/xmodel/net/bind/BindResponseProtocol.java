@@ -29,7 +29,6 @@ public class BindResponseProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
     queues.clear();
   }
   

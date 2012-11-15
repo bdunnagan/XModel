@@ -34,7 +34,6 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
     document = new XActionDocument();
   }
   

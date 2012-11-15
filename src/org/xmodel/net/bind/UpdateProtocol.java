@@ -24,7 +24,6 @@ public class UpdateProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset: attrLengthEstimate=%d", getClass().getSimpleName(), attrLengthEstimate);
   }
   
   /**

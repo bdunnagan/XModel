@@ -21,7 +21,6 @@ public class UnbindRequestProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
   }
   
   /**

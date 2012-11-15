@@ -34,7 +34,6 @@ public class BindRequestProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
     for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
       entry.getValue().uninstall( entry.getKey());
     listeners.clear();

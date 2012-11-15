@@ -21,7 +21,6 @@ public class SyncRequestProtocol
    */
   public void reset()
   {
-    log.debugf( "%s.reset.", getClass().getSimpleName());
   }
   
   /**
