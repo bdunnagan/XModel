@@ -8,7 +8,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -22,24 +22,27 @@ public class ConnectFuture implements ChannelFuture
 {
   /**
    * Create with the ChannelFuture for the initial connection attempt.
+   * @param bootstrap The netty client bootstrap.
    * @param address The remote address.
-   * @param future The future.
    * @param scheduler The scheduler for scheduling retries.
    * @param retries The maximum number of retry attempts.
-   * @param delay The delay between retries in milliseconds.
-   * @param backoff A number that is multiplied by the delay after each retry.
+   * @param delays An array of delays between retries in milliseconds.
    */
-  public ConnectFuture( SocketAddress address, ChannelFuture future, ScheduledExecutorService scheduler, int retries, int delay, float backoff)
+  public ConnectFuture( ClientBootstrap bootstrap, SocketAddress address, ScheduledExecutorService scheduler, int retries, int[] delays)
   {
-    if ( backoff < 0) throw new IllegalArgumentException( "backoff < 0");
+    if ( retries < 0) throw new IllegalArgumentException( "retries < 0");
+    if ( delays.length == 0) throw new IllegalArgumentException( "delays.length == 0");
     
+    this.bootstrap = bootstrap;
     this.address = address;
     this.scheduler = scheduler;
     this.retries = retries;
-    this.delay = delay;
-    this.backoff = backoff;
+    this.delays = delays;
     this.semaphore = new Semaphore( 0);
     this.listeners = new ArrayList<ChannelFutureListener>( 3);
+
+    // make first connection attempt
+    ChannelFuture future = bootstrap.connect( address);
     this.delegate = new AtomicReference<ChannelFuture>( future);
     
     future.addListener( delegateListener);
@@ -257,14 +260,28 @@ public class ConnectFuture implements ChannelFuture
   {
     throw new UnsupportedOperationException();
   }
+  
+  /**
+   * @param attempt The current retry attempt.
+   * @return Returns the current retry delay.
+   */
+  private int getRetryDelay( int attempt)
+  {
+    if ( attempt >= delays.length) attempt = delays.length - 1;
+    int delay = delays[ attempt];
+    if ( delay < 0) delay = 0;
+    return delay;
+  }
     
   private ChannelFutureListener delegateListener = new ChannelFutureListener() {
     public void operationComplete( ChannelFuture future) throws Exception
     {
-      if ( !future.isSuccess() && !future.isCancelled() && --retries > 0)
+      System.out.printf( "attempt=%d, retries=%d\n", attempt+1, retries);
+      if ( !future.isSuccess() && !future.isCancelled() && ++attempt < retries)
       {
+        int delay = getRetryDelay( attempt - 1);
+        System.out.printf( "delay=%d\n", delay);
         scheduler.schedule( retryRunnable, delay, TimeUnit.MILLISECONDS);
-        delay *= backoff;
       }
       else
       {
@@ -279,10 +296,13 @@ public class ConnectFuture implements ChannelFuture
   private Runnable retryRunnable = new Runnable() {
     public void run()
     {
-      delegate.set( delegate.get().getChannel().connect( address));
+      ChannelFuture future = bootstrap.connect( address);
+      delegate.set( future);
+      future.addListener( delegateListener);
     }
   };
 
+  private ClientBootstrap bootstrap;
   private SocketAddress address;
   private ScheduledExecutorService scheduler;
   private AtomicReference<ChannelFuture> delegate;
@@ -290,6 +310,6 @@ public class ConnectFuture implements ChannelFuture
   private AtomicBoolean cancelled;
   private List<ChannelFutureListener> listeners;
   private int retries;
-  private int delay;
-  private float backoff;
+  private int attempt;
+  private int[] delays;
 }

@@ -78,7 +78,7 @@ public class XioServer
       bootstrap.getFactory().releaseExternalResources();
     }
   }
-
+  
   /**
    * Get and/or create an XioPeer instance to represent the specified server connected channel.
    * @param channel A connected channel.

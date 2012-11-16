@@ -159,7 +159,7 @@ public class RunAction extends GuardedAction
       {
         try
         {
-          if ( !client.connect( host, port, 3, 1000, 2).await( timeout)) throw new IOException( "Connection not established.");
+          if ( !client.connect( host, port, connectionRetries).await( timeout)) throw new IOException( "Connection not established.");
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
@@ -171,7 +171,7 @@ public class RunAction extends GuardedAction
       else
       {
         AsyncExecuter callback = new AsyncExecuter( client, context, varArray, scriptNode, timeout, onComplete, onSuccess, onError);
-        client.connect( host, port, 3, 1000, 2).addListener( callback); 
+        client.connect( host, port, connectionRetries).addListener( callback); 
       }
       
       log.debug( "Finished remote.");
@@ -357,6 +357,7 @@ public class RunAction extends GuardedAction
   }
   
   private final static Log log = Log.getLog( RunAction.class);
+  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
   
   private String var;
   private IExpression varsExpr;

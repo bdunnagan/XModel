@@ -26,12 +26,15 @@ public class NettyTest
     IModelObject list = new XmlIO().read( xml);
     context.set( "list", list);
     
+    XioClient client = new XioClient( context, context);
+    ConnectFuture future = client.connect( "localhost", 10000, new int[] { 1000, 2000, 3000});
+
+    Thread.sleep( 2000);
+    
     XioServer server = new XioServer( context, context);
     server.start( "localhost", 10000);
     
-    XioClient client = new XioClient( context, context);
-    client.connect( "localhost", 10000, 3, 1000, 2).await();
-    
+    future.await();
     final BindResult result = client.bind( true, "$list", 100);
 
     result.element.getChild( 1).addModelListener( new ModelListener() {

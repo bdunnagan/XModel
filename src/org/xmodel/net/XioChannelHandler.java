@@ -147,7 +147,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
-    log.exception( event.getCause());
+    log.error( event);
   }
   
   /**

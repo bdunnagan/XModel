@@ -1,6 +1,7 @@
 package org.xmodel.xaction.debug;
 
 import java.util.concurrent.Semaphore;
+import org.xmodel.concurrent.ThreadPoolContext;
 import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioServer;
@@ -20,9 +21,10 @@ public class RemoteBreakHandler implements IBreakHandler
     try
     {
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
-      server = new XioServer( "localhost", port);
-      server.setDispatcher( new ThreadPoolDispatcher( 1));
-      server.start( true);
+      
+      IContext context = new ThreadPoolContext( new ThreadPoolDispatcher( 1));
+      server = new XioServer( context, context);
+      server.start( "localhost", port);
     }
     catch( Exception e)
     {

@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
@@ -91,17 +92,44 @@ public class XioClient extends XioPeer
    * @param port The port of the server.
    * @param retries The maximum number of retries.
    * @param delay The delay between retries in milliseconds.
-   * @param backoff A number multiplied by the delay after each retry.
-   * @return Returns 
+   * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( String address, int port, int retries, int delay, float backoff)
+  public ConnectFuture connect( String address, int port, int retries, int delay)
+  {
+    return connect( address, port, retries, new int[] { delay});
+  }
+  
+  /**
+   * Attempt to connect this client to the specified server the specified number of times.
+   * @param address The address of the server.
+   * @param port The port of the server.
+   * @param delays An array of delays between retries in milliseconds.
+   * @return Returns a future that is retry-aware.
+   */
+  public ConnectFuture connect( String address, int port, int[] delays)
+  {
+    return connect( address, port, delays.length, delays);
+  }
+  
+  /**
+   * Attempt to connect this client to the specified server the specified number of times.
+   * @param address The address of the server.
+   * @param port The port of the server.
+   * @param retries The maximum number of retries.
+   * @param delays An array of delays between retries in milliseconds.
+   * @return Returns a future that is retry-aware.
+   */
+  public ConnectFuture connect( String address, int port, int retries, int[] delays)
   {
     SocketAddress socketAddress = new InetSocketAddress( address, port);
-    
-    ChannelFuture future = bootstrap.connect( socketAddress);
-    channel = future.getChannel();
-    
-    return new ConnectFuture( socketAddress, future, execute.scheduler, retries, delay, backoff);
+    ConnectFuture future = new ConnectFuture( bootstrap, socketAddress, execute.scheduler, retries, delays);
+    future.addListener( new ChannelFutureListener() {
+      public void operationComplete( ChannelFuture future) throws Exception
+      {
+        if ( future.isSuccess()) channel = future.getChannel();
+      }
+    });
+    return future;
   }
   
   /**
@@ -139,6 +167,6 @@ public class XioClient extends XioPeer
     // prepare for another connection
     handler = new XioChannelHandler( bind.context, execute.context, execute.scheduler);
   }
-    
+   
   private ClientBootstrap bootstrap;
 }

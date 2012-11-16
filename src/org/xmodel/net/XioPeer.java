@@ -35,6 +35,7 @@ public class XioPeer
    */
   public BindResult bind( boolean readonly, String query, int timeout) throws InterruptedException
   {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     return bind.bindRequestProtocol.send( channel, readonly, query, timeout);
   }
   
@@ -44,6 +45,7 @@ public class XioPeer
    */
   public void unbind( long netID) throws InterruptedException
   {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     bind.unbindRequestProtocol.send( channel, netID);
   }
   
@@ -55,6 +57,7 @@ public class XioPeer
    */
   public IModelObject sync( int netID, int timeout) throws InterruptedException
   {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     return bind.syncRequestProtocol.send( channel, netID, timeout);
   }
 
@@ -69,6 +72,7 @@ public class XioPeer
    */
   public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     return execute.requestProtocol.send( channel, context, vars, element, timeout);
   }
   
@@ -82,6 +86,7 @@ public class XioPeer
    */
   public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     execute.requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
   

@@ -21,6 +21,7 @@ package org.xmodel;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * Static global settings for the library including global access to an instance of IModel for handling
@@ -83,7 +84,14 @@ public class GlobalSettings
    */
   public synchronized ScheduledExecutorService getScheduler()
   {
-    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
+    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new ThreadFactory() {
+      public Thread newThread( Runnable runnable)
+      {
+        Thread thread = new Thread( runnable, "Scheduler");
+        thread.setDaemon( true);
+        return thread;
+      }
+    });
     return scheduler;
   }
   
