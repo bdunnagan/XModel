@@ -1,5 +1,10 @@
 package org.xmodel.net;
 
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ChildChannelStateEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListener;
 import org.xmodel.concurrent.ThreadPoolContext;
@@ -32,7 +37,17 @@ public class NettyTest
     Thread.sleep( 2000);
     
     XioServer server = new XioServer( context, context);
-    server.start( "localhost", 10000);
+    Channel channel = server.start( "localhost", 10000);
+    channel.getPipeline().addFirst( "-", new SimpleChannelHandler() {
+      public void childChannelOpen( ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception
+      {
+        SLog.infof( this, "Child Open: %s\n", e);
+      }
+      public void childChannelClosed( ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception
+      {
+        SLog.infof( this, "Child Closed: %s\n", e);
+      }
+    });
     
     future.await();
     final BindResult result = client.bind( true, "$list", 100);

@@ -66,9 +66,17 @@ public class Model implements IModel
    * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean readLock( int timeout, TimeUnit unit) throws InterruptedException
+  public boolean readLock( int timeout, TimeUnit units) throws InterruptedException
   {
-    return lock.readLock().tryLock( timeout, unit);
+    try
+    {
+      log.debugf( "Entered Model.readLock( %d, %s) ...", timeout, units);
+      return lock.readLock().tryLock( timeout, units);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLock( %d, %s).", timeout, units);
+    }
   }
 
   /* (non-Javadoc)
@@ -77,21 +85,39 @@ public class Model implements IModel
   @Override
   public void readUnlock()
   {
-    lock.readLock().unlock();
+    try
+    {
+      log.debugf( "Entered Model.readUnlock() ...");
+      lock.readLock().unlock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readUnlock().");
+    }
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModel#writeLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean writeLock( int timeout, TimeUnit unit) throws InterruptedException
+  public boolean writeLock( int timeout, TimeUnit units) throws InterruptedException
   {
-    if ( lock.writeLock().tryLock( timeout, unit))
+    try
     {
-      setThread( Thread.currentThread());
-      GlobalSettings.getInstance().setModel( this);
+      log.debugf( "Entered Model.writeLock( %d, %s) ...", timeout, units);
+      
+      if ( lock.writeLock().tryLock( timeout, units))
+      {
+        setThread( Thread.currentThread());
+        GlobalSettings.getInstance().setModel( this);
+      }
+      
+      return false;
     }
-    return false;
+    finally
+    {
+      log.debugf( "Exited Model.writeLock( %d, %s).", timeout, units);
+    }
   }
 
   /* (non-Javadoc)
@@ -100,9 +126,18 @@ public class Model implements IModel
   @Override
   public void writeUnlock()
   {
-    setThread( null);
-    GlobalSettings.getInstance().setModel( null);
-    lock.writeLock().unlock();
+    try
+    {
+      log.debugf( "Entered Model.writeUnlock() ...");
+      
+      setThread( null);
+      GlobalSettings.getInstance().setModel( null);
+      lock.writeLock().unlock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeUnlock().");
+    }
   }
 
   /* (non-Javadoc)
@@ -365,7 +400,7 @@ public class Model implements IModel
     log.exception( e);
   }
   
-  private static Log log = Log.getLog( "org.xmodel");
+  private static Log log = Log.getLog( Model.class);
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
   private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;

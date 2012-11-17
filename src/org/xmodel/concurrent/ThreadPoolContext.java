@@ -1,9 +1,9 @@
 package org.xmodel.concurrent;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -18,33 +18,39 @@ public class ThreadPoolContext extends StatefulContext
     super();
     this.dispatcher = dispatcher;
   }
-  
+    
   /**
-   * Lock the model of this context for updating.
+   * Write-lock the model of this context for updating.
+   * @deprecated Use getModel().writeLock instead.
    */
   public void lock() throws InterruptedException
   {
-    // lock
-    dispatcher.lock();
-    
-    // configure thread with this model
-    GlobalSettings registry = GlobalSettings.getInstance();
-    threadPreviousModel = registry.getModel( false);
-    registry.setModel( dispatcher.model);
-    
-    // update this for debugging purposes
-    dispatcher.model.setThread( Thread.currentThread());
+    dispatcher.model.writeLock( 15, TimeUnit.MINUTES);
   }
   
   /**
-   * Unlock the model of this context.
+   * Write-unlock the model of this context.
+   * @deprecated Use getModel().writeUnlock instead.
    */
   public void unlock()
   {
-    GlobalSettings registry = GlobalSettings.getInstance();
-    registry.setModel( threadPreviousModel);
-    
-    dispatcher.unlock();
+    dispatcher.model.writeUnlock();
+  }
+  
+  /**
+   * Write-lock the model of this context for updating.
+   */
+  private void writeLock() throws InterruptedException
+  {
+    dispatcher.model.writeLock( 15, TimeUnit.MINUTES);
+  }
+  
+  /**
+   * Write-unlock the model of this context.
+   */
+  private void writeUnlock()
+  {
+    dispatcher.model.writeUnlock();
   }
   
   /* (non-Javadoc)
@@ -53,14 +59,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public String set( String name, String value)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       return super.set( name, value);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -70,14 +76,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public Number set( String name, Number value)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       return super.set( name, value);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -87,14 +93,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public Boolean set( String name, Boolean value)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       return super.set( name, value);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -104,14 +110,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public List<IModelObject> set( String name, List<IModelObject> value)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       return super.set( name, value);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -121,14 +127,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public List<IModelObject> set( String name, IModelObject value)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       return super.set( name, value);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -138,14 +144,14 @@ public class ThreadPoolContext extends StatefulContext
   @Override
   public void define( String name, IExpression expression)
   {
-    try { lock();} catch( InterruptedException e) { throw new IllegalStateException();}
+    try { writeLock();} catch( InterruptedException e) { throw new IllegalStateException();}
     try
     {
       super.define( name, expression);
     }
     finally
     {
-      unlock();
+      writeUnlock();
     }
   }
 
@@ -159,5 +165,4 @@ public class ThreadPoolContext extends StatefulContext
   }
 
   private ThreadPoolDispatcher dispatcher;
-  private IModel threadPreviousModel;
 }
