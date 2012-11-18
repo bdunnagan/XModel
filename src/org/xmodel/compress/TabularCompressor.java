@@ -34,6 +34,7 @@ import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
+import org.xmodel.log.Log;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
@@ -116,6 +117,9 @@ public class TabularCompressor extends AbstractCompressor
     // write table if necessary
     if ( !predefined) writeTable( header);    
     
+    // log
+    log.debugf( "%x.compress( %s): predefined=%s, header=%d, content=%d", hashCode(), element.getType(), predefined, header.writerIndex(), content.writerIndex());
+    
     // progressive compression assumes a send/receive pair of compressors to remember table entries
     if ( progressive) predefined = true;
     
@@ -129,12 +133,15 @@ public class TabularCompressor extends AbstractCompressor
   public IModelObject decompress( ChannelBuffer input) throws IOException
   {
     // header flags
-    byte flags = (byte)input.readByte();
+    int flags = input.readUnsignedByte();
     boolean predefined = (flags & 0x20) != 0;
     
     // table
     if ( !predefined) readTable( input);
-        
+
+    // log
+    log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
+    
     // content
     return readElement( input);
   }
@@ -146,6 +153,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
   {
+    log.verbosef( "readElement: offset=%d", stream.readerIndex());
+    
     // read tag name
     String type = readHash( stream);
     
@@ -154,6 +163,7 @@ public class TabularCompressor extends AbstractCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
     
+    element.clearModel();
     return element;
   }
   
@@ -164,6 +174,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeElement( ChannelBuffer stream, IModelObject element) throws IOException, CompressorException
   {
+    log.verbosef( "writeElement: offset=%d, node=%s", stream.writerIndex(), element.getType());
+    
     // write tag name
     writeHash( stream, element.getType());
     
@@ -179,10 +191,12 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void readAttributes( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
   {
+    log.verbosef( "readAttributes: offset=%d, node=%s", stream.readerIndex(), node.getType());
+    
     boolean useJavaSerialization = false;
     
     // read count
-    int count = stream.readByte();
+    int count = stream.readUnsignedByte();
     if ( count > 127)
     {
       count -= 128;
@@ -225,6 +239,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void readChildren( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
   {
+    log.verbosef( "readChildren: offset=%d, node=%s", stream.readerIndex(), node.getType());
+    
     // read count
     int count = readValue( stream);
     
@@ -244,6 +260,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeAttributes( ChannelBuffer stream, IModelObject node, Collection<String> attrNames) throws IOException, CompressorException
   {
+    log.verbosef( "writeAttributes: offset=%d, node=%s", stream.writerIndex(), node.getType());
+    
     boolean useJavaSerialization = false;
     int count = attrNames.size();
     
@@ -273,7 +291,7 @@ public class TabularCompressor extends AbstractCompressor
       for( String attrName: attrNames)
       {
         writeHash( stream, attrName);
-        writeObject( stream, node.getAttributeNode( attrName));
+        writeObject( stream, node.getAttribute( attrName));
       }
     }
     else
@@ -297,6 +315,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeChildren( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
   {
+    log.verbosef( "writeChildren: offset=%d, node=%s", stream.writerIndex(), node.getType());
+    
     // write count
     List<IModelObject> children = node.getChildren();
     writeValue( stream, children.size());
@@ -313,8 +333,14 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected String readHash( ChannelBuffer stream) throws IOException, CompressorException
   {
+    log.verbosef( "readHash: offset=%d", stream.readerIndex());
+    
     int index = readValue( stream);
-    if ( index >= table.size()) throw new CompressorException( "Table entry not found.");
+    if ( index >= table.size()) 
+    {
+      log.errorf( "Compressor table:\n%s", dumpTable());
+      throw new CompressorException( String.format( "Table entry %d not found: position=%d", index, stream.readerIndex()));
+    }
     return table.get( index);
   }
   
@@ -325,13 +351,15 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeHash( ChannelBuffer stream, String name) throws IOException, CompressorException
   {
+    log.verbosef( "writeHash: offset=%d, name=%s", stream.writerIndex(), name);
+    
     Integer hash = map.get( name);
     if ( hash == null)
     {
       hash = hashIndex++;
       table.add( name);
       map.put( name, hash);
-      if ( progressive) predefined = false;
+      predefined = false;
     }
     writeValue( stream, hash);
   }
@@ -343,6 +371,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected String readText( ChannelBuffer stream) throws IOException
   {
+    log.verbosef( "readText: offset=%d", stream.readerIndex());
+    
     int length = readValue( stream);
     byte[] bytes = new byte[ length];
     stream.readBytes( bytes);
@@ -356,6 +386,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeText( ChannelBuffer stream, String text) throws CompressorException, IOException
   {
+    log.verbosef( "writeText: offset=%d, text=%s", stream.writerIndex(), text);
+    
     writeValue( stream, text.length());
     stream.writeBytes( text.getBytes());
   }
@@ -366,18 +398,20 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected Object readObject( ChannelBuffer stream) throws IOException, ClassNotFoundException
   {
+    log.verbosef( "readObject: offset=%d", stream.readerIndex());
     return serializer.readObject( stream);
   }
   
   /**
    * Serialize a Java Object to the stream.
    * @param stream The stream.
-   * @param node The node containing the object.
+   * @param object The object.
    * @return Returns the number of bytes written.
    */
-  protected int writeObject( ChannelBuffer stream, IModelObject node) throws IOException
+  protected int writeObject( ChannelBuffer stream, Object object) throws IOException
   {
-    return serializer.writeObject( stream, node);
+    log.verbosef( "writeObject: offset=%d", stream.writerIndex());
+    return serializer.writeObject( stream, object);
   }
 
   /**
@@ -386,6 +420,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void readTable( ChannelBuffer stream) throws IOException, CompressorException
   {
+    log.verbosef( "readTable: offset=%d", stream.readerIndex());
+    
     table = new ArrayList<String>();
     
     // read table size
@@ -411,6 +447,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeTable( ChannelBuffer stream) throws IOException, CompressorException
   {
+    log.verbosef( "writeTable: offset=%d", stream.writerIndex());
+    
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
@@ -430,6 +468,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected int readValue( ChannelBuffer stream) throws IOException
   {
+    log.verbosef( "readValue: offset=%d", stream.readerIndex());
+    
     int b1 = stream.readUnsignedByte();
     if ( (b1 & 0x80) != 0)
     {
@@ -452,6 +492,8 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeValue( ChannelBuffer stream, int value) throws IOException, CompressorException
   {
+    log.verbosef( "writeValue: offset=%d, value=%d", stream.writerIndex(), value);
+    
     if ( value > 127)
     {
       value |= 0x80000000;
@@ -462,7 +504,23 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
+  
+  /**
+   * Dump the string table.
+   * @return Returns a string containing the table dump.
+   */
+  private String dumpTable()
+  {
+    StringBuilder sb = new StringBuilder();
+    for( int i=0; i<table.size(); i++)
+    {
+      sb.append( String.format( "%d = '%s'\n", i, table.get( i)));
+    }
+    return sb.toString();
+  }
     
+  private final static Log log = Log.getLog( TabularCompressor.class);
+  
   private final static int initialContentBufferSize = 256;
   private final static int initialHeaderBufferSize = 256;
   

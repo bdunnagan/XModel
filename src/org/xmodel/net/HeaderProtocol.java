@@ -36,18 +36,41 @@ public class HeaderProtocol
   {
     return buffer.readLong();
   }
-  
+ 
   /**
-   * Write a message header and return the buffer.
+   * Write a message header and return the buffer.  The buffer returned by this method is sized 
+   * to the length of the header plus the specified number of reserved bytes, allowing the content
+   * of the message to be packed into the same buffer as the header.
+   * @param reserve Extra space to reserve in header.
    * @param type The message type.
    * @param length The length of the message excluding header.
    * @return Returns the buffer containing the header.
    */
-  public ChannelBuffer writeHeader( Type type, long length)
+  public ChannelBuffer writeHeader( int reserve, Type type, long length)
   {
-    ChannelBuffer buffer = ChannelBuffers.buffer( 32);
+    ChannelBuffer buffer = ChannelBuffers.buffer( 9 + reserve);
     buffer.writeByte( type.ordinal());
-    buffer.writeLong( length);
+    buffer.writeLong( reserve + length);
     return buffer;
   }
-}
+  
+  /**
+   * Write a message header and return the buffer.  The buffer returned by this method is sized 
+   * to the length of the header plus the specified number of reserved bytes, allowing the content
+   * of the message to be packed into the same buffer as the header.
+   * @param reserve Extra space to reserve in header.
+   * @param type The message type.
+   * @param length The length of the message excluding header.
+   * @param correlation The message correlation number.
+   * @param reserve Extra space to reserve in header.
+   * @return Returns the buffer containing the header.
+   */
+  public ChannelBuffer writeHeader( int reserve, Type type, long length, int correlation)
+  {
+    ChannelBuffer buffer = ChannelBuffers.buffer( 13 + reserve);
+    buffer.writeByte( type.ordinal());
+    buffer.writeLong( reserve + length);
+    buffer.writeInt( correlation);
+    return buffer;
+  }
+}  

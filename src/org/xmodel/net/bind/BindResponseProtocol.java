@@ -43,7 +43,7 @@ public class BindResponseProtocol
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
     ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.bindResponse, buffer2.readableBytes());
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
     // ignoring write buffer overflow for this type of messaging

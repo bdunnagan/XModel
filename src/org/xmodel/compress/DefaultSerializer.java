@@ -42,7 +42,7 @@ public class DefaultSerializer implements ISerializer
   @Override
   public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException
   {
-    int classID = (int)input.readByte() & 0xFF;
+    int classID = input.readUnsignedByte();
     if ( classID >= serializers.size()) 
     {
       throw new ClassNotFoundException( 

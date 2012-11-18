@@ -1,16 +1,8 @@
 package org.xmodel.net;
 
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.ChildChannelStateEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelListener;
-import org.xmodel.concurrent.ThreadPoolContext;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
-import org.xmodel.log.SLog;
-import org.xmodel.net.bind.BindRequestProtocol.BindResult;
+import org.xmodel.Model;
+import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -19,7 +11,8 @@ public class NettyTest
 {
   public static void main( String[] args) throws Exception
   {
-    IContext context = new ThreadPoolContext( new ThreadPoolDispatcher( 1));
+    IContext context = new StatefulContext();
+    context.getModel().setDispatcher( new SerialExecutorDispatcher( new Model(), 1));
     
     String xml = 
       "<list>" +
@@ -29,44 +22,38 @@ public class NettyTest
       "</list>";
 
     IModelObject list = new XmlIO().read( xml);
-    context.set( "list", list);
+    context.getModel().writeLock();
+      context.set( "list", list);
+    context.getModel().writeUnlock();
     
     XioClient client = new XioClient( context, context);
     ConnectFuture future = client.connect( "localhost", 10000, new int[] { 1000, 2000, 3000});
 
-    Thread.sleep( 2000);
+    //Thread.sleep( 1000);
     
     XioServer server = new XioServer( context, context);
-    Channel channel = server.start( "localhost", 10000);
-    channel.getPipeline().addFirst( "-", new SimpleChannelHandler() {
-      public void childChannelOpen( ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception
-      {
-        SLog.infof( this, "Child Open: %s\n", e);
-      }
-      public void childChannelClosed( ChannelHandlerContext ctx, ChildChannelStateEvent e) throws Exception
-      {
-        SLog.infof( this, "Child Closed: %s\n", e);
-      }
-    });
+    server.start( "localhost", 10000);
     
     future.await();
-    final BindResult result = client.bind( true, "$list", 100);
-
-    result.element.getChild( 1).addModelListener( new ModelListener() {
-      public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
-      {
-        SLog.info( NettyTest.class, XmlIO.toString( result.element));
-      }
-    });
-    
-    SLog.info( NettyTest.class, XmlIO.toString( result.element));
-    list.getChild( 1).setValue( "CHANGE!");
-    
-    Thread.sleep( 100);
+//    final BindResult result = client.bind( true, "$list", 10000);
+//
+//    context.getModel().writeLock();
+//      result.element.getChild( 1).addModelListener( new ModelListener() {
+//        public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+//        {
+//          SLog.info( NettyTest.class, XmlIO.toString( result.element));
+//        }
+//      });
+//      
+//      SLog.info( NettyTest.class, XmlIO.toString( result.element));
+//      list.getChild( 1).setValue( "CHANGE!");
+//    context.getModel().writeUnlock();
+//    
+//    Thread.sleep( 100);
     
     xml =
       "<script name='Test'>" +
-      "  <print>'Hi, Client!'</print>" +
+      "  <print>'------------------------------------ Hi, Client!'</print>" +
       "</script>";
     
     StatefulContext localContext = new StatefulContext();

@@ -63,6 +63,23 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.IModel#readLock()
+   */
+  @Override
+  public void readLock() throws InterruptedException
+  {
+    try
+    {
+      log.debugf( "Entered Model.readLock( %X) ...", hashCode());
+      lock.readLock().lockInterruptibly();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
@@ -70,12 +87,12 @@ public class Model implements IModel
   {
     try
     {
-      log.debugf( "Entered Model.readLock( %d, %s) ...", timeout, units);
+      log.debugf( "Entered Model.readLock( %X, %d, %s) ...", hashCode(), timeout, units);
       return lock.readLock().tryLock( timeout, units);
     }
     finally
     {
-      log.debugf( "Exited Model.readLock( %d, %s).", timeout, units);
+      log.debugf( "Exited Model.readLock( %X, %d, %s).", hashCode(), timeout, units);
     }
   }
 
@@ -87,12 +104,32 @@ public class Model implements IModel
   {
     try
     {
-      log.debugf( "Entered Model.readUnlock() ...");
+      log.debugf( "Entered Model.readUnlock( %X) ...", hashCode());
       lock.readLock().unlock();
     }
     finally
     {
-      log.debugf( "Exited Model.readUnlock().");
+      log.debugf( "Exited Model.readUnlock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeLock()
+   */
+  @Override
+  public void writeLock() throws InterruptedException
+  {
+    try
+    {
+      log.debugf( "Entered Model.writeLock( %X) ...", hashCode());
+      
+      lock.writeLock().lockInterruptibly();
+      setThread( Thread.currentThread());
+      GlobalSettings.getInstance().setModel( this);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeLock( %X).", hashCode());
     }
   }
 
@@ -104,7 +141,7 @@ public class Model implements IModel
   {
     try
     {
-      log.debugf( "Entered Model.writeLock( %d, %s) ...", timeout, units);
+      log.debugf( "Entered Model.writeLock( %X, %d, %s) ...", hashCode(), timeout, units);
       
       if ( lock.writeLock().tryLock( timeout, units))
       {
@@ -116,7 +153,7 @@ public class Model implements IModel
     }
     finally
     {
-      log.debugf( "Exited Model.writeLock( %d, %s).", timeout, units);
+      log.debugf( "Exited Model.writeLock( %X, %d, %s).", hashCode(), timeout, units);
     }
   }
 
@@ -128,7 +165,7 @@ public class Model implements IModel
   {
     try
     {
-      log.debugf( "Entered Model.writeUnlock() ...");
+      log.debugf( "Entered Model.writeUnlock( %X) ...", hashCode());
       
       setThread( null);
       GlobalSettings.getInstance().setModel( null);
@@ -136,7 +173,7 @@ public class Model implements IModel
     }
     finally
     {
-      log.debugf( "Exited Model.writeUnlock().");
+      log.debugf( "Exited Model.writeUnlock( %X).", hashCode());
     }
   }
 
@@ -278,7 +315,7 @@ public class Model implements IModel
       Thread correctThread = debugMap.get( this);
       if ( correctThread != currentThread)
       {
-        SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), correctThread.getName());
+        SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), (correctThread != null)? correctThread.getName(): "");
       }
     }
     

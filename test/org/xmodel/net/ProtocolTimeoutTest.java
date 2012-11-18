@@ -6,7 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
+import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -60,7 +60,7 @@ public class ProtocolTimeoutTest
   {
     XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
+    server.setDispatcher( new SerialExecutorDispatcher( 1));
     server.start( false);
 
     for( int i=0; i<3; i++)
@@ -95,7 +95,7 @@ public class ProtocolTimeoutTest
   {
     XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
+    server.setDispatcher( new SerialExecutorDispatcher( 1));
     server.start( false);
 
     XioClient client = new XioClient( host, port, true);
@@ -131,7 +131,7 @@ public class ProtocolTimeoutTest
   {
     XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
+    server.setDispatcher( new SerialExecutorDispatcher( 1));
     server.start( false);
 
     XioClient client = new XioClient( host, port, true);
@@ -169,7 +169,7 @@ public class ProtocolTimeoutTest
   {
     XioServer server = new XioServer( host, port);
     server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
+    server.setDispatcher( new SerialExecutorDispatcher( 1));
     server.start( false);
 
     XioClient client = new XioClient( host, port, true);

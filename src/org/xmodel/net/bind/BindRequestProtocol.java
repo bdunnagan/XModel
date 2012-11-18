@@ -9,8 +9,8 @@ import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioException;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -64,7 +64,7 @@ public class BindRequestProtocol
     
     byte[] queryBytes = query.getBytes();
     
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( Type.bindRequest, 5 + queryBytes.length);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 5 + queryBytes.length, Type.bindRequest, 0);
     buffer.writeInt( correlation);
     buffer.writeByte( readonly? 1: 0);
     buffer.writeBytes( queryBytes);
@@ -119,6 +119,16 @@ public class BindRequestProtocol
   {
     try
     {
+      bundle.context.getModel().writeLock();
+    }
+    catch( InterruptedException e)
+    {
+      SLog.warnf( this, "Thread interrupted, remote-bind aborted.");
+      return;
+    }
+    
+    try
+    {
       IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
       bundle.bindResponseProtocol.send( channel, correlation, target);
       
@@ -132,6 +142,10 @@ public class BindRequestProtocol
     catch( IOException e)
     {
       SLog.exception( this, e);
+    }
+    finally
+    {
+      bundle.context.getModel().writeUnlock();
     }
   }
   

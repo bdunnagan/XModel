@@ -35,6 +35,25 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /* (non-Javadoc)
+   * @see java.lang.Object#finalize()
+   */
+  @Override
+  protected void finalize() throws Throwable
+  {
+    close();
+    super.finalize();
+  }
+
+  /**
+   * Close the network connection.
+   */
+  public void close()
+  {
+    if ( client != null && client.isConnected())
+      client.close();
+  }
+  
+  /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
   @Override

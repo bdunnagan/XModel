@@ -28,10 +28,8 @@ import org.xmodel.IAxis;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.IPathElement;
-import org.xmodel.ModelAlgorithms;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.log.Log;
-import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.PathExpression;
@@ -334,36 +332,8 @@ public class XPath extends AbstractPath implements IAxis
   
   public static void main( String[] args) throws Exception
   {
-    String xml =
-      "<a id='5'>" +
-      "  <b x='9'>1</b>" +
-      "  <b>2" +
-      "    <c>i</c>" +
-      "    <c>ii</c>" +
-      "    <c>iii</c>" +
-      "  </b>" +
-      "  <?pi?>" +
-      "  <b>3</b>" +
-      "  <b>4" +
-      "    <c>i</c>" +
-      "    <c>ii</c>" +
-      "    <c>iii</c>" +
-      "  </b>" +
-      "  <b>5</b>" +
-      "</a>";
-
-    XmlIO xmlIO = new XmlIO();
-    IModelObject a = xmlIO.read( xml);
-    
-    System.out.println( xmlIO.write( a));
-    
-    IPath path = XPath.createPath( "/a/b[ 2]/c[ 2]/following::*");
-    for( IModelObject node: path.query( a, null))
-      System.out.println( node);
-    
-    IExpression expr = XPath.createExpression( "/a/b/@x");
-    IModelObject attribute = expr.queryFirst( a);
-    path = ModelAlgorithms.createIdentityPath( attribute);
-    System.out.println( "path="+path);
+    IExpression expr = XPath.createExpression( "6.01034e-9");
+    double x = expr.evaluateNumber();
+    System.out.println( x == 6.01034e-9);
   }
 }

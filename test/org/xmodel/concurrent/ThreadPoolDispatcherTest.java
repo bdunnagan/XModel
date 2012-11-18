@@ -27,7 +27,7 @@ public class ThreadPoolDispatcherTest
   @Test
   public void sequencingTest() throws Exception
   {
-    dispatcher = new ThreadPoolDispatcher( 16, 100, false);
+    dispatcher = new SerialExecutorDispatcher( 16, 100, false);
     
     final Runnable runnable = new UpdateRunnable();
     final Random random = new Random();
@@ -59,9 +59,9 @@ public class ThreadPoolDispatcherTest
   @SuppressWarnings("unchecked")
   public void lockTest() throws Exception
   {
-    Log.getLog( ThreadPoolDispatcher.class).setLevel( Log.all);
+    Log.getLog( SerialExecutorDispatcher.class).setLevel( Log.all);
     
-    dispatcher = new ThreadPoolDispatcher( 16, 100);
+    dispatcher = new SerialExecutorDispatcher( 16, 100);
     dispatcher.lock();
     
     final Runnable runnable = new UpdateRunnable();
@@ -146,7 +146,7 @@ public class ThreadPoolDispatcherTest
   }
   
   private StatefulContext context;
-  private ThreadPoolDispatcher dispatcher;
+  private SerialExecutorDispatcher dispatcher;
   private Semaphore semaphore;
   private long start;
 }

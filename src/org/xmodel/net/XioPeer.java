@@ -43,7 +43,7 @@ public class XioPeer
    * Unbind the query that returned the specified network identifier.
    * @param netID The network identifier of the query root element.
    */
-  public void unbind( long netID) throws InterruptedException
+  public void unbind( int netID) throws InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     bind.unbindRequestProtocol.send( channel, netID);

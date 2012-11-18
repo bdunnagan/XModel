@@ -5,6 +5,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
 
@@ -35,7 +36,7 @@ public class SyncRequestProtocol
     int correlation = bundle.syncResponseProtocol.nextCorrelation();
     log.debugf( "SyncRequestProtocol.send (sync): corr=%d, timeout=%d, netID=%X", correlation, timeout, netID);
 
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( Type.syncRequest, 12);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 8, Type.syncRequest, 0);
     buffer.writeInt( correlation);
     buffer.writeInt( netID);
     
@@ -76,6 +77,16 @@ public class SyncRequestProtocol
   {
     try
     {
+      bundle.context.getModel().writeLock();
+    }
+    catch( InterruptedException e)
+    {
+      SLog.warnf( this, "Thread interrupted, remote-sync aborted.");
+      return;
+    }
+    
+    try
+    {
       // disable updates
       listener.setEnabled( false);
       
@@ -95,6 +106,7 @@ public class SyncRequestProtocol
     finally
     {
       listener.setEnabled( true);
+      bundle.context.getModel().writeUnlock();
     }
   }
   

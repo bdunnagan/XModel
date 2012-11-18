@@ -29,12 +29,12 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @return Returns null or the query result.
    */
-  public void send( Channel channel, long netID) throws InterruptedException
+  public void send( Channel channel, int netID) throws InterruptedException
   {
     log.debugf( "UnbindRequestProtocol.send: element=%X", netID);
     
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( Type.unbindRequest, 8);
-    buffer.writeLong( netID);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 4, Type.unbindRequest, 0);
+    buffer.writeInt( netID);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
@@ -67,12 +67,26 @@ public class UnbindRequestProtocol
   {
     try
     {
+      bundle.context.getModel().writeLock();
+    }
+    catch( InterruptedException e)
+    {
+      SLog.warnf( this, "Thread interrupted, remote-sync aborted.");
+      return;
+    }
+    
+    try
+    {
       UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
       if ( listener != null) listener.uninstall( element);
     }
     catch( Exception e)
     {
       SLog.exception( this, e);
+    }
+    finally
+    {
+      bundle.context.getModel().writeUnlock();
     }
   }
   

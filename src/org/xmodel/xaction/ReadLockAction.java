@@ -1,7 +1,6 @@
 package org.xmodel.xaction;
 
 import java.util.concurrent.TimeUnit;
-import org.xmodel.concurrent.ThreadPoolContext;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -27,12 +26,9 @@ public class ReadLockAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    if ( !(context instanceof ThreadPoolContext)) throw new IllegalStateException( "ThreadPoolContext required for locking.");
-    
-    ThreadPoolContext threadPoolContext = (ThreadPoolContext)context;
     try
     {
-      threadPoolContext.getModel().readLock( 15, TimeUnit.MINUTES);
+      context.getModel().readLock( 15, TimeUnit.MINUTES);
     }
     catch( InterruptedException e)
     {
@@ -46,7 +42,7 @@ public class ReadLockAction extends GuardedAction
     }
     finally
     {
-      threadPoolContext.getModel().readUnlock();
+      context.getModel().readUnlock();
     }
   }
   

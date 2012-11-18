@@ -297,15 +297,17 @@ public class RunAction extends GuardedAction
       {
         handleException( future.getCause(), context, onComplete, onError);
       }
-      
-      try
+      else
       {
-        Object[] result = client.execute( context, vars, element, timeout);
-        context.getScope().set( var, result[ 0]);
-      }
-      catch( Exception e)
-      {
-        handleException( e, context, onComplete, onError);
+        try
+        {
+          Object[] result = client.execute( context, vars, element, timeout);
+          context.getScope().set( var, result[ 0]);
+        }
+        catch( Exception e)
+        {
+          handleException( e, context, onComplete, onError);
+        }
       }
     }
     

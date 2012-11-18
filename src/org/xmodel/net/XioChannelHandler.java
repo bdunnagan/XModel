@@ -77,6 +77,18 @@ public class XioChannelHandler extends SimpleChannelHandler
   }
 
   /* (non-Javadoc)
+   * @see org.jboss.netty.channel.SimpleChannelHandler#writeRequested(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.MessageEvent)
+   */
+  @Override
+  public void writeRequested( ChannelHandlerContext ctx, MessageEvent e) throws Exception
+  {
+    ChannelBuffer buffer = (ChannelBuffer)e.getMessage();
+    if ( log.verbose()) log.verbosef( "writeRequested: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
+    
+    super.writeRequested( ctx, e);
+  }
+
+  /* (non-Javadoc)
    * @see org.jboss.netty.channel.SimpleChannelHandler#messageReceived(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.MessageEvent)
    */
   @Override
@@ -110,7 +122,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    */
   private boolean handleMessage( Channel channel, ChannelBuffer buffer) throws Exception
   {
-    if ( log.verbose()) log.verbosef( "Buffer:\n%s", toString( "  ", buffer));
+    if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
     
     if ( buffer.readableBytes() == 0) return false;
     
@@ -147,7 +159,8 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
-    log.error( event);
+    log.exception( event.getCause());
+//    log.error( event);
   }
   
   /**

@@ -15,8 +15,8 @@ public class ExecutionProtocol
     this.requestProtocol = new ExecutionRequestProtocol( this);
     this.responseProtocol = new ExecutionResponseProtocol( this);
     this.scheduler = scheduler;
-    this.upstreamCompressor = new TabularCompressor( true);
-    this.downstreamCompressor = new TabularCompressor( true);
+    this.requestCompressor = new TabularCompressor( true);
+    this.responseCompressor = new TabularCompressor( true);
   }
   
   /**
@@ -35,6 +35,6 @@ public class ExecutionProtocol
   public ExecutionRequestProtocol requestProtocol;
   public ExecutionResponseProtocol responseProtocol;
   public ScheduledExecutorService scheduler;
-  public ICompressor upstreamCompressor;
-  public ICompressor downstreamCompressor;
+  public ICompressor requestCompressor;
+  public ICompressor responseCompressor;
 }

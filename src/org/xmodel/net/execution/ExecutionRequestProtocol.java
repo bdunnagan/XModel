@@ -61,10 +61,9 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( request);
+    ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
     
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeRequest, 4 + buffer2.readableBytes());
-    buffer1.writeInt( correlation);
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
@@ -94,10 +93,9 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( request);
+    ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
     
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeRequest, 4 + buffer2.readableBytes());
-    buffer1.writeInt( correlation);
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
@@ -118,11 +116,10 @@ public class ExecutionRequestProtocol
       return;
     }
     
-    IModelObject element = ExecutionSerializer.readRequest( bundle.upstreamCompressor.decompress( buffer), bundle.context);
+    IModelObject element = ExecutionSerializer.readRequest( bundle.responseCompressor.decompress( buffer), bundle.context);
     checkPrivileges( element);
     
-    IXAction script = compile( element);
-    RequestRunnable runnable = new RequestRunnable( channel, correlation, script);
+    RequestRunnable runnable = new RequestRunnable( channel, correlation, element);
     bundle.context.getModel().dispatch( runnable);
   }
   
@@ -155,13 +152,24 @@ public class ExecutionRequestProtocol
    * Execute the specifed script.
    * @param channel The channel.
    * @param correlation The correlation.
-   * @param script The script.
+   * @param element The script element.
    */
-  private void execute( Channel channel, int correlation, IXAction script)
+  private void execute( Channel channel, int correlation, IModelObject element)
   {
+    try
+    {
+      bundle.context.getModel().writeLock();
+    }
+    catch( InterruptedException e)
+    {
+      SLog.warnf( this, "Thread interrupted, remote-exec aborted.");
+      return;
+    }
+    
     StatefulContext context = new StatefulContext( bundle.context);
     try
     {
+      IXAction script = compile( element);
       Object[] results = script.run( context);
       bundle.responseProtocol.send( channel, correlation, context, results);
     }
@@ -178,15 +186,19 @@ public class ExecutionRequestProtocol
       
       SLog.exceptionf( this, e, "Exception thrown during remote execution: ");
     }
+    finally
+    {
+      bundle.context.getModel().writeUnlock();
+    }
   }
   
   private class RequestRunnable implements Runnable
   {
-    public RequestRunnable( Channel channel, int correlation, IXAction script)
+    public RequestRunnable( Channel channel, int correlation, IModelObject element)
     {
       this.channel = channel;
       this.correlation = correlation;
-      this.script = script;
+      this.element = element;
     }
     
     /* (non-Javadoc)
@@ -195,12 +207,12 @@ public class ExecutionRequestProtocol
     @Override
     public void run()
     {
-      execute( channel, correlation, script);
+      execute( channel, correlation, element);
     }
 
     private Channel channel;
     private int correlation;
-    private IXAction script;
+    private IModelObject element;
   }
   
   private class ResponseTimeout implements Runnable

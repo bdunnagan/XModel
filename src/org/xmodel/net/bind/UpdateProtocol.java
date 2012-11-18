@@ -7,6 +7,7 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
 
@@ -41,7 +42,7 @@ public class UpdateProtocol
     int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
         
     ChannelBuffer buffer2 = protocol.responseCompressor.compress( child);
-    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( Type.addChild, 12 + buffer2.readableBytes());
+    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 8, Type.addChild, buffer2.readableBytes());
     buffer1.writeInt( parentNetID);
     buffer1.writeInt( index);
     
@@ -62,7 +63,7 @@ public class UpdateProtocol
   {
     int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.removeChild, 12);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 8, Type.removeChild, 0);
     buffer.writeInt( parentNetID);
     buffer.writeInt( index);
     
@@ -87,7 +88,7 @@ public class UpdateProtocol
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( buffer2, newValue);
     
-    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1 + attrNameBytes.length + attrLength);
+    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, attrNameBytes.length + attrLength);
     buffer1.writeInt( netID);
     writeAttrName( attrName, buffer1);
     
@@ -108,7 +109,7 @@ public class UpdateProtocol
     int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1 + attrNameBytes.length);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, attrNameBytes.length);
     buffer.writeInt( netID);
     writeAttrName( attrName, buffer);
     
@@ -128,7 +129,7 @@ public class UpdateProtocol
   {
     int netID = protocol.responseCompressor.getLocalNetID( element);
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( Type.changeAttribute, 8 + 1);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, 0);
     buffer.writeInt( netID);
     buffer.writeByte( dirty? 1: 0);
     
@@ -256,6 +257,32 @@ public class UpdateProtocol
     buffer.writeBytes( bytes);
   }
   
+  /**
+   * Attempt to lock the bind context model.
+   * @return Returns true if the model was locked.
+   */
+  private boolean lock()
+  {
+    try
+    {
+      protocol.context.getModel().writeLock();
+      return true;
+    }
+    catch( InterruptedException e)
+    {
+      SLog.warnf( this, "Thread interrupted, remote-update aborted.");
+      return false;
+    }
+  }
+
+  /**
+   * Unlock the bind context model.
+   */
+  private void unlock()
+  {
+    protocol.context.getModel().writeUnlock();
+  }
+  
   private final class AddChildEvent implements Runnable
   {
     public AddChildEvent( IModelObject parent, IModelObject child, int index)
@@ -267,7 +294,9 @@ public class UpdateProtocol
     
     public void run()
     {
+      if ( !lock()) return;
       parent.addChild( child, index);
+      unlock();
     }
     
     private IModelObject parent;
@@ -285,7 +314,9 @@ public class UpdateProtocol
     
     public void run()
     {
+      if ( !lock()) return;
       parent.removeChild( index);
+      unlock();
     }
     
     private IModelObject parent;
@@ -303,7 +334,9 @@ public class UpdateProtocol
     
     public void run()
     {
+      if ( !lock()) return;
       element.setAttribute( attrName, attrValue);
+      unlock();
     }
     
     private IModelObject element;
@@ -321,7 +354,9 @@ public class UpdateProtocol
     
     public void run()
     {
+      if ( !lock()) return;
       element.removeAttribute( attrName);
+      unlock();
     }
     
     private IModelObject element;
@@ -338,7 +373,9 @@ public class UpdateProtocol
     
     public void run()
     {
+      if ( !lock()) return;
       reference.setDirty( dirty);
+      unlock();
     }
     
     private IExternalReference reference;

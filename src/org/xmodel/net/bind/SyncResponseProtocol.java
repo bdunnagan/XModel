@@ -43,7 +43,7 @@ public class SyncResponseProtocol
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
     ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.syncResponse, buffer2.readableBytes());
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.syncResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
     // ignoring write buffer overflow for this type of messaging

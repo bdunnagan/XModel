@@ -2,7 +2,7 @@ package org.xmodel.xaction.debug;
 
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
+import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.net.XioClient;
 import org.xmodel.net.XioServer;
 import org.xmodel.net.Session;
@@ -25,7 +25,7 @@ public class DebuggerTest
     
     XioServer server = new XioServer( host, port);
     server.setServerContext( context);
-    server.setDispatcher( new ThreadPoolDispatcher( 2));
+    server.setDispatcher( new SerialExecutorDispatcher( 2));
     server.start( false);
     
     IModelObject script = new XmlIO().read( 

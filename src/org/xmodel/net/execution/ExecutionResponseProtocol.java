@@ -50,10 +50,9 @@ public class ExecutionResponseProtocol
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
-    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( response);
+    ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
     
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeResponse, buffer2.readableBytes());
-    buffer1.writeInt( correlation);
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
@@ -71,10 +70,9 @@ public class ExecutionResponseProtocol
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
     IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
-    ChannelBuffer buffer2 = bundle.downstreamCompressor.compress( response);
+    ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
     
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( Type.executeResponse, buffer2.readableBytes());
-    buffer1.writeInt( correlation);
+    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
@@ -89,7 +87,7 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.upstreamCompressor.decompress( buffer);
+    IModelObject response = bundle.requestCompressor.decompress( buffer);
     
     SynchronousQueue<IModelObject> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( response);
