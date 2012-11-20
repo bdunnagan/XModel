@@ -1,11 +1,10 @@
 package org.xmodel.net;
 
 import java.io.IOException;
-
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.net.bind.BindProtocol;
-import org.xmodel.net.bind.BindRequestProtocol.BindResult;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -28,15 +27,15 @@ public class XioPeer
   
   /**
    * Remotely bind the specified query.
+   * @param reference The reference for which the bind is being performed.
    * @param readonly True if binding is readonly.
    * @param query The query to bind on the remote peer.
    * @param timeout The timeout in milliseconds to wait.
-   * @return Returns the bind result.
    */
-  public BindResult bind( boolean readonly, String query, int timeout) throws InterruptedException
+  public void bind( IExternalReference reference, boolean readonly, String query, int timeout) throws InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return bind.bindRequestProtocol.send( channel, readonly, query, timeout);
+    bind.bindRequestProtocol.send( reference, channel, readonly, query, timeout);
   }
   
   /**

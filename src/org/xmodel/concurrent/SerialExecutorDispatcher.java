@@ -72,7 +72,7 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
    */
   private static ExecutorService createExecutor( int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( "model-serial-");
+    ThreadFactory factory = new ModelThreadFactory( "model-serial");
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
   }
   
@@ -82,6 +82,8 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   @Override
   public void execute( Runnable runnable)
   {
+    System.out.printf( "-------------> %X.execute( %s)\n", hashCode(), runnable.getClass().getName());
+    
     try
     {
       queue.put( runnable);

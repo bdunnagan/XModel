@@ -7,9 +7,8 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.log.SLog;
-import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioException;
 
 /**
  * TODO: attrLengthEstimate needs to be progressively refined
@@ -88,9 +87,12 @@ public class UpdateProtocol
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( buffer2, newValue);
     
-    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, attrNameBytes.length + attrLength);
+    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, attrLength);
     buffer1.writeInt( netID);
-    writeAttrName( attrName, buffer1);
+    
+    byte[] bytes = attrName.getBytes();
+    buffer1.writeByte( bytes.length);
+    buffer1.writeBytes( bytes);
     
     log.debugf( "UpdateProtocol.sendChangeAttribute: parent=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
@@ -109,9 +111,12 @@ public class UpdateProtocol
     int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, attrNameBytes.length);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, 0);
     buffer.writeInt( netID);
-    writeAttrName( attrName, buffer);
+    
+    byte[] bytes = attrName.getBytes();
+    buffer.writeByte( bytes.length);
+    buffer.writeBytes( bytes);
     
     log.debugf( "UpdateProtocol.sendClearAttribute: parent=%X, attrName=%s", netID, attrName);
     
@@ -184,7 +189,11 @@ public class UpdateProtocol
   public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, XioException
   {
     int netID = buffer.readInt();
-    String attrName = readAttrName( buffer);
+    
+    byte[] bytes = new byte[ buffer.readUnsignedByte()];
+    buffer.readBytes( bytes);
+    String attrName = new String( bytes);
+    
     Object newValue = protocol.serializer.readObject( buffer);
   
     log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
@@ -203,7 +212,10 @@ public class UpdateProtocol
   public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
-    String attrName = readAttrName( buffer);
+    
+    byte[] bytes = new byte[ buffer.readUnsignedByte()];
+    buffer.readBytes( bytes);
+    String attrName = new String( bytes);
   
     log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
     
@@ -232,57 +244,6 @@ public class UpdateProtocol
     protocol.context.getModel().dispatch( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }
   
-  /**
-   * Read an attribute name from the specified buffer.
-   * @param buffer The buffer.
-   * @return Returns the attribute name.
-   */
-  private String readAttrName( ChannelBuffer buffer)
-  {
-    int length = (int)buffer.readByte() & 0xFF;
-    byte[] bytes = new byte[ length];
-    buffer.readBytes( bytes);
-    return new String( bytes);
-  }
-  
-  /**
-   * Write an attribute name to the specified buffer.
-   * @param attrName The attribute name.
-   * @param buffer The buffer.
-   */
-  private void writeAttrName( String attrName, ChannelBuffer buffer)
-  {
-    byte[] bytes = attrName.getBytes();
-    buffer.writeByte( bytes.length);
-    buffer.writeBytes( bytes);
-  }
-  
-  /**
-   * Attempt to lock the bind context model.
-   * @return Returns true if the model was locked.
-   */
-  private boolean lock()
-  {
-    try
-    {
-      protocol.context.getModel().writeLock();
-      return true;
-    }
-    catch( InterruptedException e)
-    {
-      SLog.warnf( this, "Thread interrupted, remote-update aborted.");
-      return false;
-    }
-  }
-
-  /**
-   * Unlock the bind context model.
-   */
-  private void unlock()
-  {
-    protocol.context.getModel().writeUnlock();
-  }
-  
   private final class AddChildEvent implements Runnable
   {
     public AddChildEvent( IModelObject parent, IModelObject child, int index)
@@ -294,9 +255,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      if ( !lock()) return;
       parent.addChild( child, index);
-      unlock();
     }
     
     private IModelObject parent;
@@ -314,9 +273,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      if ( !lock()) return;
       parent.removeChild( index);
-      unlock();
     }
     
     private IModelObject parent;
@@ -334,9 +291,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      if ( !lock()) return;
       element.setAttribute( attrName, attrValue);
-      unlock();
     }
     
     private IModelObject element;
@@ -354,9 +309,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      if ( !lock()) return;
       element.removeAttribute( attrName);
-      unlock();
     }
     
     private IModelObject element;
@@ -373,9 +326,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      if ( !lock()) return;
       reference.setDirty( dirty);
-      unlock();
     }
     
     private IExternalReference reference;

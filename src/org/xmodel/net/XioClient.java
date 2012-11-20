@@ -5,7 +5,6 @@ import java.net.SocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -15,7 +14,6 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * This class provides an interface for the client-side of the protocol.
@@ -23,22 +21,6 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class XioClient extends XioPeer
 {
-  public XioClient()
-  {
-    this( GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
-  }
-  
-  /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param scheduler The scheduler used for protocol timers.
-   * @param bossExecutor The NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
-   */
-  public XioClient( ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
-  {
-    this( new StatefulContext(), new StatefulContext(), scheduler, bossExecutor, workerExecutor);
-  }
-  
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param bindContext The context for the remote bind protocol.
@@ -60,6 +42,13 @@ public class XioClient extends XioPeer
   public XioClient( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
     super( new XioChannelHandler( bindContext, executeContext, scheduler));
+
+    //
+    // Make sure the context objects have a cached model.  Otherwise, they may lazily request a new
+    // model in an I/O thread.
+    //
+    bindContext.getModel();
+    executeContext.getModel();
     
     bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);

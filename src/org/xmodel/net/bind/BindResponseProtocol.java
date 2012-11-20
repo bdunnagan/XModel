@@ -3,14 +3,14 @@ package org.xmodel.net.bind;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
 
@@ -20,7 +20,7 @@ public class BindResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.pending = new ConcurrentHashMap<Integer, BindRecord>();
   }
   
   /**
@@ -29,7 +29,7 @@ public class BindResponseProtocol
    */
   public void reset()
   {
-    queues.clear();
+    pending.clear();
   }
   
   /**
@@ -58,22 +58,26 @@ public class BindResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
-    IModelObject element = bundle.requestCompressor.decompress( buffer);
+
+    BindRecord record = pending.remove( correlation);
+    if ( record != null) 
+    {
+      bundle.requestCompressor.decompress( buffer, record.reference);
+      record.semaphore.release();
+    }
     
-    log.debugf( "BindResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
-    
-    SynchronousQueue<IModelObject> queue = queues.remove( correlation);
-    if ( queue != null) queue.offer( element); 
+    log.debugf( "BindResponseProtocol.handle: corr=%d, element=%s", correlation, record.reference.getType());
   }
 
   /**
    * Allocates the next correlation number.
+   * @param reference The reference being remotely bound.
    * @return Returns the correlation number.
    */
-  protected synchronized int nextCorrelation()
+  protected synchronized int nextCorrelation( IExternalReference reference)
   {
     int correlation = counter.getAndIncrement();
-    queues.put( correlation, new SynchronousQueue<IModelObject>());
+    pending.put( correlation, new BindRecord( reference));
     return correlation;
   }
   
@@ -81,24 +85,36 @@ public class BindResponseProtocol
    * Wait for a response to the request with the specified correlation number.
    * @param correlation The correlation number.
    * @param timeout The timeout in milliseconds.
-   * @return Returns null or the response.
+   * @return Returns false if the timeout expires before the response is received.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected boolean waitForResponse( long correlation, int timeout) throws InterruptedException
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( (int)correlation);
-      return queue.poll( timeout, TimeUnit.MILLISECONDS);
+      BindRecord record = pending.get( (int)correlation);
+      return record.semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
     }
     finally
     {
-      queues.remove( correlation);
+      pending.remove( correlation);
     }
   }
 
+  private final static class BindRecord
+  {
+    public BindRecord( IExternalReference reference)
+    {
+      this.reference = reference;
+      this.semaphore = new Semaphore( 0);
+    }
+    
+    public IExternalReference reference;
+    public Semaphore semaphore;
+  }
+  
   private final static Log log = Log.getLog( BindResponseProtocol.class);
 
   private BindProtocol bundle;
   private AtomicInteger counter;
-  private Map<Integer, SynchronousQueue<IModelObject>> queues;
+  private Map<Integer, BindRecord> pending;
 }

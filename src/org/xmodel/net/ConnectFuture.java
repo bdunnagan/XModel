@@ -36,6 +36,8 @@ public class ConnectFuture implements ChannelFuture
     this.bootstrap = bootstrap;
     this.address = address;
     this.scheduler = scheduler;
+    this.cancelled = new AtomicBoolean( false);
+    this.done = new AtomicBoolean( false);
     this.retries = retries;
     this.delays = delays;
     this.semaphore = new Semaphore( 0);
@@ -54,7 +56,14 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public void addListener( ChannelFutureListener listener)
   {
-    if ( !listeners.contains( listener)) listeners.add( listener);
+    if ( done.get())
+    {
+      delegate.get().addListener( listener);
+    }
+    else
+    {
+      if ( !listeners.contains( listener)) listeners.add( listener);
+    }
   }
 
   /* (non-Javadoc)
@@ -185,9 +194,7 @@ public class ConnectFuture implements ChannelFuture
   @Override
   public boolean isDone()
   {
-    ChannelFuture future = delegate.get();
-    if ( future != null) return future.isDone();
-    return false;
+    return done.get();
   }
 
   /* (non-Javadoc)
@@ -288,6 +295,7 @@ public class ConnectFuture implements ChannelFuture
         for( ChannelFutureListener listener: listeners)
           listener.operationComplete( future);
         
+        done.set( true); 
         semaphore.release();
       }
     }
@@ -308,6 +316,7 @@ public class ConnectFuture implements ChannelFuture
   private AtomicReference<ChannelFuture> delegate;
   private Semaphore semaphore;
   private AtomicBoolean cancelled;
+  private AtomicBoolean done;
   private List<ChannelFutureListener> listeners;
   private int retries;
   private int attempt;

@@ -10,9 +10,9 @@ import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
-import org.xmodel.net.bind.BindRequestProtocol.BindResult;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An ICachingPolicy that accesses data across a network.
@@ -87,6 +87,15 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
+  /**
+   * Set the remote network identifier for this caching policy. 
+   * @param netID The network identifier.
+   */
+  public void setRemoteNetID( int netID)
+  {
+    this.netID = netID;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
@@ -105,12 +114,13 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( client == null)
       {
-        client = new XioClient();
+        StatefulContext context = new StatefulContext();
+        context.getModel();
+        client = new XioClient( context, context);
         client.connect( host, port, 3, timeout / 3).await();
       }
 
-      BindResult result = client.bind( readonly, query, timeout);
-      if ( result != null) update( reference, result.element);
+      client.bind( reference, readonly, query, timeout);
     }
     catch( Exception e)
     {
@@ -125,4 +135,5 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private boolean readonly;
   private String query;
   private int timeout;
+  private int netID;
 }

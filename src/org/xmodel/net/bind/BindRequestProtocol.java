@@ -7,6 +7,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioChannelHandler.Type;
@@ -16,12 +17,6 @@ import org.xmodel.xpath.expression.IExpression;
 
 public class BindRequestProtocol
 {
-  public final static class BindResult
-  {
-    public IModelObject element;
-    public long netID;
-  }
-  
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
@@ -51,15 +46,15 @@ public class BindRequestProtocol
   
   /**
    * Send a bind request.
+   * @param reference The reference being remotely bound.
    * @param channel The channel.
    * @param readonly True if binding should be readonly.
    * @param query The query to bind.
    * @param timeout The timeout in milliseconds.
-   * @return Returns null or the query result.
    */
-  public BindResult send( Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
+  public void send( IExternalReference reference, Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
-    int correlation = bundle.bindResponseProtocol.nextCorrelation();
+    int correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
     
     byte[] queryBytes = query.getBytes();
@@ -72,13 +67,7 @@ public class BindRequestProtocol
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
     
-    IModelObject element = bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
-    
-    BindResult result = new BindResult();
-    result.element = element;
-    result.netID = bundle.requestCompressor.getRemoteNetID( element);
-    
-    return result;
+    bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
   }
   
   /**

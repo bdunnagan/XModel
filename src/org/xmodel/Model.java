@@ -168,7 +168,7 @@ public class Model implements IModel
       log.debugf( "Entered Model.writeUnlock( %X) ...", hashCode());
       
       setThread( null);
-      GlobalSettings.getInstance().setModel( null);
+      //GlobalSettings.getInstance().setModel( null);
       lock.writeLock().unlock();
     }
     finally

@@ -19,20 +19,29 @@
  */
 package org.xmodel.caching.sql;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
+import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
+import org.xmodel.compress.ZipCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -97,7 +106,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
-
+    
     excluded = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "exclude"))
       excluded.add( Xlate.get( element, ""));
@@ -278,18 +287,34 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       // XML columns can contain multiple root nodes, so parser must be tricked by wrapping the XML
       // text with a dummy root node.
       //
-      try
+      if ( value instanceof byte[])
       {
-        String xml = "<superroot>"+value.toString()+"</superroot>";
-        if ( xml.length() > 0)
+        if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
+        try
         {
-          IModelObject superroot = new XmlIO().read( xml);
+          IModelObject superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
           ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
         }
+        catch( Exception e)
+        {
+          SLog.exception( this, e);
+        }
       }
-      catch( XmlException e)
+      else
       {
-        SLog.errorf( this, "Invalid xml in %s.%s", tableName, column, e);
+        try
+        {
+          String xml = "<superroot>"+value.toString()+"</superroot>";
+          if ( xml.length() > 0)
+          {
+            IModelObject superroot = new XmlIO().read( xml);
+            ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
+          }
+        }
+        catch( XmlException e)
+        {
+          SLog.errorf( this, "Invalid xml in %s.%s", tableName, column, e);
+        }
       }
     }
     else
@@ -302,16 +327,36 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * Export the content of a column.
    * @param row The row reference.
    * @param column The column name.
+   * @param columnType The column type.
    * @return Returns the exported value.
    */
-  private Object exportColumn( IModelObject row, String column)
+  private Object exportColumn( IModelObject row, String column, int type)
   {
     if ( xmlColumns.contains( column))
     {
-      StringBuilder sb = new StringBuilder();
-      for( IModelObject child: row.getFirstChild( column).getChildren())
-        sb.append( XmlIO.write( Style.compact, child));
-      return sb.toString();
+      if ( compressor == null && type == Types.BLOB || type == Types.BINARY || type == Types.VARBINARY || type == Types.LONGVARBINARY)
+        compressor = new ZipCompressor( new TabularCompressor());
+      
+      if ( compressor != null)
+      {
+        try
+        {
+          ChannelBuffer buffer = compressor.compress( row.getFirstChild( column));
+          return new ChannelBufferInputStream( buffer);
+        }
+        catch( IOException e)
+        {
+          SLog.exception( this, e);
+          return null;
+        }
+      }
+      else
+      {
+        StringBuilder sb = new StringBuilder();
+        for( IModelObject child: row.getFirstChild( column).getChildren())
+          sb.append( XmlIO.write( Style.compact, child));
+        return sb.toString();
+      }
     }
     else
     {
@@ -537,10 +582,17 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         if ( columnNames.get( i).equals( primaryKey)) continue;
         
-        Object value = exportColumn( node, columnNames.get( i));
+        Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
         if ( value != null)
         {
-          statement.setObject( i+1, value);
+          if ( value instanceof InputStream)
+          {
+            statement.setBinaryStream( i+1, (InputStream)value);
+          }
+          else
+          {
+            statement.setObject( i+1, value);
+          }
         }
         else
         {
@@ -581,8 +633,23 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( int i=0; i<columns.size(); i++)
     {
       String column = columns.get( i);
-      Object value = exportColumn( reference, column);
-      statement.setObject( i+1, value);
+      Object value = exportColumn( reference, column, columnTypes.get( columnNames.indexOf( column)));
+      if ( value != null)
+      {
+        if ( value instanceof InputStream)
+        {
+          statement.setBinaryStream( i+1, (InputStream)value);
+        }
+        else
+        {
+          statement.setObject( i+1, value);
+        }
+      }
+      else
+      {
+        int index = columnNames.indexOf( column);
+        statement.setNull( i+1, columnTypes.get( index));
+      }
     }
     
     statement.setString( columns.size() + 1, reference.getID());
@@ -871,5 +938,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private Map<IModelObject, List<IModelObject>> rowInserts;
   private Map<IModelObject, List<IModelObject>> rowDeletes;
   private Map<IModelObject, List<String>> rowUpdates;  
+  private ICompressor compressor;
 }
 

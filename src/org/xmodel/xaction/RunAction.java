@@ -152,7 +152,7 @@ public class RunAction extends GuardedAction
     {
       log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
       
-      client = new XioClient();
+      client = new XioClient( context, context);
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
@@ -301,8 +301,7 @@ public class RunAction extends GuardedAction
       {
         try
         {
-          Object[] result = client.execute( context, vars, element, timeout);
-          context.getScope().set( var, result[ 0]);
+          client.execute( context, vars, element, this, timeout);
         }
         catch( Exception e)
         {
@@ -329,7 +328,7 @@ public class RunAction extends GuardedAction
     {
       if ( onSuccess != null) 
       {
-        if ( var != null) context.getScope().set( var, results[ 0]);
+        if ( var != null && results.length > 0) context.getScope().set( var, results[ 0]);
         onSuccess.run( context);
       }
     }

@@ -122,7 +122,7 @@ public class TabularCompressor extends AbstractCompressor
     
     // progressive compression assumes a send/receive pair of compressors to remember table entries
     if ( progressive) predefined = true;
-    
+
     return ChannelBuffers.wrappedBuffer( header, content);
   }
 

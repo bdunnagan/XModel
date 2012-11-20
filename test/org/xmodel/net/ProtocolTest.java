@@ -73,7 +73,7 @@ public class ProtocolTest
     
     for( XioClient client: clients)
     {
-      client.close().await();
+      client.close();
       assertFalse( "Client is not disconnected", client.isConnected());
     }
     
@@ -82,7 +82,7 @@ public class ProtocolTest
       client.connect( address, port).await();
       assertTrue( "Client is not connected", client.isConnected());
       
-      client.close().await();
+      client.close();
       assertFalse( "Client is not disconnected", client.isConnected());
     }
     
@@ -184,7 +184,9 @@ public class ProtocolTest
     clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      XioClient client = new XioClient();
+      StatefulContext context = new StatefulContext();
+      context.getModel();
+      XioClient client = new XioClient( context, context);
       clients.add( client);
     }
   }

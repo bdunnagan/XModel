@@ -93,7 +93,11 @@ public class ExecutionResponseProtocol
     if ( queue != null) queue.offer( response);
     
     ResponseTask task = tasks.remove( correlation);
-    if ( task != null && !task.isExpired()) task.run();
+    if ( task != null && !task.isExpired()) 
+    {
+      task.setResponse( response);
+      bundle.context.getModel().dispatch( task);
+    }
   }
   
   /**
@@ -209,8 +213,7 @@ public class ExecutionResponseProtocol
           callback.onSuccess( context, results); 
         }
       }
-
-      if ( error != null)
+      else if ( error != null)
       {
         callback.onError( context, error);
       }

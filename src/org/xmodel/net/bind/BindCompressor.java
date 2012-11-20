@@ -23,19 +23,26 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.Log;
+import org.xmodel.net.NetworkCachingPolicy;
 
 /**
  * A TabularCompressor that does tracks the network identifiers of remote-bound elements.
  */
 public class BindCompressor extends TabularCompressor
 {
+  public final static class BindResult
+  {
+    public IModelObject element;
+    public int netID;
+  }
+  
   private BindCompressor( BindProtocol protocol, boolean progressive)
   {
     super( progressive);
@@ -95,6 +102,16 @@ public class BindCompressor extends TabularCompressor
   {
     return remoteMap.get( netID);
   }
+
+  /**
+   * Set the element associated with the specified remote network identifier.
+   * @param netID The network identifier.
+   * @param element The imposter element.
+   */
+  public void setRemoteImposter( int netID, IModelObject element)
+  {
+    remoteMap.put( netID, element);
+  }
   
   /**
    * Returns the local network identifier for the specified element.
@@ -136,26 +153,55 @@ public class BindCompressor extends TabularCompressor
   {
     this.timeout = timeout;
   }
-  
+
   /**
-   * Read an element from the input stream.
+   * Decompress the next element and update the specified reference.
+   * @param input The input buffer.
+   * @param reference The reference being remotely bound.
+   */
+  public void decompress( ChannelBuffer input, IExternalReference reference) throws IOException
+  {
+    // header flags
+    int flags = input.readUnsignedByte();
+    boolean predefined = (flags & 0x20) != 0;
+    
+    // table
+    if ( !predefined) readTable( input);
+
+    // log
+    log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
+    
+    // read element
+    readElement( input, reference);
+  }
+
+  /**
+   * Read an element from the input stream.  Note that this method performs the updating of the reference argument,
+   * instead of leaving that operation to the caching policy.  This method takes responsibility for adding the
+   * secondary caching stages.
    * @param stream The input stream.
+   * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
+  protected IModelObject readElement( ChannelBuffer stream, IExternalReference binding) throws IOException, CompressorException
   {
+    // read network id
+    int netID = stream.readInt();
+    
     // read tag name
     String type = readHash( stream);
     
     // read flags
     byte flags = stream.readByte();
     
-    // read network id
-    int netID = stream.readInt();
-    
     // create element
     IModelObject element;
-    if ( (flags & 0x01) != 0)
+    if ( binding != null)
+    {
+      element = binding;
+      ((NetworkCachingPolicy)binding.getCachingPolicy()).setRemoteNetID( netID);
+    }
+    else if ( (flags & 0x01) != 0)
     {
       // read static attributes
       int count = readValue( stream);
@@ -179,11 +225,11 @@ public class BindCompressor extends TabularCompressor
       element = factory.createObject( null, type);
     }
     
+    // map element to network identifier
+    remoteMap.put( netID, element);
+
     readAttributes( stream, element);
     readChildren( stream, element);
-
-    // store element by network id
-    remoteMap.put( netID, element);
 
     // disassociate from model so it can be passed to a new thread
     element.clearModel();
@@ -192,14 +238,31 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
+   * Read an element from the input stream.
+   * @param stream The input stream.
+   * @return Returns the new element.
+   */
+  @Override
+  protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
+  {
+    return readElement( stream, null);
+  }
+  
+  /**
    * Write an element to the output stream.
    * @param stream The output stream.
    * @param element The element.
    */
+  @Override
   protected void writeElement( ChannelBuffer stream, IModelObject element) throws IOException, CompressorException
   {
     IExternalReference reference = (element instanceof IExternalReference)? (IExternalReference)element: null;
     
+    // write network id
+    int netID = System.identityHashCode( element);
+    localMap.put( netID, element);
+    stream.writeInt( netID);
+
     // write tag name
     writeHash( stream, element.getType());
     
@@ -209,11 +272,6 @@ public class BindCompressor extends TabularCompressor
     if ( element.isDirty()) flags |= 0x02;
     stream.writeByte( flags);
     
-    // write network id
-    int netID = System.identityHashCode( element);
-    localMap.put( netID, element);
-    stream.writeInt( netID);
-
     // write static attributes
     if ( reference != null)
     {
@@ -234,6 +292,8 @@ public class BindCompressor extends TabularCompressor
     }
   }
 
+  private final static Log log = Log.getLog( BindCompressor.class);
+  
   private BindProtocol protocol;
   private Map<Integer, IModelObject> localMap;
   private Map<Integer, IModelObject> remoteMap;

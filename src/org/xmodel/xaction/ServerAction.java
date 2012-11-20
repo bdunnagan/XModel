@@ -31,7 +31,7 @@ public class ServerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    setDispatcher();
+    setDispatcher( context);
 
     String address = addressExpr.evaluateString( context);
     int port = (int)portExpr.evaluateNumber( context);
@@ -42,9 +42,9 @@ public class ServerAction extends GuardedAction
     return null;
   }
   
-  private void setDispatcher()
+  private void setDispatcher( IContext context)
   {
-    IModel model = document.getRoot().getModel();
+    IModel model = context.getModel();
     
     IDispatcher dispatcher = model.getDispatcher();
     if ( dispatcher instanceof BlockingDispatcher)
@@ -53,7 +53,7 @@ public class ServerAction extends GuardedAction
       
       // install new dispatcher
       model.setDispatcher( new SerialExecutorDispatcher( model, 1));
-      
+
       // insure dispatcher not empty
       blocking.execute( new Runnable() {
         public void run()
