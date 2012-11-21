@@ -134,6 +134,15 @@ public final class Log
       log.setSink( sink);
   }
   
+  /**
+   * Set the default sink.
+   * @param sink The sink.
+   */
+  public synchronized static void setDefaultSink( ILogSink sink)
+  {
+    defaultSink = sink;
+  }
+  
   protected Log()
   {
     this.mask = problems | info;
@@ -531,7 +540,7 @@ public final class Log
   private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
   
   @SuppressWarnings("unused")
-  private static LogManager configMonitor = new LogManager();
+  private static LogManager logManager = new LogManager();
   
   private volatile int mask;
   private volatile ILogSink sink;

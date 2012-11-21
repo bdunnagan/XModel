@@ -118,6 +118,16 @@ public final class LogManager implements Runnable
     {
       IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
       period = Xlate.childGet( root, "reload", 5) * 1000;
+
+      ILogSink[] defaultSinks = configure( root);
+      if ( defaultSinks.length == 1)
+      {
+        Log.setDefaultSink( defaultSinks[ 0]);
+      }
+      else if ( defaultSinks.length > 1)
+      {
+        Log.setDefaultSink( new MultiSink( defaultSinks));
+      }
       
       for( IModelObject child: root.getChildren( "log"))
       {
