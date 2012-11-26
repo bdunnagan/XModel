@@ -167,7 +167,7 @@ public final class LogManager implements Runnable
     while( true)
     {
       long modified = config.lastModified();
-      if ( modified > timestamp)
+      if ( timestamp != 0 && modified > timestamp)
       {
         if ( timestamp > 0) SLog.warn( this, "Reloaded logging configuration.");
         timestamp = modified;

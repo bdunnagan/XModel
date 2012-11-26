@@ -22,6 +22,7 @@ package org.xmodel;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import org.xmodel.log.SLog;
 
 /**
  * Static global settings for the library including global access to an instance of IModel for handling
@@ -61,6 +62,7 @@ public class GlobalSettings
     if ( model == null && create)
     {
       model = new Model();
+      SLog.infof( this, "CREATE MODEL=%X", model.hashCode());
       threadModel.set( model);
     }
     return model;

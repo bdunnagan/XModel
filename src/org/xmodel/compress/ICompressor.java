@@ -20,6 +20,8 @@
 package org.xmodel.compress;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
@@ -41,6 +43,20 @@ public interface ICompressor
    */
   public void setSerializer( ISerializer serializer);
 
+  /**
+   * Compress the specified element to the specified stream.
+   * @param element The element.
+   * @param stream The stream.
+   */
+  public void compress( IModelObject element, OutputStream stream) throws IOException;
+
+  /**
+   * Decompress the next element from the specified stream.
+   * @param stream The stream.
+   * @return Returns the element.
+   */
+  public IModelObject decompress( InputStream stream) throws IOException;
+  
   /**
    * Compress the specified element into the specified output buffer.
    * @param element The element.

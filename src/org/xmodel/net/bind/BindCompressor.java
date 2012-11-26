@@ -19,12 +19,16 @@
  */
 package org.xmodel.net.bind;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.channel.Channel;
+import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
@@ -50,6 +54,7 @@ public class BindCompressor extends TabularCompressor
     this.protocol = protocol;
     this.localMap = new ConcurrentHashMap<Integer, IModelObject>();
     this.remoteMap = new ConcurrentHashMap<Integer, IModelObject>();
+    this.remoteKeys = new ConcurrentHashMap<IModelObject, Integer>();
   }
   
   /**
@@ -58,8 +63,10 @@ public class BindCompressor extends TabularCompressor
    */
   public void reset()
   {
+    log.infof( "%X.reset()", hashCode());
     localMap.clear();
     remoteMap.clear();
+    remoteKeys.clear();
   }
   
   /**
@@ -84,6 +91,24 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
+   * Set the channel for the next call to the <code>decompress</code> method.
+   * @param channel The channel.
+   */
+  public void setChannel( Channel channel)
+  {
+    this.channel = channel;
+  }
+  
+  /**
+   * Set the timeout for the next call to the <code>decompress</code> method.
+   * @param timeout The timeout.
+   */
+  public void setTimeout( int timeout)
+  {
+    this.timeout = timeout;
+  }
+
+  /**
    * Find an element by its local network identifier.
    * @param netID The network identifier.
    * @return Returns null or the element.
@@ -104,21 +129,11 @@ public class BindCompressor extends TabularCompressor
   }
 
   /**
-   * Set the element associated with the specified remote network identifier.
-   * @param netID The network identifier.
-   * @param element The imposter element.
-   */
-  public void setRemoteImposter( int netID, IModelObject element)
-  {
-    remoteMap.put( netID, element);
-  }
-  
-  /**
    * Returns the local network identifier for the specified element.
    * @param element An element that was previously sent downstream.
    * @return Returns the local network identifier.
    */
-  public int getLocalNetID( IModelObject element)
+  public int getLocalID( IModelObject element)
   {
     return System.identityHashCode( element);
   }
@@ -128,7 +143,7 @@ public class BindCompressor extends TabularCompressor
    * @param element An element that was previously received from upstream.
    * @return Returns the remote network identifier.
    */
-  public int getRemoteNetID( IModelObject element)
+  public int getRemoteID( IModelObject element)
   {
     if ( !(element instanceof IExternalReference)) return 0;
     
@@ -137,23 +152,34 @@ public class BindCompressor extends TabularCompressor
   }
   
   /**
-   * Set the channel for the next call to the <code>decompress</code> method.
-   * @param channel The channel.
+   * Free resources associated with the specified element.
+   * @param element The element.
    */
-  public void setChannel( Channel channel)
+  public void freeLocal( IModelObject element)
   {
-    this.channel = channel;
+    for( IModelObject descendant: new BreadthFirstIterator( element))
+    {
+      Integer key = getLocalID( descendant);
+      localMap.remove( key);
+    }
   }
   
   /**
-   * Set the timeout for the next call to the <code>decompress</code> method.
-   * @param timeout The timeout.
+   * Free resources associated with the specified element.
+   * @param element The element.
    */
-  public void setTimeout( int timeout)
+  public void freeRemote( IModelObject element)
   {
-    this.timeout = timeout;
+    for( IModelObject descendant: new BreadthFirstIterator( element))
+    {
+      Integer key = remoteKeys.remove( descendant);
+      if ( remoteMap.remove( key) == null)
+        log.warnf( "%X - remote not found (memory leak): %s", hashCode(), element.getType());
+    }
+    
+    log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
   }
-
+  
   /**
    * Decompress the next element and update the specified reference.
    * @param input The input buffer.
@@ -161,18 +187,20 @@ public class BindCompressor extends TabularCompressor
    */
   public void decompress( ChannelBuffer input, IExternalReference reference) throws IOException
   {
+    DataInputStream stream = new DataInputStream( new ChannelBufferInputStream( input));
+    
     // header flags
     int flags = input.readUnsignedByte();
     boolean predefined = (flags & 0x20) != 0;
     
     // table
-    if ( !predefined) readTable( input);
+    if ( !predefined) readTable( stream);
 
     // log
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
-    // read element
-    readElement( input, reference);
+    // content
+    readElement( stream, reference);
   }
 
   /**
@@ -183,10 +211,10 @@ public class BindCompressor extends TabularCompressor
    * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( ChannelBuffer stream, IExternalReference binding) throws IOException, CompressorException
+  protected IModelObject readElement( DataInputStream stream, IExternalReference binding) throws IOException, CompressorException
   {
     // read network id
-    int netID = stream.readInt();
+    Integer netID = stream.readInt();
     
     // read tag name
     String type = readHash( stream);
@@ -227,6 +255,7 @@ public class BindCompressor extends TabularCompressor
     
     // map element to network identifier
     remoteMap.put( netID, element);
+    remoteKeys.put( element, netID);
 
     readAttributes( stream, element);
     readChildren( stream, element);
@@ -243,7 +272,7 @@ public class BindCompressor extends TabularCompressor
    * @return Returns the new element.
    */
   @Override
-  protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
+  protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
   {
     return readElement( stream, null);
   }
@@ -254,7 +283,7 @@ public class BindCompressor extends TabularCompressor
    * @param element The element.
    */
   @Override
-  protected void writeElement( ChannelBuffer stream, IModelObject element) throws IOException, CompressorException
+  protected void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
   {
     IExternalReference reference = (element instanceof IExternalReference)? (IExternalReference)element: null;
     
@@ -297,6 +326,7 @@ public class BindCompressor extends TabularCompressor
   private BindProtocol protocol;
   private Map<Integer, IModelObject> localMap;
   private Map<Integer, IModelObject> remoteMap;
+  private Map<IModelObject, Integer> remoteKeys;
   private Channel channel;
   private int timeout;
 }

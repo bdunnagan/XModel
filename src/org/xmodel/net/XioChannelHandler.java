@@ -1,7 +1,6 @@
 package org.xmodel.net;
 
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -65,7 +64,19 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     return executionProtocol;
   }
-  
+
+  /* (non-Javadoc)
+   * @see org.jboss.netty.channel.SimpleChannelHandler#channelConnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
+   */
+  @Override
+  public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+  {
+//    final SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
+//
+//    ChannelFuture handshakeFuture = sslHandler.handshake();
+//    handshakeFuture.addListener( new Greeter( sslHandler));
+  }
+
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.SimpleChannelHandler#channelDisconnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */

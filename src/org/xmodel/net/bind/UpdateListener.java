@@ -60,7 +60,7 @@ class UpdateListener extends NonSyncingListener
     
     try
     {
-      updateProtocol.sendRemoveChild( channel, parent, index);
+      updateProtocol.sendRemoveChild( channel, parent, child, index);
     } 
     catch( IOException e)
     {

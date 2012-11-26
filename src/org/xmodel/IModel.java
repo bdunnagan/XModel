@@ -45,6 +45,11 @@ public interface IModel
   public void readLock() throws InterruptedException;
   
   /**
+   * Acquire a read lock on this model without interruption.
+   */
+  public void readLockUninterruptibly();
+  
+  /**
    * Acquire a read lock on this model.
    * @param timeout The timeout.
    * @param unit The units of the timeout.
@@ -61,6 +66,11 @@ public interface IModel
    * Acquire a write lock on this model.
    */
   public void writeLock() throws InterruptedException;
+  
+  /**
+   * Acquire a write lock on this model without interruption.
+   */
+  public void writeLockUninterruptibly();
   
   /**
    * Acquire a read lock on this model.

@@ -82,11 +82,13 @@ public final class FileSink implements ILogSink
       {
         maxFileAge = Integer.parseInt( matcher.group( 1));
         String unit = matcher.group( 2);
-        if ( unit.equals( "year")) maxFileAge *= 31536000000L; 
-        else if ( unit.equals( "month")) maxFileAge *= 2678400000L; 
-        else if ( unit.equals( "week")) maxFileAge *= 604800000L; 
-        else if ( unit.equals( "day")) maxFileAge *= 86400000L; 
-        else if ( unit.equals( "hour")) maxFileAge *= 3600000L; 
+        if ( unit.equals( "y") || unit.equals( "year")) maxFileAge *= 31536000000L; 
+        else if ( unit.equals( "m") || unit.equals( "month")) maxFileAge *= 2678400000L; 
+        else if ( unit.equals( "w") || unit.equals( "week")) maxFileAge *= 604800000L; 
+        else if ( unit.equals( "d") || unit.equals( "day")) maxFileAge *= 86400000L; 
+        else if ( unit.equals( "h") || unit.equals( "hour")) maxFileAge *= 3600000L; 
+        else if ( unit.equals( "m") || unit.contains( "min")) maxFileAge *= 60000L; 
+        else if ( unit.equals( "s") || unit.contains( "sec")) maxFileAge *= 1000L; 
       }
     }
   }
@@ -259,6 +261,7 @@ public final class FileSink implements ILogSink
         }
       }
 
+      enforceLimits();
       compress();
     }
   }
@@ -377,7 +380,7 @@ public final class FileSink implements ILogSink
   private final static DateFormat dateFormat = new SimpleDateFormat( "MMddyy_HHmmss");
   private final static Pattern fileRegex = Pattern.compile( ".*\\d{6}_\\d{6}\\.log(\\.zip)?$");
   private final static Pattern runRegex = Pattern.compile( "([0-9A-Z]++)_");
-  private final static Pattern ageRegex = Pattern.compile( "\\s*+(\\d++)\\s*+(year|month|week|day|hour|y|m|w|d|h)s?\\s*+");
+  private final static Pattern ageRegex = Pattern.compile( "\\s*+(\\d++)\\s*+(year|month|week|day|hour|minute|min|second|sec|y|m|w|d|h|m|s)s?\\s*+");
 
   private File logFolder;
   private String filePrefix;

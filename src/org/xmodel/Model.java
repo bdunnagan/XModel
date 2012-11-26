@@ -21,7 +21,7 @@ package org.xmodel;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +80,23 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.IModel#readLockUninterruptibly()
+   */
+  @Override
+  public void readLockUninterruptibly()
+  {
+    try
+    {
+      log.debugf( "Entered Model.readLockUninterruptibly( %X) ...", hashCode());
+      lock.readLock().lock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLockUninterruptibly( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
@@ -130,6 +147,25 @@ public class Model implements IModel
     finally
     {
       log.debugf( "Exited Model.writeLock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeLockUninterruptibly()
+   */
+  @Override
+  public void writeLockUninterruptibly()
+  {
+    try
+    {
+      log.debugf( "Entered Model.writeLockUninterruptibly( %X) ...", hashCode());
+      lock.writeLock().lock();
+      setThread( Thread.currentThread());
+      GlobalSettings.getInstance().setModel( this);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeLockUninterruptibly( %X).", hashCode());
     }
   }
 
@@ -288,14 +324,6 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModel#unlock()
-   */
-  public void unlock()
-  {
-    frozen.clear();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModel#isLocked(org.xmodel.IModelObject)
    */
   public IChangeSet isFrozen( IModelObject object)
@@ -316,6 +344,7 @@ public class Model implements IModel
       if ( correctThread != currentThread)
       {
         SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), (correctThread != null)? correctThread.getName(): "");
+        debugMap.put( this, currentThread);
       }
     }
     
@@ -408,8 +437,7 @@ public class Model implements IModel
    */
   public void dispatch( Runnable runnable)
   {
-    if ( dispatcher == null) 
-      throw new IllegalStateException( "Dispatcher is not defined.");
+    if ( dispatcher == null) throw new IllegalStateException( "Dispatcher is not defined.");
     dispatcher.execute( runnable);
   }
 
@@ -440,7 +468,26 @@ public class Model implements IModel
   private static Log log = Log.getLog( Model.class);
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
-  private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;
+  private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new Cache()): null;
+  
+  private static class Cache extends LinkedHashMap<Model, Thread>
+  {
+    private static final long serialVersionUID = 6237694180217498908L;
+
+    public Cache()
+    {
+      super( 150, 0.75f, true);
+    }
+    
+    /* (non-Javadoc)
+     * @see java.util.LinkedHashMap#removeEldestEntry(java.util.Map.Entry)
+     */
+    @Override
+    protected boolean removeEldestEntry( Map.Entry<Model, Thread> eldest) 
+    {
+      return size() > 100;
+    }
+  }
 
   private ReentrantReadWriteLock lock;
   private MultiMap<String, IModelObject> collections;

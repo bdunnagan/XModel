@@ -36,6 +36,9 @@ public class UnbindRequestProtocol
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 4, Type.unbindRequest, 0);
     buffer.writeInt( netID);
     
+    // release resources
+    bundle.requestCompressor.freeRemote( bundle.requestCompressor.findRemote( netID));
+    
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
   }
@@ -67,16 +70,11 @@ public class UnbindRequestProtocol
   {
     try
     {
-      bundle.context.getModel().writeLock();
-    }
-    catch( InterruptedException e)
-    {
-      SLog.warnf( this, "Thread interrupted, remote-sync aborted.");
-      return;
-    }
+      bundle.context.getModel().writeLockUninterruptibly();
+      
+      // release resources
+      bundle.responseCompressor.freeLocal( element);
     
-    try
-    {
       UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
       if ( listener != null) listener.uninstall( element);
     }

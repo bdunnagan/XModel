@@ -1,22 +1,22 @@
 package org.xmodel.compress.serial;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.compress.CompressorException;
-import org.xmodel.compress.ISerializer;
 
 /**
  * An implementation of ISerializer that serializes java.lang.Number.
  */
-public class NumberSerializer implements ISerializer
+public class NumberSerializer extends AbstractSerializer
 {
   /* (non-Javadoc)
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( DataInput input) throws IOException, ClassNotFoundException, CompressorException
   {
     byte type = input.readByte();
     if ( type == 0x13)
@@ -65,7 +65,7 @@ public class NumberSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
+  public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
     if ( object instanceof Float) 
     {
@@ -86,7 +86,7 @@ public class NumberSerializer implements ISerializer
       BigInteger unscaled = value.unscaledValue();
       byte[] unscaledBytes = unscaled.toByteArray();
       output.writeByte( (byte)unscaledBytes.length);
-      output.writeBytes( unscaledBytes);
+      output.write( unscaledBytes);
       output.writeInt( value.scale());
       return 1 + unscaledBytes.length + 4;
     }
@@ -120,7 +120,7 @@ public class NumberSerializer implements ISerializer
       BigInteger value = (BigInteger)object;
       byte[] bytes = value.toByteArray();
       output.writeByte( (byte)bytes.length);
-      output.writeBytes( bytes);
+      output.write( bytes);
       return 1 + bytes.length;
     }
     else

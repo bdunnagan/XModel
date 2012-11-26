@@ -22,7 +22,6 @@ package org.xmodel.xaction;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.zip.Deflater;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -83,7 +82,7 @@ public class FileSaveAction extends GuardedAction
     
     if ( mode.equals( "compressed"))
     {
-      if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor(), Deflater.BEST_COMPRESSION);
+      if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
       try
       {
         FileOutputStream stream = new FileOutputStream( file);

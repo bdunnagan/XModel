@@ -1,9 +1,11 @@
 package org.xmodel.compress;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.jboss.netty.buffer.ChannelBuffer;
+import org.xmodel.compress.serial.AbstractSerializer;
 import org.xmodel.compress.serial.BooleanSerializer;
 import org.xmodel.compress.serial.NumberSerializer;
 import org.xmodel.compress.serial.StringSerializer;
@@ -11,7 +13,7 @@ import org.xmodel.compress.serial.StringSerializer;
 /**
  * An implementation of ISerializer that provides a mechanism for registering delegates per class.
  */
-public class DefaultSerializer implements ISerializer
+public class DefaultSerializer extends AbstractSerializer
 {
   public DefaultSerializer()
   {
@@ -40,7 +42,7 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( ChannelBuffer input) throws IOException, ClassNotFoundException
+  public Object readObject( DataInput input) throws IOException, ClassNotFoundException
   {
     int classID = input.readUnsignedByte();
     if ( classID >= serializers.size()) 
@@ -57,7 +59,7 @@ public class DefaultSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( ChannelBuffer output, Object object) throws IOException, CompressorException
+  public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
     int classID = findSerializerClassID( object);   
     if ( classID < 0)

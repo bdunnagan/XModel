@@ -5,9 +5,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.log.SLog;
-import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioException;
 
 public class SyncRequestProtocol
 {
@@ -77,16 +76,8 @@ public class SyncRequestProtocol
   {
     try
     {
-      bundle.context.getModel().writeLock();
-    }
-    catch( InterruptedException e)
-    {
-      SLog.warnf( this, "Thread interrupted, remote-sync aborted.");
-      return;
-    }
-    
-    try
-    {
+      bundle.context.getModel().writeLockUninterruptibly();
+      
       // disable updates
       listener.setEnabled( false);
       
@@ -94,14 +85,11 @@ public class SyncRequestProtocol
       element.getChildren();
       
       // send response
-      try
-      {
-        bundle.syncResponseProtocol.send( channel, correlation, element);
-      }
-      catch( IOException e)
-      {
-        log.exceptionf( e, "Failed to send sync response for %X", netID);
-      }
+      bundle.syncResponseProtocol.send( channel, correlation, element);
+    }
+    catch( IOException e)
+    {
+      log.exceptionf( e, "Failed to send sync response for %X", netID);
     }
     finally
     {

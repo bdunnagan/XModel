@@ -4,7 +4,6 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -48,8 +47,17 @@ public class XioServer
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
       {
+        ChannelPipeline pipeline = Channels.pipeline();
+        
+//        SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
+//        engine.setUseClientMode(false);
+//
+//        pipeline.addLast( "ssl", new SslHandler(engine));
+        
         XioChannelHandler handler = XioServer.this.handler;
-        return Channels.pipeline( sharedHandler? handler: new XioChannelHandler( handler));
+        pipeline.addLast( "xio", sharedHandler? handler: new XioChannelHandler( handler));
+        
+        return pipeline;
       }
     });
   }

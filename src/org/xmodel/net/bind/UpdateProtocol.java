@@ -1,7 +1,11 @@
 package org.xmodel.net.bind;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -38,14 +42,14 @@ public class UpdateProtocol
    */
   public void sendAddChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
   {
-    int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
+    int parentNetID = protocol.responseCompressor.getLocalID( parent);
         
     ChannelBuffer buffer2 = protocol.responseCompressor.compress( child);
     ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 8, Type.addChild, buffer2.readableBytes());
     buffer1.writeInt( parentNetID);
     buffer1.writeInt( index);
     
-    long childNetID = protocol.responseCompressor.getLocalNetID( child);
+    long childNetID = protocol.responseCompressor.getLocalID( child);
     log.debugf( "UpdateProtocol.sendAddChild: parent=%s/%X, child=%s/%X, index=%d", parent.getType(), parentNetID, child.getType(), childNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
@@ -56,11 +60,13 @@ public class UpdateProtocol
    * Send an update.
    * @param channel The channel.
    * @param parent The parent.
+   * @param child The child that was removed.
    * @param index The index of the child.
    */
-  public void sendRemoveChild( Channel channel, IModelObject parent, int index) throws IOException
+  public void sendRemoveChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
   {
-    int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
+    int parentNetID = protocol.responseCompressor.getLocalID( parent);
+    protocol.responseCompressor.freeLocal( child);
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 8, Type.removeChild, 0);
     buffer.writeInt( parentNetID);
@@ -81,11 +87,11 @@ public class UpdateProtocol
    */
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
-    int netID = protocol.responseCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
-    int attrLength = protocol.serializer.writeObject( buffer2, newValue);
+    int attrLength = protocol.serializer.writeObject( new DataOutputStream( new ChannelBufferOutputStream( buffer2)), newValue);
     
     ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, attrLength);
     buffer1.writeInt( netID);
@@ -108,7 +114,7 @@ public class UpdateProtocol
    */
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
-    int netID = protocol.responseCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalID( element);
     byte[] attrNameBytes = attrName.getBytes();
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, 0);
@@ -132,7 +138,7 @@ public class UpdateProtocol
    */
   public void sendChangeDirty( Channel channel, IModelObject element, boolean dirty) throws IOException
   {
-    int netID = protocol.responseCompressor.getLocalNetID( element);
+    int netID = protocol.responseCompressor.getLocalID( element);
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5, Type.changeAttribute, 0);
     buffer.writeInt( netID);
@@ -194,7 +200,7 @@ public class UpdateProtocol
     buffer.readBytes( bytes);
     String attrName = new String( bytes);
     
-    Object newValue = protocol.serializer.readObject( buffer);
+    Object newValue = protocol.serializer.readObject( new DataInputStream( new ChannelBufferInputStream( buffer)));
   
     log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
@@ -273,7 +279,7 @@ public class UpdateProtocol
     
     public void run()
     {
-      parent.removeChild( index);
+      protocol.requestCompressor.freeRemote( parent.removeChild( index));
     }
     
     private IModelObject parent;

@@ -1,9 +1,5 @@
 package org.xmodel.xaction;
 
-import org.xmodel.BlockingDispatcher;
-import org.xmodel.IDispatcher;
-import org.xmodel.IModel;
-import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.net.XioServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -31,42 +27,18 @@ public class ServerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    setDispatcher( context);
-
     String address = addressExpr.evaluateString( context);
     int port = (int)portExpr.evaluateNumber( context);
+
+    //
+    // Make sure context node has its model so that a model is not created in an I/O thread.
+    //
+    context.getModel();
     
     XioServer server = new XioServer( context, context);
     server.start( address, port);
     
     return null;
-  }
-  
-  private void setDispatcher( IContext context)
-  {
-    IModel model = context.getModel();
-    
-    IDispatcher dispatcher = model.getDispatcher();
-    if ( dispatcher instanceof BlockingDispatcher)
-    {
-      BlockingDispatcher blocking = (BlockingDispatcher)dispatcher;
-      
-      // install new dispatcher
-      model.setDispatcher( new SerialExecutorDispatcher( model, 1));
-
-      // insure dispatcher not empty
-      blocking.execute( new Runnable() {
-        public void run()
-        {
-        }
-      });
-      
-      // drain
-      blocking.process();
-      
-      // shutdown
-      blocking.shutdown( false);
-    }
   }
   
   private IExpression addressExpr;

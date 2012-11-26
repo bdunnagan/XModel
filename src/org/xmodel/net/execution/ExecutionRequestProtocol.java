@@ -12,8 +12,8 @@ import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.IXioCallback;
-import org.xmodel.net.XioExecutionException;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioExecutionException;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -116,10 +116,8 @@ public class ExecutionRequestProtocol
       return;
     }
     
-    IModelObject element = ExecutionSerializer.readRequest( bundle.responseCompressor.decompress( buffer), bundle.context);
-    checkPrivileges( element);
-    
-    RequestRunnable runnable = new RequestRunnable( channel, correlation, element);
+    IModelObject request = bundle.responseCompressor.decompress( buffer);
+    RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
     bundle.context.getModel().dispatch( runnable);
   }
   
@@ -152,23 +150,20 @@ public class ExecutionRequestProtocol
    * Execute the specifed script.
    * @param channel The channel.
    * @param correlation The correlation.
-   * @param element The script element.
+   * @param request The request.
    */
-  private void execute( Channel channel, int correlation, IModelObject element)
+  private void execute( Channel channel, int correlation, IModelObject request)
   {
+    //
+    // Model locking is left to the script for finer granularity.  A private context is created
+    // to hold the variables that will be passed to the script.
+    //
+    IContext context = new StatefulContext( bundle.context);
     try
     {
-      bundle.context.getModel().writeLock();
-    }
-    catch( InterruptedException e)
-    {
-      SLog.warnf( this, "Thread interrupted, remote-exec aborted.");
-      return;
-    }
-    
-    StatefulContext context = new StatefulContext( bundle.context);
-    try
-    {
+      IModelObject element = ExecutionSerializer.readRequest( request, context);
+      checkPrivileges( element);
+      
       IXAction script = compile( element);
       Object[] results = script.run( context);
       bundle.responseProtocol.send( channel, correlation, context, results);
@@ -186,19 +181,15 @@ public class ExecutionRequestProtocol
       
       SLog.exceptionf( this, e, "Exception thrown during remote execution: ");
     }
-    finally
-    {
-      bundle.context.getModel().writeUnlock();
-    }
   }
   
   private class RequestRunnable implements Runnable
   {
-    public RequestRunnable( Channel channel, int correlation, IModelObject element)
+    public RequestRunnable( Channel channel, int correlation, IModelObject request)
     {
       this.channel = channel;
       this.correlation = correlation;
-      this.element = element;
+      this.request = request;
     }
     
     /* (non-Javadoc)
@@ -207,12 +198,12 @@ public class ExecutionRequestProtocol
     @Override
     public void run()
     {
-      execute( channel, correlation, element);
+      execute( channel, correlation, request);
     }
 
     private Channel channel;
     private int correlation;
-    private IModelObject element;
+    private IModelObject request;
   }
   
   private class ResponseTimeout implements Runnable

@@ -360,7 +360,15 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     else
     {
-      return otherKeys.contains( column)? row.getAttribute( column): row.getFirstChild( column).getValue();    
+      if ( otherKeys.contains( column)) 
+      {
+        return row.getAttribute( column);
+      }
+      else
+      {
+        IModelObject columnNode = row.getFirstChild( column);
+        return (columnNode != null)? columnNode.getValue(): null;
+      }
     }
   }
   

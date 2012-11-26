@@ -26,15 +26,15 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.NullObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
-import org.xmodel.log.SLog;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.XioClient;
 import org.xmodel.xpath.expression.IContext;
@@ -77,6 +77,8 @@ public class RunAction extends GuardedAction
     onCompleteExpr = document.getExpression( "onComplete", true);
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
+    
+    dispatcherExpr = document.getExpression( "dispatcher", true);
   }
 
   /* (non-Javadoc)
@@ -85,7 +87,18 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( hostExpr == null) runLocal( context); else runRemote( context);   
+    if ( hostExpr != null)
+    {
+      runRemote( context);
+    }
+    else if ( dispatcherExpr != null)
+    {
+      runLocalAsync( context);
+    }
+    else
+    {
+      runLocalSync( context); 
+    }
     return null;
   }
 
@@ -95,7 +108,7 @@ public class RunAction extends GuardedAction
    * @return Returns the execution result.
    */
   @SuppressWarnings("unchecked")
-  private Object[] runLocal( IContext context)
+  private Object[] runLocalSync( IContext context)
   {
     Object[] results = null;
 
@@ -126,6 +139,30 @@ public class RunAction extends GuardedAction
     }
     
     return null;
+  }
+  
+  /**
+   * Dispatch the script via the specified dispatcher.
+   * @param context The context.
+   * @param dispatcher The dispatcher.
+   */
+  private void runLocalAsync( IContext context)
+  {
+    IModelObject dispatcherNode = dispatcherExpr.queryFirst( context);
+    if ( dispatcherNode == null)
+    {
+      log.warnf( "Dispatcher not found, '%s'", dispatcherExpr);
+      return;
+    }
+    
+    IDispatcher dispatcher = (IDispatcher)dispatcherNode.getValue();
+    IXAction script = getScript( getScriptNode( context));
+    
+    //
+    // Must create a new context here without the original context object, because otherwise the
+    // new dispatcher will end up using the original context object's model.
+    //
+    dispatcher.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
   }
   
   /**
@@ -212,22 +249,26 @@ public class RunAction extends GuardedAction
     IXAction script = null;
     if ( expression != null)
     {
-      IModelObject scriptNode = expression.queryFirst( context);
-      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
-      if ( attribute != null) script = attribute.script;
-      if ( script == null)
-      {
-        script = document.createScript( scriptNode);
-        if ( script != null)
-        {
-          scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
-        }
-        else
-        {
-          SLog.warnf( this, "Script not found: %s", expression);
-        }
-      }
+      script = getScript( expression.queryFirst( context));
+      if ( script == null) log.warnf( "Script not found for expression, %s", expression);
     }
+    return script;
+  }
+
+  /**
+   * Compile, or get the already compiled, script for the specified node.
+   * @param scriptNode The script node.
+   * @return Returns null or the script.
+   */
+  private IXAction getScript( IModelObject scriptNode)
+  {
+    if ( scriptNode == null) return null;
+    
+    CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+    if ( attribute != null) return attribute.script;
+    
+    IXAction script = document.createScript( scriptNode);
+    if ( script != null) scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
     return script;
   }
   
@@ -261,6 +302,24 @@ public class RunAction extends GuardedAction
     }
     
     public IXAction script;
+  }
+  
+  private final static class ScriptRunnable implements Runnable
+  {
+    public ScriptRunnable( IContext context, IXAction script)
+    {
+      this.context = context;
+      this.script = script;
+    }
+    
+    @Override
+    public void run()
+    {
+      script.run( context);
+    }
+    
+    private IContext context;
+    private IXAction script;
   }
   
   private final class AsyncExecuter implements IXioCallback, Runnable, ChannelFutureListener
@@ -371,4 +430,5 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
+  private IExpression dispatcherExpr;
 }

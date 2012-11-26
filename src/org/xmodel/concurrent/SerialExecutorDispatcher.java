@@ -60,7 +60,6 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     this.model.setDispatcher( this);
     
     this.executor = executor;
-    this.registry = GlobalSettings.getInstance();
     this.queue = queue;
     this.queueSize = new AtomicInteger( 0);
   }
@@ -82,8 +81,6 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   @Override
   public void execute( Runnable runnable)
   {
-    System.out.printf( "-------------> %X.execute( %s)\n", hashCode(), runnable.getClass().getName());
-    
     try
     {
       queue.put( runnable);
@@ -107,15 +104,13 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     if ( immediate) executor.shutdownNow(); else executor.shutdown();
   }
   
-  /* (non-Javadoc)
-   * @see java.lang.Runnable#run()
-   */
   @Override
   public void run()
   {
     try
     {
       model.setThread( Thread.currentThread());
+      if ( registry == null) registry = GlobalSettings.getInstance();
       registry.setModel( model);
       
       Runnable runnable = queue.poll();
@@ -134,7 +129,7 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   
   private ExecutorService executor;
   protected IModel model;
-  private GlobalSettings registry;
   private BlockingQueue<Runnable> queue;
   private AtomicInteger queueSize;
+  private GlobalSettings registry;
 }

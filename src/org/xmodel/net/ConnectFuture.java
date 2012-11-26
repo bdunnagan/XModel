@@ -283,11 +283,9 @@ public class ConnectFuture implements ChannelFuture
   private ChannelFutureListener delegateListener = new ChannelFutureListener() {
     public void operationComplete( ChannelFuture future) throws Exception
     {
-      System.out.printf( "attempt=%d, retries=%d\n", attempt+1, retries);
       if ( !future.isSuccess() && !future.isCancelled() && ++attempt < retries)
       {
         int delay = getRetryDelay( attempt - 1);
-        System.out.printf( "delay=%d\n", delay);
         scheduler.schedule( retryRunnable, delay, TimeUnit.MILLISECONDS);
       }
       else

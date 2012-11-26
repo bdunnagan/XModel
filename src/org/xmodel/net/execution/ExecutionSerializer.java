@@ -205,7 +205,13 @@ public class ExecutionSerializer
   public static Throwable readResponseException( IModelObject response)
   {
     IModelObject child = response.getFirstChild( "exception");
-    return (child != null)? (Throwable)child.getValue(): null;
+    if ( child == null) return null;
+    
+    Object value = child.getValue();
+    if ( value == null) return null;
+    
+    if ( value instanceof Throwable) return (Throwable)value;
+    return new Exception( value.toString());
   }
   
   /**

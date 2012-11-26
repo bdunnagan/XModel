@@ -219,6 +219,7 @@ public class NullObject implements IModelObject
   @Override
   public void clearModel()
   {
+    model = null;
   }
 
   /* (non-Javadoc)

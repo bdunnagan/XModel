@@ -10,19 +10,33 @@ public class ModelThreadFactory implements ThreadFactory
 {
   public ModelThreadFactory( String prefix)
   {
+    this( prefix, null);
+  }
+
+  public ModelThreadFactory( String prefix, Runnable setup)
+  {
     this.prefix = prefix;
+    this.setup = setup;
   }
 
   /* (non-Javadoc)
    * @see java.util.concurrent.ThreadFactory#newThread(java.lang.Runnable)
    */
   @Override
-  public Thread newThread( Runnable runnable)
+  public Thread newThread( final Runnable runnable)
   {
-    return new Thread( runnable, prefix + "-" + counter.incrementAndGet());
+    String name = prefix + "-" + counter.incrementAndGet();
+    return new Thread( new Runnable() {
+      public void run()
+      {
+        if ( setup != null) setup.run();
+        runnable.run();
+      }
+    }, name);
   }
-
+  
   private static AtomicInteger counter = new AtomicInteger( 0);
   
   private String prefix;
+  private Runnable setup;
 }

@@ -108,16 +108,8 @@ public class BindRequestProtocol
   {
     try
     {
-      bundle.context.getModel().writeLock();
-    }
-    catch( InterruptedException e)
-    {
-      SLog.warnf( this, "Thread interrupted, remote-bind aborted.");
-      return;
-    }
-    
-    try
-    {
+      bundle.context.getModel().writeLockUninterruptibly();
+      
       IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
       bundle.bindResponseProtocol.send( channel, correlation, target);
       

@@ -5,7 +5,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IDispatcher;
-import org.xmodel.IModel;
 
 /**
  * An IDispatcher implementation that wraps an ExecutorService.  Locking must be used within
@@ -15,35 +14,43 @@ import org.xmodel.IModel;
 public class ParallelExecutorDispatcher implements IDispatcher
 {
   /**
+   * Default constructor, which must be followed with a call to <code>configure</code>.
+   */
+  public ParallelExecutorDispatcher()
+  {
+  }
+  
+  /**
    * Convenience method for creating with a fixed thread count.
-   * @param model The model.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    */
-  public ParallelExecutorDispatcher( IModel model, int threadCount)
+  public ParallelExecutorDispatcher( int threadCount)
   {
-    this( model, createExecutor( threadCount));
+    this.executor = createExecutor( threadCount);
   }
     
   /**
    * Create with the specified parameters.
-   * @param model The model.
    * @param executor The ExecutorService that will process dispatched Runnables.
    */
-  public ParallelExecutorDispatcher( IModel model, ExecutorService executor)
+  public ParallelExecutorDispatcher( ExecutorService executor)
   {
-    this.model = model;
-    this.registry = GlobalSettings.getInstance();
     this.executor = executor;
   }
   
   /**
-   * Create the ExecutorServie.
+   * Create the ExecutorService.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    * @return Returns the new ExecutorService.
    */
-  private static ExecutorService createExecutor( int threadCount)
+  private ExecutorService createExecutor( int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( "model-parallel");
+    ThreadFactory factory = new ModelThreadFactory( "model-parallel", new Runnable() {
+      public void run()
+      {
+        GlobalSettings.getInstance().getModel().setDispatcher( ParallelExecutorDispatcher.this);
+      }
+    });
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
   }
   
@@ -53,17 +60,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
   @Override
   public void execute( Runnable runnable)
   {
-    try
-    {
-      model.setThread( Thread.currentThread());
-      registry.setModel( model);
-      
-      executor.execute( runnable);
-    }
-    finally
-    {
-      registry.setModel( null);
-    }
+    executor.execute( runnable);
   }
 
   /* (non-Javadoc)
@@ -75,7 +72,5 @@ public class ParallelExecutorDispatcher implements IDispatcher
     if ( immediate) executor.shutdownNow(); else executor.shutdown();
   }
 
-  private IModel model;
-  private GlobalSettings registry;
   private ExecutorService executor;
 }

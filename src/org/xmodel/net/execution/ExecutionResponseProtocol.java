@@ -7,16 +7,16 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.IXioCallback;
+import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioExecutionException;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 public class ExecutionResponseProtocol
 {
@@ -197,6 +197,7 @@ public class ExecutionResponseProtocol
     @Override
     public void run()
     {      
+      IContext context = new StatefulContext( this.context);
       callback.onComplete( context);
       
       if ( response != null)

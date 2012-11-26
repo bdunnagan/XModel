@@ -1,7 +1,8 @@
 package org.xmodel.compress;
 
 import java.io.IOException;
-import java.util.zip.Deflater;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -20,13 +21,6 @@ public class ZipCompressor implements ICompressor
   public ZipCompressor( TabularCompressor compressor)
   {
     this.compressor = compressor;
-    this.level = Deflater.DEFAULT_COMPRESSION;
-  }
-  
-  public ZipCompressor( TabularCompressor compressor, int level)
-  {
-    this.compressor = compressor;
-    this.level = level;
   }
   
   /* (non-Javadoc)
@@ -45,6 +39,40 @@ public class ZipCompressor implements ICompressor
   public void setSerializer( ISerializer serializer)
   {
     compressor.setSerializer( serializer);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
+   */
+  @Override
+  public void compress( IModelObject element, OutputStream stream) throws IOException
+  {
+    GZIPOutputStream gzip = new GZIPOutputStream( stream);
+    try
+    {
+      compressor.compress( element, gzip);
+    }
+    finally
+    {
+      gzip.close();
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#decompress(java.io.InputStream)
+   */
+  @Override
+  public IModelObject decompress( InputStream stream) throws IOException
+  {
+    GZIPInputStream gzip = new GZIPInputStream( stream);
+    try
+    {
+      return decompress( gzip);
+    }
+    finally
+    {
+      gzip.close();
+    }
   }
 
   /* (non-Javadoc)
@@ -84,5 +112,4 @@ public class ZipCompressor implements ICompressor
   }
 
   private TabularCompressor compressor;
-  private int level;
 }

@@ -24,13 +24,12 @@ import java.util.Iterator;
 import java.util.Set;
 import org.xmodel.util.Fifo;
 
-
 /**
  * An iterator which visits all the decendants of a domain object. The tree is visited breadth-first
  * and the root object is the first object visited. References are only visited once to prevent 
  * infinite loops.
  */
-public class BreadthFirstIterator implements Iterator<IModelObject>
+public class BreadthFirstIterator implements Iterator<IModelObject>, Iterable<IModelObject>
 {
   public BreadthFirstIterator( IModelObject root)
   {
@@ -71,6 +70,15 @@ public class BreadthFirstIterator implements Iterator<IModelObject>
     throw new UnsupportedOperationException();
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Iterable#iterator()
+   */
+  @Override
+  public Iterator<IModelObject> iterator()
+  {
+    return this;
+  }
+
   /**
    * Returns true if the specified object should be traversed.
    * @param object The object.

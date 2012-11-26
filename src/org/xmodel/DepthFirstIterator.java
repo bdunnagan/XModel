@@ -25,7 +25,7 @@ import java.util.*;
  * An iterator which visits all the decendants of a domain object. The tree is visited depth-first
  * and the root object is the first object visited.
  */
-public class DepthFirstIterator implements Iterator<IModelObject>
+public class DepthFirstIterator implements Iterator<IModelObject>, Iterable<IModelObject>
 {
   public DepthFirstIterator( IModelObject root)
   {
@@ -68,6 +68,15 @@ public class DepthFirstIterator implements Iterator<IModelObject>
     throw new UnsupportedOperationException();
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Iterable#iterator()
+   */
+  @Override
+  public Iterator<IModelObject> iterator()
+  {
+    return this;
+  }
+
   /**
    * Returns true if the specified object should be traversed.
    * @param object The object.
