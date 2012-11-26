@@ -29,13 +29,13 @@ import org.xmodel.memento.SetParentMemento;
 /**
  * An implementation of IModelObject which functions as a reference to another IModelObject.
  */
-public class Reference implements IModelObject
+public class Reference implements INode
 {
   /**
    * Create a HardReference with the specified referent.
    * @param referent The referent to which the reference points.
    */
-  public Reference( IModelObject referent)
+  public Reference( INode referent)
   {
     this.referent = referent;
   }
@@ -45,7 +45,7 @@ public class Reference implements IModelObject
    * @param type The type associated with the reference instance.
    * @param referent The referent to which the reference points.
    */
-  public Reference( String type, IModelObject referent)
+  public Reference( String type, INode referent)
   {
     this.referent = referent;
   }
@@ -134,7 +134,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAttributeNode(java.lang.String)
    */
-  public IModelObject getAttributeNode( String attrName)
+  public INode getAttributeNode( String attrName)
   {
     return referent.getAttributeNode( attrName);
   }
@@ -182,7 +182,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject)
    */
-  public void addChild( IModelObject object)
+  public void addChild( INode object)
   {
     referent.addChild( object);
   }
@@ -190,7 +190,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject, int)
    */
-  public void addChild( IModelObject object, int index)
+  public void addChild( INode object, int index)
   {
     referent.addChild( object, index);
   }
@@ -198,7 +198,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(int)
    */
-  public IModelObject removeChild( int index)
+  public INode removeChild( int index)
   {
     return referent.removeChild( index);
   }
@@ -206,7 +206,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(org.xmodel.IModelObject)
    */
-  public void removeChild( IModelObject object)
+  public void removeChild( INode object)
   {
     referent.removeChild( object);
   }
@@ -238,7 +238,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(int)
    */
-  public IModelObject getChild( int index)
+  public INode getChild( int index)
   {
     return referent.getChild( index);
   }
@@ -246,7 +246,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getFirstChild(java.lang.String)
    */
-  public IModelObject getFirstChild( String type)
+  public INode getFirstChild( String type)
   {
     return referent.getFirstChild( type);
   }
@@ -254,7 +254,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public INode getChild( String type, String name)
   {
     return referent.getChild( type, name);
   }
@@ -262,7 +262,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String)
    */
-  public IModelObject getCreateChild( String type)
+  public INode getCreateChild( String type)
   {
     return referent.getCreateChild( type);
   }
@@ -270,7 +270,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public INode getCreateChild( String type, String name)
   {
     return referent.getCreateChild( type, name);
   }
@@ -278,7 +278,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<INode> getChildren( String type, String name)
   {
     return referent.getChildren( type, name);
   }
@@ -286,7 +286,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren()
    */
-  public List<IModelObject> getChildren()
+  public List<INode> getChildren()
   {
     return referent.getChildren();
   }
@@ -294,7 +294,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String)
    */
-  public List<IModelObject> getChildren( String type)
+  public List<INode> getChildren( String type)
   {
     return referent.getChildren( type);
   }
@@ -326,9 +326,9 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_setParent(org.xmodel.IModelObject)
    */
-  public IModelObject internal_setParent( IModelObject newParent)
+  public INode internal_setParent( INode newParent)
   {
-    IModelObject oldParent = parent;
+    INode oldParent = parent;
     parent = newParent;
     return oldParent;
   }
@@ -336,7 +336,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void internal_notifyParent( IModelObject newParent, IModelObject oldParent)
+  public void internal_notifyParent( INode newParent, INode oldParent)
   {
     // FIXME: should Reference keep listeners so that it can perform notification of parent?
   }
@@ -344,7 +344,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyAddChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyAddChild( IModelObject child, int index)
+  public void internal_notifyAddChild( INode child, int index)
   {
     referent.internal_notifyAddChild( child, index);
   }
@@ -352,7 +352,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyRemoveChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyRemoveChild( IModelObject child, int index)
+  public void internal_notifyRemoveChild( INode child, int index)
   {
     referent.internal_notifyRemoveChild( child, index);
   }
@@ -360,7 +360,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_addChild(org.xmodel.IModelObject, int)
    */
-  public void internal_addChild( IModelObject child, int index)
+  public void internal_addChild( INode child, int index)
   {
     referent.internal_addChild( child, index);
   }
@@ -368,7 +368,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_removeChild(int)
    */
-  public IModelObject internal_removeChild( int index)
+  public INode internal_removeChild( int index)
   {
     return referent.internal_removeChild( index);
   }
@@ -376,7 +376,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getParent()
    */
-  public IModelObject getParent()
+  public INode getParent()
   {
     return parent;
   }
@@ -384,7 +384,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAncestor(java.lang.String)
    */
-  public IModelObject getAncestor( String type)
+  public INode getAncestor( String type)
   {
     if ( parent.isType( type)) return parent;
     return parent.getAncestor( type);
@@ -393,7 +393,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getRoot()
    */
-  public IModelObject getRoot()
+  public INode getRoot()
   {
     if ( parent == null) return this;
     return parent.getRoot();
@@ -450,14 +450,14 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */
-  public IModelObject cloneObject()
+  public INode cloneObject()
   {
     return referent.cloneObject();
   }
 
   /* (non-Javadoc)
    */
-  public IModelObject cloneTree()
+  public INode cloneTree()
   {
     return referent.cloneTree();
   }
@@ -465,7 +465,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#createObject(java.lang.String)
    */
-  public IModelObject createObject( String type)
+  public INode createObject( String type)
   {
     return referent.createObject(  type);
   }
@@ -473,7 +473,7 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getReferent()
    */
-  public IModelObject getReferent()
+  public INode getReferent()
   {
     return referent;
   }
@@ -515,9 +515,9 @@ public class Reference implements IModelObject
    * @param object The starting point reference.
    * @return Returns the ultimate referent.
    */
-  public static IModelObject getReferent( IModelObject object)
+  public static INode getReferent( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     while( referent != object) 
     {
       object = referent;
@@ -534,7 +534,7 @@ public class Reference implements IModelObject
     try
     {
       if ( referent == null) return super.equals( object);
-      return getReferent( referent) == getReferent( (IModelObject)object);
+      return getReferent( referent) == getReferent( (INode)object);
     }
     catch( ClassCastException e)
     {
@@ -568,6 +568,6 @@ public class Reference implements IModelObject
     return "&"+referent;
   }
   
-  private IModelObject parent;
-  private IModelObject referent;
+  private INode parent;
+  private INode referent;
 }

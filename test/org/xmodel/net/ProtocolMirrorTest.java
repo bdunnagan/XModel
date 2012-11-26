@@ -6,7 +6,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -54,10 +54,10 @@ public class ProtocolMirrorTest
   {
     createClients( defaultClientCount);
     
-    IModelObject model = new ModelObject( "server");
+    INode model = new ModelObject( "server");
     for( int i=0; i<defaultClientCount; i++)
     {
-      IModelObject element = new ModelObject( "client", ""+i);
+      INode element = new ModelObject( "client", ""+i);
       model.addChild( element);
     }
     

@@ -30,13 +30,13 @@ import org.xmodel.util.Fifo;
  * An iterator which visits all of the preceding elements of the starting element (see preceding axis).
  * References are only visited once to prevent infinite loops.
  */
-public class PrecedingIterator implements Iterator<IModelObject>
+public class PrecedingIterator implements Iterator<INode>
 {
-  public PrecedingIterator( IModelObject root)
+  public PrecedingIterator( INode root)
   {
-    fifo = new Fifo<IModelObject>();
+    fifo = new Fifo<INode>();
     pushPrevious( root);
-    references = new HashSet<IModelObject>();
+    references = new HashSet<INode>();
   }
   
   /* (non-Javadoc)
@@ -51,9 +51,9 @@ public class PrecedingIterator implements Iterator<IModelObject>
   /* (non-Javadoc)
    * @see java.util.Iterator#next()
    */
-  public IModelObject next()
+  public INode next()
   {
-    IModelObject object = (IModelObject)fifo.pop();
+    INode object = (INode)fifo.pop();
     pushPrevious( object);
     return object;
   }
@@ -62,13 +62,13 @@ public class PrecedingIterator implements Iterator<IModelObject>
    * Push the previous element following the specified object.
    * @param object The object.
    */
-  private void pushPrevious( IModelObject object)
+  private void pushPrevious( INode object)
   {
     // push next sibling
     if ( !pushPreviousSibling( object))
     {
       // else push parent sibling
-      IModelObject parent = object.getParent();
+      INode parent = object.getParent();
       if ( parent != null) pushPreviousSibling( parent);
     }
   }
@@ -78,12 +78,12 @@ public class PrecedingIterator implements Iterator<IModelObject>
    * @param object The object.
    * @return Returns true if a sibling was found.
    */
-  private boolean pushPreviousSibling( IModelObject object)
+  private boolean pushPreviousSibling( INode object)
   {
-    IModelObject parent = object.getParent();
+    INode parent = object.getParent();
     if ( parent != null)
     {
-      List<IModelObject> siblings = parent.getChildren();
+      List<INode> siblings = parent.getChildren();
       int index = siblings.indexOf( object) - 1;
       if ( index >= 0) 
       {
@@ -107,9 +107,9 @@ public class PrecedingIterator implements Iterator<IModelObject>
    * @param object The object.
    * @return Returns true if the specified object should be traversed.
    */
-  protected boolean shouldTraverse( IModelObject object)
+  protected boolean shouldTraverse( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     if ( referent != object)
     {
       if ( references.contains( object)) return false;
@@ -118,6 +118,6 @@ public class PrecedingIterator implements Iterator<IModelObject>
     return true;
   }
   
-  private Fifo<IModelObject> fifo;
-  private Set<IModelObject> references;
+  private Fifo<INode> fifo;
+  private Set<INode> references;
 }

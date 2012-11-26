@@ -22,7 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.Map;
 import org.xmodel.IModelListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelListener;
 
@@ -37,7 +37,7 @@ public class NamePredicate extends PredicateExpression
   {
     super( path);
     this.objectName = objectName;
-    this.contexts = new HashMap<IModelObject, IContext>();
+    this.contexts = new HashMap<INode, IContext>();
   }
   
   /* (non-Javadoc)
@@ -104,7 +104,7 @@ public class NamePredicate extends PredicateExpression
   }
 
   final IModelListener nameListener = new ModelListener() {
-    public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+    public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
     {
       if ( listeners == null) return;
       if ( attrName.equals( "id"))
@@ -123,7 +123,7 @@ public class NamePredicate extends PredicateExpression
         }
       }
     }
-    public void notifyClear( IModelObject object, String attrName, Object oldValue)
+    public void notifyClear( INode object, String attrName, Object oldValue)
     {
       if ( listeners == null) return;
       if ( attrName.equals( "id"))
@@ -139,5 +139,5 @@ public class NamePredicate extends PredicateExpression
   };
   
   String objectName;
-  Map<IModelObject, IContext> contexts;
+  Map<INode, IContext> contexts;
 }

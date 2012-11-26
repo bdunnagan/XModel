@@ -21,7 +21,7 @@ package org.xmodel.path;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.util.Fifo;
 
 
@@ -45,36 +45,36 @@ public class NestedAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
-    List<IModelObject> layer = new ArrayList<IModelObject>();
-    Fifo<IModelObject> stack = new Fifo<IModelObject>();
+    List<INode> layer = new ArrayList<INode>();
+    Fifo<INode> stack = new Fifo<INode>();
     stack.push( object);
     while( !stack.empty())
     {
-      IModelObject nested = stack.pop();
+      INode nested = stack.pop();
       nested.addModelListener( this);
       layer.clear();
       fanoutElement.query( null, nested, layer);
-      for( IModelObject child: layer) if ( child != nested) stack.push( child);
+      for( INode child: layer) if ( child != nested) stack.push( child);
     }
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
-    List<IModelObject> layer = new ArrayList<IModelObject>();
-    Fifo<IModelObject> stack = new Fifo<IModelObject>();
+    List<INode> layer = new ArrayList<INode>();
+    Fifo<INode> stack = new Fifo<INode>();
     stack.push( object);
     while( !stack.empty())
     {
-      IModelObject nested = stack.pop();
+      INode nested = stack.pop();
       nested.removeModelListener( this);
       layer.clear();
       fanoutElement.query( null, nested, layer);
-      for( IModelObject child: layer) if ( child != nested) stack.push( child);
+      for( INode child: layer) if ( child != nested) stack.push( child);
     }
   }
 
@@ -90,21 +90,21 @@ public class NestedAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyAddChild(
    * org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     // install next link (* see above)
-    List<IModelObject> layer = new ArrayList<IModelObject>();
-    Fifo<IModelObject> stack = new Fifo<IModelObject>();
+    List<INode> layer = new ArrayList<INode>();
+    Fifo<INode> stack = new Fifo<INode>();
     stack.push( child);
     while( !stack.empty())
     {
-      IModelObject nested = stack.pop();
+      INode nested = stack.pop();
       if ( fanoutElement.evaluate( null, null, nested))
       {
         getNextListener().incrementalInstall( nested);
         layer.clear();
         fanoutElement.query( null, nested, layer);
-        for( IModelObject object: layer) if ( object != nested) stack.push( object);
+        for( INode object: layer) if ( object != nested) stack.push( object);
       }
     }
     
@@ -116,24 +116,24 @@ public class NestedAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyRemoveChild(
    * org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     // uninstall my listeners
     uninstallListeners( child);
 
     // uninstall next link
-    List<IModelObject> layer = new ArrayList<IModelObject>();
-    Fifo<IModelObject> stack = new Fifo<IModelObject>();
+    List<INode> layer = new ArrayList<INode>();
+    Fifo<INode> stack = new Fifo<INode>();
     stack.push( child);
     while( !stack.empty())
     {
-      IModelObject nested = stack.pop();
+      INode nested = stack.pop();
       if ( fanoutElement.evaluate( null, null, nested))
       {
         getNextListener().incrementalUninstall( nested);
         layer.clear();
         fanoutElement.query( null, nested, layer);
-        for( IModelObject object: layer) if ( object != nested) stack.push( object);
+        for( INode object: layer) if ( object != nested) stack.push( object);
       }
     }
   }

@@ -26,7 +26,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -107,13 +107,13 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
       File[] files = folder.listFiles( filter);
       try
       {
-        IModelObject newFolder = getFactory().createObject( null, reference.getType());
+        INode newFolder = getFactory().createObject( null, reference.getType());
         ModelAlgorithms.copyAttributes( reference, newFolder);
         for( File file: files)
         {
           if ( file.isDirectory())
           {
-            IModelObject folderEntry = getFactory().createObject( newFolder, file.getName());
+            INode folderEntry = getFactory().createObject( newFolder, file.getName());
             folderEntry.setAttribute( "path", file.getPath());
             folderEntry.setAttribute( "type", "folder");
             newFolder.addChild( folderEntry);
@@ -123,7 +123,7 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
             String tag = getRootTag( file);
             if ( tag != null)
             {
-              IModelObject fileEntry = getFactory().createObject( newFolder, "file");
+              INode fileEntry = getFactory().createObject( newFolder, "file");
               fileEntry.setID( file.getName());
               fileEntry.setAttribute( "path", file.getParent());
               newFolder.addChild( fileEntry);

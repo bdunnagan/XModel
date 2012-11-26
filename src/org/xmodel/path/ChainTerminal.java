@@ -21,7 +21,7 @@ package org.xmodel.path;
 
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
 import org.xmodel.log.Log;
@@ -56,7 +56,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#install(java.util.List)
    */
-  public void install( List<IModelObject> list)
+  public void install( List<INode> list)
   {
     IPathListener listener = chain.getPathListener();
     if ( listener != null)
@@ -76,7 +76,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#uninstall(java.util.List)
    */
-  public void uninstall( List<IModelObject> list)
+  public void uninstall( List<INode> list)
   {
     IPathListener listener = chain.getPathListener();
     if ( listener != null)
@@ -96,7 +96,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(org.xmodel.IModelObject)
    */
-  public void incrementalInstall( IModelObject object)
+  public void incrementalInstall( INode object)
   {
     incrementalInstall( Collections.singletonList( object));
   }
@@ -104,7 +104,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(org.xmodel.IModelObject)
    */
-  public void incrementalUninstall( IModelObject object)
+  public void incrementalUninstall( INode object)
   {
     incrementalUninstall( Collections.singletonList( object));
   }
@@ -112,7 +112,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(java.util.List)
    */
-  public void incrementalInstall( List<IModelObject> list)
+  public void incrementalInstall( List<INode> list)
   {
     IPathListener listener = chain.getPathListener();
     if ( listener != null)
@@ -132,7 +132,7 @@ public class ChainTerminal implements IListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(java.util.List)
    */
-  public void incrementalUninstall( List<IModelObject> list)
+  public void incrementalUninstall( List<INode> list)
   {
     IPathListener listener = chain.getPathListener();
     if ( listener != null)

@@ -19,7 +19,7 @@
  */
 package org.xmodel.record;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 
@@ -35,7 +35,7 @@ public class AddChildRecord extends AbstractChangeRecord
    * @param path The identity path of the target object.
    * @param child The child to be removed.
    */
-  public AddChildRecord( IPath path, IModelObject child)
+  public AddChildRecord( IPath path, INode child)
   {
     super( path);
     this.child = child;
@@ -49,7 +49,7 @@ public class AddChildRecord extends AbstractChangeRecord
    * @param child The child to be removed.
    * @param index The index where the child will be added.
    */
-  public AddChildRecord( IPath path, IModelObject child, int index)
+  public AddChildRecord( IPath path, INode child, int index)
   {
     super( path);
     this.child = child;
@@ -67,7 +67,7 @@ public class AddChildRecord extends AbstractChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#getChild()
    */
-  public IModelObject getChild()
+  public INode getChild()
   {
     return super.getChild();
   }
@@ -83,7 +83,7 @@ public class AddChildRecord extends AbstractChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#applyChange(org.xmodel.IModelObject)
    */
-  public void applyChange( IModelObject root)
+  public void applyChange( INode root)
   {
     if ( path == null) return;
 
@@ -91,7 +91,7 @@ public class AddChildRecord extends AbstractChangeRecord
     ModelAlgorithms.createPathSubtree( root, path, null, null);
 
     // apply change
-    IModelObject target = path.queryFirst( root);
+    INode target = path.queryFirst( root);
     if ( index < 0) target.addChild( child); else target.addChild( child, index);
   }
   
@@ -103,6 +103,6 @@ public class AddChildRecord extends AbstractChangeRecord
     return "add child: "+child+", index: "+index+", path: "+path;
   }
   
-  IModelObject child;
+  INode child;
   int index;
 }

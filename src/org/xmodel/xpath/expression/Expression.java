@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.NullObject;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.function.BooleanFunction;
@@ -167,7 +167,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, 
    * org.xmodel.IModelObject)
    */
-  public void setVariable( String name, IModelObject node)
+  public void setVariable( String name, INode node)
   {
     getLocalScope().set( name, node);
   }
@@ -175,7 +175,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, java.util.List)
    */
-  public void setVariable( String name, List<IModelObject> nodes)
+  public void setVariable( String name, List<INode> nodes)
   {
     getLocalScope().set( name, nodes);
   }
@@ -293,7 +293,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes()
    */
-  public List<IModelObject> evaluateNodes() throws ExpressionException
+  public List<INode> evaluateNodes() throws ExpressionException
   {
     return evaluateNodes( new Context( new NullObject()));
   }
@@ -318,7 +318,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     throw new ExpressionException( this, "Expression does not return node-set.");
   }
@@ -372,7 +372,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
-  public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult)
+  public List<INode> evaluateNodes( IContext context, List<INode> defaultResult)
   {
     try
     {
@@ -436,14 +436,14 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#createSubtree(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(java.util.List)
    */
-  public List<IModelObject> query( List<IModelObject> result)
+  public List<INode> query( List<INode> result)
   {
     return query( new Context( new NullObject()), result);
   }
@@ -451,7 +451,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst()
    */
-  public IModelObject queryFirst()
+  public INode queryFirst()
   {
     return queryFirst( new Context( new NullObject()));
   }
@@ -459,11 +459,11 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.IModelObject, java.util.List)
    */
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result)
+  public List<INode> query( INode object, List<INode> result)
   {
     try 
     {
-      List<IModelObject> nodes = evaluateNodes( new Context( object));
+      List<INode> nodes = evaluateNodes( new Context( object));
       if ( nodes == null) return Collections.emptyList();
       if ( result == null) return nodes;
       result.addAll( nodes);
@@ -478,11 +478,11 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.IModelObject)
    */
-  public IModelObject queryFirst( IModelObject object)
+  public INode queryFirst( INode object)
   {
     try
     {
-      List<IModelObject> nodes = evaluateNodes( new Context( object));
+      List<INode> nodes = evaluateNodes( new Context( object));
       if ( nodes == null || nodes.size() == 0) return null;
       return nodes.get( 0);
     }
@@ -495,11 +495,11 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.xpath.expression.IContext, java.util.List)
    */
-  public List<IModelObject> query( IContext context, List<IModelObject> result)
+  public List<INode> query( IContext context, List<INode> result)
   {
     try
     {
-      List<IModelObject> nodes = evaluateNodes( context);
+      List<INode> nodes = evaluateNodes( context);
       if ( nodes == null) return Collections.emptyList();
       if ( result == null) return nodes;
       result.addAll( nodes);
@@ -514,11 +514,11 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.xpath.expression.IContext)
    */
-  public IModelObject queryFirst( IContext context)
+  public INode queryFirst( IContext context)
   {
     try
     {
-      List<IModelObject> nodes = evaluateNodes( context);
+      List<INode> nodes = evaluateNodes( context);
       if ( nodes == null || nodes.size() == 0) return null;
       return nodes.get( 0);
     }
@@ -613,7 +613,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
   }
 
@@ -622,7 +622,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
   }
 
@@ -684,7 +684,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( parent != null) parent.notifyValue( this, contexts, object, newValue, oldValue);
   }

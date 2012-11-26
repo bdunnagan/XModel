@@ -28,7 +28,7 @@ public class UnionChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#removeAttribute(org.xmodel.IModelObject, java.lang.String)
    */
   @Override
-  public void removeAttribute( IModelObject object, String attrName)
+  public void removeAttribute( INode object, String attrName)
   {
   }
 
@@ -36,7 +36,7 @@ public class UnionChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#removeChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
   @Override
-  public void removeChild( IModelObject object, IModelObject child, int index)
+  public void removeChild( INode object, INode child, int index)
   {
   }
 
@@ -44,7 +44,7 @@ public class UnionChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#removeChild(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
   @Override
-  public void removeChild( IModelObject object, IModelObject child)
+  public void removeChild( INode object, INode child)
   {
   }
 }

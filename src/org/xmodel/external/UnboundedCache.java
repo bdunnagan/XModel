@@ -19,7 +19,7 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of ICache which is unbounded (never clears its references).
@@ -29,7 +29,7 @@ public class UnboundedCache implements ICache
   /* (non-Javadoc)
    * @see org.xmodel.external.ICache#configure(org.xmodel.IModelObject)
    */
-  public void configure( IModelObject annotation)
+  public void configure( INode annotation)
   {
   }
 

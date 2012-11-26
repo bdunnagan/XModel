@@ -21,7 +21,7 @@ package org.xmodel.diff;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -43,7 +43,7 @@ public interface IXmlMatcher
    * @param rhs The right-hand-side of the diff.
    * @param changeSet The change set.
    */
-  public void startDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public void startDiff( INode lhs, INode rhs, IChangeSet changeSet);
   
   /**
    * This method is called by the differencing engine when the diff is finished.
@@ -51,7 +51,7 @@ public interface IXmlMatcher
    * @param rhs The right-hand-side of the diff.
    * @param changeSet The change set.
    */
-  public void endDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public void endDiff( INode lhs, INode rhs, IChangeSet changeSet);
   
   /**
    * This method is called by the differencing engine when the specified lhs and rhs have
@@ -63,7 +63,7 @@ public interface IXmlMatcher
    * @param rhs The right-hand-side of the diff.
    * @param changeSet The change set.
    */
-  public void enterDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public void enterDiff( INode lhs, INode rhs, IChangeSet changeSet);
   
   /**
    * This method is called by the differencing engine when the specified lhs and rhs have
@@ -75,7 +75,7 @@ public interface IXmlMatcher
    * @param rhs The right-hand-side of the diff.
    * @param changeSet The change set.
    */
-  public void exitDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public void exitDiff( INode lhs, INode rhs, IChangeSet changeSet);
   
   /**
    * Returns true if the specified attribute should be considered by the diff algorithm.
@@ -86,7 +86,7 @@ public interface IXmlMatcher
    * @param lhs True if the node comes from the lhs tree.
    * @return Returns true if the attribute should be diffed.
    */
-  public boolean shouldDiff( IModelObject object, String attrName, boolean lhs);
+  public boolean shouldDiff( INode object, String attrName, boolean lhs);
   
   /**
    * Returns true if the specified object should be considered by the diff algorithm. The
@@ -95,7 +95,7 @@ public interface IXmlMatcher
    * @param lhs True if the node comes from the lhs tree.
    * @return Returns true if the object should be diffed.
    */
-  public boolean shouldDiff( IModelObject object, boolean lhs);
+  public boolean shouldDiff( INode object, boolean lhs);
   
   /**
    * Returns true if the difference algorithm should treat the children of the specified 
@@ -103,7 +103,7 @@ public interface IXmlMatcher
    * @param parent The parent.
    * @return Returns true if an ordered diff should be used.
    */
-  public boolean isList( IModelObject parent);
+  public boolean isList( INode parent);
   
   /**
    * Find a match for the specified child in the specified list.
@@ -111,7 +111,7 @@ public interface IXmlMatcher
    * @param child The child.
    * @return Returns the index of the match that was found or -1.
    */
-  public int findMatch( List<IModelObject> children, IModelObject child);
+  public int findMatch( List<INode> children, INode child);
   
   /**
    * Returns true if the two children correlate.
@@ -119,5 +119,5 @@ public interface IXmlMatcher
    * @param rightChild The right-hand-side of the diff.
    * @return Returns true if the two children correlate.
    */
-  public boolean isMatch( IModelObject leftChild, IModelObject rightChild);
+  public boolean isMatch( INode leftChild, INode rightChild);
 }

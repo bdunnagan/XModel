@@ -20,8 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
@@ -42,7 +42,7 @@ public class AddAction extends GuardedAction
     super.configure( document);
 
     // load IModelObjectFactory and IXmlMatcher classes
-    IModelObject viewRoot = document.getRoot();
+    INode viewRoot = document.getRoot();
     factory = Conventions.getFactory( viewRoot);
     matcher = Conventions.getMatcher( document, viewRoot);
     
@@ -70,11 +70,11 @@ public class AddAction extends GuardedAction
     if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
     
     // source
-    List<IModelObject> sources = sourceExpr.query( context, null);
+    List<INode> sources = sourceExpr.query( context, null);
     if ( sources.size() == 0) return null;
     
     // fail if target is null
-    List<IModelObject> targets = targetExpr.query( context, null);
+    List<INode> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) return null; 
     
     // index
@@ -89,10 +89,10 @@ public class AddAction extends GuardedAction
     }
 
     // perform add
-    for( IModelObject target: targets)
+    for( INode target: targets)
     {
       int start = (index < 0)? target.getNumberOfChildren(): index;
-      for( IModelObject source: sources)
+      for( INode source: sources)
       {
         if ( mode.startsWith( "ref"))
         {
@@ -103,7 +103,7 @@ public class AddAction extends GuardedAction
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
           {
-            IModelObject object = factory.createObject( target, source.getType());
+            INode object = factory.createObject( target, source.getType());
             object.setValue( source.getID());
             target.addChild( object, start);
           }
@@ -112,7 +112,7 @@ public class AddAction extends GuardedAction
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
           {
-            IModelObject object = factory.createObject( target, source.getType());
+            INode object = factory.createObject( target, source.getType());
             object.setID( source.getID());
             target.addChild( object, start);
           }
@@ -121,7 +121,7 @@ public class AddAction extends GuardedAction
         {
           if ( unique)
           {
-            IModelObject matching = target.getChild( source.getType(), source.getID());
+            INode matching = target.getChild( source.getType(), source.getID());
             if ( matching != null)
             {
             	XmlDiffer differ = new XmlDiffer();
@@ -130,13 +130,13 @@ public class AddAction extends GuardedAction
             }
             else
             {
-              IModelObject object = ModelAlgorithms.cloneTree( source, factory);
+              INode object = ModelAlgorithms.cloneTree( source, factory);
               target.addChild( object, start);        	  
             }
           }
           else
           {
-            IModelObject object = ModelAlgorithms.cloneTree( source, factory);
+            INode object = ModelAlgorithms.cloneTree( source, factory);
             target.addChild( object, start);
           }
         }
@@ -152,7 +152,7 @@ public class AddAction extends GuardedAction
     return null;
   }
 
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private IXmlMatcher matcher;
   private IExpression sourceExpr;
   private IExpression targetExpr;

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -76,7 +76,7 @@ public class BooleanFunction extends Function
    * @param argument The argument to be converted.
    * @return Return the boolean value of the argument according to the X-Path 1.0 specification.
    */
-  public static boolean booleanValue( List<IModelObject> argument)
+  public static boolean booleanValue( List<INode> argument)
   {
     return argument.size() > 0;
   }
@@ -107,7 +107,7 @@ public class BooleanFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -118,7 +118,7 @@ public class BooleanFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }

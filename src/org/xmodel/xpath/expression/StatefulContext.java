@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.NullObject;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
@@ -56,7 +56,7 @@ public class StatefulContext implements IContext
    * Create a context for the given context node with position and size equal to one.
    * @param object The context node.
    */
-  public StatefulContext( IModelObject object)
+  public StatefulContext( INode object)
   {
     this( new ContextScope(), object, 1, 1);
   }
@@ -67,7 +67,7 @@ public class StatefulContext implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  public StatefulContext( IModelObject object, int position, int size)
+  public StatefulContext( INode object, int position, int size)
   {
     this( new ContextScope(), object, position, size);
   }
@@ -78,7 +78,7 @@ public class StatefulContext implements IContext
    * @param scope The scope to be associated with this context.
    * @param object The context node.
    */
-  public StatefulContext( IVariableScope scope, IModelObject object)
+  public StatefulContext( IVariableScope scope, INode object)
   {
     this( scope, object, 1, 1);
   }
@@ -90,7 +90,7 @@ public class StatefulContext implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  protected StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
+  protected StatefulContext( IVariableScope scope, INode object, int position, int size)
   {
     this.object = object;
     this.position = position;
@@ -105,7 +105,7 @@ public class StatefulContext implements IContext
    * @param scope A context whose scope will be shared.
    * @param object The context node.
    */
-  public StatefulContext( IContext scope, IModelObject object)
+  public StatefulContext( IContext scope, INode object)
   {
     this( new ContextScope( scope.getScope()), object, 1, 1);
   }
@@ -118,7 +118,7 @@ public class StatefulContext implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  public StatefulContext( IContext scope, IModelObject object, int position, int size)
+  public StatefulContext( IContext scope, INode object, int position, int size)
   {
     this( new ContextScope( scope.getScope()), object, position, size);
   }
@@ -150,7 +150,7 @@ public class StatefulContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, java.util.List)
    */
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     return scope.set( name, value);
   }
@@ -158,7 +158,7 @@ public class StatefulContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, org.xmodel.IModelObject)
    */
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     return scope.set( name, value);
   }
@@ -239,7 +239,7 @@ public class StatefulContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getContextNode()
    */
-  public IModelObject getObject()
+  public INode getObject()
   {
     return object;
   }
@@ -341,7 +341,7 @@ public class StatefulContext implements IContext
     return sb.toString();
   }
   
-  private IModelObject object;
+  private INode object;
   private int position;
   private int size;
   private Map<IExpression, Integer> updates;

@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -104,7 +104,7 @@ public class RunAction extends GuardedAction
     
     if ( contextExpr != null)
     {
-      for( IModelObject localNode: contextExpr.query( context, null))
+      for( INode localNode: contextExpr.query( context, null))
       {
         StatefulContext local = new StatefulContext( context, localNode);
         results = script.run( local);
@@ -119,7 +119,7 @@ public class RunAction extends GuardedAction
     {
       Object result = results[ 0];
       IVariableScope scope = context.getScope();
-      if ( result instanceof List) scope.set( var, (List<IModelObject>)result);
+      if ( result instanceof List) scope.set( var, (List<INode>)result);
       else if ( result instanceof String) scope.set( var, result.toString());
       else if ( result instanceof Number) scope.set( var, (Number)result);
       else if ( result instanceof Boolean) scope.set( var, (Boolean)result);
@@ -145,7 +145,7 @@ public class RunAction extends GuardedAction
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     String[] varArray = vars.split( "\\s*,\\s*");
-    IModelObject scriptNode = getScriptNode( context);
+    INode scriptNode = getScriptNode( context);
 
     XioClient client = null;
     try
@@ -189,7 +189,7 @@ public class RunAction extends GuardedAction
    * @param context The context.
    * @return Returns null or the script node.
    */
-  private IModelObject getScriptNode( IContext context)
+  private INode getScriptNode( IContext context)
   {
     if ( scriptExpr != null) return scriptExpr.queryFirst( context);
     
@@ -212,7 +212,7 @@ public class RunAction extends GuardedAction
     IXAction script = null;
     if ( expression != null)
     {
-      IModelObject scriptNode = expression.queryFirst( context);
+      INode scriptNode = expression.queryFirst( context);
       CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
       if ( attribute != null) script = attribute.script;
       if ( script == null)
@@ -265,7 +265,7 @@ public class RunAction extends GuardedAction
   
   private final class AsyncExecuter implements IXioCallback, Runnable, ChannelFutureListener
   {
-    public AsyncExecuter( XioClient client, IContext context, String[] vars, IModelObject element, int timeout, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public AsyncExecuter( XioClient client, IContext context, String[] vars, INode element, int timeout, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
       this.client = client;
       this.context = context;
@@ -349,7 +349,7 @@ public class RunAction extends GuardedAction
     private XioClient client;
     private IContext context;
     private String[] vars;
-    private IModelObject element;
+    private INode element;
     private int timeout;
     private ChannelFuture future;
     private IXAction onComplete;
@@ -367,7 +367,7 @@ public class RunAction extends GuardedAction
   private IExpression portExpr;
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
-  private IModelObject inline;
+  private INode inline;
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;

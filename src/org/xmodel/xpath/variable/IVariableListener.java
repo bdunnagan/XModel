@@ -20,7 +20,7 @@
 package org.xmodel.xpath.variable;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -35,7 +35,7 @@ public interface IVariableListener
    * @param context The context of the variable evaluation.
    * @param nodes The nodes which were added.
    */
-  public void notifyAdd( String name, IVariableScope scope, IContext context, List<IModelObject> nodes);
+  public void notifyAdd( String name, IVariableScope scope, IContext context, List<INode> nodes);
 
   /**
    * Called when the node-set of a variable changes.
@@ -44,7 +44,7 @@ public interface IVariableListener
    * @param context The context of the variable evaluation.
    * @param nodes The nodes which were removed.
    */
-  public void notifyRemove( String name, IVariableScope scope, IContext context, List<IModelObject> nodes);
+  public void notifyRemove( String name, IVariableScope scope, IContext context, List<INode> nodes);
 
   /**
    * Called when a string variable changes.

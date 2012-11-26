@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
@@ -45,7 +45,7 @@ public class CreateTriggerAction extends XAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     
     // variable to hold trigger instance
     var = Conventions.getVarName( config, true, "assign");
@@ -79,7 +79,7 @@ public class CreateTriggerAction extends XAction
         List<?> nodes = (List<?>)object;
         if ( nodes.size() > 0)
         {
-          IModelObject holder = (IModelObject)nodes.get( 0);
+          INode holder = (INode)nodes.get( 0);
           Object trigger = holder.getValue();
           if ( trigger instanceof ITrigger)
           {
@@ -90,7 +90,7 @@ public class CreateTriggerAction extends XAction
       }
       
       // save trigger in var
-      IModelObject holder = new ModelObject( "trigger");
+      INode holder = new ModelObject( "trigger");
       holder.setValue( trigger);
       scope.set( var, holder);
     }

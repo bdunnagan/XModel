@@ -20,7 +20,7 @@
 package org.xmodel.external;
 
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObject;
 
@@ -165,7 +165,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    * @see org.xmodel.ModelObject#createObject(java.lang.String)
    */
   @Override
-  public IModelObject createObject( String type)
+  public INode createObject( String type)
   {
     return new ExternalReference( type);
   }

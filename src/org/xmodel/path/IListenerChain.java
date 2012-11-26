@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
 import org.xmodel.xpath.expression.IContext;
@@ -58,11 +58,11 @@ public interface IListenerChain
    * Install the first link in the listener chain on the specified object.
    * @param object The object where the listener chain will be installed.
    */
-  public void install( IModelObject object);
+  public void install( INode object);
   
   /**
    * Uninstall the first link in the listener chain on the specified object.
    * @param object The object where the listener chain will be uninstalled.
    */
-  public void uninstall( IModelObject object);
+  public void uninstall( INode object);
 }

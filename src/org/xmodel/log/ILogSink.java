@@ -1,6 +1,6 @@
 package org.xmodel.log;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for handling a log message.
@@ -11,7 +11,7 @@ public interface ILogSink
    * Configure this sink. 
    * @param config The configuration element.
    */
-  public void configure( IModelObject config);
+  public void configure( INode config);
   
   /**
    * Log a message.

@@ -21,8 +21,8 @@ package org.xmodel.diff;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 
 /**
@@ -44,7 +44,7 @@ public class ShallowDiffer extends AbstractListDiffer
    * moved from the right-hand list to the left-hand list when the change set is applied.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -55,7 +55,7 @@ public class ShallowDiffer extends AbstractListDiffer
    * @param rParent The right-hand-side parent.
    * @param changeSet The change set.
    */
-  public void diff( IModelObject lParent, IModelObject rParent, IChangeSet changeSet)
+  public void diff( INode lParent, INode rParent, IChangeSet changeSet)
   {
     this.changeSet = changeSet;
     this.lParent = lParent;
@@ -68,7 +68,7 @@ public class ShallowDiffer extends AbstractListDiffer
    */
   public boolean isMatch( Object lObject, Object rObject)
   {
-    return matcher.isMatch( (IModelObject)lObject, (IModelObject)rObject);
+    return matcher.isMatch( (INode)lObject, (INode)rObject);
   }
   
   /**
@@ -76,7 +76,7 @@ public class ShallowDiffer extends AbstractListDiffer
    * @param object The object.
    * @return Returns the object or its clone if the factory is non-null.
    */
-  private IModelObject getFactoryClone( IModelObject object)
+  private INode getFactoryClone( INode object)
   {
     if ( factory != null) return ModelAlgorithms.cloneTree( object, factory);
     return object;
@@ -96,7 +96,7 @@ public class ShallowDiffer extends AbstractListDiffer
   {
     for( int i=0; i<count; i++)
     {
-      IModelObject clone = getFactoryClone( rParent.getChild( rIndex+i));
+      INode clone = getFactoryClone( rParent.getChild( rIndex+i));
       changeSet.addChild( lParent, clone, rIndex+i);
     }
   }
@@ -112,9 +112,9 @@ public class ShallowDiffer extends AbstractListDiffer
     }
   }
 
-  IModelObjectFactory factory;
+  INodeFactory factory;
   IXmlMatcher matcher = new DefaultXmlMatcher();
   IChangeSet changeSet;
-  IModelObject lParent;
-  IModelObject rParent;
+  INode lParent;
+  INode rParent;
 }

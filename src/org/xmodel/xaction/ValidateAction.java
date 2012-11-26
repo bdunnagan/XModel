@@ -22,8 +22,8 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -43,7 +43,7 @@ public class ValidateAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     factory = Conventions.getFactory( config);
     var = Conventions.getVarName( config, true, "assign");    
     sourceExpr = document.getExpression( "source", false);
@@ -56,19 +56,19 @@ public class ValidateAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject schemaRoot = schemaRootExpr.queryFirst( context);
+    INode schemaRoot = schemaRootExpr.queryFirst( context);
     if ( schemaRoot == null)
       throw new IllegalArgumentException( 
         "Schema root is null in ValidateAction: "+this);
 
-    List<IModelObject> result = new ArrayList<IModelObject>();
-    for( IModelObject document: sourceExpr.query( context, null))
+    List<INode> result = new ArrayList<INode>();
+    for( INode document: sourceExpr.query( context, null))
     {
       List<SchemaError> errors = Schema.validate( schemaRoot, document, false);
       if ( errors != null)
         for( SchemaError error: errors)
         {
-          IModelObject element = factory.createObject( null, "error");
+          INode element = factory.createObject( null, "error");
           element.setValue( error.toString());
         }
     }
@@ -83,7 +83,7 @@ public class ValidateAction extends GuardedAction
     return null;
   }
   
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private String var;
   private IExpression sourceExpr;
   private IExpression schemaRootExpr;

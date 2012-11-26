@@ -21,7 +21,7 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -85,7 +85,7 @@ public class NosyncFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
     IModel model = context.getModel();
@@ -179,7 +179,7 @@ public class NosyncFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) parent.notifyAdd( this, context, nodes);
@@ -190,7 +190,7 @@ public class NosyncFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) parent.notifyRemove( this, context, nodes);

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -114,7 +114,7 @@ public class RuleBasedMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, java.lang.String, boolean)
    */
-  public boolean shouldDiff( IModelObject object, String attrName, boolean lhs)
+  public boolean shouldDiff( INode object, String attrName, boolean lhs)
   {
     return delegate.shouldDiff( object, attrName, lhs);
   }
@@ -122,7 +122,7 @@ public class RuleBasedMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, boolean)
    */
-  public boolean shouldDiff( IModelObject object, boolean lhs)
+  public boolean shouldDiff( INode object, boolean lhs)
   {
     return delegate.shouldDiff( object, lhs);
   }
@@ -131,7 +131,7 @@ public class RuleBasedMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#startDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void startDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void startDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     delegate = findRule( lhs, rhs);
     if ( delegate == null) delegate = defaultMatcher;
@@ -141,7 +141,7 @@ public class RuleBasedMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#endDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void endDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void endDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     delegate = null;
   }
@@ -150,7 +150,7 @@ public class RuleBasedMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#enterDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void enterDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void enterDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     stack.push( delegate);
     IXmlMatcher matcher = findRule( lhs, rhs);
@@ -163,7 +163,7 @@ public class RuleBasedMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#exitDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void exitDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void exitDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     // FIXME: this should call endDiff
     delegate.exitDiff( lhs, rhs, changeSet);
@@ -173,7 +173,7 @@ public class RuleBasedMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#findMatch(java.util.List, org.xmodel.IModelObject)
    */
-  public int findMatch( List<IModelObject> children, IModelObject child)
+  public int findMatch( List<INode> children, INode child)
   {
     return delegate.findMatch( children, child);
   }
@@ -181,7 +181,7 @@ public class RuleBasedMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#isList(org.xmodel.IModelObject)
    */
-  public boolean isList( IModelObject parent)
+  public boolean isList( INode parent)
   {
     return delegate.isList( parent);
   }
@@ -189,7 +189,7 @@ public class RuleBasedMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#isMatch(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public boolean isMatch( IModelObject leftChild, IModelObject rightChild)
+  public boolean isMatch( INode leftChild, INode rightChild)
   {
     return delegate.isMatch( leftChild, rightChild);
   }
@@ -200,7 +200,7 @@ public class RuleBasedMatcher implements IXmlMatcher
    * @param rhs The right-hand-side.
    * @return Returns the delegate from the matching rule.
    */
-  private IXmlMatcher findRule( IModelObject lhs, IModelObject rhs)
+  private IXmlMatcher findRule( INode lhs, INode rhs)
   {
     if ( rules != null)
     {
@@ -226,7 +226,7 @@ public class RuleBasedMatcher implements IXmlMatcher
      * @param rhs The right-hand-side of the diff which is about to be performed.
      * @return Returns true if this rule matches the specified lhs and rhs elements.
      */
-    public boolean doesRuleApply( IModelObject lhs, IModelObject rhs);
+    public boolean doesRuleApply( INode lhs, INode rhs);
     
     /**
      * Returns the delegate matcher to be used when this rule matches.
@@ -255,7 +255,7 @@ public class RuleBasedMatcher implements IXmlMatcher
     /* (non-Javadoc)
      * @see org.xmodel.diff.RuleBasedMatcher.Rule#doesRuleApply(org.xmodel.IModelObject, org.xmodel.IModelObject)
      */
-    public boolean doesRuleApply( IModelObject lhs, IModelObject rhs)
+    public boolean doesRuleApply( INode lhs, INode rhs)
     {
       StatefulContext context = new StatefulContext( lhs);
       context.set( "lhs", lhs);

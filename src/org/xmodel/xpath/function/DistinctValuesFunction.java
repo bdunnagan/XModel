@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -55,18 +55,18 @@ public class DistinctValuesFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
-    List<IModelObject> result = new ArrayList<IModelObject>( nodes.size());
-    Map<Object, IModelObject> map = new HashMap<Object, IModelObject>( nodes.size());
-    for( IModelObject node: nodes)
+    List<INode> nodes = getArgument( 0).evaluateNodes( context);
+    List<INode> result = new ArrayList<INode>( nodes.size());
+    Map<Object, INode> map = new HashMap<Object, INode>( nodes.size());
+    for( INode node: nodes)
     {
       Object value = node.getValue();
-      IModelObject match = map.get( value);
+      INode match = map.get( value);
       if ( match == null)
       {
         map.put( value, node);
@@ -82,7 +82,7 @@ public class DistinctValuesFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) parent.notifyChange( this, context);
@@ -94,7 +94,7 @@ public class DistinctValuesFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) parent.notifyChange( this, context);
@@ -116,7 +116,7 @@ public class DistinctValuesFunction extends Function
    * @see org.xmodel.xpath.expression.IExpression#notifyValue(java.util.Collection, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     IExpression parent = getParent();
     if ( parent != null) parent.notifyValue( this, contexts, object, newValue, oldValue);

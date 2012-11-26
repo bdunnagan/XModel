@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 /**
@@ -66,7 +66,7 @@ public final class FileSink implements ILogSink
    * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IModelObject config)
+  public void configure( INode config)
   {
     logFolder = Xlate.get( config, "logFolder", Xlate.childGet( config, "logFolder", logFolder));
     filePrefix = Xlate.get( config, "filePrefix", Xlate.childGet( config, "filePrefix", filePrefix));

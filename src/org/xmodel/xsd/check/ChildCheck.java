@@ -20,14 +20,14 @@
 package org.xmodel.xsd.check;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xsd.check.SchemaError.Type;
 
 
 public class ChildCheck extends ConstraintCheck
 {
-  public ChildCheck( IModelObject schemaLocus)
+  public ChildCheck( INode schemaLocus)
   {
     super( schemaLocus);
     childType = Xlate.get( schemaLocus, "");
@@ -37,10 +37,10 @@ public class ChildCheck extends ConstraintCheck
    * @see org.xmodel.xsd.nu.ConstraintCheck#validateOnce(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validateOnce( IModelObject documentLocus, int start, int end)
+  public boolean validateOnce( INode documentLocus, int start, int end)
   {
     index = start;
-    IModelObject child = documentLocus.getChild( index);
+    INode child = documentLocus.getChild( index);
     if ( child != null && child.isType( childType)) 
     {
       index++;

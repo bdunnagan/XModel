@@ -80,14 +80,14 @@ public interface IModel
    * @param collection The collection.
    * @param root The root node of the document.
    */
-  public void addRoot( String collection, IModelObject root);
+  public void addRoot( String collection, INode root);
   
   /**
    * Remove a document from the specified collection.
    * @param collection The collection.
    * @param root The root node of the document.
    */
-  public void removeRoot( String collection, IModelObject root);
+  public void removeRoot( String collection, INode root);
 
   /**
    * Remove all documents from the specified collection.
@@ -106,7 +106,7 @@ public interface IModel
    * @param collection The collection.
    * @return Returns the models registered in the specified collection.
    */
-  public List<IModelObject> getRoots( String collection);
+  public List<INode> getRoots( String collection);
 
   /**
    * Revert the current update (see Update for more information). This method may be called
@@ -132,13 +132,13 @@ public interface IModel
    * around IModelListener notifications.  For convenience, this method does nothing with a null argument.
    * @param object The object whose state will be locked or null.
    */
-  public void freeze( IModelObject object);
+  public void freeze( INode object);
   
   /**
    * Unlock the specified object. Updates will be processed when the <code>endUpdate</code> method is called.
    * @param object The object whose state will be unlocked.
    */
-  public void unfreeze( IModelObject object);
+  public void unfreeze( INode object);
   
   /**
    * Returns the IChangeSet which should be used to defer updates for the specified object
@@ -147,7 +147,7 @@ public interface IModel
    * @param object The object being updated.
    * @return Returns null or the deferral change set.
    */
-  public IChangeSet isFrozen( IModelObject object);
+  public IChangeSet isFrozen( INode object);
   
   /**
    * Start a new update. When changes are being made to the model from listeners, it is 

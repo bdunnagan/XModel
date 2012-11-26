@@ -81,7 +81,7 @@ public interface IChangeRecord
    * Get the child domain object which was added or deleted.
    * @return Returns the child object which was added or deleted.
    */
-  public IModelObject getChild();
+  public INode getChild();
   
   /**
    * Get the index of the child to be added or removed.
@@ -94,5 +94,5 @@ public interface IChangeRecord
    * <code>getPath</code> method from the specified root context.
    * @param root The root of the subtree where this change will be applied.
    */
-  public void applyChange( IModelObject root);
+  public void applyChange( INode root);
 }

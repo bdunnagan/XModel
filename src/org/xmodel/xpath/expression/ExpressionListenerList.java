@@ -20,7 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.*;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -98,7 +98,7 @@ public class ExpressionListenerList implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     List<IExpressionListener> listeners = map.get( context);
     if ( listeners == null) return;
@@ -122,7 +122,7 @@ public class ExpressionListenerList implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     List<IExpressionListener> listeners = map.get( context);
     if ( listeners == null) return;
@@ -249,7 +249,7 @@ public class ExpressionListenerList implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext[], 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     for( IContext context: contexts)
     {

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xpath.expression.ExpressionException;
@@ -64,8 +64,8 @@ public class DeepEqualFunction extends Function
     assertArgs( 2, 2);
     assertType( context, ResultType.NODES);
     
-    List<IModelObject> nodes1 = getArgument( 0).evaluateNodes( context);
-    List<IModelObject> nodes2 = getArgument( 1).evaluateNodes( context);
+    List<INode> nodes1 = getArgument( 0).evaluateNodes( context);
+    List<INode> nodes2 = getArgument( 1).evaluateNodes( context);
     
     // rule: non-equal list
     if ( nodes1.size() != nodes2.size()) return false;

@@ -20,7 +20,7 @@
 package org.xmodel.caching;
 
 import java.io.InputStream;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.xml.XmlIO;
 
@@ -40,14 +40,14 @@ public class XmlAssociation extends AbstractFileAssociation
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.io.File)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  public void apply( INode parent, String name, InputStream stream) throws CachingException
   {
     int count = 0;
     try
     {
       count = stream.available();
       XmlIO xmlIO = new XmlIO();
-      IModelObject content = xmlIO.read( stream);
+      INode content = xmlIO.read( stream);
       parent.addChild( content);
     }
     catch( Exception e)

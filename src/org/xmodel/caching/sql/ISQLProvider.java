@@ -20,7 +20,7 @@
 package org.xmodel.caching.sql;
 
 import java.sql.Connection;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for creating (and possibly caching) instances of java.sql.Statement. An implementation
@@ -33,7 +33,7 @@ public interface ISQLProvider
    * Configure this manager from the specified annotation.
    * @param annotation The annotation.
    */
-  public void configure( IModelObject annotation);
+  public void configure( INode annotation);
 
   /**
    * Create a new Connection instance.

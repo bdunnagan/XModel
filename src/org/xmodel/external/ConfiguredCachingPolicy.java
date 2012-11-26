@@ -19,8 +19,8 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.ScriptAction;
@@ -68,7 +68,7 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
    * @param context The context in which to evaluate expressions in the annotation.
    * @param annotation The annotation element.
    */
-  public void configure( IContext context, IModelObject annotation) throws CachingException
+  public void configure( IContext context, INode annotation) throws CachingException
   {
     this.context = context;
     
@@ -96,7 +96,7 @@ public abstract class ConfiguredCachingPolicy extends AbstractCachingPolicy
       {
         Class<?> factoryClass = getClass().getClassLoader().loadClass( factoryClassName);
         Object factory = factoryClass.newInstance();
-        setFactory( (IModelObjectFactory)factory);
+        setFactory( (INodeFactory)factory);
       }
       catch( Exception e)
       {

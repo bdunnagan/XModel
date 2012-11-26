@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import org.xmodel.ChangeSet;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xml.XmlIO;
 
@@ -129,7 +129,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.nu.IXmlMatcher#startDiff(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  public void startDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void startDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -137,7 +137,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.nu.IXmlMatcher#endDiff(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  public void endDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void endDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -145,7 +145,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#enterDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void enterDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void enterDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -153,7 +153,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#exitDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void exitDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void exitDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -161,7 +161,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, 
    * java.lang.String, boolean)
    */
-  public boolean shouldDiff( IModelObject object, String attrName, boolean lhs)
+  public boolean shouldDiff( INode object, String attrName, boolean lhs)
   {
     return !ignoreAttributeSet.contains( attrName);
   }
@@ -169,7 +169,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, boolean)
    */
-  public boolean shouldDiff( IModelObject object, boolean lhs)
+  public boolean shouldDiff( INode object, boolean lhs)
   {
     return !ignoreElementSet.contains( object.getType());
   }
@@ -177,7 +177,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.nu.IXmlMatcher#isList(org.xmodel.IModelObject)
    */
-  public boolean isList( IModelObject parent)
+  public boolean isList( INode parent)
   {
     return order;
   }
@@ -185,7 +185,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.nu.IXmlMatcher#findMatch(java.util.List, org.xmodel.IModelObject)
    */
-  public int findMatch( List<IModelObject> children, IModelObject child)
+  public int findMatch( List<INode> children, INode child)
   {
     String type = child.getType();
     String name = Xlate.get( child, "id", "");
@@ -197,7 +197,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
       }
       else 
       {
-        List<IModelObject> siblings = child.getParent().getChildren( type);
+        List<INode> siblings = child.getParent().getChildren( type);
         if ( siblings.size() == 1) return findUniqueMatch( children, child);
       }
     }
@@ -205,7 +205,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
     {
       for( int i=0; i<children.size(); i++)
       {
-        IModelObject candidate = children.get( i);
+        INode candidate = children.get( i);
         if ( candidate == child) return i;
         if ( candidate.isType( type) && candidate.getID().equals( name)) return i;
       }
@@ -219,13 +219,13 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @param child The simple child.
    * @return Returns the index of a simple match for the child or -1.
    */
-  protected int findSimpleMatch( List<IModelObject> children, IModelObject child)
+  protected int findSimpleMatch( List<INode> children, INode child)
   {
     int complexMatch = -1;
     String type = child.getType();
     for( int i=0; i<children.size(); i++)
     {
-      IModelObject candidate = children.get( i);
+      INode candidate = children.get( i);
       if ( candidate == child) return i;
       
       if ( candidate.isType( type))
@@ -245,13 +245,13 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @param child The unique child.
    * @return Returns the index of a unique match for the child or -1.
    */
-  protected int findUniqueMatch( List<IModelObject> children, IModelObject child)
+  protected int findUniqueMatch( List<INode> children, INode child)
   {
     String type = child.getType();
     if ( children.size() > 0)
     {
-      IModelObject parent = children.get( 0).getParent();
-      List<IModelObject> candidates = parent.getChildren( type);
+      INode parent = children.get( 0).getParent();
+      List<INode> candidates = parent.getChildren( type);
       if ( candidates.size() == 1) return children.indexOf( candidates.get( 0));
     }
     return -1;
@@ -261,7 +261,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.ICorrelation#isMatch(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject)
    */
-  public boolean isMatch( IModelObject localChild, IModelObject foreignChild)
+  public boolean isMatch( INode localChild, INode foreignChild)
   {
     String localID = localChild.getID();
     String foreignID = foreignChild.getID();
@@ -304,8 +304,8 @@ public class DefaultXmlMatcher implements IXmlMatcher
       "  <e>2</e>" +
       "</r>";
     
-    IModelObject d1 = xmlIO.read( s1);
-    IModelObject d2 = xmlIO.read( s2);
+    INode d1 = xmlIO.read( s1);
+    INode d2 = xmlIO.read( s2);
     changeSet.clearChanges();
     differ.diff( d1, d2, changeSet);
     System.out.printf( "set of simple elements:\n%s\n\n", changeSet);
@@ -333,7 +333,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
     
     // lists
     DefaultXmlMatcher matcher = new DefaultXmlMatcher() {
-      public boolean isList( IModelObject parent)
+      public boolean isList( INode parent)
       {
         return parent.isType( "r");
       }

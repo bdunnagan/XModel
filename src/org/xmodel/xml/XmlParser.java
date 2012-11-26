@@ -9,8 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 
@@ -65,9 +65,9 @@ public final class XmlParser
    * Parse the document and return the document node.
    * @return Returns the document node.
    */
-  public final IModelObject parse() throws IOException, ParseException
+  public final INode parse() throws IOException, ParseException
   {
-    IModelObject node = factory.createObject( null, "document");
+    INode node = factory.createObject( null, "document");
     while( parseContent( node, null));
     return node;
   }
@@ -76,12 +76,12 @@ public final class XmlParser
    * Parse an element declaration (assumes '<' already read).
    * @return Returns null or the parsed element.
    */
-  private final IModelObject parseElement() throws IOException, ParseException
+  private final INode parseElement() throws IOException, ParseException
   {
     StringBuilder name = new StringBuilder();
     if ( !parseName( name)) return null;
     
-    IModelObject element = factory.createObject( null, name.toString());
+    INode element = factory.createObject( null, name.toString());
     StringBuilder text = new StringBuilder();
     
     char c = readSkip();
@@ -149,7 +149,7 @@ public final class XmlParser
    * @param element The element.
    * @return Returns true if the parse was successful.
    */
-  private final boolean parseAttributes( IModelObject element) throws IOException, ParseException
+  private final boolean parseAttributes( INode element) throws IOException, ParseException
   {
     char c = readSkip(); offset--;
     
@@ -198,7 +198,7 @@ public final class XmlParser
    * @param text The text accumulator.
    * @return Returns false at the end of the element content.
    */
-  private boolean parseContent( IModelObject element, StringBuilder text) throws IOException, ParseException
+  private boolean parseContent( INode element, StringBuilder text) throws IOException, ParseException
   {
     char c = read(); if ( eoi) return false;
     while( c != '<' && !eoi)
@@ -242,7 +242,7 @@ public final class XmlParser
     else
     {
       offset--;
-      IModelObject child = parseElement();
+      INode child = parseElement();
       if ( child != null)
       {
         if ( recordTextPosition) child.setAttribute( "!position", text.length());
@@ -397,7 +397,7 @@ public final class XmlParser
    * @param parent The parent of the processing-instruction.
    * @return Returns true if parse is successful.
    */
-  private final boolean parsePI( IModelObject parent) throws IOException, ParseException
+  private final boolean parsePI( INode parent) throws IOException, ParseException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( '?');
@@ -406,7 +406,7 @@ public final class XmlParser
       throw createException( "Expected processing-instruction name.");
     }
     
-    IModelObject pi = factory.createObject( null, sb.toString());
+    INode pi = factory.createObject( null, sb.toString());
     sb.setLength( 0);
     
     char c = readSkip(); if ( eoi) return false;
@@ -437,7 +437,7 @@ public final class XmlParser
    * @param parent The parent element containing the comment.
    * @return Returns true if parse is successful.
    */
-  private final boolean parseComment( IModelObject parent) throws IOException, ParseException
+  private final boolean parseComment( INode parent) throws IOException, ParseException
   {
     char c = read(); if ( eoi) return false;
     if ( c != '-' || eoi) return false;
@@ -458,7 +458,7 @@ public final class XmlParser
     if ( c1 != '>') return false;
     
     
-    IModelObject comment = factory.createObject( null, body.toString());
+    INode comment = factory.createObject( null, body.toString());
     parent.addChild( comment);
     
     return true;
@@ -1217,7 +1217,7 @@ public final class XmlParser
   private final static String openDOCTYPEChars = "OCTYPE";
   private final static String openENTITYChars = "NTITY";
 
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private Map<String, String> entities;
   private Reader reader;
   private char[] buffer;

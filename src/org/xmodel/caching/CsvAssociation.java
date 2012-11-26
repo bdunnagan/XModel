@@ -22,7 +22,7 @@ package org.xmodel.caching;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.external.CachingException;
 
@@ -44,7 +44,7 @@ public class CsvAssociation extends AbstractFileAssociation
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  public void apply( INode parent, String name, InputStream stream) throws CachingException
   {
     try
     {
@@ -54,7 +54,7 @@ public class CsvAssociation extends AbstractFileAssociation
       {
         String line = reader.readLine();
         
-        IModelObject object = new ModelObject( rowElementName, Integer.toString( lnum++));
+        INode object = new ModelObject( rowElementName, Integer.toString( lnum++));
         parseFields( line, object);
         
         parent.addChild( object);
@@ -71,10 +71,10 @@ public class CsvAssociation extends AbstractFileAssociation
    * @param line The line.
    * @param parent The parent.
    */
-  private void parseFields( String line, IModelObject parent)
+  private void parseFields( String line, INode parent)
   {
     boolean quoting = false;
-    IModelObject child = new ModelObject( columnElementName);
+    INode child = new ModelObject( columnElementName);
     int index = 0;
     for( int i=0; i<line.length(); i++)
     {

@@ -19,12 +19,12 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 public class BooleanCheck extends AbstractCheck
 {
-  public BooleanCheck( IModelObject schemaLocus)
+  public BooleanCheck( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -32,7 +32,7 @@ public class BooleanCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     String value = Xlate.get( documentLocus, "");
     return value.equals( "true") || value.equals( "false");

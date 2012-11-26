@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 
 
 /**
@@ -67,16 +67,16 @@ public class UnionExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     
-    LinkedHashSet<IModelObject> nodes = new LinkedHashSet<IModelObject>();
+    LinkedHashSet<INode> nodes = new LinkedHashSet<INode>();
     nodes.addAll( arg0.evaluateNodes( context));
     nodes.addAll( arg1.evaluateNodes( context));
     
-    return new ArrayList<IModelObject>( nodes);
+    return new ArrayList<INode>( nodes);
   }
 
   /* (non-Javadoc)
@@ -98,7 +98,7 @@ public class UnionExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     getArgument( 0).createSubtree( context, factory, undo);
     getArgument( 1).createSubtree( context, factory, undo);
@@ -110,7 +110,7 @@ public class UnionExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( parent != null) parent.notifyChange( this, context);
   }
@@ -121,7 +121,7 @@ public class UnionExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( parent != null) parent.notifyChange( this, context);
   }
@@ -143,7 +143,7 @@ public class UnionExpression extends Expression
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( parent != null) parent.notifyValue( this, contexts, object, newValue, oldValue);
   }

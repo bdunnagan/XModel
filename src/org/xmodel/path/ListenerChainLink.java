@@ -21,7 +21,7 @@ package org.xmodel.path;
 
 import java.util.List;
 import org.xmodel.IModelListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
 import org.xmodel.log.Log;
@@ -57,7 +57,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * Notify the IPathListener that nodes were added.
    * @param list The nodes that were added.
    */
-  protected void notifyAdd( List<IModelObject> list)
+  protected void notifyAdd( List<INode> list)
   {
     if ( list.size() == 0) return;
     IPathListener listener = chain.getPathListener();
@@ -79,7 +79,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * Notify the IPathListener that a nodes were removed.
    * @param list The nodes that were removed.
    */
-  protected void notifyRemove( List<IModelObject> list)
+  protected void notifyRemove( List<INode> list)
   {
     if ( list.size() == 0) return;
     IPathListener listener = chain.getPathListener();
@@ -126,7 +126,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
   }
 
@@ -134,7 +134,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * @see org.xmodel.IModelListener#notifyAddChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
   }
 
@@ -142,7 +142,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * @see org.xmodel.IModelListener#notifyRemoveChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
   }
   
@@ -150,7 +150,7 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * @see org.xmodel.IModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, 
    * java.lang.Object, java.lang.Object)
    */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
   }
 
@@ -158,14 +158,14 @@ public abstract class ListenerChainLink implements IListenerChainLink, IModelLis
    * @see org.xmodel.IModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, 
    * java.lang.Object)
    */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
    */
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
   }
 

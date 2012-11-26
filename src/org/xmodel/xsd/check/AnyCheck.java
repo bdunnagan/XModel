@@ -19,11 +19,11 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 public class AnyCheck extends ConstraintCheck
 {
-  public AnyCheck( IModelObject schemaLocus)
+  public AnyCheck( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -32,7 +32,7 @@ public class AnyCheck extends ConstraintCheck
    * @see org.xmodel.xsd.nu.ConstraintCheck#validateOnce(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validateOnce( IModelObject documentLocus, int start, int end)
+  public boolean validateOnce( INode documentLocus, int start, int end)
   {
     // TODO: need to handle different types of any constraints
     count = end - start; 

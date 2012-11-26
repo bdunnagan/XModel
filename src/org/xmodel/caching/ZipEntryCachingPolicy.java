@@ -22,7 +22,7 @@ package org.xmodel.caching;
 import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -85,7 +85,7 @@ public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
    */
   private IExternalReference getZipReference( IExternalReference reference)
   {
-    IModelObject ancestor = reference;
+    INode ancestor = reference;
     while( ancestor != null)
     {
       if ( ancestor instanceof IExternalReference)

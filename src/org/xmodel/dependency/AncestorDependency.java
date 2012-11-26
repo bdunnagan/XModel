@@ -19,7 +19,7 @@
  */
 package org.xmodel.dependency;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IDependency which evaluates true if the dependent object is
@@ -34,9 +34,9 @@ public class AncestorDependency implements IDependency
    */
   public boolean evaluate( Object targetObject, Object dependObject)
   {
-    IModelObject target = (IModelObject)targetObject;
-    IModelObject depend = (IModelObject)dependObject;
-    IModelObject ancestor = target.getParent();
+    INode target = (INode)targetObject;
+    INode depend = (INode)dependObject;
+    INode ancestor = target.getParent();
     while( ancestor != null)
     {
       if ( ancestor.equals( depend)) return true;

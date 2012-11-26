@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function.custom;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.function.Function;
@@ -74,7 +74,7 @@ public class StaticFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
     return getArgument( 0).evaluateNodes( context);

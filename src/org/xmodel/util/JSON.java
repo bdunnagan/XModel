@@ -1,6 +1,6 @@
 package org.xmodel.util;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xml.XmlIO;
 
 /**
@@ -13,7 +13,7 @@ public class JSON
    * @param node The node to be serialized.
    * @param json The JSON string.
    */
-  public void serialize( IModelObject node, StringBuilder json)
+  public void serialize( INode node, StringBuilder json)
   {
     json.append( "{");
     serializeAttributes( node, json);
@@ -22,7 +22,7 @@ public class JSON
     json.append( "}");
   }
 
-  public void serializeValue( IModelObject node, StringBuilder json)
+  public void serializeValue( INode node, StringBuilder json)
   {
     Object attrValue = node.getValue();
     if ( attrValue != null)
@@ -40,7 +40,7 @@ public class JSON
    * @param node The node to be serialized.
    * @param json The JSON string.
    */
-  public void serializeAttributes( IModelObject node, StringBuilder json)
+  public void serializeAttributes( INode node, StringBuilder json)
   {
     if ( pretty) json.append( ' ');
     json.append( "\"attributes\":");
@@ -69,7 +69,7 @@ public class JSON
    * @param attrName The attribute name.
    * @param json The JSON string.
    */
-  public void serializeAttribute( IModelObject node, String attrName, StringBuilder json)
+  public void serializeAttribute( INode node, String attrName, StringBuilder json)
   {
     if ( pretty) json.append( ' ');
     json.append( '\"'); 
@@ -81,7 +81,7 @@ public class JSON
     json.append( escape( attrValue.toString()));
   }
   
-  public void serializeChildren( IModelObject node, StringBuilder json)
+  public void serializeChildren( INode node, StringBuilder json)
   {
     if ( pretty) json.append( ' ');
     json.append( "\"children\":");
@@ -89,7 +89,7 @@ public class JSON
     if ( pretty) json.append( ' ');
     json.append( "[");
     
-    for( IModelObject child: node.getChildren())
+    for( INode child: node.getChildren())
       serialize( child, json);
     
     json.append( "]");
@@ -130,7 +130,7 @@ public class JSON
     String xml = "" +
     		"<x id='1'/>";
     
-    IModelObject object = new XmlIO().read( xml);
+    INode object = new XmlIO().read( xml);
     JSON json = new JSON();
     StringBuilder sb = new StringBuilder();
     json.serialize( object, sb);

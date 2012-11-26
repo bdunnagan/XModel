@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.function.FunctionFactory;
@@ -38,7 +38,7 @@ public class DeclareAction extends XAction
   {
     super.configure( document);
     
-    IModelObject element = getDocument().getRoot();
+    INode element = getDocument().getRoot();
     String name = Xlate.get( element, "name", (String)null);
     String spec = Xlate.get( element, (String)null);
     if ( name != null && spec != null)

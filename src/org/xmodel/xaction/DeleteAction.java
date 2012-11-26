@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -43,8 +43,8 @@ public class DeleteAction extends GuardedAction
    */
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> targets = targetExpr.evaluateNodes( context);
-    for( IModelObject target: targets) target.removeFromParent();
+    List<INode> targets = targetExpr.evaluateNodes( context);
+    for( INode target: targets) target.removeFromParent();
     return null;
   }
   

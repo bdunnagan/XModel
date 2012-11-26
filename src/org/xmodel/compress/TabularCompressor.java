@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
@@ -100,7 +100,7 @@ public class TabularCompressor extends AbstractCompressor
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
    */
   @Override
-  public ChannelBuffer compress( IModelObject element) throws IOException
+  public ChannelBuffer compress( INode element) throws IOException
   {
     // content
     ChannelBuffer content = ChannelBuffers.dynamicBuffer( ByteOrder.BIG_ENDIAN, initialContentBufferSize);
@@ -130,7 +130,7 @@ public class TabularCompressor extends AbstractCompressor
    * @see org.xmodel.compress.ICompressor#decompress(org.jboss.netty.buffer.ChannelBuffer)
    */
   @Override
-  public IModelObject decompress( ChannelBuffer input) throws IOException
+  public INode decompress( ChannelBuffer input) throws IOException
   {
     // header flags
     int flags = input.readUnsignedByte();
@@ -151,7 +151,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
+  protected INode readElement( ChannelBuffer stream) throws IOException, CompressorException
   {
     log.verbosef( "readElement: offset=%d", stream.readerIndex());
     
@@ -159,7 +159,7 @@ public class TabularCompressor extends AbstractCompressor
     String type = readHash( stream);
     
     // create element
-    IModelObject element = factory.createObject( null, type);
+    INode element = factory.createObject( null, type);
     readAttributes( stream, element);
     readChildren( stream, element);
     
@@ -172,7 +172,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param element The element.
    */
-  protected void writeElement( ChannelBuffer stream, IModelObject element) throws IOException, CompressorException
+  protected void writeElement( ChannelBuffer stream, INode element) throws IOException, CompressorException
   {
     log.verbosef( "writeElement: offset=%d, node=%s", stream.writerIndex(), element.getType());
     
@@ -189,7 +189,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @param node The node whose attributes are being read.
    */
-  protected void readAttributes( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
+  protected void readAttributes( ChannelBuffer stream, INode node) throws IOException, CompressorException
   {
     log.verbosef( "readAttributes: offset=%d, node=%s", stream.readerIndex(), node.getType());
     
@@ -237,7 +237,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @param node The node whose children are being read.
    */
-  protected void readChildren( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
+  protected void readChildren( ChannelBuffer stream, INode node) throws IOException, CompressorException
   {
     log.verbosef( "readChildren: offset=%d, node=%s", stream.readerIndex(), node.getType());
     
@@ -247,7 +247,7 @@ public class TabularCompressor extends AbstractCompressor
     // read children
     for( int i=0; i<count; i++)
     {
-      IModelObject child = readElement( stream);
+      INode child = readElement( stream);
       node.addChild( child);
     }
   }
@@ -258,7 +258,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param node The node whose attributes are to be written.
    * @param attrNames The names of the attributes to write.
    */
-  protected void writeAttributes( ChannelBuffer stream, IModelObject node, Collection<String> attrNames) throws IOException, CompressorException
+  protected void writeAttributes( ChannelBuffer stream, INode node, Collection<String> attrNames) throws IOException, CompressorException
   {
     log.verbosef( "writeAttributes: offset=%d, node=%s", stream.writerIndex(), node.getType());
     
@@ -313,16 +313,16 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param node The node whose children are to be written.
    */
-  protected void writeChildren( ChannelBuffer stream, IModelObject node) throws IOException, CompressorException
+  protected void writeChildren( ChannelBuffer stream, INode node) throws IOException, CompressorException
   {
     log.verbosef( "writeChildren: offset=%d, node=%s", stream.writerIndex(), node.getType());
     
     // write count
-    List<IModelObject> children = node.getChildren();
+    List<INode> children = node.getChildren();
     writeValue( stream, children.size());
     
     // write children
-    for( IModelObject child: children)
+    for( INode child: children)
       writeElement( stream, child);
   }
   

@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.GlobalSettings;
@@ -74,7 +74,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#setFactory(org.xmodel.IModelObjectFactory)
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -82,7 +82,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#getFactory()
    */
-  public IModelObjectFactory getFactory()
+  public INodeFactory getFactory()
   {
     return factory;
   }
@@ -123,16 +123,16 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#defineNextStage(org.xmodel.IModelObject)
    */
-  public void defineNextStage( IModelObject stage)
+  public void defineNextStage( INode stage)
   {
-    if ( staticStages == null) staticStages = new ArrayList<IModelObject>( 1);
+    if ( staticStages == null) staticStages = new ArrayList<INode>( 1);
     staticStages.add( stage);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#createExternalTree(org.xmodel.IModelObject, boolean, org.xmodel.external.IExternalReference)
    */
-  public IExternalReference createExternalTree( IModelObject local, boolean dirty, IExternalReference proto)
+  public IExternalReference createExternalTree( INode local, boolean dirty, IExternalReference proto)
   {
     IExternalReference external = (IExternalReference)proto.createObject( local.getType());
     if ( dirty)
@@ -172,7 +172,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * @param object The object to which next stages will be applied.
    * @param proto The prototype for external references.
    */
-  protected void applyNextStages( IModelObject object, IExternalReference proto)
+  protected void applyNextStages( INode object, IExternalReference proto)
   {
     Context context = new Context( object);
     
@@ -181,8 +181,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     {
       for( NextStage stage: dynamicStages)
       {
-        List<IModelObject> matches = stage.path.evaluateNodes( context);
-        for( IModelObject matched: matches)
+        List<INode> matches = stage.path.evaluateNodes( context);
+        for( INode matched: matches)
         {
           IExternalReference replacement = stage.cachingPolicy.createExternalTree( matched, stage.dirty, proto);
           ModelAlgorithms.substitute( matched, replacement);
@@ -193,9 +193,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     // apply static stages
     if ( staticStages != null)
     {
-      for( IModelObject stage: staticStages)
+      for( INode stage: staticStages)
       {
-        IModelObject clone = ModelAlgorithms.cloneExternalTree( stage, null);
+        INode clone = ModelAlgorithms.cloneExternalTree( stage, null);
         object.addChild( clone);
       }
     }
@@ -214,14 +214,14 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     {
       if ( stage.dirty)
       {
-        List<IModelObject> matches = stage.path.evaluateNodes( context);
-        for( IModelObject matched: matches)
+        List<INode> matches = stage.path.evaluateNodes( context);
+        for( INode matched: matches)
         {
           // stage may be dirty since diff was performed with sync turned off (see update)
           ((IExternalReference)matched).setDirty( false);
           
           // capture location of next stage
-          IModelObject parent = matched.getParent();
+          INode parent = matched.getParent();
           int index = parent.getChildren().indexOf( matched);
           
           // remove from parent
@@ -247,7 +247,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     NonSyncingIterator iter = new NonSyncingIterator( reference);
     while( iter.hasNext())
     {
-      IModelObject element = iter.next();
+      INode element = iter.next();
       element = ModelAlgorithms.dereference( element);
       if ( element.isDirty()) ((IExternalReference)element).setDirty( false);
     }
@@ -264,8 +264,8 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     Context context = new Context( reference);
     for( NextStage stage: dynamicStages)
     {
-      List<IModelObject> matches = stage.path.evaluateNodes( context);
-      for( IModelObject matched: matches) result.add( (IExternalReference)matched);
+      List<INode> matches = stage.path.evaluateNodes( context);
+      for( INode matched: matches) result.add( (IExternalReference)matched);
     }
     return result;
   }
@@ -293,15 +293,15 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, int, boolean)
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException
   {
     // must insert object after applying next stages so create a clone of parent
-    IModelObject parentClone = parent.cloneObject();
+    INode parentClone = parent.cloneObject();
     parentClone.addChild( object);
     applyNextStages( parentClone, parent);
     
     // mark child dirty
-    IModelObject child = parentClone.getChild( 0);
+    INode child = parentClone.getChild( 0);
     if ( child instanceof IExternalReference) ((IExternalReference)child).setDirty( dirty);
     
     // move child from clone to parent
@@ -319,7 +319,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * @see org.xmodel.external.ICachingPolicy#update(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
+  public void update( IExternalReference reference, INode object) throws CachingException
   {
     // create next stages on prototype object
     applyNextStages( object, reference);
@@ -344,9 +344,9 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
+  public void remove( IExternalReference parent, INode object) throws CachingException
   {
-    IModelObject matched = ModelAlgorithms.findFastSimpleMatch( parent.getChildren(), object);
+    INode matched = ModelAlgorithms.findFastSimpleMatch( parent.getChildren(), object);
     if ( matched != null) matched.removeFromParent();
   }
 
@@ -518,6 +518,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   private IXmlDiffer differ;
   private List<String> staticAttributes;
   private List<NextStage> dynamicStages;
-  private List<IModelObject> staticStages;
-  private IModelObjectFactory factory;
+  private List<INode> staticStages;
+  private INodeFactory factory;
 }

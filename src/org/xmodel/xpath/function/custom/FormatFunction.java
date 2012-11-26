@@ -21,7 +21,7 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.Formatter;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.TextNode;
@@ -95,7 +95,7 @@ public class FormatFunction extends Function
         {
           StringBuilder sb = new StringBuilder();
           XmlIO xmlIO = new XmlIO();
-          for( IModelObject node: arg.evaluateNodes( context))
+          for( INode node: arg.evaluateNodes( context))
           {
             if ( node instanceof AttributeNode || node instanceof TextNode)
               sb.append( node.getValue());
@@ -166,7 +166,7 @@ public class FormatFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -176,7 +176,7 @@ public class FormatFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -226,7 +226,7 @@ public class FormatFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyChange( this, contexts[ 0]);
   }

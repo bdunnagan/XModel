@@ -21,7 +21,7 @@ package org.xmodel.diff;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -34,7 +34,7 @@ public class ExactXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#startDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void startDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void startDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -42,7 +42,7 @@ public class ExactXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#endDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void endDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void endDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -50,7 +50,7 @@ public class ExactXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#enterDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void enterDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void enterDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
@@ -58,14 +58,14 @@ public class ExactXmlMatcher implements IXmlMatcher
    * @see org.xmodel.diff.IXmlMatcher#exitDiff(org.xmodel.IModelObject, org.xmodel.IModelObject, 
    * org.xmodel.IChangeSet)
    */
-  public void exitDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void exitDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#findMatch(java.util.List, org.xmodel.IModelObject)
    */
-  public int findMatch( List<IModelObject> children, IModelObject child)
+  public int findMatch( List<INode> children, INode child)
   {
     throw new IllegalStateException();
   }
@@ -73,7 +73,7 @@ public class ExactXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#isList(org.xmodel.IModelObject)
    */
-  public boolean isList( IModelObject parent)
+  public boolean isList( INode parent)
   {
     return true;
   }
@@ -81,7 +81,7 @@ public class ExactXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#isMatch(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public boolean isMatch( IModelObject leftChild, IModelObject rightChild)
+  public boolean isMatch( INode leftChild, INode rightChild)
   {
     // compare type
     if ( !leftChild.getType().equals( rightChild.getType())) return false;
@@ -98,7 +98,7 @@ public class ExactXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, java.lang.String, boolean)
    */
-  public boolean shouldDiff( IModelObject object, String attrName, boolean lhs)
+  public boolean shouldDiff( INode object, String attrName, boolean lhs)
   {
     return true;
   }
@@ -106,7 +106,7 @@ public class ExactXmlMatcher implements IXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, boolean)
    */
-  public boolean shouldDiff( IModelObject object, boolean lhs)
+  public boolean shouldDiff( INode object, boolean lhs)
   {
     return true;
   }

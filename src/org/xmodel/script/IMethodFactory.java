@@ -2,7 +2,7 @@ package org.xmodel.script;
 
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -19,7 +19,7 @@ public interface IMethodFactory
    * @param element The element.
    * @return Returns the compiled method.
    */
-  public IMethod compile( IContext context, IModelObject element) throws CompileException;
+  public IMethod compile( IContext context, INode element) throws CompileException;
   
   /**
    * Compile the specified elements.
@@ -27,12 +27,12 @@ public interface IMethodFactory
    * @param elements The elements.
    * @return Returns the compiled method.
    */
-  public IMethod compile( IContext context, List<IModelObject> elements) throws CompileException;
+  public IMethod compile( IContext context, List<INode> elements) throws CompileException;
   
   /**
    * Returns the method that was previously, or is currently, being compiled for the specified element.
    * @param element The element.
    * @return Returns null or the method associated with the element.
    */
-  public IMethod methodFor( IModelObject element);
+  public IMethod methodFor( INode element);
 }

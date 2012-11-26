@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
@@ -76,7 +76,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
     // get current location
     Debugger debugger = getDebugger();
     IXAction frame = debugger.getCurrentFrame( debugger.getDebugThreadID());
-    IModelObject location = (frame != null)? frame.getDocument().getRoot(): new ModelObject( "(none)");
+    INode location = (frame != null)? frame.getDocument().getRoot(): new ModelObject( "(none)");
     
     // prompt
     StatefulContext breakContext = new StatefulContext( context);
@@ -117,7 +117,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
    * @param context The execution context.
    * @param location The step location.
    */
-  protected void prompt( IContext context, IModelObject location)
+  protected void prompt( IContext context, INode location)
   {
     // loop until recognized input
     while( true)
@@ -369,7 +369,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
     
     if ( expression.getType( context) == ResultType.NODES)
     {
-      List<IModelObject> nodes = expression.evaluateNodes( context);
+      List<INode> nodes = expression.evaluateNodes( context);
       for( int i=0; i<nodes.size(); i++)
       {
         showElement( prefix+"["+i+"] ", nodes.get( i), maxLines);
@@ -390,11 +390,11 @@ public class BreakAction extends GuardedAction implements IBreakHandler
    * @param element The element.
    * @param maxLines The maximum number of lines to print.
    */
-  private void showElement( String prefix, IModelObject element, int maxLines)
+  private void showElement( String prefix, INode element, int maxLines)
   {
     try
     {
-      IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
+      INode clone = ModelAlgorithms.cloneTree( element, factory);
       String xml = xmlIO.write( clone);
       showText( prefix, xml, maxLines);
     }
@@ -427,7 +427,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
    * @return Returns the count of ancestors.
    */
   @SuppressWarnings("unused")
-  private int getAncestorCount( IModelObject element)
+  private int getAncestorCount( INode element)
   {
     int count = 0;
     element = element.getParent();
@@ -504,10 +504,10 @@ public class BreakAction extends GuardedAction implements IBreakHandler
   /**
    * Factory which removes certain XActionDocument attributes.
    */
-  private IModelObjectFactory factory = new ModelObjectFactory() {
-    public IModelObject createClone( IModelObject object)
+  private INodeFactory factory = new ModelObjectFactory() {
+    public INode createClone( INode object)
     {
-      IModelObject clone = super.createClone( object);
+      INode clone = super.createClone( object);
       clone.removeAttribute( "xm:compiled");
       return clone;
     }

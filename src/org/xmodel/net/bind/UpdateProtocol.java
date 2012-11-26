@@ -4,7 +4,7 @@ import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
@@ -36,7 +36,7 @@ public class UpdateProtocol
    * @param child The child.
    * @param index The insertion index.
    */
-  public void sendAddChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
+  public void sendAddChild( Channel channel, INode parent, INode child, int index) throws IOException
   {
     int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
         
@@ -58,7 +58,7 @@ public class UpdateProtocol
    * @param parent The parent.
    * @param index The index of the child.
    */
-  public void sendRemoveChild( Channel channel, IModelObject parent, int index) throws IOException
+  public void sendRemoveChild( Channel channel, INode parent, int index) throws IOException
   {
     int parentNetID = protocol.responseCompressor.getLocalNetID( parent);
     
@@ -79,7 +79,7 @@ public class UpdateProtocol
    * @param attrName The name of the attribute.
    * @param newValue The new value of the attribute.
    */
-  public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
+  public void sendChangeAttribute( Channel channel, INode element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
@@ -106,7 +106,7 @@ public class UpdateProtocol
    * @param element The element.
    * @param attrName The name of the attribute.
    */
-  public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
+  public void sendClearAttribute( Channel channel, INode element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalNetID( element);
     byte[] attrNameBytes = attrName.getBytes();
@@ -130,7 +130,7 @@ public class UpdateProtocol
    * @param element The element.
    * @param dirty The dirty state.
    */
-  public void sendChangeDirty( Channel channel, IModelObject element, boolean dirty) throws IOException
+  public void sendChangeDirty( Channel channel, INode element, boolean dirty) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalNetID( element);
     
@@ -153,9 +153,9 @@ public class UpdateProtocol
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
-    IModelObject child = protocol.requestCompressor.decompress( buffer);
+    INode child = protocol.requestCompressor.decompress( buffer);
   
-    IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
+    INode parent = protocol.requestCompressor.findRemote( parentNetID);
     if ( parent == null) throw new XioException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
@@ -173,7 +173,7 @@ public class UpdateProtocol
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
   
-    IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
+    INode parent = protocol.requestCompressor.findRemote( parentNetID);
     if ( parent == null) throw new XioException( String.format( "Parent %X not found", parentNetID));
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
@@ -198,7 +198,7 @@ public class UpdateProtocol
   
     log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
-    IModelObject element = protocol.requestCompressor.findRemote( netID);
+    INode element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
@@ -219,7 +219,7 @@ public class UpdateProtocol
   
     log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
     
-    IModelObject element = protocol.requestCompressor.findRemote( netID);
+    INode element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
@@ -237,7 +237,7 @@ public class UpdateProtocol
 
     log.debugf( "UpdateProtocol.handleChangeDirty: element=%X, dirty=%s", netID, dirty);
     
-    IModelObject element = protocol.requestCompressor.findRemote( netID);
+    INode element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new XioException( String.format( "Element %X is not a reference", netID));
     
@@ -246,7 +246,7 @@ public class UpdateProtocol
   
   private final class AddChildEvent implements Runnable
   {
-    public AddChildEvent( IModelObject parent, IModelObject child, int index)
+    public AddChildEvent( INode parent, INode child, int index)
     {
       this.parent = parent;
       this.child = child;
@@ -258,14 +258,14 @@ public class UpdateProtocol
       parent.addChild( child, index);
     }
     
-    private IModelObject parent;
-    private IModelObject child;
+    private INode parent;
+    private INode child;
     private int index;
   }
   
   private final class RemoveChildEvent implements Runnable
   {
-    public RemoveChildEvent( IModelObject parent, int index)
+    public RemoveChildEvent( INode parent, int index)
     {
       this.parent = parent;
       this.index = index;
@@ -276,13 +276,13 @@ public class UpdateProtocol
       parent.removeChild( index);
     }
     
-    private IModelObject parent;
+    private INode parent;
     private int index;
   }
   
   private final class ChangeAttributeEvent implements Runnable
   {
-    public ChangeAttributeEvent( IModelObject element, String attrName, Object attrValue)
+    public ChangeAttributeEvent( INode element, String attrName, Object attrValue)
     {
       this.element = element;
       this.attrName = attrName;
@@ -294,14 +294,14 @@ public class UpdateProtocol
       element.setAttribute( attrName, attrValue);
     }
     
-    private IModelObject element;
+    private INode element;
     private String attrName;
     private Object attrValue;
   }
   
   private final class ClearAttributeEvent implements Runnable
   {
-    public ClearAttributeEvent( IModelObject element, String attrName)
+    public ClearAttributeEvent( INode element, String attrName)
     {
       this.element = element;
       this.attrName = attrName;
@@ -312,7 +312,7 @@ public class UpdateProtocol
       element.removeAttribute( attrName);
     }
     
-    private IModelObject element;
+    private INode element;
     private String attrName;
   }
   

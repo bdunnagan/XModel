@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -53,6 +53,6 @@ public class CreatePathAction extends GuardedAction
     return null;
   }
   
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private IExpression sourceExpr;
 }

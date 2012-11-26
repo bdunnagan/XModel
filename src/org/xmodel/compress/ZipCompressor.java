@@ -8,8 +8,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.log.SLog;
 
 /**
@@ -33,7 +33,7 @@ public class ZipCompressor implements ICompressor
    * @see org.xmodel.compress.ICompressor#setFactory(org.xmodel.IModelObjectFactory)
    */
   @Override
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     compressor.setFactory( factory);
   }
@@ -51,7 +51,7 @@ public class ZipCompressor implements ICompressor
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
    */
   @Override
-  public ChannelBuffer compress( IModelObject element) throws IOException
+  public ChannelBuffer compress( INode element) throws IOException
   {
     ChannelBuffer buffer = compressor.compress( element);
     
@@ -67,7 +67,7 @@ public class ZipCompressor implements ICompressor
    * @see org.xmodel.compress.ICompressor#decompress(org.jboss.netty.buffer.ChannelBuffer)
    */
   @Override
-  public IModelObject decompress( ChannelBuffer input) throws IOException
+  public INode decompress( ChannelBuffer input) throws IOException
   {
     GZIPInputStream gzip = new GZIPInputStream( new ChannelBufferInputStream( input));
     ChannelBuffer buffer = ChannelBuffers.dynamicBuffer( 1024);

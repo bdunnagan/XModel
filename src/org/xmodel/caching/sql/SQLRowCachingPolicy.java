@@ -1,6 +1,6 @@
 package org.xmodel.caching.sql;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -44,7 +44,7 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
     parent.setUpdateMonitorEnabled( false);
     try
     {
-      IModelObject object = parent.createRowPrototype( reference);
+      INode object = parent.createRowPrototype( reference);
       update( reference, object);
     }
     finally

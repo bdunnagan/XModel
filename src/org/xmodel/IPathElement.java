@@ -69,7 +69,7 @@ public interface IPathElement
    * @param candidate The object to be tested.
    * @return Returns true if the specified object matches this path element.
    */
-  public boolean evaluate( IContext context, IPath path, IModelObject candidate);
+  public boolean evaluate( IContext context, IPath path, INode candidate);
   
   /**
    * Returns the list of objects which are selected by this path element when the specified object
@@ -80,7 +80,7 @@ public interface IPathElement
    * @param result The list where the result will be stored or null.
    * @return Returns a list containing the selected objects.
    */
-  public List<IModelObject> query( IContext parent, IModelObject object, List<IModelObject> result);
+  public List<INode> query( IContext parent, INode object, List<INode> result);
 
   /**
    * Return the results of applying this query to each object in the specified list.
@@ -88,7 +88,7 @@ public interface IPathElement
    * @param list The list of objects to query.
    * @param result Null or the result list.
    */
-  public List<IModelObject> query( IContext parent, List<IModelObject> list, List<IModelObject> result);
+  public List<INode> query( IContext parent, List<INode> list, List<INode> result);
   
   /**
    * Clone this element.

@@ -22,7 +22,7 @@ package org.xmodel.path;
 import java.util.Collections;
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPathElement;
 import org.xmodel.xpath.PathElement;
 import org.xmodel.xpath.expression.IContext;
@@ -43,15 +43,15 @@ public abstract class FanoutListener extends ListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#install(java.util.List)
    */
-  public void install( List<IModelObject> list)
+  public void install( List<INode> list)
   {
     // install listeners and do notification
     notifyAdd( list);
-    for ( IModelObject object: list) installListeners( object);
+    for ( INode object: list) installListeners( object);
     
     // install next link
     IContext context = getListenerChain().getContext();
-    List<IModelObject> result = fanoutElement.query( context, list, null);
+    List<INode> result = fanoutElement.query( context, list, null);
     IListenerChainLink nextListener = getNextListener();
     if ( result.size() > 0) nextListener.install( result);    
   }
@@ -59,14 +59,14 @@ public abstract class FanoutListener extends ListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#uninstall(java.util.List)
    */
-  public void uninstall( List<IModelObject> list)
+  public void uninstall( List<INode> list)
   {
     // uninstall listeners
-    for ( IModelObject object: list) uninstallListeners( object);
+    for ( INode object: list) uninstallListeners( object);
     
     // uninstall next link
     IContext context = getListenerChain().getContext();
-    List<IModelObject> result = fanoutElement.query( context, list, null);
+    List<INode> result = fanoutElement.query( context, list, null);
     IListenerChainLink nextListener = getNextListener();
     if ( result.size() > 0) nextListener.uninstall( result);    
 
@@ -77,7 +77,7 @@ public abstract class FanoutListener extends ListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(org.xmodel.IModelObject)
    */
-  public void incrementalInstall( IModelObject object)
+  public void incrementalInstall( INode object)
   {
     incrementalInstall( Collections.singletonList( object));
   }
@@ -85,7 +85,7 @@ public abstract class FanoutListener extends ListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(org.xmodel.IModelObject)
    */
-  public void incrementalUninstall( IModelObject object)
+  public void incrementalUninstall( INode object)
   {
     incrementalUninstall( Collections.singletonList( object));
   }
@@ -93,7 +93,7 @@ public abstract class FanoutListener extends ListenerChainLink
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(java.util.List)
    */
-  public void incrementalInstall( List<IModelObject> list)
+  public void incrementalInstall( List<INode> list)
   {
     // do notification
     notifyAdd( list);
@@ -101,26 +101,26 @@ public abstract class FanoutListener extends ListenerChainLink
     // install next link
     IContext context = getListenerChain().getContext();
     IListenerChainLink nextListener = getNextListener();
-    List<IModelObject> fanoutNodes = fanoutElement.query( context, list, null);
+    List<INode> fanoutNodes = fanoutElement.query( context, list, null);
     if ( fanoutNodes.size() > 0) nextListener.incrementalInstall( fanoutNodes);
 
     // install listeners after fanout to avoid specious notifications such as when an
     // IExternalReference is synced because of the fanout query above.
-    for( IModelObject object: list) installListeners( object);
+    for( INode object: list) installListeners( object);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(java.util.List)
    */
-  public void incrementalUninstall( List<IModelObject> list)
+  public void incrementalUninstall( List<INode> list)
   {
     // uninstall listeners before fanout to avoid specious notifications
-    for( IModelObject object: list) uninstallListeners( object);
+    for( INode object: list) uninstallListeners( object);
     
     // uninstall next link
     IContext context = getListenerChain().getContext();
     IListenerChainLink nextListener = getNextListener();
-    List<IModelObject> fanoutNodes = fanoutElement.query( context, list, null);
+    List<INode> fanoutNodes = fanoutElement.query( context, list, null);
     if ( fanoutNodes.size() > 0) nextListener.incrementalUninstall( fanoutNodes);
 
     // do notification
@@ -131,19 +131,19 @@ public abstract class FanoutListener extends ListenerChainLink
    * This method should be overridden to install the listeners in the model.
    * @param object The entry point into the model.
    */
-  protected abstract void installListeners( IModelObject object);
+  protected abstract void installListeners( INode object);
   
   /**
    * This method should be overridden to uninstall the listeners in the model.
    * @param object The entry point into the model.
    */
-  protected abstract void uninstallListeners( IModelObject object);
+  protected abstract void uninstallListeners( INode object);
   
   /* (non-Javadoc)
    * @see org.xmodel.path.ListenerChainLink#notifyDirty(org.xmodel.IModelObject, boolean)
    */
   @Override
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
 //    if ( dirty)
 //    {

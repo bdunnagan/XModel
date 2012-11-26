@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -89,7 +89,7 @@ public class UppercaseFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -99,7 +99,7 @@ public class UppercaseFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -119,7 +119,7 @@ public class UppercaseFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyValue( this, contexts, object, newValue, oldValue);
   }

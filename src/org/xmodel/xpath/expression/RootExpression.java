@@ -21,8 +21,8 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -115,7 +115,7 @@ public class RootExpression extends Expression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     IExpression arg0 = getArgument( 0);
     if ( arg0 == null) throw new ExpressionException( this, "RootExpression has no arguments.");
@@ -149,7 +149,7 @@ public class RootExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     getArgument( 0).createSubtree( context, factory, undo);
   }
@@ -358,7 +358,7 @@ public class RootExpression extends Expression
       switch( getType( context))
       {
         case NODES:
-          List<IModelObject> nodes = evaluateNodes( context);
+          List<INode> nodes = evaluateNodes( context);
           if ( nodes.size() > 0) listener.notifyAdd( this, context, nodes);
           break;
         
@@ -401,7 +401,7 @@ public class RootExpression extends Expression
       switch( getType( context ))
       {
         case NODES:
-          List<IModelObject> nodes = evaluateNodes( context);
+          List<INode> nodes = evaluateNodes( context);
           if ( nodes.size() > 0) listener.notifyRemove( this, context, nodes);
           break;
         
@@ -432,7 +432,7 @@ public class RootExpression extends Expression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( listeners != null) listeners.notifyAdd( this, context, nodes);
   }
@@ -442,7 +442,7 @@ public class RootExpression extends Expression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( listeners != null) listeners.notifyRemove( this, context, nodes);
   }
@@ -520,7 +520,7 @@ public class RootExpression extends Expression
    * java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( listeners != null) listeners.notifyValue( this, contexts, object, newValue, oldValue);
   }
@@ -561,7 +561,7 @@ public class RootExpression extends Expression
       "</office>";
     
     XmlIO xmlIO = new XmlIO();
-    IModelObject root = xmlIO.read( xml);
+    INode root = xmlIO.read( xml);
     StatefulContext c1 = new StatefulContext( root.getFirstChild( "employees").getChild( 1));
     StatefulContext c2 = new StatefulContext( root.getFirstChild( "employees").getChild( 1));
     

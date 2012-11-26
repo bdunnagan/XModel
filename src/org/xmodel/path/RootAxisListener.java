@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.expression.IContext;
 
@@ -36,9 +36,9 @@ public class RootAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
-    IModelObject ancestor = object;
+    INode ancestor = object;
     while( ancestor != null)
     {
       object.addModelListener( this);
@@ -49,9 +49,9 @@ public class RootAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
-    IModelObject ancestor = object;
+    INode ancestor = object;
     while( ancestor != null)
     {
       object.removeModelListener( this);
@@ -71,7 +71,7 @@ public class RootAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
     IPath path = getListenerChain().getPath();
     IContext context = getListenerChain().getContext();
@@ -80,7 +80,7 @@ public class RootAxisListener extends FanoutListener
       uninstallListeners( oldParent);
 
       // uninstall next link
-      IModelObject root = oldParent.getRoot();
+      INode root = oldParent.getRoot();
       if ( fanoutElement.evaluate( context, path, root))
         getNextListener().incrementalUninstall( root);
     }
@@ -95,7 +95,7 @@ public class RootAxisListener extends FanoutListener
       installListeners( newParent);
 
       // install next link
-      IModelObject root = child.getRoot();
+      INode root = child.getRoot();
       if ( fanoutElement.evaluate( context, path, root))
         getNextListener().incrementalInstall( root);
     }

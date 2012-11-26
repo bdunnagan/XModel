@@ -28,7 +28,7 @@ public class ModelListener implements IModelListener
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
   }
 
@@ -36,7 +36,7 @@ public class ModelListener implements IModelListener
    * @see org.xmodel.IModelListener#notifyAdd(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
   }
 
@@ -44,7 +44,7 @@ public class ModelListener implements IModelListener
    * @see org.xmodel.IModelListener#notifyRemove(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
   }
 
@@ -52,7 +52,7 @@ public class ModelListener implements IModelListener
    * @see org.xmodel.IModelListener#notifyChange(org.xmodel.IModelObject, 
    * java.lang.String, java.lang.String, java.lang.String)
    */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
   }
   
@@ -60,14 +60,14 @@ public class ModelListener implements IModelListener
    * @see org.xmodel.IModelListener#notifyClear(org.xmodel.IModelObject, 
    * java.lang.String, java.lang.String)
    */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
    */
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
     // default behavior is to resync the object since generic listener is interested in everything
     if ( dirty) object.getChildren();

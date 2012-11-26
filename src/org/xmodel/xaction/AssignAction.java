@@ -21,8 +21,8 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Reference;
 import org.xmodel.Xlate;
@@ -46,7 +46,7 @@ public class AssignAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     var = Conventions.getVarName( config, true, "name");
 
     if ( config.getNumberOfChildren() > 0)
@@ -100,29 +100,29 @@ public class AssignAction extends GuardedAction
       {
         case NODES:   
         {
-          List<IModelObject> sources = sourceExpr.evaluateNodes( context);
+          List<INode> sources = sourceExpr.evaluateNodes( context);
           if ( mode.equals( "assign"))
           {
             setVariable( scope, sources);
           }
           else if ( mode.startsWith( "ref"))
           {
-            List<IModelObject> refs = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) refs.add( new Reference( source));
+            List<INode> refs = new ArrayList<INode>( sources.size());
+            for( INode source: sources) refs.add( new Reference( source));
             setVariable( scope, refs);
           }
           else if ( mode.equals( "copy"))
           {
-            List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) clones.add( ModelAlgorithms.cloneTree( source, factory));
+            List<INode> clones = new ArrayList<INode>( sources.size());
+            for( INode source: sources) clones.add( ModelAlgorithms.cloneTree( source, factory));
             setVariable( scope, clones);
           }
           else if ( mode.equals( "fk1"))
           {
-            List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources)
+            List<INode> fks = new ArrayList<INode>( sources.size());
+            for( INode source: sources)
             {
-              IModelObject fk = factory.createObject( null, source.getType());
+              INode fk = factory.createObject( null, source.getType());
               fk.setValue( source.getID());
               fks.add( fk);
             }
@@ -130,10 +130,10 @@ public class AssignAction extends GuardedAction
           }
           else if ( mode.equals( "fk2"))
           {
-            List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources)
+            List<INode> fks = new ArrayList<INode>( sources.size());
+            for( INode source: sources)
             {
-              IModelObject fk = factory.createObject( null, source.getType());
+              INode fk = factory.createObject( null, source.getType());
               fk.setID( source.getID());
               fks.add( fk);
             }
@@ -141,8 +141,8 @@ public class AssignAction extends GuardedAction
           }
           else if ( mode.equals( "slave"))
           {
-            List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) clones.add( ModelAlgorithms.createSlaveClone( source));
+            List<INode> clones = new ArrayList<INode>( sources.size());
+            for( INode source: sources) clones.add( ModelAlgorithms.createSlaveClone( source));
             setVariable( scope, clones);
           }
         }
@@ -164,12 +164,12 @@ public class AssignAction extends GuardedAction
    * @param list The new elements.
    */
   @SuppressWarnings("unchecked")
-  private void setVariable( IVariableScope scope, List<IModelObject> list)
+  private void setVariable( IVariableScope scope, List<INode> list)
   {
     if ( append)
     {
-      List<IModelObject> newList = new ArrayList<IModelObject>();
-      newList.addAll( (List<IModelObject>)scope.get( var));
+      List<INode> newList = new ArrayList<INode>();
+      newList.addAll( (List<INode>)scope.get( var));
       newList.addAll( list);
     }
     else
@@ -207,7 +207,7 @@ public class AssignAction extends GuardedAction
   private boolean append;
   private boolean replace;
   private boolean define;
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private IExpression sourceExpr;
-  private List<IModelObject> inlines;
+  private List<INode> inlines;
 }

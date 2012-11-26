@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.GlobalSettings;
 import org.xmodel.Update;
 import org.xmodel.memento.IMemento;
@@ -78,7 +78,7 @@ public abstract class AbstractVariableScope implements IVariableScope
   @Override
   public Object set( String name, Object value)
   {
-    if ( value instanceof IModelObject) return set( name, (IModelObject)value);
+    if ( value instanceof INode) return set( name, (INode)value);
     
     if ( value instanceof List)
     {
@@ -86,9 +86,9 @@ public abstract class AbstractVariableScope implements IVariableScope
       if ( list.size() > 0)
       {
         Object object = list.get( 0);
-        if ( object instanceof IModelObject)
+        if ( object instanceof INode)
         {
-          return set( name, (List<IModelObject>)value);
+          return set( name, (List<INode>)value);
         }
       }
     }
@@ -112,7 +112,7 @@ public abstract class AbstractVariableScope implements IVariableScope
   public void insert( String name, Object object, int index)
   {
     Variable variable = getCreateVariable( name);
-    if ( variable.value == null) variable.value = new ArrayList<IModelObject>();
+    if ( variable.value == null) variable.value = new ArrayList<INode>();
     if ( !(variable.value instanceof List)) throw new IllegalStateException( "Variable does not contain a sequence.");
     
     List<Object> list = new ArrayList<Object>( (List<Object>)variable.value);
@@ -155,24 +155,24 @@ public abstract class AbstractVariableScope implements IVariableScope
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, org.xmodel.IModelObject)
    */
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     List<? extends Object> list = (value != null)? 
       Collections.singletonList( value):
       Collections.emptyList();
       
     Object old = internal_set( name, list);
-    if ( old instanceof List) return (List<IModelObject>)old;
+    if ( old instanceof List) return (List<INode>)old;
     return Collections.emptyList();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.util.List)
    */
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     Object old = internal_set( name, value);
-    if ( old instanceof List) return (List<IModelObject>)old;
+    if ( old instanceof List) return (List<INode>)old;
     return Collections.emptyList();
   }
 
@@ -305,19 +305,19 @@ public abstract class AbstractVariableScope implements IVariableScope
     {
       if ( newValue instanceof List)
       {
-        List<IModelObject> newNodes = (List<IModelObject>)newValue;
-        List<IModelObject> oldNodes = (List<IModelObject>)oldValue;
+        List<INode> newNodes = (List<INode>)newValue;
+        List<INode> oldNodes = (List<INode>)oldValue;
         
         // notify nodes removed
-        List<IModelObject> removedSet = new ArrayList<IModelObject>( newNodes.size());
-        for( IModelObject node: oldNodes) if ( !newNodes.contains( node)) removedSet.add( node);
+        List<INode> removedSet = new ArrayList<INode>( newNodes.size());
+        for( INode node: oldNodes) if ( !newNodes.contains( node)) removedSet.add( node);
         if ( removedSet.size() > 0)
           for( Binding binding: bindings)
             binding.listener.notifyRemove( name, this, binding.context, removedSet);
         
         // notify nodes added
-        List<IModelObject> addedSet = new ArrayList<IModelObject>( newNodes.size());
-        for( IModelObject node: newNodes) if ( !oldNodes.contains( node)) addedSet.add( node);
+        List<INode> addedSet = new ArrayList<INode>( newNodes.size());
+        for( INode node: newNodes) if ( !oldNodes.contains( node)) addedSet.add( node);
         if ( addedSet.size() > 0)
           for( Binding binding: bindings)
             binding.listener.notifyAdd( name, this, binding.context, addedSet);
@@ -611,13 +611,13 @@ public abstract class AbstractVariableScope implements IVariableScope
   }
 
   final IExpressionListener expressionListener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
       Variable variable = getVariable( expression);
       for( Binding binding: findBindings( variable, context))
         binding.listener.notifyAdd( variable.name, AbstractVariableScope.this, context, nodes);
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
       Variable variable = getVariable( expression);
       for( Binding binding: findBindings( variable, context))

@@ -21,7 +21,7 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -45,10 +45,10 @@ public class TransformAction extends GuardedAction
     fromLeftScript = document.createChildScript( "fromLeft");
     fromRightScript = document.createChildScript( "fromRight");
 
-    List<IModelObject> preNodes = new ArrayList<IModelObject>();
-    List<IModelObject> postNodes = new ArrayList<IModelObject>();
+    List<INode> preNodes = new ArrayList<INode>();
+    List<INode> postNodes = new ArrayList<INode>();
     boolean pre = true;
-    for( IModelObject child: document.getRoot().getChildren())
+    for( INode child: document.getRoot().getChildren())
     {
       if ( child.isType( "fromLeft") || child.isType( "fromRight"))
       {
@@ -64,14 +64,14 @@ public class TransformAction extends GuardedAction
     }
     
     preActions = new ArrayList<IXAction>();
-    for( IModelObject node: preNodes)
+    for( INode node: preNodes)
     {
       IXAction action = document.getAction( node);
       if ( action != null) preActions.add( action);
     }
     
     postActions = new ArrayList<IXAction>();
-    for( IModelObject node: postNodes)
+    for( INode node: postNodes)
     {
       IXAction action = document.getAction( node);
       if ( action != null) postActions.add( action);

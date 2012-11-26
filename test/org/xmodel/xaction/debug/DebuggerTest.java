@@ -1,7 +1,7 @@
 package org.xmodel.xaction.debug;
 
 import org.junit.Test;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.net.XioClient;
 import org.xmodel.net.XioServer;
@@ -28,7 +28,7 @@ public class DebuggerTest
     server.setDispatcher( new SerialExecutorDispatcher( 2));
     server.start( false);
     
-    IModelObject script = new XmlIO().read( 
+    INode script = new XmlIO().read( 
         "<script>" +
         "  <assign var='x'>1</assign>" +
         "  <script>" +
@@ -44,7 +44,7 @@ public class DebuggerTest
     session.execute( new StatefulContext(), new String[ 0], script, 0);
     
     Debugger debugger = XAction.getDebugger();
-    IModelObject stack = debugger.getStack();
+    INode stack = debugger.getStack();
     System.out.println( XmlIO.write( Style.printable, stack));
   }
 }

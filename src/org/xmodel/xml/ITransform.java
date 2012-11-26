@@ -19,7 +19,7 @@
  */
 package org.xmodel.xml;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for transforming IModelObject instances.
@@ -32,28 +32,28 @@ public interface ITransform
    * @param input The root of the subtree to be transformed.
    * @param output The root of the subtree which will be modified.
    */
-  public void transform( IModelObject input, IModelObject output);
+  public void transform( INode input, INode output);
 
   /**
    * Performs the exact inverse transform of the <code>transform</code> method.
    * @param input The root of the subtree to be transformed.
    * @param output The root of the subtree which will be modified.
    */
-  public void inverseTransform( IModelObject input, IModelObject output);
+  public void inverseTransform( INode input, INode output);
   
   /**
    * Transform the subtree rooted on the specified input object and return the root of the new subtree.
    * @param input The root of the subtree to be transformed.
    * @return Returns the root of the transformed input subtree.
    */
-  public IModelObject transform( IModelObject input);
+  public INode transform( INode input);
   
   /**
    * Performs the exact inverse transform of the <code>transform</code> method.
    * @param input The root of the subtree to be transformed.
    * @return Returns the root of the transformed input subtree.
    */
-  public IModelObject inverseTransform( IModelObject input);
+  public INode inverseTransform( INode input);
   
   /**
    * Returns true if this transform has an inverse transform.

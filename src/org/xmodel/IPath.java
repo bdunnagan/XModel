@@ -69,14 +69,14 @@ public interface IPath
    * @param object The object to be tested.
    * @return Returns true if the object is a leaf of the path.
    */
-  public boolean isLeaf( IModelObject object);
+  public boolean isLeaf( INode object);
   
   /**
    * Return true if the specified object is a node on the path.
    * @param object The object to be tested.
    * @return Returns true if the object is a node on the path.
    */
-  public boolean isNode( IModelObject object);
+  public boolean isNode( INode object);
   
   /**
    * Returns a new path which is the inverse of this path.  The inverse path
@@ -93,7 +93,7 @@ public interface IPath
    * @param root The root of the new subtree.
    * @return Returns the first leaf of the subtree.
    */
-  public IModelObject createSubtree( IModelObject root);
+  public INode createSubtree( INode root);
 
   /**
    * Returns the variable source for this path.
@@ -127,14 +127,14 @@ public interface IPath
    * @param name The name of the variable.
    * @param node A node.
    */
-  public void setVariable( String name, IModelObject node);
+  public void setVariable( String name, INode node);
   
   /**
    * Set a local variable.
    * @param name The name of the variable.
    * @param nodes A list of nodes.
    */
-  public void setVariable( String name, List<IModelObject> nodes);
+  public void setVariable( String name, List<INode> nodes);
   
   /**
    * Set the variable to the result of the specified expression.
@@ -149,7 +149,7 @@ public interface IPath
    * @param result Null or a list where the objects are stored.
    * @return Returns the leaf objects of this path.
    */
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result);
+  public List<INode> query( INode object, List<INode> result);
 
   /**
    * Return the leaf objects which are selected by the path segment which begins with
@@ -160,7 +160,7 @@ public interface IPath
    * @param result Null or a list where the objects are stored.
    * @return Returns the leaf objects selected by the given subpath.
    */
-  public List<IModelObject> query( IModelObject object, int length, List<IModelObject> result);
+  public List<INode> query( INode object, int length, List<INode> result);
   
   /**
    * Return the leaf objects which are selected by this path.
@@ -168,7 +168,7 @@ public interface IPath
    * @param result Null or a list where the objects are stored.
    * @return Returns the leaf objects of this path.
    */
-  public List<IModelObject> query( IContext context, List<IModelObject> result);
+  public List<INode> query( IContext context, List<INode> result);
 
   /**
    * Return the leaf objects which are selected by the path segment which begins with
@@ -180,14 +180,14 @@ public interface IPath
    * @param result Null or a list where the objects are stored.
    * @return Returns the leaf objects selected by the given subpath.
    */
-  public List<IModelObject> query( IContext context, int length, List<IModelObject> result);
+  public List<INode> query( IContext context, int length, List<INode> result);
   
   /**
    * Return the first leaf object which is selected by this path.
    * @param object The root of the path.
    * @return Null or the first selected object.
    */
-  public IModelObject queryFirst( IModelObject object);
+  public INode queryFirst( INode object);
   
   /**
    * Return the number of elements that make up this path.

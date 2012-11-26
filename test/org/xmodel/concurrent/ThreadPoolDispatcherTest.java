@@ -6,7 +6,7 @@ import java.util.Random;
 import java.util.concurrent.Semaphore;
 import org.junit.Before;
 import org.junit.Test;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelListener;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -94,7 +94,7 @@ public class ThreadPoolDispatcherTest
     dispatcher.unlock();
     semaphore.acquireUninterruptibly();
     
-    List<IModelObject> list = (List<IModelObject>)context.get( "x");
+    List<INode> list = (List<INode>)context.get( "x");
     assertTrue( Xlate.get( list.get( 0), 0) == 100000);
   }
   
@@ -116,7 +116,7 @@ public class ThreadPoolDispatcherTest
         context.set( "x", element);
         
         element.addModelListener( new ModelListener() {
-          public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+          public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
           {
             int newInt = (Integer)newValue;
             int oldInt = (Integer)oldValue;
@@ -137,7 +137,7 @@ public class ThreadPoolDispatcherTest
       }
       else
       {
-        IModelObject element = (IModelObject)list.get( 0);
+        INode element = (INode)list.get( 0);
         Xlate.set( element, Xlate.get( element, 0) + 1);
       }
       

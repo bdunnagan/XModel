@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.AttributeHistoryNode;
 import org.xmodel.xpath.TextHistoryNode;
@@ -38,7 +38,7 @@ public class AttributeAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
     object.addModelListener( this);
   }
@@ -46,7 +46,7 @@ public class AttributeAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
     object.removeModelListener( this);
   }
@@ -63,7 +63,7 @@ public class AttributeAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyChange(
    * org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
    */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
     // notify when attribute appears
     if ( oldValue == null)
@@ -72,13 +72,13 @@ public class AttributeAxisListener extends FanoutListener
       IContext context = getListenerChain().getContext();
       if ( attrName.length() == 0)
       {
-        IModelObject node = object.getAttributeNode( "");
+        INode node = object.getAttributeNode( "");
         if ( fanoutElement.evaluate( context, path, node)) 
           getNextListener().incrementalInstall( node);
       }
       else
       {
-        IModelObject node = object.getAttributeNode( attrName);
+        INode node = object.getAttributeNode( attrName);
         if ( fanoutElement.evaluate( context, path, node)) 
           getNextListener().incrementalInstall( node);
       }
@@ -89,7 +89,7 @@ public class AttributeAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyClear(
    * org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
     // notify when attribute is removed
     if ( oldValue != null)
@@ -98,13 +98,13 @@ public class AttributeAxisListener extends FanoutListener
       IContext context = getListenerChain().getContext();
       if ( attrName.length() == 0)
       {
-        IModelObject node = new TextHistoryNode( oldValue);
+        INode node = new TextHistoryNode( oldValue);
         if ( fanoutElement.evaluate( context, path, node))
           getNextListener().incrementalUninstall( node);
       }
       else
       {
-        IModelObject node = new AttributeHistoryNode( attrName, oldValue);
+        INode node = new AttributeHistoryNode( attrName, oldValue);
         if ( fanoutElement.evaluate( context, path, node)) 
           getNextListener().incrementalUninstall( node);
       }

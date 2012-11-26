@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelObjectFactory;
 
 /**
@@ -36,7 +36,7 @@ public class SQLTransform
    * Set the factory for row elements.
    * @param factory The factory.
    */
-  public void setRowElementFactory( IModelObjectFactory factory)
+  public void setRowElementFactory( INodeFactory factory)
   {
     rowElementFactory = factory;
   }
@@ -45,7 +45,7 @@ public class SQLTransform
    * Set the factory for columns containing xml.
    * @param factory The factory.
    */
-  public void setColumnElementFactory( IModelObjectFactory factory)
+  public void setColumnElementFactory( INodeFactory factory)
   {
     columnElementFactory = factory;
   }
@@ -83,19 +83,19 @@ public class SQLTransform
    * Execute the query.
    * @return Returns the transformed result-set.
    */
-  public List<IModelObject> execute() throws SQLException
+  public List<INode> execute() throws SQLException
   {
     ResultSet result = statement.executeQuery();
     while( result.next())
     {
-      IModelObject rowElement = rowElementFactory.createObject( null, rowElementName);
+      INode rowElement = rowElementFactory.createObject( null, rowElementName);
       
     }    
   }
   
   private PreparedStatement statement;
-  private IModelObjectFactory rowElementFactory;
-  private IModelObjectFactory columnElementFactory;
+  private INodeFactory rowElementFactory;
+  private INodeFactory columnElementFactory;
   private String rowElementName;
   private Map<String, String> attributes;
   private Map<String, String> children;

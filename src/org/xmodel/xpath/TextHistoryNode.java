@@ -30,7 +30,7 @@ import org.xmodel.memento.IMemento;
  * in an attribute with an empty attribute name. This container is used during the evaluation of
  * X-Path expressions to store the old value of the text node after it has been changed.
  */
-public class TextHistoryNode implements IModelObject
+public class TextHistoryNode implements INode
 {
   /**
    * Create a TextNode to hold the text information.
@@ -81,21 +81,21 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject)
    */
-  public void addChild( IModelObject object)
+  public void addChild( INode object)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject, int)
    */
-  public void addChild( IModelObject object, int index)
+  public void addChild( INode object, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(int)
    */
-  public IModelObject getChild( int index)
+  public INode getChild( int index)
   {
     return null;
   }
@@ -103,7 +103,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(int)
    */
-  public IModelObject removeChild( int index)
+  public INode removeChild( int index)
   {
     return null;
   }
@@ -132,7 +132,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */
-  public IModelObject cloneObject()
+  public INode cloneObject()
   {
     return new TextHistoryNode( oldValue);
   }
@@ -140,7 +140,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneTree()
    */
-  public IModelObject cloneTree()
+  public INode cloneTree()
   {
     return cloneObject();
   }
@@ -148,7 +148,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#createObject(java.lang.String)
    */
-  public IModelObject createObject( String type)
+  public INode createObject( String type)
   {
     throw new UnsupportedOperationException();
   }
@@ -156,7 +156,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getReferent()
    */
-  public IModelObject getReferent()
+  public INode getReferent()
   {
     return this;
   }
@@ -164,7 +164,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAncestor(java.lang.String)
    */
-  public IModelObject getAncestor( String type)
+  public INode getAncestor( String type)
   {
     return null;
   }
@@ -180,7 +180,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAttributeNode(java.lang.String)
    */
-  public IModelObject getAttributeNode( String attrName)
+  public INode getAttributeNode( String attrName)
   {
     throw new UnsupportedOperationException();
   }
@@ -198,7 +198,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public INode getChild( String type, String name)
   {
     return null;
   }
@@ -206,7 +206,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren()
    */
-  public List<IModelObject> getChildren()
+  public List<INode> getChildren()
   {
     return Collections.emptyList();
   }
@@ -214,7 +214,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<INode> getChildren( String type, String name)
   {
     return Collections.emptyList();
   }
@@ -222,7 +222,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String)
    */
-  public List<IModelObject> getChildren( String type)
+  public List<INode> getChildren( String type)
   {
     return Collections.emptyList();
   }
@@ -238,7 +238,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getValueNode()
    */
-  public IModelObject getValueNode()
+  public INode getValueNode()
   {
     throw new UnsupportedOperationException();
   }
@@ -254,7 +254,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public INode getCreateChild( String type, String name)
   {
     return null;
   }
@@ -262,7 +262,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String)
    */
-  public IModelObject getCreateChild( String type)
+  public INode getCreateChild( String type)
   {
     return null;
   }
@@ -270,7 +270,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getFirstChild(java.lang.String)
    */
-  public IModelObject getFirstChild( String type)
+  public INode getFirstChild( String type)
   {
     return null;
   }
@@ -310,7 +310,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getParent()
    */
-  public IModelObject getParent()
+  public INode getParent()
   {
     return null;
   }
@@ -318,7 +318,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getRoot()
    */
-  public IModelObject getRoot()
+  public INode getRoot()
   {
     return null;
   }
@@ -342,7 +342,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_setParent(org.xmodel.IModelObject)
    */
-  public IModelObject internal_setParent( IModelObject parent)
+  public INode internal_setParent( INode parent)
   {
     return null;
   }
@@ -350,35 +350,35 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void internal_notifyParent( IModelObject newParent, IModelObject oldParent)
+  public void internal_notifyParent( INode newParent, INode oldParent)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyAddChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyAddChild( IModelObject child, int index)
+  public void internal_notifyAddChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyRemoveChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyRemoveChild( IModelObject child, int index)
+  public void internal_notifyRemoveChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_addChild(org.xmodel.IModelObject, int)
    */
-  public void internal_addChild( IModelObject child, int index)
+  public void internal_addChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_removeChild(int)
    */
-  public IModelObject internal_removeChild( int index)
+  public INode internal_removeChild( int index)
   {
     return null;
   }
@@ -418,7 +418,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(org.xmodel.IModelObject)
    */
-  public void removeChild( IModelObject object)
+  public void removeChild( INode object)
   {
   }
 

@@ -24,7 +24,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -55,7 +55,7 @@ public class XActionDocument
    * Construct with root.
    * @param root The root of the document.
    */
-  public XActionDocument( IModelObject root)
+  public XActionDocument( INode root)
   {
     this( root, XActionDocument.class.getClassLoader());
   }
@@ -65,7 +65,7 @@ public class XActionDocument
    * @param root The root of the document.
    * @param loader The loader.
    */
-  public XActionDocument( IModelObject root, ClassLoader loader)
+  public XActionDocument( INode root, ClassLoader loader)
   {
     packages = new ArrayList<String>();
     this.loader = loader;
@@ -101,7 +101,7 @@ public class XActionDocument
    * Sets the root of the view model. Adapters configured with this model will be updated.
    * @param root The new root of the view model.
    */
-  public void setRoot( IModelObject root)
+  public void setRoot( INode root)
   {
     this.root = root;
 
@@ -110,7 +110,7 @@ public class XActionDocument
     packages.add( "org.xmodel.log.xaction");
     
     // load defined packages
-    for( IModelObject packageElement: packagePath.query( root, null))
+    for( INode packageElement: packagePath.query( root, null))
     {
       String packageName = Xlate.get( packageElement, "");
       packages.add( packageName);
@@ -121,7 +121,7 @@ public class XActionDocument
    * Returns the root of the view model.
    * @return Returns the root of the view model.
    */
-  public IModelObject getRoot()
+  public INode getRoot()
   {
     return root;
   }
@@ -178,7 +178,7 @@ public class XActionDocument
    */
   public String getString()
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return "";
     return Xlate.get( root, "");
   }
@@ -190,9 +190,9 @@ public class XActionDocument
    */
   public String getString( IPath path)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return "";
-    IModelObject object = path.queryFirst( root);
+    INode object = path.queryFirst( root);
     return Xlate.get( object, "");
   }
 
@@ -203,9 +203,9 @@ public class XActionDocument
    */
   public String getString( String childType)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return "";
-    IModelObject object = root.getFirstChild( childType);
+    INode object = root.getFirstChild( childType);
     return Xlate.get( object, "");
   }
 
@@ -216,12 +216,12 @@ public class XActionDocument
    */
   public List<String> getStrings( IPath path)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return Collections.emptyList();
     
-    List<IModelObject> leaves = path.query( root, null);
+    List<INode> leaves = path.query( root, null);
     List<String> strings = new ArrayList<String>( leaves.size());
-    for ( IModelObject leaf: leaves)
+    for ( INode leaf: leaves)
     {
       String string = Xlate.get( leaf, "");
       strings.add( string);
@@ -236,12 +236,12 @@ public class XActionDocument
    */
   public List<String> getStrings( String childType)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return Collections.emptyList();
     
-    List<IModelObject> children = root.getChildren( childType);
+    List<INode> children = root.getChildren( childType);
     List<String> strings = new ArrayList<String>( children.size());
-    for ( IModelObject child: children)
+    for ( INode child: children)
     {
       String string = Xlate.get( child, "");
       strings.add( string);
@@ -255,7 +255,7 @@ public class XActionDocument
    */
   public IExpression getExpression()
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return null;
     return getExpression( root);
   }
@@ -271,17 +271,17 @@ public class XActionDocument
    */
   public IExpression getExpression( String name, boolean flexible)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return null;
     
     if ( flexible)
     {
-      IModelObject node = root.getAttributeNode( name);
+      INode node = root.getAttributeNode( name);
       IExpression expression = getExpression( node);
       if ( expression != null) return expression;
     }
     
-    IModelObject object = root.getFirstChild( name);
+    INode object = root.getFirstChild( name);
     return getExpression( object);
   }
 
@@ -292,9 +292,9 @@ public class XActionDocument
    */
   public IExpression getExpression( IPath path)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return null;
-    IModelObject object = path.queryFirst( root);
+    INode object = path.queryFirst( root);
     return getExpression( object);
   }
   
@@ -306,12 +306,12 @@ public class XActionDocument
    */
   public List<IExpression> getExpressions( IPath path)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return Collections.emptyList();
     
-    List<IModelObject> leaves = path.query( root, null);
+    List<INode> leaves = path.query( root, null);
     List<IExpression> expressions = new ArrayList<IExpression>( leaves.size());
-    for ( IModelObject leaf: leaves)
+    for ( INode leaf: leaves)
     {
       IExpression expression = getExpression( leaf);
       if ( expression != null) expressions.add( expression);
@@ -327,12 +327,12 @@ public class XActionDocument
    */
   public List<IExpression> getExpressions( String childType)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return Collections.emptyList();
     
-    List<IModelObject> children = root.getChildren( childType);
+    List<INode> children = root.getChildren( childType);
     List<IExpression> expressions = new ArrayList<IExpression>( children.size());
-    for ( IModelObject child: children)
+    for ( INode child: children)
     {
       IExpression expression = getExpression( child);
       if ( expression != null) expressions.add( expression);
@@ -347,7 +347,7 @@ public class XActionDocument
    * @param object The object containing the expression.
    * @return Returns the expression defined in the value of the specified object.
    */
-  public IExpression getExpression( IModelObject object)
+  public IExpression getExpression( INode object)
   {
     if ( object == null) return null;
 
@@ -375,7 +375,7 @@ public class XActionDocument
   {
     try
     {
-      IModelObject element = new XmlIO().read( xml);
+      INode element = new XmlIO().read( xml);
       XActionDocument doc = new XActionDocument( element);
       return doc.createScript();
     }
@@ -407,7 +407,7 @@ public class XActionDocument
    */
   public ScriptAction createChildScript( String childType, String... ignore)
   {
-    IModelObject child = root.getFirstChild( childType);
+    INode child = root.getFirstChild( childType);
     if ( child == null) return null;
     
     ScriptAction script = new ScriptAction();
@@ -422,7 +422,7 @@ public class XActionDocument
    * @param ignore Element names which will not become actions.
    * @return Returns the new script.
    */
-  public ScriptAction createScript( IModelObject root, String... ignore)
+  public ScriptAction createScript( INode root, String... ignore)
   {
     if ( root == null) return null;
     ScriptAction script = new ScriptAction();
@@ -437,7 +437,7 @@ public class XActionDocument
    * @param object The script element.
    * @return Returns the action defined on the specified script element or null.
    */
-  public IXAction getAction( IModelObject object)
+  public IXAction getAction( INode object)
   {
     if ( object == null) return null;
 
@@ -491,7 +491,7 @@ public class XActionDocument
    * @return Returns null or the action.
    */
   @SuppressWarnings("rawtypes")
-  protected IXAction getAction( String packageName, String className, IModelObject object)
+  protected IXAction getAction( String packageName, String className, INode object)
   {
     // create fully-qualified class name
     if ( className != null && ( packageName.length() != 0)) className = packageName+"."+className;
@@ -544,7 +544,7 @@ public class XActionDocument
    */
   public IXAction getAction( IPath path)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return null;
     return getAction( path.queryFirst( root));
   }
@@ -556,7 +556,7 @@ public class XActionDocument
    */
   public IXAction getAction( String childType)
   {
-    IModelObject root = getRoot();
+    INode root = getRoot();
     if ( root == null) return null;
     return getAction( root.getFirstChild( childType));
   }
@@ -566,10 +566,10 @@ public class XActionDocument
    * @param objects The action elements.
    * @return Returns the actions defined by the specified elements.
    */
-  public List<IXAction> getActions( List<IModelObject> objects)
+  public List<IXAction> getActions( List<INode> objects)
   {
     List<IXAction> actions = new ArrayList<IXAction>( objects.size());
-    for( IModelObject object: objects)
+    for( INode object: objects)
     {
       IXAction action = getAction( object);
       if ( action != null) actions.add( action);
@@ -584,9 +584,9 @@ public class XActionDocument
    */
   public List<IXAction> getActions( IExpression expression)
   {
-    List<IModelObject> elements = expression.query( getRoot(), null);
+    List<INode> elements = expression.query( getRoot(), null);
     List<IXAction> result = new ArrayList<IXAction>( elements.size());
-    for( IModelObject element: elements)
+    for( INode element: elements)
     {
       IXAction action = getAction( element);
       if ( action != null) result.add( action);
@@ -619,7 +619,7 @@ public class XActionDocument
    * @param root The root of the new document.
    * @return Returns the new document.
    */
-  public XActionDocument getDocument( IModelObject root)
+  public XActionDocument getDocument( INode root)
   {
     XActionDocument document = new XActionDocument( loader);
     
@@ -642,7 +642,7 @@ public class XActionDocument
    */
   public XActionDocument getDocument( IPath path)
   {
-    IModelObject object = path.queryFirst( getRoot());
+    INode object = path.queryFirst( getRoot());
     return (object != null)? getDocument( object): null;
   }
   
@@ -653,7 +653,7 @@ public class XActionDocument
    */
   public XActionDocument getDocument( String childType)
   {
-    IModelObject object = getRoot().getFirstChild( childType);
+    INode object = getRoot().getFirstChild( childType);
     return (object != null)? getDocument( object): null;
   }
   
@@ -677,6 +677,6 @@ public class XActionDocument
   
   private XActionDocument parent;
   private ClassLoader loader;
-  private IModelObject root;
+  private INode root;
   private List<String> packages;
 }

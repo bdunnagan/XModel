@@ -20,7 +20,7 @@
 package org.xmodel.xaction.trigger;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
@@ -91,10 +91,10 @@ public class WhenTrigger extends AbstractTrigger
   }
 
   final IExpressionListener listener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
     }
     public void notifyChange( IExpression expression, IContext context, boolean newValue)
@@ -123,7 +123,7 @@ public class WhenTrigger extends AbstractTrigger
     public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
     {
     }
-    public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+    public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
     {
     }
     public boolean requiresValueNotification()

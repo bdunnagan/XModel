@@ -22,7 +22,7 @@ package org.xmodel.xsd;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -62,22 +62,22 @@ public class SchemaFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 2, 2);
     assertType( context, 1, ResultType.NODES);
     
-    IModelObject schemaRoot = getArgument( 0).queryFirst( context);
+    INode schemaRoot = getArgument( 0).queryFirst( context);
     if ( schemaRoot == null) return Collections.emptyList();
     
-    List<IModelObject> result = new ArrayList<IModelObject>();
+    List<INode> result = new ArrayList<INode>();
     
     ResultType type = getArgument( 1).getType( context);
     if ( type == ResultType.NODES)
     {
-      for( IModelObject node: getArgument( 1).evaluateNodes( context))
+      for( INode node: getArgument( 1).evaluateNodes( context))
       {
-        IModelObject schema = Schema.findSchema( schemaRoot, node); 
+        INode schema = Schema.findSchema( schemaRoot, node); 
         if ( schema != null) result.add( schema);
       }
     }
@@ -86,10 +86,10 @@ public class SchemaFunction extends Function
       String path = getArgument( 1).evaluateString( context);
       String[] parts = path.split( "/");
       globalFinder.setVariable( "name", parts[ 0]);
-      IModelObject schema = globalFinder.queryFirst( schemaRoot);
+      INode schema = globalFinder.queryFirst( schemaRoot);
       for( int i=1; i<parts.length; i++)
       {
-        IModelObject childSchema = findChild( schema, parts[ i]);
+        INode childSchema = findChild( schema, parts[ i]);
         if ( childSchema == null) break;
         schema = childSchema;
       }
@@ -109,7 +109,7 @@ public class SchemaFunction extends Function
    * @param name The name of the child.
    * @return Returns the child schema element.
    */
-  private IModelObject findChild( IModelObject parent, String name)
+  private INode findChild( INode parent, String name)
   {
     childFinder.setVariable( "name", name);
     return childFinder.queryFirst( parent);
@@ -120,7 +120,7 @@ public class SchemaFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -130,7 +130,7 @@ public class SchemaFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }

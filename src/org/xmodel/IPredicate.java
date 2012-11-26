@@ -46,7 +46,7 @@ public interface IPredicate
    * @param candidate The candidate object to be tested.
    * @return Returns true if the object meets the constraint criteria.
    */
-  public boolean evaluate( IContext parent, IPath candidatePath, IModelObject candidate);
+  public boolean evaluate( IContext parent, IPath candidatePath, INode candidate);
 
   /**
    * Returns true if this predicate contains an expression which is absolute.

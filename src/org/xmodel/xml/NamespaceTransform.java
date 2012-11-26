@@ -36,7 +36,7 @@ import org.xmodel.external.IExternalReference;
  * TODO: Namespaced attributes are not supported because the IModelObjectFactory needs
  * another method for create attributes :/
  */
-public class NamespaceTransform implements IModelObjectFactory
+public class NamespaceTransform implements INodeFactory
 {
   /**
    * While the NamespaceTransform is responsible for creating objects with the correct 
@@ -44,7 +44,7 @@ public class NamespaceTransform implements IModelObjectFactory
    * the objects.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -71,13 +71,13 @@ public class NamespaceTransform implements IModelObjectFactory
   /* (non-Javadoc)
    * @see org.xmodel.IModelObjectFactory#createClone(org.xmodel.IModelObject)
    */
-  public IModelObject createClone( IModelObject object)
+  public INode createClone( INode object)
   {
     String prefix = getNamespacePrefix( object.getType(), object);
     if ( prefix == null) throw new IllegalArgumentException( "Object namespace not found: "+object);
 
     String type = createTypeString( prefix, object.getType());
-    IModelObject clone = factory.createObject( null, type);
+    INode clone = factory.createObject( null, type);
     
     ModelAlgorithms.copyAttributes( object, clone);
     return clone;
@@ -89,34 +89,34 @@ public class NamespaceTransform implements IModelObjectFactory
    * @param type The type of the new object.
    * @return Returns a new object with the correct namespace prefix.
    */
-  public IModelObject createObject( IModelObject parent, String type)
+  public INode createObject( INode parent, String type)
   {
     String prefix = getNamespacePrefix( type, parent);
     if ( prefix == null) throw new IllegalArgumentException( "Object namespace not found: "+parent);
 
     type = createTypeString( prefix, type);
-    IModelObject object = factory.createObject( parent, type);
+    INode object = factory.createObject( parent, type);
     return object;
   }
   
   /* (non-Javadoc)
    * @see org.xmodel.IModelObjectFactory#createObject(org.xmodel.IModelObject, org.xml.sax.Attributes, java.lang.String)
    */
-  public IModelObject createObject( IModelObject parent, Attributes attributes, String type)
+  public INode createObject( INode parent, Attributes attributes, String type)
   {
     String prefix = getNamespacePrefix( type, parent);
     if ( prefix == null) prefix = getNamespacePrefix( type, attributes);
     if ( prefix == null) throw new IllegalArgumentException( "Object namespace not found: "+parent);
 
     type = createTypeString( prefix, type);
-    IModelObject object = factory.createObject( parent, type);
+    INode object = factory.createObject( parent, type);
     return object;
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObjectFactory#createExternalObject(org.xmodel.IModelObject, java.lang.String)
    */
-  public IExternalReference createExternalObject( IModelObject parent, String type)
+  public IExternalReference createExternalObject( INode parent, String type)
   {
     throw new UnsupportedOperationException();
   }
@@ -140,7 +140,7 @@ public class NamespaceTransform implements IModelObjectFactory
    * @param locus The locus of the element in the document.
    * @return Returns the namespace prefix.
    */
-  private String getNamespacePrefix( String type, IModelObject locus)
+  private String getNamespacePrefix( String type, INode locus)
   {
     String prefix = getPrefix( type);
     String url = findNamespaceDeclaration( prefix, locus);
@@ -184,9 +184,9 @@ public class NamespaceTransform implements IModelObjectFactory
    * @param locus The locus.
    * @return Returns the url of the namespace declaration.
    */
-  private String findNamespaceDeclaration( String prefix, IModelObject locus)
+  private String findNamespaceDeclaration( String prefix, INode locus)
   {
-    IModelObject ancestor = locus;
+    INode ancestor = locus;
     while( ancestor != null)
     {
       for( String attrName: ancestor.getAttributeNames())
@@ -222,7 +222,7 @@ public class NamespaceTransform implements IModelObjectFactory
   }
 
   private Map<String, String> namespaces = new HashMap<String, String>();
-  private IModelObjectFactory factory = new ModelObjectFactory();
+  private INodeFactory factory = new ModelObjectFactory();
   private StringBuilder builder = new StringBuilder();
   
   public static void main( String[] args) throws Exception
@@ -242,7 +242,7 @@ public class NamespaceTransform implements IModelObjectFactory
     
     XmlIO xmlIO = new XmlIO();
     xmlIO.setFactory( factory);
-    IModelObject root = xmlIO.read( doc);
+    INode root = xmlIO.read( doc);
     //IModelObject clone = ModelAlgorithms.cloneTree( root, factory);
     
     System.out.println( xmlIO.write( root));

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.function.BooleanFunction;
 import org.xmodel.xpath.function.NumberFunction;
 import org.xmodel.xpath.function.StringFunction;
@@ -115,15 +115,15 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, List<IModelObject> result2)
+  private boolean compareResult( List<INode> result1, List<INode> result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       for ( int j=0; j<result2.size(); j++)
       {
-        IModelObject object2 = (IModelObject)result2.get( i);
+        INode object2 = (INode)result2.get( i);
         String string2 = StringFunction.stringValue( object2);
         switch( operator)
         {
@@ -154,11 +154,11 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, double result2)
+  private boolean compareResult( List<INode> result1, double result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       double number1 = NumberFunction.numericValue( string1);
       switch( operator)
@@ -189,11 +189,11 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, String result2)
+  private boolean compareResult( List<INode> result1, String result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       switch( operator)
       {
@@ -223,7 +223,7 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, boolean result2)
+  private boolean compareResult( List<INode> result1, boolean result2)
   {
     boolean boolean1 = BooleanFunction.booleanValue( result1);
     switch( operator)
@@ -242,11 +242,11 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( double result1, List<IModelObject> result2)
+  private boolean compareResult( double result1, List<INode> result2)
   {
     for ( int i=0; i<result2.size(); i++)
     {
-      IModelObject object2 = (IModelObject)result2.get( i);
+      INode object2 = (INode)result2.get( i);
       String string2 = StringFunction.stringValue( object2);
       double number2 = NumberFunction.numericValue( string2);
       switch( operator)
@@ -277,11 +277,11 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the result of the comparison.
    */
-  private boolean compareResult( String result1, List<IModelObject> result2)
+  private boolean compareResult( String result1, List<INode> result2)
   {
     for ( int i=0; i<result2.size(); i++)
     {
-      IModelObject object2 = (IModelObject)result2.get( i);
+      INode object2 = (INode)result2.get( i);
       String string2 = StringFunction.stringValue( object2);
       switch( operator)
       {

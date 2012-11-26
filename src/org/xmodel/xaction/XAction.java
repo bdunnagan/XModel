@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -106,7 +106,7 @@ public abstract class XAction implements IXAction
     XActionDocument document = getDocument();
     if ( document == null) return "(No document)";
     
-    IModelObject root = document.getRoot();
+    INode root = document.getRoot();
     if ( root == null) return "(No root)";
 
     IPath path = ModelAlgorithms.createIdentityPath( root, true);

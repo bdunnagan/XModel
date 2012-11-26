@@ -1,6 +1,6 @@
 package org.xmodel.log.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.log.ILogSink;
@@ -35,10 +35,10 @@ public class LogAction extends GuardedAction
    * @param root The root of the script element.
    * @return Returns the generated log name.
    */
-  static String createLogName( IModelObject root)
+  static String createLogName( INode root)
   {
-    IModelObject node = root;
-    IModelObject parent = node.getParent();
+    INode node = root;
+    INode parent = node.getParent();
     while( parent != null && node.getAttribute( "xaction") != null)
     {
       node = parent;

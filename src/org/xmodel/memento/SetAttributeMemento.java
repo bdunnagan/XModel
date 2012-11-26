@@ -19,7 +19,7 @@
  */
 package org.xmodel.memento;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An IMemento for the updates which involve setting an attribute.
@@ -53,7 +53,7 @@ public class SetAttributeMemento implements IMemento
     oldValue = null;
   }
   
-  public IModelObject object;
+  public INode object;
   public String attrName;
   public Object newValue;
   public Object oldValue;

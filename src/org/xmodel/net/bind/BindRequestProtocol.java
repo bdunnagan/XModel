@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
@@ -20,7 +20,7 @@ public class BindRequestProtocol
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.listeners = new ConcurrentHashMap<IModelObject, UpdateListener>();
+    this.listeners = new ConcurrentHashMap<INode, UpdateListener>();
   }
   
   /**
@@ -29,7 +29,7 @@ public class BindRequestProtocol
    */
   public void reset()
   {
-    for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
+    for( Map.Entry<INode, UpdateListener> entry: listeners.entrySet())
       entry.getValue().uninstall( entry.getKey());
     listeners.clear();
   }
@@ -39,7 +39,7 @@ public class BindRequestProtocol
    * @param element The element.
    * @return Returns null or the listener.
    */
-  public UpdateListener getListener( IModelObject element)
+  public UpdateListener getListener( INode element)
   {
     return listeners.get( element);
   }
@@ -118,7 +118,7 @@ public class BindRequestProtocol
     
     try
     {
-      IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
+      INode target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
       bundle.bindResponseProtocol.send( channel, correlation, target);
       
       if ( target != null)
@@ -168,5 +168,5 @@ public class BindRequestProtocol
   private final static Log log = Log.getLog( BindRequestProtocol.class);
 
   private BindProtocol bundle;
-  private Map<IModelObject, UpdateListener> listeners;
+  private Map<INode, UpdateListener> listeners;
 }

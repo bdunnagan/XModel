@@ -21,7 +21,7 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
@@ -59,14 +59,14 @@ public class ParseXmlFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
 
     try
     {
       String string = getArgument( 0).evaluateString( context);
-      IModelObject root = xmlIO.read( string);
+      INode root = xmlIO.read( string);
       return Collections.singletonList( root);
     }
     catch( XmlException e)
@@ -84,8 +84,8 @@ public class ParseXmlFunction extends Function
   {
     try
     {
-      IModelObject oldRoot = xmlIO.read( oldValue);
-      IModelObject newRoot = xmlIO.read( newValue);
+      INode oldRoot = xmlIO.read( oldValue);
+      INode newRoot = xmlIO.read( newValue);
       if ( differ.diff( oldRoot, newRoot, null))
       {
         getParent().notifyRemove( this, context, Collections.singletonList( oldRoot));

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -72,7 +72,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     parent.notifyChange( this, context);
   }
@@ -83,7 +83,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     parent.notifyChange( this, context);
   }
@@ -228,7 +228,7 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    * @see org.xmodel.xpath.expression.IExpression#notifyValue(java.util.List, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     parent.notifyChange( this, contexts[ 0]);
   }

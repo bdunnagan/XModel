@@ -19,11 +19,11 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 public class ChoiceCheck extends ConstraintCheck
 {
-  public ChoiceCheck( IModelObject schemaLocus)
+  public ChoiceCheck( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -32,7 +32,7 @@ public class ChoiceCheck extends ConstraintCheck
    * @see org.xmodel.xsd.nu.ConstraintCheck#validateOnce(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validateOnce( IModelObject documentLocus, int start, int end)
+  public boolean validateOnce( INode documentLocus, int start, int end)
   {
     index = start;
     for( int i=0; i<constraints.length; i++)

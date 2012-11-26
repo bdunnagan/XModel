@@ -22,8 +22,8 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 
 
 /**
@@ -107,7 +107,7 @@ public class LetExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     LocalContext local = new LocalContext( context);
     updateVariables( local, 0);
@@ -140,7 +140,7 @@ public class LetExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     LocalContext local = new LocalContext( context);
     updateVariables( local, 0);
@@ -190,7 +190,7 @@ public class LetExpression extends Expression
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     parent.notifyAdd( this, context.getParent(), nodes);
   }
@@ -200,7 +200,7 @@ public class LetExpression extends Expression
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     parent.notifyRemove( this, context.getParent(), nodes);
   }
@@ -250,7 +250,7 @@ public class LetExpression extends Expression
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     for( int i=0; i<contexts.length; i++) contexts[ i] = contexts[ i].getParent();
     parent.notifyValue( this, contexts, object, newValue, oldValue);
@@ -308,7 +308,7 @@ public class LetExpression extends Expression
   }
 
   private IExpressionListener expressionListener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
       // rebinding is necessary since some expressions, such as filter expressions, will use the
       // let variable on the left-hand-side and must be rebound when that variable changes
@@ -317,7 +317,7 @@ public class LetExpression extends Expression
       updateVariables( local, 0);
       LetExpression.this.parent.notifyChange( LetExpression.this, context.getParent());
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
       // rebinding is necessary since some expressions, such as filter expressions, will use the
       // let variable on the left-hand-side and must be rebound when that variable changes
@@ -353,7 +353,7 @@ public class LetExpression extends Expression
       updateVariables( local, 0);
       LetExpression.this.parent.notifyChange( LetExpression.this, context.getParent());
     }
-    public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+    public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
     {
       // rebinding is necessary since some expressions, such as filter expressions, will use the
       // let variable on the left-hand-side and must be rebound when that variable changes

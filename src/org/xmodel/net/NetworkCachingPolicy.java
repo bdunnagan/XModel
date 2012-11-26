@@ -1,6 +1,6 @@
 package org.xmodel.net;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
 import org.xmodel.diff.DefaultXmlMatcher;
@@ -57,7 +57,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IContext context, IModelObject annotation) throws CachingException
+  public void configure( IContext context, INode annotation) throws CachingException
   {
     super.configure( context, annotation);
     

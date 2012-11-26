@@ -3,7 +3,7 @@ package org.xmodel.xpath.function.custom;
 import java.util.Collections;
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -56,7 +56,7 @@ public class CatchFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException 
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException 
   {
     try
     {
@@ -64,7 +64,7 @@ public class CatchFunction extends Function
     }
     catch( ExpressionException e)
     {
-      IModelObject node = getArgument( 1).queryFirst( context);
+      INode node = getArgument( 1).queryFirst( context);
       if ( node != null) Xlate.set( node, e.getMessage());
       
       if ( getArguments().size() == 3)
@@ -88,7 +88,7 @@ public class CatchFunction extends Function
     }
     catch( ExpressionException e)
     {
-      IModelObject node = getArgument( 1).queryFirst( context);
+      INode node = getArgument( 1).queryFirst( context);
       if ( node != null) Xlate.set( node, e.getMessage());
       
       if ( getArguments().size() == 3)
@@ -112,7 +112,7 @@ public class CatchFunction extends Function
     }
     catch( ExpressionException e)
     {
-      IModelObject node = getArgument( 1).queryFirst( context);
+      INode node = getArgument( 1).queryFirst( context);
       if ( node != null) Xlate.set( node, e.getMessage());
       
       if ( getArguments().size() == 3)
@@ -136,7 +136,7 @@ public class CatchFunction extends Function
     }
     catch( ExpressionException e)
     {
-      IModelObject node = getArgument( 1).queryFirst( context);
+      INode node = getArgument( 1).queryFirst( context);
       if ( node != null) Xlate.set( node, e.getMessage());
       
       if ( getArguments().size() == 3)
@@ -170,7 +170,7 @@ public class CatchFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd(IExpression expression, IContext context, List<IModelObject> nodes) 
+  public void notifyAdd(IExpression expression, IContext context, List<INode> nodes) 
   {
     if ( expression == getArgument( 0))
     {
@@ -186,7 +186,7 @@ public class CatchFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove(IExpression expression, IContext context, List<IModelObject> nodes) 
+  public void notifyRemove(IExpression expression, IContext context, List<INode> nodes) 
   {
     if ( expression == getArgument( 0))
     {
@@ -247,7 +247,7 @@ public class CatchFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyValue(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue) 
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue) 
   {
     if ( expression == getArgument( 0))
     {

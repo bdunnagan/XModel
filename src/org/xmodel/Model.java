@@ -42,8 +42,8 @@ public class Model implements IModel
     lock = new ReentrantReadWriteLock();
     updateStack = new ArrayList<Update>();
     updateObjects = new ArrayList<Update>();
-    frozen = new ArrayList<IModelObject>();
-    collections = new HashMultiMap<String, IModelObject>();
+    frozen = new ArrayList<INode>();
+    collections = new HashMultiMap<String, INode>();
     dispatcher = new BlockingDispatcher();
 
     // counter must start at one because 0 has meaning
@@ -180,7 +180,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModelRegistry#addRoot(java.lang.String, org.xmodel.IModelObject)
    */
-  public void addRoot( String collection, IModelObject root)
+  public void addRoot( String collection, INode root)
   {
     collections.put( collection, root);
   }
@@ -188,7 +188,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModelRegistry#removeRoot(java.lang.String, org.xmodel.IModelObject)
    */
-  public void removeRoot( String collection, IModelObject root)
+  public void removeRoot( String collection, INode root)
   {
     collections.remove( collection, root);
   }
@@ -204,7 +204,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModelRegistry#getRoots(java.lang.String)
    */
-  public List<IModelObject> getRoots( String collection)
+  public List<INode> getRoots( String collection)
   {
     return collections.get( collection);
   }
@@ -274,7 +274,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModel#lock(org.xmodel.IModelObject)
    */
-  public void freeze( IModelObject object)
+  public void freeze( INode object)
   {
     if ( object != null) frozen.add( object);
   }
@@ -282,7 +282,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModel#unlock(org.xmodel.IModelObject)
    */
-  public void unfreeze( IModelObject object)
+  public void unfreeze( INode object)
   {
     if ( object != null) frozen.remove( object);
   }
@@ -298,7 +298,7 @@ public class Model implements IModel
   /* (non-Javadoc)
    * @see org.xmodel.IModel#isLocked(org.xmodel.IModelObject)
    */
-  public IChangeSet isFrozen( IModelObject object)
+  public IChangeSet isFrozen( INode object)
   {
     if ( !frozen.contains( object)) return null;
     return getCurrentUpdate().getDeferredChangeSet();
@@ -443,10 +443,10 @@ public class Model implements IModel
   private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;
 
   private ReentrantReadWriteLock lock;
-  private MultiMap<String, IModelObject> collections;
+  private MultiMap<String, INode> collections;
   private List<Update> updateStack;
   private List<Update> updateObjects;
-  private List<IModelObject> frozen;
+  private List<INode> frozen;
   private int counter;
   private IDispatcher dispatcher;
   private boolean syncLock;

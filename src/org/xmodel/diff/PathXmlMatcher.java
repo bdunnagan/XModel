@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.XPath;
 
@@ -87,24 +87,24 @@ public class PathXmlMatcher extends DefaultXmlMatcher
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
   @Override
-  public void startDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void startDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
-    ignoreNodes = new HashSet<IModelObject>();
-    listNodes = new HashSet<IModelObject>();
+    ignoreNodes = new HashSet<INode>();
+    listNodes = new HashSet<INode>();
     
     for ( IPath listPath: listPaths)
     {
-      List<IModelObject> leftNodes = listPath.query( lhs, null);
+      List<INode> leftNodes = listPath.query( lhs, null);
       listNodes.addAll( leftNodes);
-      List<IModelObject> rightNodes = listPath.query( rhs, null);
+      List<INode> rightNodes = listPath.query( rhs, null);
       listNodes.addAll( rightNodes);
     }
 
     for ( IPath ignorePath: ignorePaths)
     {
-      List<IModelObject> leftNodes = ignorePath.query( lhs, null);
+      List<INode> leftNodes = ignorePath.query( lhs, null);
       ignoreNodes.addAll( leftNodes);
-      List<IModelObject> rightNodes = ignorePath.query( rhs, null);
+      List<INode> rightNodes = ignorePath.query( rhs, null);
       ignoreNodes.addAll( rightNodes);
     }
   }
@@ -114,7 +114,7 @@ public class PathXmlMatcher extends DefaultXmlMatcher
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
   @Override
-  public void endDiff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public void endDiff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     ignoreNodes = null;
     listNodes = null;
@@ -124,7 +124,7 @@ public class PathXmlMatcher extends DefaultXmlMatcher
    * @see org.xmodel.diff.nu.DefaultXmlMatcher#isList(org.xmodel.IModelObject)
    */
   @Override
-  public boolean isList( IModelObject parent)
+  public boolean isList( INode parent)
   {
     return listNodes.contains( parent);
   }
@@ -132,13 +132,13 @@ public class PathXmlMatcher extends DefaultXmlMatcher
   /* (non-Javadoc)
    * @see org.xmodel.diff.IXmlMatcher#shouldDiff(org.xmodel.IModelObject, boolean)
    */
-  public boolean shouldDiff( IModelObject object, boolean lhs)
+  public boolean shouldDiff( INode object, boolean lhs)
   {
     return !ignoreNodes.contains( object);
   }
   
   List<IPath> listPaths;
   List<IPath> ignorePaths;
-  Set<IModelObject> ignoreNodes;
-  Set<IModelObject> listNodes;
+  Set<INode> ignoreNodes;
+  Set<INode> listNodes;
 }

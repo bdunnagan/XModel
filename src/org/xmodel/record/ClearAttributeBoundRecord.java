@@ -21,7 +21,7 @@ package org.xmodel.record;
 
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IBoundChangeRecord for clearing attributes.
@@ -32,7 +32,7 @@ public class ClearAttributeBoundRecord extends AbstractBoundRecord
    * @param object
    * @param attrName
    */
-  public ClearAttributeBoundRecord( IModelObject object, String attrName)
+  public ClearAttributeBoundRecord( INode object, String attrName)
   {
     super( object);
     this.attrName = attrName;
@@ -61,7 +61,7 @@ public class ClearAttributeBoundRecord extends AbstractBoundRecord
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#createUnboundRecord(org.xmodel.IModelObject)
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative)
+  public IChangeRecord createUnboundRecord( INode relative)
   {
     return new ClearAttributeRecord( getRelativePath( relative), attrName);
   }
@@ -94,7 +94,7 @@ public class ClearAttributeBoundRecord extends AbstractBoundRecord
    */
   public String toString()
   {
-    IModelObject object = getBoundObject();
+    INode object = getBoundObject();
     return "clear: attribute: "+attrName+", object: "+object;
   }
   

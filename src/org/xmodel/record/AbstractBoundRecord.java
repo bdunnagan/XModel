@@ -31,7 +31,7 @@ public abstract class AbstractBoundRecord extends AbstractChangeRecord implement
    * Create an IBoundChangeRecord which is bound to the specified object.
    * @param object The bound object.
    */
-  public AbstractBoundRecord( IModelObject object)
+  public AbstractBoundRecord( INode object)
   {
     this.object = object;
   }
@@ -39,7 +39,7 @@ public abstract class AbstractBoundRecord extends AbstractChangeRecord implement
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#getBoundObject()
    */
-  public IModelObject getBoundObject()
+  public INode getBoundObject()
   {
     return object;
   }
@@ -55,7 +55,7 @@ public abstract class AbstractBoundRecord extends AbstractChangeRecord implement
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#createUnboundRecord(org.xmodel.IModelObject)
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative)
+  public IChangeRecord createUnboundRecord( INode relative)
   {
     return null;
   }
@@ -73,7 +73,7 @@ public abstract class AbstractBoundRecord extends AbstractChangeRecord implement
    * @param relative The end of the relative path.
    * @return Returns the relative path for the bound object relative to the specified object.
    */
-  protected IPath getRelativePath( IModelObject relative)
+  protected IPath getRelativePath( INode relative)
   {
     IPath path = ModelAlgorithms.createRelativePath( relative, object);
     if ( path != null) return path;
@@ -83,16 +83,16 @@ public abstract class AbstractBoundRecord extends AbstractChangeRecord implement
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#applyChange(org.xmodel.IModelObject)
    */
-  public void applyChange( IModelObject root)
+  public void applyChange( INode root)
   {
     if ( path != null)
     {
-      IModelObject boundObject = object;
+      INode boundObject = object;
       object = path.queryFirst( root);
       applyChange();
       object = boundObject;
     }
   }
   
-  IModelObject object;
+  INode object;
 }

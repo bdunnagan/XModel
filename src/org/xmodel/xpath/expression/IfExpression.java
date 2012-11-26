@@ -21,8 +21,8 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 
 
 /**
@@ -62,7 +62,7 @@ public class IfExpression extends Expression
    * org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertType( context, 2, getArgument( 1).getType( context));
  
@@ -138,7 +138,7 @@ public class IfExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     if ( getArgument( 0).evaluateBoolean( context))
     {
@@ -214,7 +214,7 @@ public class IfExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression condition = getArgument( 0);
     if ( expression == condition)
@@ -234,7 +234,7 @@ public class IfExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression condition = getArgument( 0);
     if ( expression == condition)
@@ -324,7 +324,7 @@ public class IfExpression extends Expression
    * @see org.xmodel.xpath.expression.IExpression#notifyValue(java.util.List, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     IExpression condition = getArgument( 0);
     if ( expression == condition) rebind( contexts[ 0]);

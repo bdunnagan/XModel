@@ -2,7 +2,7 @@ package org.xmodel.net.bind;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioException;
@@ -49,7 +49,7 @@ public class UnbindRequestProtocol
   {
     int netID = buffer.readInt();
     
-    IModelObject element = bundle.responseCompressor.findLocal( netID);
+    INode element = bundle.responseCompressor.findLocal( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     log.debugf( "UnbindRequestProtocol.handle: element=%X", netID);
@@ -63,7 +63,7 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @param element The element.
    */
-  private void unbind( Channel channel, long netID, IModelObject element)
+  private void unbind( Channel channel, long netID, INode element)
   {
     try
     {
@@ -92,7 +92,7 @@ public class UnbindRequestProtocol
   
   private class UnbindRunnable implements Runnable
   {
-    public UnbindRunnable( Channel channel, long netID, IModelObject element)
+    public UnbindRunnable( Channel channel, long netID, INode element)
     {
       this.channel = channel;
       this.netID = netID;
@@ -110,7 +110,7 @@ public class UnbindRequestProtocol
     
     private Channel channel;
     private long netID;
-    private IModelObject element;
+    private INode element;
   }
   
   private final static Log log = Log.getLog( UnbindRequestProtocol.class);

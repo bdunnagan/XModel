@@ -19,7 +19,7 @@
  */
 package org.xmodel.compress;
 
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INodeFactory;
 
 /**
  * Abstract base implementation with get/set for compression level.
@@ -34,7 +34,7 @@ public abstract class AbstractCompressor implements ICompressor
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#setFactory(org.xmodel.IModelObjectFactory)
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -48,6 +48,6 @@ public abstract class AbstractCompressor implements ICompressor
     this.serializer = serializer;
   }
   
-  protected IModelObjectFactory factory;
+  protected INodeFactory factory;
   protected ISerializer serializer;
 }

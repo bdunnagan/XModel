@@ -21,8 +21,8 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xpath.variable.IVariableSource;
 
 
@@ -139,14 +139,14 @@ public interface IExpression
    * @param name The name of the variable.
    * @param node A node.
    */
-  public void setVariable( String name, IModelObject node);
+  public void setVariable( String name, INode node);
   
   /**
    * Set a local variable.
    * @param name The name of the variable.
    * @param nodes A list of nodes.
    */
-  public void setVariable( String name, List<IModelObject> nodes);
+  public void setVariable( String name, List<INode> nodes);
   
   /**
    * Define a local variable with another expression.
@@ -172,7 +172,7 @@ public interface IExpression
    * @param context The context in which to evaluate the expression.
    * @return Returns the node-set result of the expression.
    */
-  public List<IModelObject> evaluateNodes() throws ExpressionException;
+  public List<INode> evaluateNodes() throws ExpressionException;
 
   /**
    * Returns the string result of this expression for the specified context.
@@ -200,7 +200,7 @@ public interface IExpression
    * @param context The context in which to evaluate the expression.
    * @return Returns the node-set result of the expression.
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException;
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException;
 
   /**
    * Returns the string result of this expression for the specified context.
@@ -230,7 +230,7 @@ public interface IExpression
    * @param defaultResult The return value if an ExpressionException is caught.
    * @return Returns the node-set result of the expression.
    */
-  public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult);
+  public List<INode> evaluateNodes( IContext context, List<INode> defaultResult);
 
   /**
    * Returns the string result of this expression for the specified context. If an ExpressionException
@@ -265,7 +265,7 @@ public interface IExpression
    * @param factory Null or the factory for creating the subtree elements.
    * @param undo Null or a change set containing records which will undo the creation.
    */
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo);
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo);
   
   /**
    * This method is provided as a convenience for performing simple path queries using this expression.
@@ -274,7 +274,7 @@ public interface IExpression
    * @param result An optional location to store the result.
    * @return Returns a new list or the result argument if it is non-null.
    */
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result);
+  public List<INode> query( INode object, List<INode> result);
 
   /**
    * This method is provided as a convenience for performing simple path queries using this expression.
@@ -282,7 +282,7 @@ public interface IExpression
    * @param object The context object.
    * @return Returns null or the first node in the node-set.
    */
-  public IModelObject queryFirst( IModelObject object);
+  public INode queryFirst( INode object);
   
   /**
    * Evaluate the expression with an empty context (only expressions that begin with
@@ -290,14 +290,14 @@ public interface IExpression
    * @param result Null or the list to populate.
    * @return Returns the argument or a new list if the argument is null.
    */  
-  public List<IModelObject> query( List<IModelObject> result);
+  public List<INode> query( List<INode> result);
   
   /**
    * Evaluate the expression with an empty context (only expressions that begin with
    * the collection function will return nodes) and return the first node.
    * @return Returns the first node in the node-set.
    */
-  public IModelObject queryFirst();
+  public INode queryFirst();
   
   /**
    * This method is provided as a convenience for performing simple path queries using this expression.
@@ -306,7 +306,7 @@ public interface IExpression
    * @param result An optional location to store the result.
    * @return Returns a new list or the result argument if it is non-null.
    */
-  public List<IModelObject> query( IContext context, List<IModelObject> result);
+  public List<INode> query( IContext context, List<INode> result);
 
   /**
    * This method is provided as a convenience for performing simple path queries using this expression.
@@ -314,7 +314,7 @@ public interface IExpression
    * @param context The context.
    * @return Returns null or the first node in the node-set.
    */
-  public IModelObject queryFirst( IContext context);
+  public INode queryFirst( IContext context);
   
   /**
    * Add an IExpressionListener to this expression for the specified context.
@@ -381,7 +381,7 @@ public interface IExpression
    * @param context The context of the expression evaluation.
    * @param nodes The nodes which were added.
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes);
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes);
 
   /**
    * Called when one or more nodes are removed from the bound expression's node-set.
@@ -389,7 +389,7 @@ public interface IExpression
    * @param context The context of the expression evaluation.
    * @param nodes The nodes which were removed.
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes);
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes);
 
   /**
    * Called when the result of an expression which evaluates to a <i>STRING</i> changes.
@@ -432,7 +432,7 @@ public interface IExpression
    * @param newValue The new value.
    * @param oldValue The old value.
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue);
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue);
   
   /**
    * Handle an exception encountered during partial evaluation.

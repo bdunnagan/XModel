@@ -21,7 +21,7 @@ package org.xmodel.path;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.expression.IContext;
 
@@ -46,9 +46,9 @@ public class AncestorAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
-    IModelObject ancestor = object;
+    INode ancestor = object;
     while( ancestor != null)
     {
       ancestor.addModelListener( this);
@@ -59,9 +59,9 @@ public class AncestorAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
-    IModelObject ancestor = object;
+    INode ancestor = object;
     while( ancestor != null)
     {
       ancestor.removeModelListener( this);
@@ -81,7 +81,7 @@ public class AncestorAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
     IPath path = getListenerChain().getPath();
     IContext context = getListenerChain().getContext();
@@ -91,8 +91,8 @@ public class AncestorAxisListener extends FanoutListener
       uninstallListeners( oldParent);
 
       // uninstall next link
-      List<IModelObject> list = new ArrayList<IModelObject>( 3);
-      IModelObject ancestor = oldParent;
+      List<INode> list = new ArrayList<INode>( 3);
+      INode ancestor = oldParent;
       while( ancestor != null)
       {
         if ( fanoutElement.evaluate( context, path, ancestor)) list.add( ancestor);
@@ -104,8 +104,8 @@ public class AncestorAxisListener extends FanoutListener
     if ( newParent != null)
     {
       // install next link (* see above)
-      List<IModelObject> list = new ArrayList<IModelObject>( 3);
-      IModelObject ancestor = newParent;
+      List<INode> list = new ArrayList<INode>( 3);
+      INode ancestor = newParent;
       while( ancestor != null)
       {
         if ( fanoutElement.evaluate( context, path, ancestor)) list.add( ancestor);

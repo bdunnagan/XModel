@@ -38,7 +38,7 @@ public class ConcurrentElementTest
     ExecutorService readerPool = Executors.newFixedThreadPool( readers);
     ExecutorService writerPool = Executors.newFixedThreadPool( writers);
 
-    List<IModelObject> nodes = Collections.<IModelObject>singletonList( new ModelObject( "test"));
+    List<INode> nodes = Collections.<INode>singletonList( new ModelObject( "test"));
 
     Task readerTask = new Task( nodes, false, 10000, 0, new Reader());
     Task writerTask = new Task( nodes, false, 10000, 0, new Writer());
@@ -66,25 +66,25 @@ public class ConcurrentElementTest
     public void call( T t);
   }
   
-  private static class Reader implements Callback<IModelObject>
+  private static class Reader implements Callback<INode>
   {
-    public void call( IModelObject node)
+    public void call( INode node)
     {
       // read all attributes
       for( String attrName: node.getAttributeNames())
         node.getAttribute( attrName);
       
       // iterate children
-      for( IModelObject child: node.getChildren())
+      for( INode child: node.getChildren())
       {
         System.out.println( child.getType());
       }
     }
   }
   
-  private static class Writer implements Callback<IModelObject>
+  private static class Writer implements Callback<INode>
   {
-    public void call( IModelObject node)
+    public void call( INode node)
     {
       // write attributes
       node.setValue( counter++);
@@ -105,7 +105,7 @@ public class ConcurrentElementTest
   
   private static class Task implements Runnable
   {
-    public Task( List<IModelObject> nodes, boolean shuffle, int loops, int sleep, Callback<IModelObject> callback)
+    public Task( List<INode> nodes, boolean shuffle, int loops, int sleep, Callback<INode> callback)
     {
       this.nodes = nodes;
       this.shuffle = shuffle;
@@ -119,14 +119,14 @@ public class ConcurrentElementTest
       while( loops-- >= 0 && sleep( sleep))
       {
         if ( shuffle) Collections.shuffle( nodes);
-        for( IModelObject node: nodes) callback.call( node);
+        for( INode node: nodes) callback.call( node);
       }
     }
     
-    private List<IModelObject> nodes;
+    private List<INode> nodes;
     private boolean shuffle;
     private int sleep;
-    private Callback<IModelObject> callback;
+    private Callback<INode> callback;
     public int loops;
   }
 }

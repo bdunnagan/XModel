@@ -19,7 +19,7 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for an IExternalReference cache.
@@ -30,7 +30,7 @@ public interface ICache
    * Called by the preprocessor with the cache configuration fragment.
    * @param annotation The annotation.
    */
-  public void configure( IModelObject annotation);
+  public void configure( INode annotation);
   
   /**
    * Add an IExternalReference to the cache.

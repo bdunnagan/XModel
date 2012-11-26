@@ -26,7 +26,7 @@ import java.util.List;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.FollowingIterator;
 import org.xmodel.IAxis;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.IPredicate;
@@ -149,17 +149,17 @@ public class PathElement implements IPathElement, IAxis
    * @see org.xmodel.IPathElement#query(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IModelObject, java.util.List)
    */
-  public List<IModelObject> query( IContext parent, IModelObject object, List<IModelObject> result)
+  public List<INode> query( IContext parent, INode object, List<INode> result)
   {
     int start = 0;
-    if ( result == null) result = new ArrayList<IModelObject>(); else start = result.size();
+    if ( result == null) result = new ArrayList<INode>(); else start = result.size();
     if ( (axis & ROOT) != 0) 
     {
       int oldSize = result.size();
       findMatchingNodes( object.getRoot(), type, result);
       int newSize = result.size();
       if ( newSize == oldSize) return result;
-      object = (IModelObject)result.get( newSize-1);
+      object = (INode)result.get( newSize-1);
     }
     if ( (axis & SELF) != 0) findMatchingSelf( object, type, result);
     if ( (axis & ANCESTOR) != 0) findMatchingAncestors( object, type, result);
@@ -183,13 +183,13 @@ public class PathElement implements IPathElement, IAxis
    * @see org.xmodel.IPathElement#query(org.xmodel.xpath.expression.IContext, 
    * java.util.List, java.util.List)
    */
-  public List<IModelObject> query( IContext context, List<IModelObject> list, List<IModelObject> result)
+  public List<INode> query( IContext context, List<INode> list, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>();
+    if ( result == null) result = new ArrayList<INode>();
     int size = list.size();
     for ( int i=0; i<size; i++)
     {
-      IModelObject object = (IModelObject)list.get( i);
+      INode object = (INode)list.get( i);
       query( context, object, result);
     }
     return result;
@@ -199,7 +199,7 @@ public class PathElement implements IPathElement, IAxis
    * @see org.xmodel.IPathElement#evaluate(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IPath, org.xmodel.IModelObject)
    */
-  public boolean evaluate( IContext context, IPath candidatePath, IModelObject candidate)
+  public boolean evaluate( IContext context, IPath candidatePath, INode candidate)
   {
     if ( !performNodeTest( candidate, type)) return false;
     if ( predicate != null && !predicate.evaluate( context, candidatePath, candidate)) return false;
@@ -224,9 +224,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the result should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingSelf( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingSelf( INode object, String type, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>( 2);
+    if ( result == null) result = new ArrayList<INode>( 2);
     if ( performNodeTest( object, type)) result.add( object);
     return result;
   }
@@ -240,9 +240,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingAncestors( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingAncestors( INode object, String type, List<INode> result)
   {
-    IModelObject ancestor = object.getParent();
+    INode ancestor = object.getParent();
     while( ancestor != null)
     {
       result = findMatchingNodes( ancestor, type, result);
@@ -260,9 +260,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingParent( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingParent( INode object, String type, List<INode> result)
   {
-    IModelObject parent = object.getParent();
+    INode parent = object.getParent();
     if ( parent != null) result = findMatchingNodes( parent, type, result);
     return result;
   }
@@ -276,7 +276,7 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingChildren( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingChildren( INode object, String type, List<INode> result)
   {
     if ( type != null)
     {
@@ -291,7 +291,7 @@ public class PathElement implements IPathElement, IAxis
         result = findMatchingText( object, result);
         result = findMatchingProcessingInstructions( object, null, result);
         for ( Object child: object.getChildren())
-          result = findMatchingNodes( (IModelObject)child, null, result);
+          result = findMatchingNodes( (INode)child, null, result);
         return result;
       }
       else if ( type.startsWith( "processing-instruction"))
@@ -301,9 +301,9 @@ public class PathElement implements IPathElement, IAxis
       else if ( type.indexOf( "*") < 0)
       {
         // make specific getChildren call
-        if ( result == null) result = new ArrayList<IModelObject>();
-        List<IModelObject> children = object.getChildren( type);
-        for( IModelObject child: children)
+        if ( result == null) result = new ArrayList<INode>();
+        List<INode> children = object.getChildren( type);
+        for( INode child: children)
           if ( child.getType().charAt( 0) != '?' && performNodeTest( child, type))
             result.add( child);
         return result;
@@ -311,9 +311,9 @@ public class PathElement implements IPathElement, IAxis
       else
       {
         // make generic getChildren call
-        if ( result == null) result = new ArrayList<IModelObject>();
-        List<IModelObject> children = (List<IModelObject>)object.getChildren();
-        for( IModelObject child: children)
+        if ( result == null) result = new ArrayList<INode>();
+        List<INode> children = (List<INode>)object.getChildren();
+        for( INode child: children)
           if ( child.getType().charAt( 0) != '?' && performNodeTest( child, type))
             result.add( child);
       }
@@ -321,9 +321,9 @@ public class PathElement implements IPathElement, IAxis
     else
     {
       // make generic getChildren call
-      if ( result == null) result = new ArrayList<IModelObject>();
-      List<IModelObject> children = (List<IModelObject>)object.getChildren();
-      for( IModelObject child: children)
+      if ( result == null) result = new ArrayList<INode>();
+      List<INode> children = (List<INode>)object.getChildren();
+      for( INode child: children)
       {
         String childType = child.getType();
         if ( (childType.length() == 0 || childType.charAt( 0) != '?') && performNodeTest( child, type))
@@ -343,12 +343,12 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingDescendants( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingDescendants( INode object, String type, List<INode> result)
   {
     BreadthFirstIterator iter = new BreadthFirstIterator( object);
     while( iter.hasNext())
     {
-      IModelObject descendant = (IModelObject)iter.next();
+      INode descendant = (INode)iter.next();
       if ( descendant != object) result = findMatchingNodes( descendant, type, result);
     }
     return result;
@@ -363,12 +363,12 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingFollowing( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingFollowing( INode object, String type, List<INode> result)
   {
     FollowingIterator iter = new FollowingIterator( object);
     while( iter.hasNext())
     {
-      object = (IModelObject)iter.next();
+      object = (INode)iter.next();
       result = findMatchingNodes( object, type, result);
     }
     return result;
@@ -383,7 +383,7 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingFollowingSiblings( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingFollowingSiblings( INode object, String type, List<INode> result)
   {
     if ( object instanceof AttributeNode)
     {
@@ -392,10 +392,10 @@ public class PathElement implements IPathElement, IAxis
     }
     else
     {
-      if ( result == null) result = new ArrayList<IModelObject>( 5);
+      if ( result == null) result = new ArrayList<INode>( 5);
 
-      IModelObject parent = object.getParent();
-      List<IModelObject> children = parent.getChildren();
+      INode parent = object.getParent();
+      List<INode> children = parent.getChildren();
       int start = children.indexOf( object);
       for( int i = start+1; i < children.size(); i++)
         result.add( children.get( i));
@@ -413,12 +413,12 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingPreceding( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingPreceding( INode object, String type, List<INode> result)
   {
     PrecedingIterator iter = new PrecedingIterator( object);
     while( iter.hasNext())
     {
-      object = (IModelObject)iter.next();
+      object = (INode)iter.next();
       result = findMatchingNodes( object, type, result);
     }
     return result;
@@ -433,9 +433,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingPrecedingSiblings( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingPrecedingSiblings( INode object, String type, List<INode> result)
   {
-    IModelObject parent = object.getParent();
+    INode parent = object.getParent();
     if ( parent == null || object instanceof AttributeNode)
     {
       if ( result == null) result = Collections.emptyList();
@@ -443,13 +443,13 @@ public class PathElement implements IPathElement, IAxis
     }
     else
     {
-      if ( result == null) result = new ArrayList<IModelObject>( 5);
+      if ( result == null) result = new ArrayList<INode>( 5);
 
-      List<IModelObject> children = parent.getChildren();
+      List<INode> children = parent.getChildren();
       int start = children.indexOf( object);
       for( int i = start-1; i >= 0; i--)
       {
-        IModelObject child = children.get( i);
+        INode child = children.get( i);
         if ( performNodeTest( child, type))
           result.add( child);
       }
@@ -469,10 +469,10 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingNested( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingNested( INode object, String type, List<INode> result)
   {
     int start = (result != null)? result.size(): 0;
-    Fifo<IModelObject> stack = new Fifo<IModelObject>();
+    Fifo<INode> stack = new Fifo<INode>();
     stack.push( object);
     while( !stack.empty())
     {
@@ -497,9 +497,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching objects.
    */
-  private final List<IModelObject> findMatchingAttributes( IModelObject object, String name, List<IModelObject> result)
+  private final List<INode> findMatchingAttributes( INode object, String name, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>( 5);
+    if ( result == null) result = new ArrayList<INode>( 5);
     if ( name != null)
     {
       if ( name.endsWith( ")") && name.equals( "text()"))
@@ -529,9 +529,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching text nodes.
    */
-  private final List<IModelObject> findMatchingText( IModelObject object, List<IModelObject> result)
+  private final List<INode> findMatchingText( INode object, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>( 2);
+    if ( result == null) result = new ArrayList<INode>( 2);
     if ( object.getValue() != null)
       result.add( object.getAttributeNode( ""));
     return result;
@@ -546,15 +546,15 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching processing instructions.
    */
-  private final List<IModelObject> findMatchingProcessingInstructions( IModelObject object, String piTest, List<IModelObject> result)
+  private final List<INode> findMatchingProcessingInstructions( INode object, String piTest, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>( 2);
+    if ( result == null) result = new ArrayList<INode>( 2);
     
     int start = (piTest != null)? piTest.indexOf( "'", 22): -1;
     if ( start < 0)
     {
-      List<IModelObject> children = object.getChildren();
-      for( IModelObject child: children)
+      List<INode> children = object.getChildren();
+      for( INode child: children)
         if ( child.getType().charAt( 0) == '?')
           result.add( child);
     }
@@ -563,8 +563,8 @@ public class PathElement implements IPathElement, IAxis
       start++;
       int end = piTest.indexOf( "'", start);
       String literal = "?"+piTest.substring( start, end);
-      List<IModelObject> children = object.getChildren();
-      for( IModelObject child: children)
+      List<INode> children = object.getChildren();
+      for( INode child: children)
         if ( child.getType().equals( literal))
           result.add( child);
     }
@@ -582,9 +582,9 @@ public class PathElement implements IPathElement, IAxis
    * @param result An optional list where the results should be stored.
    * @return Returns the matching text nodes.
    */
-  private final List<IModelObject> findMatchingNodes( IModelObject object, String type, List<IModelObject> result)
+  private final List<INode> findMatchingNodes( INode object, String type, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>( 5);
+    if ( result == null) result = new ArrayList<INode>( 5);
     
     if ( type != null)
     {
@@ -624,7 +624,7 @@ public class PathElement implements IPathElement, IAxis
    * @param test The node-test.
    * @return Returns true if the object conforms to the node-test.
    */
-  private final boolean performNodeTest( IModelObject object, String test)
+  private final boolean performNodeTest( INode object, String test)
   {
     if ( test == null) return true;
     
@@ -669,7 +669,7 @@ public class PathElement implements IPathElement, IAxis
    * @param nodeSet The node-set to be filtered.
    * @param start The first element to be filtered.
    */
-  private final void filterNodeSet( IContext parent, List<IModelObject> nodeSet, int start)
+  private final void filterNodeSet( IContext parent, List<INode> nodeSet, int start)
   {
     if ( predicate == null) return;
 
@@ -688,7 +688,7 @@ public class PathElement implements IPathElement, IAxis
           if ( position < start) throw new ExpressionException( argument, "position values begin with 1");
           if ( position < nodeSet.size())
           {
-            IModelObject node = nodeSet.get( position);
+            INode node = nodeSet.get( position);
             nodeSet.clear(); nodeSet.add( node);
           }
           else
@@ -724,7 +724,7 @@ public class PathElement implements IPathElement, IAxis
         }
         for ( int i=start; i<size; i++)
         {
-          IModelObject resultNode = (IModelObject)nodeSet.get( i);
+          INode resultNode = (INode)nodeSet.get( i);
           if ( resultNode == null)
           {
             nodeSet.remove( i--);

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -77,8 +77,8 @@ public class MatchesFunction extends Function
     }
     else if ( arg0.getType( context) == ResultType.NODES)
     {
-      List<IModelObject> nodes = arg0.evaluateNodes( context);
-      for( IModelObject node: nodes)
+      List<INode> nodes = arg0.evaluateNodes( context);
+      for( INode node: nodes)
       {
         Matcher matcher = pattern.matcher( Xlate.get( node, ""));
         if ( matcher.find()) return true;
@@ -130,7 +130,7 @@ public class MatchesFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -140,7 +140,7 @@ public class MatchesFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -170,7 +170,7 @@ public class MatchesFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     for( IContext context: contexts) getParent().notifyChange( this, context);
   }

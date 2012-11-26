@@ -20,7 +20,7 @@
 package org.xmodel.record;
 
 import org.xmodel.IChangeRecord;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 
 /**
@@ -89,7 +89,7 @@ public abstract class AbstractChangeRecord implements IChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#getChild()
    */
-  public IModelObject getChild()
+  public INode getChild()
   {
     return null;
   }

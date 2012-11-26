@@ -20,7 +20,7 @@
 package org.xmodel.xsd.check;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xsd.check.SchemaError.Type;
 
 
@@ -29,7 +29,7 @@ import org.xmodel.xsd.check.SchemaError.Type;
  */
 public class TypeCheck extends AbstractCheck
 {
-  public TypeCheck( IModelObject schemaLocus)
+  public TypeCheck( INode schemaLocus)
   {
     super( schemaLocus);
     
@@ -43,7 +43,7 @@ public class TypeCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     if ( !check.validate( documentLocus))
     {

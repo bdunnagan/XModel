@@ -30,13 +30,13 @@ import org.xmodel.util.Fifo;
  * and the root object is the first object visited. References are only visited once to prevent 
  * infinite loops.
  */
-public class BreadthFirstIterator implements Iterator<IModelObject>
+public class BreadthFirstIterator implements Iterator<INode>
 {
-  public BreadthFirstIterator( IModelObject root)
+  public BreadthFirstIterator( INode root)
   {
-    fifo = new Fifo<IModelObject>();
+    fifo = new Fifo<INode>();
     fifo.push( root);
-    references = new HashSet<IModelObject>();
+    references = new HashSet<INode>();
   }
   
   /* (non-Javadoc)
@@ -51,13 +51,13 @@ public class BreadthFirstIterator implements Iterator<IModelObject>
   /* (non-Javadoc)
    * @see java.util.Iterator#next()
    */
-  public IModelObject next()
+  public INode next()
   {
-    IModelObject object = (IModelObject)fifo.pop();
-    Iterator<IModelObject> iter = object.getChildren().iterator();
+    INode object = (INode)fifo.pop();
+    Iterator<INode> iter = object.getChildren().iterator();
     while( iter.hasNext()) 
     {
-      IModelObject child = (IModelObject)iter.next();
+      INode child = (INode)iter.next();
       fifo.push( child);
     }
     return object;
@@ -76,9 +76,9 @@ public class BreadthFirstIterator implements Iterator<IModelObject>
    * @param object The object.
    * @return Returns true if the specified object should be traversed.
    */
-  protected boolean shouldTraverse( IModelObject object)
+  protected boolean shouldTraverse( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     if ( referent != object)
     {
       if ( references.contains( object)) return false;
@@ -87,6 +87,6 @@ public class BreadthFirstIterator implements Iterator<IModelObject>
     return true;
   }
   
-  private Fifo<IModelObject> fifo;
-  private Set<IModelObject> references;
+  private Fifo<INode> fifo;
+  private Set<INode> references;
 }

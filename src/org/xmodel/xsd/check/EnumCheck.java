@@ -20,7 +20,7 @@
 package org.xmodel.xsd.check;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 /**
@@ -28,7 +28,7 @@ import org.xmodel.Xlate;
  */
 public class EnumCheck extends AbstractCheck
 {
-  public EnumCheck( IModelObject schemaLocus)
+  public EnumCheck( INode schemaLocus)
   {
     super( schemaLocus);
     entries = schemaLocus.getChildren( "value");
@@ -37,14 +37,14 @@ public class EnumCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     String value = Xlate.get( documentLocus, "");
-    for( IModelObject entry: entries)
+    for( INode entry: entries)
       if ( value.equals( Xlate.get( entry, "")))
         return true;
     return false;
   }
 
-  private List<IModelObject> entries;
+  private List<INode> entries;
 }

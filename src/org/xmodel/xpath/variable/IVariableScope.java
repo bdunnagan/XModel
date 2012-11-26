@@ -22,7 +22,7 @@ package org.xmodel.xpath.variable;
 import java.util.Collection;
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.memento.IMemento;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -131,7 +131,7 @@ public interface IVariableScope
    * @param value The value of the variable.
    * @return Returns the previous value.
    */
-  public List<IModelObject> set( String name, List<IModelObject> value);
+  public List<INode> set( String name, List<INode> value);
   
   /**
    * Set the specified variable.
@@ -139,7 +139,7 @@ public interface IVariableScope
    * @param value The value of the variable.
    * @return Returns the previous value.
    */
-  public List<IModelObject> set( String name, IModelObject value);
+  public List<INode> set( String name, INode value);
 
   /**
    * Define the specified variable with the specified expression. This method may only be called

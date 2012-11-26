@@ -25,7 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.xml.XmlException;
@@ -58,12 +58,12 @@ public class FileLoadAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject parent = (targetExpr != null)? targetExpr.queryFirst( context): null;
-    IModelObject element = null;
+    INode parent = (targetExpr != null)? targetExpr.queryFirst( context): null;
+    INode element = null;
     
     // initialize variable
     IVariableScope scope = context.getScope();
-    if ( scope != null) scope.set( var, new ArrayList<IModelObject>( 0));
+    if ( scope != null) scope.set( var, new ArrayList<INode>( 0));
     
     // get file
     File file = new File( fileExpr.evaluateString( context));

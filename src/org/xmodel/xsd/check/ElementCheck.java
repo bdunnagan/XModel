@@ -22,7 +22,7 @@ package org.xmodel.xsd.check;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.XPath;
@@ -34,28 +34,28 @@ import org.xmodel.xsd.check.SchemaError.Type;
  */
 public class ElementCheck extends AbstractCheck
 {
-  public ElementCheck( IModelObject schemaLocus)
+  public ElementCheck( INode schemaLocus)
   {
     super( schemaLocus);
     
     // attributes
     valueChecks = new ArrayList<ValueCheck>();
     attributes = schemaAttributePath.query( schemaLocus, null);
-    for( IModelObject attribute: attributes) valueChecks.add( new ValueCheck( attribute));
+    for( INode attribute: attributes) valueChecks.add( new ValueCheck( attribute));
 
     // element value
-    IModelObject value = schemaLocus.getFirstChild( "value");
+    INode value = schemaLocus.getFirstChild( "value");
     if ( value != null) valueChecks.add( new ValueCheck( value));
     
     // constraint check
-    IModelObject constraint = schemaLocus.getFirstChild( "constraint");
+    INode constraint = schemaLocus.getFirstChild( "constraint");
     if ( constraint != null) constraintCheck = new RootConstraint( constraint);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     // init
     if ( illegalAttributes != null) illegalAttributes.clear();
@@ -70,7 +70,7 @@ public class ElementCheck extends AbstractCheck
     for( String attrName: attrNames)
       if ( attrName.length() > 0 && !attrName.startsWith( "xmlns") && !isDefinedAttribute( attrName))
       {
-        if ( illegalAttributes == null) illegalAttributes = new ArrayList<IModelObject>();
+        if ( illegalAttributes == null) illegalAttributes = new ArrayList<INode>();
         illegalAttributes.add( documentLocus.getAttributeNode( attrName));
         return false;
       }
@@ -80,8 +80,8 @@ public class ElementCheck extends AbstractCheck
       addFailed( constraintCheck);
     
     // recursively check children
-    List<IModelObject> children = documentLocus.getChildren();
-    for( IModelObject child: children)
+    List<INode> children = documentLocus.getChildren();
+    for( INode child: children)
     {
       if ( child.getType().charAt( 0) == '?') continue;
       ElementCheck elementCheck = getElementCheck( child.getType());
@@ -99,7 +99,7 @@ public class ElementCheck extends AbstractCheck
    */
   private boolean isDefinedAttribute( String name)
   {
-    for( IModelObject attribute: attributes)
+    for( INode attribute: attributes)
       if ( Xlate.get( attribute, "name", (String)null).equals( name))
         return true;
     return false;
@@ -113,7 +113,7 @@ public class ElementCheck extends AbstractCheck
   private ElementCheck getElementCheck( String name)
   {
     childSchemaPath.setVariable( "name", name);
-    IModelObject elementSchema = childSchemaPath.queryFirst( getSchemaLocus());
+    INode elementSchema = childSchemaPath.queryFirst( getSchemaLocus());
     return (elementSchema != null)? new ElementCheck( elementSchema): null;
   }
 
@@ -127,7 +127,7 @@ public class ElementCheck extends AbstractCheck
     
     // create errors for illegal children
     if ( illegalAttributes != null)
-      for( IModelObject illegalAttribute: illegalAttributes)
+      for( INode illegalAttribute: illegalAttributes)
         errors.add( new SchemaError( Type.illegalAttribute, getSchemaLocus(), illegalAttribute));
   }
   
@@ -138,7 +138,7 @@ public class ElementCheck extends AbstractCheck
     "children/element[ @name = $name]");
   
   private List<ValueCheck> valueChecks;
-  private List<IModelObject> attributes;
+  private List<INode> attributes;
   private RootConstraint constraintCheck;
-  private List<IModelObject> illegalAttributes;
+  private List<INode> illegalAttributes;
 }

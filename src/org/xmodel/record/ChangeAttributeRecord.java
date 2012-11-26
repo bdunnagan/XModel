@@ -19,7 +19,7 @@
  */
 package org.xmodel.record;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 
@@ -81,7 +81,7 @@ public class ChangeAttributeRecord extends AbstractChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#applyChange(org.xmodel.IModelObject)
    */
-  public void applyChange( IModelObject root)
+  public void applyChange( INode root)
   {
     if ( path == null) return;
     
@@ -89,7 +89,7 @@ public class ChangeAttributeRecord extends AbstractChangeRecord
     ModelAlgorithms.createPathSubtree( root, path, null, null);
 
     // apply change
-    IModelObject target = path.queryFirst( root); 
+    INode target = path.queryFirst( root); 
     target.setAttribute( attrName, attrValue);
   }
   

@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -108,7 +108,7 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
         ZipFile zipFile = new ZipFile( file);
         reference.setAttribute( "zipFile", zipFile);
         
-        IModelObject clone = reference.cloneObject();
+        INode clone = reference.cloneObject();
                 
         // create elements for root entries
         String separator = null;
@@ -142,7 +142,7 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
           {
             if ( separator != null)
             {
-              IModelObject element = clone;
+              INode element = clone;
               StringTokenizer tokenizer = new StringTokenizer( path, separator);
               while( tokenizer.hasMoreTokens())
               {
@@ -155,7 +155,7 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
             }
             else
             {
-              IModelObject element = new ModelObject( entry.getName());
+              INode element = new ModelObject( entry.getName());
               element.setAttribute( "entry", entry);
               clone.addChild( element);
             }

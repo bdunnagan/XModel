@@ -21,8 +21,8 @@ package org.xmodel.compress;
 
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 
 /**
  * An interface for algorithms which compress an IModelObject tree into a byte sequence.
@@ -33,7 +33,7 @@ public interface ICompressor
    * Set the factory used to create decompressed objects.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory);
+  public void setFactory( INodeFactory factory);
 
   /**
    * Set the instance of ISerializer for serializing attribute values.
@@ -46,12 +46,12 @@ public interface ICompressor
    * @param element The element.
    * @return Returns the channel buffer containing the compressed data.
    */
-  public ChannelBuffer compress( IModelObject element) throws IOException;
+  public ChannelBuffer compress( INode element) throws IOException;
   
   /**
    * Decompress an element from the specified input buffer.
    * @param input The input buffer.
    * @return Returns the decompressed element.
    */
-  public IModelObject decompress( ChannelBuffer input) throws IOException;
+  public INode decompress( ChannelBuffer input) throws IOException;
 }

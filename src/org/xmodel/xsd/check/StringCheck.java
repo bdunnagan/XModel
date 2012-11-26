@@ -19,7 +19,7 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 /**
@@ -27,19 +27,19 @@ import org.xmodel.Xlate;
  */
 public class StringCheck extends AbstractCheck
 {
-  public StringCheck( IModelObject schemaLocus)
+  public StringCheck( INode schemaLocus)
   {
     super( schemaLocus);
-    IModelObject minObject = schemaLocus.getFirstChild( "min");
+    INode minObject = schemaLocus.getFirstChild( "min");
     minLength = (minObject != null)? Xlate.get( minObject, 0): -1;
-    IModelObject maxObject = schemaLocus.getFirstChild( "max");
+    INode maxObject = schemaLocus.getFirstChild( "max");
     maxLength = (maxObject != null)? Xlate.get( maxObject, 0): -1;
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     String value = Xlate.get( documentLocus, "");
     if ( minLength >= 0 && value.length() < minLength) return false;

@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
@@ -55,12 +55,12 @@ public class ExecutionRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public Object[] send( Channel channel, IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
+  public Object[] send( Channel channel, IContext context, String[] vars, INode element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
     int correlation = bundle.responseProtocol.nextCorrelation();
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
-    IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
+    INode request = ExecutionSerializer.buildRequest( context, vars, element);
     ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
@@ -80,7 +80,7 @@ public class ExecutionRequestProtocol
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( Channel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
+  public void send( Channel channel, IContext context, String[] vars, INode element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     ResponseTask task = new ResponseTask( context, callback);
     if ( timeout != Integer.MAX_VALUE)
@@ -92,7 +92,7 @@ public class ExecutionRequestProtocol
     int correlation = bundle.responseProtocol.nextCorrelation( task);
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
-    IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
+    INode request = ExecutionSerializer.buildRequest( context, vars, element);
     ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
@@ -116,7 +116,7 @@ public class ExecutionRequestProtocol
       return;
     }
     
-    IModelObject element = ExecutionSerializer.readRequest( bundle.responseCompressor.decompress( buffer), bundle.context);
+    INode element = ExecutionSerializer.readRequest( bundle.responseCompressor.decompress( buffer), bundle.context);
     checkPrivileges( element);
     
     RequestRunnable runnable = new RequestRunnable( channel, correlation, element);
@@ -127,7 +127,7 @@ public class ExecutionRequestProtocol
    * Verify that execution privileges allow the specified script element to be executed.
    * @param element The script element.
    */
-  private void checkPrivileges( IModelObject element) throws IOException
+  private void checkPrivileges( INode element) throws IOException
   {
     if ( privilege != null && !privilege.isPermitted( bundle.context, element))
     {
@@ -140,7 +140,7 @@ public class ExecutionRequestProtocol
    * @param element The script element.
    * @return Returns the script.
    */
-  private IXAction compile( IModelObject element) throws IOException
+  private IXAction compile( INode element) throws IOException
   {
     document.setRoot( element);
     IXAction script = document.getAction( element);
@@ -154,7 +154,7 @@ public class ExecutionRequestProtocol
    * @param correlation The correlation.
    * @param element The script element.
    */
-  private void execute( Channel channel, int correlation, IModelObject element)
+  private void execute( Channel channel, int correlation, INode element)
   {
     try
     {
@@ -194,7 +194,7 @@ public class ExecutionRequestProtocol
   
   private class RequestRunnable implements Runnable
   {
-    public RequestRunnable( Channel channel, int correlation, IModelObject element)
+    public RequestRunnable( Channel channel, int correlation, INode element)
     {
       this.channel = channel;
       this.correlation = correlation;
@@ -212,7 +212,7 @@ public class ExecutionRequestProtocol
 
     private Channel channel;
     private int correlation;
-    private IModelObject element;
+    private INode element;
   }
   
   private class ResponseTimeout implements Runnable

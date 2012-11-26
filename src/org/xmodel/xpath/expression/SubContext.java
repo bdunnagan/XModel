@@ -21,7 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -45,7 +45,7 @@ public class SubContext implements IContext
    * @param parent The parent of this context.
    * @param object The context node.
    */
-  public SubContext( IContext parent, IModelObject object, int position, int size)
+  public SubContext( IContext parent, INode object, int position, int size)
   {
     if ( parent == null) throw new IllegalArgumentException( "SubContext must have parent.");
     this.parent = parent;
@@ -86,7 +86,7 @@ public class SubContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getContextNode()
    */
-  public IModelObject getObject()
+  public INode getObject()
   {
     return object;
   }
@@ -120,7 +120,7 @@ public class SubContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, org.xmodel.IModelObject)
    */
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     IVariableScope scope = getScope();
     if ( scope != null) return scope.set( name, value);
@@ -130,7 +130,7 @@ public class SubContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, java.util.List)
    */
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     IVariableScope scope = getScope();
     if ( scope != null) return scope.set( name, value);
@@ -285,7 +285,7 @@ public class SubContext implements IContext
   }
 
   private IContext parent;
-  private IModelObject object;
+  private INode object;
   private int position;
   private int size;
 }

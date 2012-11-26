@@ -22,7 +22,7 @@ package org.xmodel.xsd;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.XPath;
@@ -47,7 +47,7 @@ public class SchemaTrace
    * @param i The index.
    * @return Returns the specified trace element.
    */
-  public IModelObject getElement( int i)
+  public INode getElement( int i)
   {
     return trace.get( i);
   }
@@ -56,7 +56,7 @@ public class SchemaTrace
    * Returns the leaf of the trace.
    * @return Returns the leaf of the trace.
    */
-  public IModelObject getLeaf()
+  public INode getLeaf()
   {
     return trace.get( trace.size() - 1);
   }
@@ -81,7 +81,7 @@ public class SchemaTrace
     if ( trace.size() <= 2) return true;
     
     // get leaf of trace
-    IModelObject leaf = trace.get( trace.size() - 1);
+    INode leaf = trace.get( trace.size() - 1);
     
     // use element parent of value leaf
     if ( leaf.isType( "value")) leaf = leaf.getParent();;
@@ -96,7 +96,7 @@ public class SchemaTrace
     // check ancestors
     for( int index = trace.size() - 2; index >= 0; index--)
     {
-      IModelObject ancestor = trace.get( index);
+      INode ancestor = trace.get( index);
       if ( isOptional( ancestor)) return true;
     }
     
@@ -109,7 +109,7 @@ public class SchemaTrace
    * are always optional.
    * @return Returns the list of all optional nodes in the schema trace.
    */
-  public List<IModelObject> getOptionals()
+  public List<INode> getOptionals()
   {
     // nothing in trace
     if ( trace.size() == 0) return Collections.emptyList();
@@ -118,13 +118,13 @@ public class SchemaTrace
     if ( trace.size() <= 2) return Collections.singletonList( trace.get( 0));
 
     // get leaf of trace
-    IModelObject leaf = trace.get( trace.size() - 1);
+    INode leaf = trace.get( trace.size() - 1);
     
     // use element parent of value leaf
     if ( leaf.isType( "value")) leaf = leaf.getParent();;
 
     // create result list
-    List<IModelObject> optionals = new ArrayList<IModelObject>();
+    List<INode> optionals = new ArrayList<INode>();
     
     // check optional attribute
     if ( leaf.isType( "attribute") && Xlate.get( leaf, "use", "optional").equals( "optional"))
@@ -132,15 +132,15 @@ public class SchemaTrace
 
     // check if leaf is optional
     int index = trace.size() - 2;
-    IModelObject parent = trace.get( index);
+    INode parent = trace.get( index);
     childConstraintFinder.setVariable( "name", Xlate.get( leaf, "name", ""));
-    IModelObject constraint = childConstraintFinder.queryFirst( parent);
+    INode constraint = childConstraintFinder.queryFirst( parent);
     if ( Xlate.get( constraint, "min", 1) == 0) optionals.add( leaf);
     
     // check ancestors
     for( ; index >= 0; index--)
     {
-      IModelObject ancestor = trace.get( index);
+      INode ancestor = trace.get( index);
       childConstraintFinder.setVariable( "name", Xlate.get( trace.get( index+1), "name", ""));
       constraint = childConstraintFinder.queryFirst( ancestor);
       if ( Xlate.get( constraint, "min", 1) == 0) optionals.add( ancestor);
@@ -157,14 +157,14 @@ public class SchemaTrace
    * @param node The non-global document node (may be an attribute or value node).
    * @return Returns the schema path of the specified node.
    */
-  private List<IModelObject> createSchemaPath( IModelObject schemaRoot, IModelObject node)
+  private List<INode> createSchemaPath( INode schemaRoot, INode node)
   {
-    List<IModelObject> result = new ArrayList<IModelObject>();
+    List<INode> result = new ArrayList<INode>();
     result.add( schemaRoot);
     
     // make list of ancestors of node plus node itself
-    List<IModelObject> ancestors = new ArrayList<IModelObject>();
-    IModelObject ancestor = node;
+    List<INode> ancestors = new ArrayList<INode>();
+    INode ancestor = node;
     while( ancestor != null)
     {
       ancestors.add( 0, ancestor);
@@ -173,10 +173,10 @@ public class SchemaTrace
 
     // search for global element from root to node
     int ancestorIndex = 0;
-    IModelObject schema = null;
+    INode schema = null;
     for( ; ancestorIndex < ancestors.size(); ancestorIndex++)
     {
-      IModelObject globalElement = ancestors.get( ancestorIndex);
+      INode globalElement = ancestors.get( ancestorIndex);
       globalElementFinder.setVariable( "name", globalElement.getType());
       schema = globalElementFinder.queryFirst( schemaRoot);
       if ( schema != null) break;
@@ -188,7 +188,7 @@ public class SchemaTrace
     // search for schema fragment
     for( ancestorIndex++; ancestorIndex < ancestors.size() && schema != null; ancestorIndex++)
     {
-      IModelObject globalElement = ancestors.get( ancestorIndex);
+      INode globalElement = ancestors.get( ancestorIndex);
       String name = globalElement.getType();
       
       // test name indicates a value node
@@ -196,7 +196,7 @@ public class SchemaTrace
       {
         // look for an child element schema
         childElementFinder.setVariable( "name", name);
-        IModelObject childSchema = childElementFinder.queryFirst( schema);
+        INode childSchema = childElementFinder.queryFirst( schema);
         if ( childSchema == null)
         {
           // look for an attribute schema
@@ -226,7 +226,7 @@ public class SchemaTrace
    * @param elementSchema The element schema.
    * @return Returns true if the element schema is optional.
    */
-  public boolean isOptional( IModelObject elementSchema)
+  public boolean isOptional( INode elementSchema)
   {
     return isOptionalExpr.evaluateBoolean( new Context( elementSchema));
   }
@@ -237,7 +237,7 @@ public class SchemaTrace
    * @param node A node whose partial path can be found in the schema.
    * @return Returns null or the SchemaTrace for the node.
    */
-  public static SchemaTrace getInstance( IModelObject schema, IModelObject node)
+  public static SchemaTrace getInstance( INode schema, INode node)
   {
     SchemaTrace trace = new SchemaTrace();
     trace.trace = trace.createSchemaPath( schema, node);
@@ -262,5 +262,5 @@ public class SchemaTrace
     "let $element := ../../children/element[ @name = $name];" +
     "($constraint/@min = 0) and not( $element/constraint//child[ not( @min = 0)])");
   
-  private List<IModelObject> trace;
+  private List<INode> trace;
 }

@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xml.XmlIO;
 
 public class Main
@@ -15,7 +15,7 @@ public class Main
    */
   public static void run( String file) throws Exception
   {
-    IModelObject root = new XmlIO().read( new FileInputStream( new File( file)));
+    INode root = new XmlIO().read( new FileInputStream( new File( file)));
     XActionDocument doc = new XActionDocument( root);
     IXAction script = doc.createScript( root);
     script.run();

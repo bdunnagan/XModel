@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -46,7 +46,7 @@ public abstract class GuardedAction extends XAction
     // get condition from 'when' attribute
     if ( condition == null)
     {
-      IModelObject attribute = document.getRoot().getAttributeNode( "when");
+      INode attribute = document.getRoot().getAttributeNode( "when");
       if ( attribute != null) condition = document.getExpression( attribute);
     }
     

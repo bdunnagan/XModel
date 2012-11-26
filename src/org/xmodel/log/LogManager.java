@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xml.XmlIO;
 
@@ -84,10 +84,10 @@ public final class LogManager implements Runnable
    * @param config The configuration element.
    * @return Returns the array of ILogSink instances.
    */
-  protected static ILogSink[] configure( IModelObject config)
+  protected static ILogSink[] configure( INode config)
   {
     List<ILogSink> list = new ArrayList<ILogSink>( 3);
-    for( IModelObject child: config.getChildren( "sink"))
+    for( INode child: config.getChildren( "sink"))
     {
       String cname = Xlate.get( child, "class", (String)null);
       if ( cname != null)
@@ -116,7 +116,7 @@ public final class LogManager implements Runnable
   {
     try
     {
-      IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
+      INode root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
       period = Xlate.childGet( root, "reload", 5) * 1000;
 
       ILogSink[] defaultSinks = configure( root);
@@ -129,7 +129,7 @@ public final class LogManager implements Runnable
         Log.setDefaultSink( new MultiSink( defaultSinks));
       }
       
-      for( IModelObject child: root.getChildren( "log"))
+      for( INode child: root.getChildren( "log"))
       {
         String name = Xlate.get( child, "name", (String)null);
         String level = Xlate.get( child, "level", (String)null);

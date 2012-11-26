@@ -21,7 +21,7 @@ package org.xmodel.xsd.check;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xsd.check.SchemaError.Type;
 
 
@@ -30,7 +30,7 @@ import org.xmodel.xsd.check.SchemaError.Type;
  */
 public class SetCheck extends ConstraintCheck
 {
-  public SetCheck( IModelObject schemaLocus)
+  public SetCheck( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -39,7 +39,7 @@ public class SetCheck extends ConstraintCheck
    * @see org.xmodel.xsd.nu.ConstraintCheck#validateOnce(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validateOnce( IModelObject documentLocus, int start, int end)
+  public boolean validateOnce( INode documentLocus, int start, int end)
   {
     // init
     if ( unsatisfiedConstraints != null) unsatisfiedConstraints.clear();
@@ -85,7 +85,7 @@ public class SetCheck extends ConstraintCheck
    * @param end The index of the last child plus one.
    * @return Returns the index of the constraint or -1.
    */
-  private int findMatching( List<ConstraintCheck> remaining, IModelObject documentLocus, int index, int end)
+  private int findMatching( List<ConstraintCheck> remaining, INode documentLocus, int index, int end)
   {
     for( int i=0; i<remaining.size(); i++)
     {

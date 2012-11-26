@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.AnnotatingChangeSet;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IntersectChangeSet;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.UnionChangeSet;
@@ -46,7 +46,7 @@ public class CopyAction extends GuardedAction
   {
     super.configure( document);
 
-    IModelObject root = document.getRoot();
+    INode root = document.getRoot();
     matcher = Conventions.getMatcher( document, root);
     differ.setMatcher( matcher);
     differ.setFactory( new ModelObjectFactory());
@@ -76,14 +76,14 @@ public class CopyAction extends GuardedAction
    */
   protected Object[] doAction( IContext context)
   {
-    IModelObject source = sourceExpr.queryFirst( context);
+    INode source = sourceExpr.queryFirst( context);
     if ( source == null) return null;
     
-    List<IModelObject> ignoreList = new ArrayList<IModelObject>();
-    List<IModelObject> orderedList = new ArrayList<IModelObject>();
+    List<INode> ignoreList = new ArrayList<INode>();
+    List<INode> orderedList = new ArrayList<INode>();
     
-    List<IModelObject> targets = targetExpr.query( context, null);
-    for( IModelObject target: targets) 
+    List<INode> targets = targetExpr.query( context, null);
+    for( INode target: targets) 
     {
       // if matcher class wasn't specified then use configurable matcher
       // TODO: need a more flexible configuration here

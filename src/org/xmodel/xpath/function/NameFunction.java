@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -59,12 +59,12 @@ public class NameFunction extends Function
     List<IExpression> arguments = getArguments();
     if ( arguments.size() == 0)
     {
-      IModelObject object = context.getObject();
+      INode object = context.getObject();
       if ( object != null) return object.getType();
     }
     else
     {
-      List<IModelObject> nodes = arguments.get( 0).evaluateNodes( context);
+      List<INode> nodes = arguments.get( 0).evaluateNodes( context);
       if ( nodes.size() > 0) return nodes.get( 0).getType();
     }
     
@@ -77,7 +77,7 @@ public class NameFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -88,7 +88,7 @@ public class NameFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }

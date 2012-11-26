@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function.custom;
 
 import java.util.*;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.*;
 import org.xmodel.xpath.function.Function;
@@ -55,14 +55,14 @@ public class SortFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 2, Integer.MAX_VALUE);
     assertType( context, 0, ResultType.NODES);
     
     IExpression arg0 = getArgument( 0);
     
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     List<IContext> contexts = new ArrayList<IContext>( nodes.size());
     int size = nodes.size();
     for ( int i=0; i<size; i++) contexts.add( new Context( nodes.get( i), i+1, size));
@@ -80,7 +80,7 @@ public class SortFunction extends Function
   {
     IExpression arg0 = getArgument( 0);
     arg0.bind( context);
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     bindKeys( context, nodes);
   }
 
@@ -91,7 +91,7 @@ public class SortFunction extends Function
   {
     IExpression arg0 = getArgument( 0);
     arg0.unbind( context);
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     unbindKeys( context, nodes);
   }
 
@@ -100,12 +100,12 @@ public class SortFunction extends Function
    * @param context The context.
    * @param nodes The nodes.
    */
-  private void bindKeys( IContext context, List<IModelObject> nodes)
+  private void bindKeys( IContext context, List<INode> nodes)
   {
     List<IExpression> args = getArguments();
     for( int i=0; i<nodes.size(); i++)
     {
-      IModelObject node = nodes.get( i);
+      INode node = nodes.get( i);
       for( int j=1; j<args.size(); j++)
         args.get( j).bind( new SubContext( context, node, i+1, nodes.size()));
     }
@@ -116,12 +116,12 @@ public class SortFunction extends Function
    * @param context The context.
    * @param nodes The nodes.
    */
-  private void unbindKeys( IContext context, List<IModelObject> nodes)
+  private void unbindKeys( IContext context, List<INode> nodes)
   {
     List<IExpression> args = getArguments();
     for( int i=0; i<nodes.size(); i++)
     {
-      IModelObject node = nodes.get( i);
+      INode node = nodes.get( i);
       for( int j=1; j<args.size(); j++)
         args.get( j).unbind( new SubContext( context, node, i+1, nodes.size()));
     }
@@ -133,7 +133,7 @@ public class SortFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( expression == getArgument( 0))
     {
@@ -152,7 +152,7 @@ public class SortFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( expression == getArgument( 0))
     {
@@ -208,7 +208,7 @@ public class SortFunction extends Function
    * @see org.xmodel.xpath.expression.IExpression#notifyValue(java.util.Collection, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyChange( this, contexts[ 0].getParent());
   }
@@ -229,8 +229,8 @@ public class SortFunction extends Function
           {
             case NODES:
             {
-              List<IModelObject> lnodes = argument.evaluateNodes( lhs);
-              List<IModelObject> rnodes = argument.evaluateNodes( rhs);
+              List<INode> lnodes = argument.evaluateNodes( lhs);
+              List<INode> rnodes = argument.evaluateNodes( rhs);
               if ( lnodes.size() == 0) return 1;
               if ( rnodes.size() == 0) return -1;
               String lstring = Xlate.get( lnodes.get( 0), "");

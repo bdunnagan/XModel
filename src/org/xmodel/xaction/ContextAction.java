@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -50,7 +50,7 @@ public class ContextAction extends XAction
   {
     if ( sourceExpr != null)
     {
-      IModelObject source = sourceExpr.queryFirst( context);
+      INode source = sourceExpr.queryFirst( context);
       if ( source != null)
       {
         StatefulContext nested = new StatefulContext( context, source);

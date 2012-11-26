@@ -21,7 +21,7 @@ package org.xmodel.xpath.function;
 
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -57,14 +57,14 @@ public class CollectionFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
     assertType( context, ResultType.STRING);
     
     IExpression arg0 = getArgument( 0);
     String collection = arg0.evaluateString( context);
-    List<IModelObject> roots = GlobalSettings.getInstance().getModel().getRoots( collection);
+    List<INode> roots = GlobalSettings.getInstance().getModel().getRoots( collection);
     if ( roots == null) return Collections.emptyList();
     return roots;
   }

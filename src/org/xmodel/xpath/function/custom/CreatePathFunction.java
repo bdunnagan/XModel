@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function.custom;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
 import org.xmodel.ModelAlgorithms;
@@ -66,7 +66,7 @@ public class CreatePathFunction extends Function
     assertArgs( 1, 2);
     assertType( context, ResultType.NODES);
 
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+    List<INode> nodes = getArgument( 0).evaluateNodes( context);
     if ( nodes.size() == 0) return "";
     IPath path = createPath( context, nodes.get( 0));
     return (path != null)? path.toString(): "";
@@ -80,13 +80,13 @@ public class CreatePathFunction extends Function
    * @param start The start node.
    * @return Returns either the relative path or the identity path for the arguments.
    */
-  private IPath createPath( IContext context, IModelObject start) throws ExpressionException
+  private IPath createPath( IContext context, INode start) throws ExpressionException
   {
     IExpression arg1 = getArgument( 1);
     if ( arg1 != null)
     {
-      List<IModelObject> nodes = arg1.evaluateNodes( context);
-      IModelObject end = (nodes.size() > 0)? nodes.get( 0): null;
+      List<INode> nodes = arg1.evaluateNodes( context);
+      INode end = (nodes.size() > 0)? nodes.get( 0): null;
       if ( end != null) return ModelAlgorithms.createRelativePath( start, end);
     }
     return ModelAlgorithms.createIdentityPath( start);
@@ -101,10 +101,10 @@ public class CreatePathFunction extends Function
     super.bind( context);
     try
     {
-      List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+      List<INode> nodes = getArgument( 0).evaluateNodes( context);
       if ( nodes.size() > 0)
       {
-        IModelObject start = nodes.get( 0);
+        INode start = nodes.get( 0);
         IPath path = createPath( context, start);
         path.addPathListener( new Context( start), listener);
       }
@@ -124,10 +124,10 @@ public class CreatePathFunction extends Function
     super.unbind( context);
     try
     {
-      List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+      List<INode> nodes = getArgument( 0).evaluateNodes( context);
       if ( nodes.size() > 0)
       {
-        IModelObject start = nodes.get( 0);
+        INode start = nodes.get( 0);
         IPath path = createPath( context, start);
         path.removePathListener( new Context( start), listener);
       }
@@ -143,7 +143,7 @@ public class CreatePathFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -153,17 +153,17 @@ public class CreatePathFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
   
   final IPathListener listener = new IPathListener() {
-    public void notifyAdd( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+    public void notifyAdd( IContext context, IPath path, int pathIndex, List<INode> nodes)
     {
       getParent().notifyChange( CreatePathFunction.this, context);
     }
-    public void notifyRemove( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+    public void notifyRemove( IContext context, IPath path, int pathIndex, List<INode> nodes)
     {
       getParent().notifyChange( CreatePathFunction.this, context);
     }

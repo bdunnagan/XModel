@@ -37,7 +37,7 @@ public interface IPathListener
    * @param pathIndex The layer index.
    * @param nodes The nodes which were added.
    */
-  public void notifyAdd( IContext context, IPath path, int pathIndex, List<IModelObject> nodes);
+  public void notifyAdd( IContext context, IPath path, int pathIndex, List<INode> nodes);
 
   /**
    * Called when one or more domain objects are removed from a layer of the specified path.
@@ -46,5 +46,5 @@ public interface IPathListener
    * @param pathIndex The layer index.
    * @param nodes The nodes which were removed.
    */
-  public void notifyRemove( IContext context, IPath path, int pathIndex, List<IModelObject> nodes);
+  public void notifyRemove( IContext context, IPath path, int pathIndex, List<INode> nodes);
 }

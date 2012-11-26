@@ -1,7 +1,7 @@
 package org.xmodel.caching;
 
 import java.io.InputStream;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 
@@ -24,7 +24,7 @@ public abstract class AbstractFileAssociation implements IFileAssociation
    * @see org.xmodel.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
   @Override
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  public void apply( INode parent, String name, InputStream stream) throws CachingException
   {
   }
 }

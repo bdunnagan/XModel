@@ -20,7 +20,7 @@
 package org.xmodel.xsd.check;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 
@@ -29,7 +29,7 @@ import org.xmodel.Xlate;
  */
 public abstract class ConstraintCheck extends AbstractCheck
 {
-  public ConstraintCheck( IModelObject schemaLocus)
+  public ConstraintCheck( INode schemaLocus)
   {
     super( schemaLocus);
     
@@ -60,7 +60,7 @@ public abstract class ConstraintCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     return validate( documentLocus, 0, documentLocus.getNumberOfChildren());
   }
@@ -72,7 +72,7 @@ public abstract class ConstraintCheck extends AbstractCheck
    * @param end The index of the last child to be tested.
    * @return Returns true if the constraint is satisfied.
    */
-  public boolean validate( IModelObject documentLocus, int start, int end)
+  public boolean validate( INode documentLocus, int start, int end)
   {
     errorLocus = null;
     if ( errored != null) errored.clear();
@@ -113,7 +113,7 @@ public abstract class ConstraintCheck extends AbstractCheck
    * @param end The index of the last child to be tested.
    * @return Returns true if the constraint is satisfied.
    */
-  protected abstract boolean validateOnce( IModelObject documentLocus, int start, int end);
+  protected abstract boolean validateOnce( INode documentLocus, int start, int end);
   
   /**
    * Returns the index of the last child to be tested during the previous call to <code>validate</code>.
@@ -149,7 +149,7 @@ public abstract class ConstraintCheck extends AbstractCheck
    */
   private ConstraintCheck[] getConstraints()
   {
-    List<IModelObject> children = getSchemaLocus().getChildren();
+    List<INode> children = getSchemaLocus().getChildren();
     ConstraintCheck[] result = new ConstraintCheck[ children.size()];
     for( int i=0; i<children.size(); i++)
       result[ i] = getConstraint( children.get( i));
@@ -161,7 +161,7 @@ public abstract class ConstraintCheck extends AbstractCheck
    * @param schemaLocus The schema locus.
    * @return
    */
-  private ConstraintCheck getConstraint( IModelObject schemaLocus)
+  private ConstraintCheck getConstraint( INode schemaLocus)
   {
     String type = schemaLocus.getType();
     if ( type.equals( "child"))

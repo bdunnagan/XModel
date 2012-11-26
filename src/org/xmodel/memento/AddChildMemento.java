@@ -19,7 +19,7 @@
  */
 package org.xmodel.memento;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An IMemento for the updates which involve adding a child.
@@ -54,7 +54,7 @@ public class AddChildMemento implements IMemento
     index = 0;
   }
   
-  public IModelObject parent;
-  public IModelObject child;
+  public INode parent;
+  public INode child;
   public int index;
 }

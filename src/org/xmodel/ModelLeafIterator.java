@@ -25,11 +25,11 @@ import org.xmodel.util.Fifo;
 /**
  * An iterator which visits all the leaves of a sub-tree.
  */
-public class ModelLeafIterator implements Iterator<IModelObject>
+public class ModelLeafIterator implements Iterator<INode>
 {
-  public ModelLeafIterator( IModelObject root)
+  public ModelLeafIterator( INode root)
   {
-    fifo = new Fifo<IModelObject>();
+    fifo = new Fifo<INode>();
     fifo.push( root);
   }
   
@@ -44,12 +44,12 @@ public class ModelLeafIterator implements Iterator<IModelObject>
   /* (non-Javadoc)
    * @see java.util.Iterator#next()
    */
-  public IModelObject next()
+  public INode next()
   {
     while( true)
     {
-      IModelObject object = (IModelObject)fifo.pop();
-      Iterator<IModelObject> iter = object.getChildren().iterator();
+      INode object = (INode)fifo.pop();
+      Iterator<INode> iter = object.getChildren().iterator();
       while( iter.hasNext()) fifo.push( iter.next());
       if ( object.getNumberOfChildren() == 0) return object;
     }
@@ -63,5 +63,5 @@ public class ModelLeafIterator implements Iterator<IModelObject>
     throw new UnsupportedOperationException();
   }
   
-  Fifo<IModelObject> fifo;
+  Fifo<INode> fifo;
 }

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.debug.Debugger;
@@ -45,7 +45,7 @@ public class ScriptAction extends GuardedAction
    * Create a ScriptAction which will execute the children of the specified element.
    * @param element The root of the script.
    */
-  public ScriptAction( IModelObject element)
+  public ScriptAction( INode element)
   {
     this( ScriptAction.class.getClassLoader(), element);
   }
@@ -55,7 +55,7 @@ public class ScriptAction extends GuardedAction
    * @param root The root of the script.
    * @param ignore The element names to ignore.
    */
-  public ScriptAction( IModelObject root, String... ignore)
+  public ScriptAction( INode root, String... ignore)
   {
     this( ScriptAction.class.getClassLoader(), root, ignore);
   }
@@ -65,7 +65,7 @@ public class ScriptAction extends GuardedAction
    * @param loader The class loader.
    * @param element The root of the script.
    */
-  public ScriptAction( ClassLoader loader, IModelObject element)
+  public ScriptAction( ClassLoader loader, INode element)
   {
     this( loader, element, new String[ 0]);
   }
@@ -76,7 +76,7 @@ public class ScriptAction extends GuardedAction
    * @param root The root of the script.
    * @param ignore The element names to ignore.
    */
-  public ScriptAction( ClassLoader loader, IModelObject root, String... ignore)
+  public ScriptAction( ClassLoader loader, INode root, String... ignore)
   {
     if ( root != null)
     {
@@ -127,7 +127,7 @@ public class ScriptAction extends GuardedAction
     
     // create script operations
     List<IXAction> list = new ArrayList<IXAction>();
-    for( IModelObject element: document.getRoot().getChildren())
+    for( INode element: document.getRoot().getChildren())
     {
       if ( !ignore.contains( element.getType()))
       {

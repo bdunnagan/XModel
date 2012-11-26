@@ -21,7 +21,7 @@ package org.xmodel.xaction;
 
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -43,18 +43,18 @@ public class SwitchAction extends GuardedAction
     sourceExpr = document.getExpression( "source", true);
 
     // get cases
-    List<IModelObject> caseNodes = document.getRoot().getChildren( "case");
+    List<INode> caseNodes = document.getRoot().getChildren( "case");
     caseExprs = new IExpression[ caseNodes.size()];
     caseScripts = new ScriptAction[ caseNodes.size()];
     for( int i=0; i<caseNodes.size(); i++)
     {
-      IModelObject caseNode = caseNodes.get( i);
+      INode caseNode = caseNodes.get( i);
       caseExprs[ i] = Xlate.get( caseNode, "value", (IExpression)null);
       caseScripts[ i] = document.createScript( caseNode);
     }
     
     // default case
-    IModelObject defaultElement = getDocument().getRoot().getFirstChild( "default");
+    INode defaultElement = getDocument().getRoot().getFirstChild( "default");
     if ( defaultElement != null) defaultScript = document.createScript( defaultElement);
   }
 

@@ -1,7 +1,7 @@
 package org.xmodel.listeners;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -29,7 +29,7 @@ public abstract class NodeValueListener extends ExpressionListener
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( owner == null) owner = expression;
     if ( owner != expression) throw new IllegalStateException( "NodeValueListener added to more than one expression!");
@@ -49,14 +49,14 @@ public abstract class NodeValueListener extends ExpressionListener
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( owner == null) owner = expression;
     if ( owner != expression) throw new IllegalStateException( "NodeValueListener added to more than one expression!");
     
     if ( node != null && nodes.contains( node))
     {
-      List<IModelObject> remaining = expression.query( context, null);
+      List<INode> remaining = expression.query( context, null);
       remaining.removeAll( nodes);
       
       Object oldValue = (node != null)? node.getValue(): null;
@@ -101,7 +101,7 @@ public abstract class NodeValueListener extends ExpressionListener
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( node != null && (node == object || node.equals( object))) notifyValue( contexts[ 0], newValue, oldValue);
   }
@@ -116,5 +116,5 @@ public abstract class NodeValueListener extends ExpressionListener
   }
 
   private IExpression owner;
-  private IModelObject node;
+  private INode node;
 }

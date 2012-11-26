@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -56,7 +56,7 @@ public class CountFunction extends Function
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+    List<INode> nodes = getArgument( 0).evaluateNodes( context);
     return nodes.size();
   }
 
@@ -66,7 +66,7 @@ public class CountFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -77,7 +77,7 @@ public class CountFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }

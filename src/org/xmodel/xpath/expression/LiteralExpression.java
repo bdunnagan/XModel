@@ -22,7 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -78,7 +78,7 @@ public class LiteralExpression extends Expression
     if ( type == ResultType.NODES && parent != null && parent.requiresValueNotification( this))
     {
       bindings = new HashSet<IContext>();
-      for( IModelObject node: (List<IModelObject>)this.value)
+      for( INode node: (List<INode>)this.value)
       {
         List<LeafValueListener> listeners = LeafValueListener.findListeners( node, this);
         for( LeafValueListener listener: listeners) 
@@ -102,7 +102,7 @@ public class LiteralExpression extends Expression
         for( IContext binding: bindings)
         {
           LeafValueListener listener = new LeafValueListener( this, binding);
-          for( IModelObject node: (List<IModelObject>)value)
+          for( INode node: (List<INode>)value)
             node.addModelListener( listener);
         }
       }
@@ -120,9 +120,9 @@ public class LiteralExpression extends Expression
    * org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
-    if ( type == ResultType.NODES) return (List<IModelObject>)value;
+    if ( type == ResultType.NODES) return (List<INode>)value;
     return super.evaluateNodes( context);
   }
 
@@ -169,8 +169,8 @@ public class LiteralExpression extends Expression
     if ( getType( context) == ResultType.NODES && parent != null && parent.requiresValueNotification( this))
     {
       LeafValueListener listener = new LeafValueListener( this, context);
-      List<IModelObject> nodes = (List<IModelObject>)value;
-      for( IModelObject node: nodes) node.addModelListener( listener);
+      List<INode> nodes = (List<INode>)value;
+      for( INode node: nodes) node.addModelListener( listener);
     }
   }
 
@@ -184,8 +184,8 @@ public class LiteralExpression extends Expression
     if ( getType( context) == ResultType.NODES && parent != null && parent.requiresValueNotification( this))
     {
       LeafValueListener listener = null;
-      List<IModelObject> nodes = (List<IModelObject>)value;
-      for( IModelObject node: nodes) 
+      List<INode> nodes = (List<INode>)value;
+      for( INode node: nodes) 
       {
         if ( listener == null) listener = LeafValueListener.findListener( node, this, context);
         if ( listener != null) node.removeModelListener( listener);
@@ -215,7 +215,7 @@ public class LiteralExpression extends Expression
     {
       case NODES:
       {
-        List<IModelObject> nodes = (List<IModelObject>)value;
+        List<INode> nodes = (List<INode>)value;
         StringBuilder builder = new StringBuilder();
         builder.append( "{ ");
         for( int i=0; i<nodes.size(); i++)

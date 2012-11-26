@@ -19,7 +19,7 @@
  */
 package org.xmodel.memento;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An IMemento for the updates which involve setting the parent.
@@ -52,7 +52,7 @@ public class SetParentMemento implements IMemento
     oldParent = null;
   }
   
-  public IModelObject child;
-  public IModelObject newParent;
-  public IModelObject oldParent;
+  public INode child;
+  public INode newParent;
+  public INode oldParent;
 }

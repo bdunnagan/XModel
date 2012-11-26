@@ -22,7 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.diff.ListDiffer;
 import org.xmodel.diff.ListDiffer.Change;
 import org.xmodel.log.Log;
@@ -40,7 +40,7 @@ public class ExpressionListener implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
   }
 
@@ -49,7 +49,7 @@ public class ExpressionListener implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
   }
   
@@ -95,15 +95,15 @@ public class ExpressionListener implements IExpressionListener
         {
           // revert and reevaluate
           model.revert();
-          List<IModelObject> oldNodes = expression.evaluateNodes( context);
+          List<INode> oldNodes = expression.evaluateNodes( context);
   
           // restore and reevaluate
           model.restore();
-          List<IModelObject> newNodes = expression.evaluateNodes( context);
+          List<INode> newNodes = expression.evaluateNodes( context);
 
           // diff
-          List<IModelObject> inserts = null;
-          List<IModelObject> deletes = null;
+          List<INode> inserts = null;
+          List<INode> deletes = null;
           
           ListDiffer differ = new ListDiffer();
           differ.diff( oldNodes, newNodes);
@@ -112,13 +112,13 @@ public class ExpressionListener implements IExpressionListener
           {
             if ( change.rIndex >= 0)
             {
-              if ( inserts == null) inserts = new ArrayList<IModelObject>();
+              if ( inserts == null) inserts = new ArrayList<INode>();
               for( int i=0; i<change.count; i++)
                 inserts.add( newNodes.get( change.rIndex + i));
             }
             else
             {
-              if ( deletes == null) deletes = new ArrayList<IModelObject>();
+              if ( deletes == null) deletes = new ArrayList<INode>();
               for( int i=0; i<change.count; i++)
                 deletes.add( oldNodes.get( change.lIndex + i));
             }
@@ -194,7 +194,7 @@ public class ExpressionListener implements IExpressionListener
    * org.xmodel.xpath.expression.IExpression, java.util.Collection, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     // legacy semantic: convert value notification to string notification.
     // this may be okay since an implicit cast for the purpose of notification is not ambiguous

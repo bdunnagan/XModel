@@ -1,6 +1,6 @@
 package org.xmodel.log;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of Log.ISink that logs to the console with a timestamp.
@@ -11,7 +11,7 @@ public final class ConsoleSink implements ILogSink
    * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IModelObject config)
+  public void configure( INode config)
   {
   }
 

@@ -3,7 +3,7 @@ package org.xmodel.xaction;
 import java.util.Collections;
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.external.GroupTransaction;
 import org.xmodel.external.IExternalReference;
@@ -33,7 +33,7 @@ public class TransactionAction extends ScriptAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> set = setExpr.evaluateNodes( context);
+    List<INode> set = setExpr.evaluateNodes( context);
     if ( set.size() == 0) return null;
     
     GroupTransaction group = getTransaction( context);
@@ -43,7 +43,7 @@ public class TransactionAction extends ScriptAction
       setTransaction( context, group);
     }
     
-    for( IModelObject node: set)
+    for( INode node: set)
     {
       if ( !(node instanceof IExternalReference)) continue;
       
@@ -103,7 +103,7 @@ public class TransactionAction extends ScriptAction
       List<?> list = (List<?>)object;
       if ( list.size() > 0) 
       {
-        IModelObject holder = (IModelObject)list.get( 0);
+        INode holder = (INode)list.get( 0);
         return (GroupTransaction)holder.getValue();
       }
     }
@@ -119,13 +119,13 @@ public class TransactionAction extends ScriptAction
   {
     if ( transaction != null)
     {
-      IModelObject holder = new ModelObject( "transaction");
+      INode holder = new ModelObject( "transaction");
       holder.setValue( transaction);
       context.set( transactionVariable, holder);
     }
     else
     {
-      context.set( transactionVariable, Collections.<IModelObject>emptyList());
+      context.set( transactionVariable, Collections.<INode>emptyList());
     }
   }
   

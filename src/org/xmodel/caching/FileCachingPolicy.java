@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -55,7 +55,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IContext context, IModelObject annotation) throws CachingException
+  public void configure( IContext context, INode annotation) throws CachingException
   {
     parentContext = context;
     pathExpr = Xlate.get( annotation, "path", defaultPathExpr);
@@ -90,8 +90,8 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       FileInputStream stream = new FileInputStream( file);
-      IModelObject fileObject = reference.cloneObject();
-      IModelObject rootTag = (new XmlIO()).read( stream);
+      INode fileObject = reference.cloneObject();
+      INode rootTag = (new XmlIO()).read( stream);
       ModelAlgorithms.moveChildren( rootTag, fileObject);
       update( reference, fileObject);
     }
@@ -132,7 +132,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException
   {
     throw new UnsupportedOperationException();
   }
@@ -141,7 +141,7 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
+  public void remove( IExternalReference parent, INode object) throws CachingException
   {
     throw new UnsupportedOperationException();
   }

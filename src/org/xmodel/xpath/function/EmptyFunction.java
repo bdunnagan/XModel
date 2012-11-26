@@ -21,7 +21,7 @@ package org.xmodel.xpath.function;
 
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 
@@ -52,9 +52,9 @@ public class EmptyFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 0, 0);
-    return Collections.<IModelObject>emptyList();
+    return Collections.<INode>emptyList();
   }
 }

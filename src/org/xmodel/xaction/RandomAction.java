@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import java.util.Random;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -39,7 +39,7 @@ public class RandomAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     minExpr = document.getExpression( "min", true);
     maxExpr = document.getExpression( "max", true);
     decimal = Xlate.get( document.getRoot(), "decimal", false);
@@ -71,7 +71,7 @@ public class RandomAction extends GuardedAction
       }
       if ( targetExpr != null)
       {
-        for( IModelObject target: targetExpr.query( context, null))
+        for( INode target: targetExpr.query( context, null))
           target.setValue( value);
       }
     }
@@ -84,7 +84,7 @@ public class RandomAction extends GuardedAction
       }
       if ( targetExpr != null)
       {
-        for( IModelObject target: targetExpr.query( context, null))
+        for( INode target: targetExpr.query( context, null))
           target.setValue( number);
       }
     }

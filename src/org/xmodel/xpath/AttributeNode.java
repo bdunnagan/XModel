@@ -28,14 +28,14 @@ import org.xmodel.memento.IMemento;
  * An implementation of IModelObject which serves as a light-weight container for attributes of
  * other IModelObjects. This container is used during the evaluation of X-Path expressions.
  */
-public class AttributeNode implements IModelObject
+public class AttributeNode implements INode
 {
   /**
    * Create an Attribute to hold the given attribute information. 
    * @param attrName The name of the attribute.
    * @param source The object where the attribute is stored.
    */
-  public AttributeNode( String attrName, IModelObject source)
+  public AttributeNode( String attrName, INode source)
   {
     this.attrName = attrName;
     this.source = source;
@@ -83,21 +83,21 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject)
    */
-  public void addChild( IModelObject object)
+  public void addChild( INode object)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#addChild(org.xmodel.IModelObject, int)
    */
-  public void addChild( IModelObject object, int index)
+  public void addChild( INode object, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(int)
    */
-  public IModelObject getChild( int index)
+  public INode getChild( int index)
   {
     return null;
   }
@@ -105,7 +105,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(int)
    */
-  public IModelObject removeChild( int index)
+  public INode removeChild( int index)
   {
     return null;
   }
@@ -128,7 +128,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */
-  public IModelObject cloneObject()
+  public INode cloneObject()
   {
     return new AttributeNode( attrName, source.cloneTree());
   }
@@ -136,7 +136,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneTree()
    */
-  public IModelObject cloneTree()
+  public INode cloneTree()
   {
     return cloneObject();
   }
@@ -144,7 +144,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#createObject(java.lang.String)
    */
-  public IModelObject createObject( String type)
+  public INode createObject( String type)
   {
     throw new UnsupportedOperationException();
   }
@@ -152,7 +152,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getReferent()
    */
-  public IModelObject getReferent()
+  public INode getReferent()
   {
     return this;
   }
@@ -160,7 +160,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAncestor(java.lang.String)
    */
-  public IModelObject getAncestor( String type)
+  public INode getAncestor( String type)
   {
     return null;
   }
@@ -177,7 +177,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getAttributeNode(java.lang.String)
    */
-  public IModelObject getAttributeNode( String attrName)
+  public INode getAttributeNode( String attrName)
   {
     throw new UnsupportedOperationException();
   }
@@ -195,7 +195,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public INode getChild( String type, String name)
   {
     return null;
   }
@@ -203,7 +203,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren()
    */
-  public List<IModelObject> getChildren()
+  public List<INode> getChildren()
   {
     return Collections.emptyList();
   }
@@ -211,7 +211,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<INode> getChildren( String type, String name)
   {
     return Collections.emptyList();
   }
@@ -219,7 +219,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String)
    */
-  public List<IModelObject> getChildren( String type)
+  public List<INode> getChildren( String type)
   {
     return Collections.emptyList();
   }
@@ -243,7 +243,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public INode getCreateChild( String type, String name)
   {
     return null;
   }
@@ -251,7 +251,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String)
    */
-  public IModelObject getCreateChild( String type)
+  public INode getCreateChild( String type)
   {
     return null;
   }
@@ -259,7 +259,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getFirstChild(java.lang.String)
    */
-  public IModelObject getFirstChild( String type)
+  public INode getFirstChild( String type)
   {
     return null;
   }
@@ -318,7 +318,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getParent()
    */
-  public IModelObject getParent()
+  public INode getParent()
   {
     return source;
   }
@@ -326,7 +326,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getRoot()
    */
-  public IModelObject getRoot()
+  public INode getRoot()
   {
     return source.getRoot();
   }
@@ -350,7 +350,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_setParent(org.xmodel.IModelObject)
    */
-  public IModelObject internal_setParent( IModelObject parent)
+  public INode internal_setParent( INode parent)
   {
     return null;
   }
@@ -358,35 +358,35 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void internal_notifyParent( IModelObject newParent, IModelObject oldParent)
+  public void internal_notifyParent( INode newParent, INode oldParent)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyAddChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyAddChild( IModelObject child, int index)
+  public void internal_notifyAddChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_notifyRemoveChild(org.xmodel.IModelObject, int)
    */
-  public void internal_notifyRemoveChild( IModelObject child, int index)
+  public void internal_notifyRemoveChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_addChild(org.xmodel.IModelObject, int)
    */
-  public void internal_addChild( IModelObject child, int index)
+  public void internal_addChild( INode child, int index)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#internal_removeChild(int)
    */
-  public IModelObject internal_removeChild( int index)
+  public INode internal_removeChild( int index)
   {
     return null;
   }
@@ -425,7 +425,7 @@ public class AttributeNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeChild(org.xmodel.IModelObject)
    */
-  public void removeChild( IModelObject object)
+  public void removeChild( INode object)
   {
   }
 
@@ -516,8 +516,8 @@ public class AttributeNode implements IModelObject
     if ( object instanceof AttributeNode)
     {
       AttributeNode node = (AttributeNode)object;
-      IModelObject thisSource = source;
-      IModelObject nodeSource = node.source;
+      INode thisSource = source;
+      INode nodeSource = node.source;
       return attrName.equals( node.attrName) && thisSource.equals( nodeSource);
     }
     else if ( object instanceof AttributeHistoryNode)
@@ -560,7 +560,7 @@ public class AttributeNode implements IModelObject
     /* (non-Javadoc)
      * @see org.xmodel.ModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
      */
-    public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+    public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
     {
       if ( attrName.equals( attrNode.attrName))
         listener.notifyChange( attrNode, "", newValue, oldValue);
@@ -569,7 +569,7 @@ public class AttributeNode implements IModelObject
     /* (non-Javadoc)
      * @see org.xmodel.ModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
      */
-    public void notifyClear( IModelObject object, String attrName, Object oldValue)
+    public void notifyClear( INode object, String attrName, Object oldValue)
     {
       if ( attrName.equals( attrNode.attrName))
         listener.notifyClear( attrNode, "", oldValue);
@@ -578,7 +578,7 @@ public class AttributeNode implements IModelObject
     /* (non-Javadoc)
      * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
      */
-    public void notifyDirty( IModelObject object, boolean dirty)
+    public void notifyDirty( INode object, boolean dirty)
     {
       // resync if necessary
       if ( dirty) object.getAttribute( attrNode.attrName);
@@ -610,6 +610,6 @@ public class AttributeNode implements IModelObject
   }
   
   String attrName;
-  IModelObject source;
+  INode source;
   PathListenerList pathListeners;
 }

@@ -37,7 +37,7 @@ public interface IBoundChangeRecord extends IChangeRecord
    * Returns the domain object which is bound to this change record.
    * @return Returns the domain object bound to this change record.
    */
-  public IModelObject getBoundObject();
+  public INode getBoundObject();
   
   /**
    * Creates an unbound record from this change record.
@@ -49,7 +49,7 @@ public interface IBoundChangeRecord extends IChangeRecord
    * Creates an unbound record from this change record whose path is relative to the specified object.
    * @return Returns an unbound record for this bound record.
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative);
+  public IChangeRecord createUnboundRecord( INode relative);
   
   /**
    * Apply this change record to the bound object.

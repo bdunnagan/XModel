@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -57,8 +57,8 @@ public class AvgFunction extends Function
     assertType( context, ResultType.NODES);
     
     double sum = 0;
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
-    for( IModelObject node: nodes)
+    List<INode> nodes = getArgument( 0).evaluateNodes( context);
+    for( INode node: nodes)
     {
       sum += NumberFunction.numericValue( node);
     }
@@ -72,7 +72,7 @@ public class AvgFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -83,7 +83,7 @@ public class AvgFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -93,7 +93,7 @@ public class AvgFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( getParent() != null) notifyChange( this, contexts[ 0]);
   }

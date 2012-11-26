@@ -19,8 +19,8 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
@@ -39,13 +39,13 @@ public interface ICachingPolicy
    * Set the factory.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory);
+  public void setFactory( INodeFactory factory);
   
   /**
    * Returns the factory.
    * @return Returns the factory.
    */
-  public IModelObjectFactory getFactory();
+  public INodeFactory getFactory();
   
   /**
    * Define an additional caching stage for external references using this caching policy. The
@@ -71,7 +71,7 @@ public interface ICachingPolicy
    * that the argument, itself, need not be an external reference.
    * @param stage The child to be added during synchronization.
    */
-  public void defineNextStage( IModelObject stage);
+  public void defineNextStage( INode stage);
   
   /**
    * Transform the specified subtree into an external reference tree. The argument is assumed to
@@ -84,7 +84,7 @@ public interface ICachingPolicy
    * @param proto The prototype for external references.
    * @return Returns the transformed subtree.
    */
-  public IExternalReference createExternalTree( IModelObject local, boolean dirty, IExternalReference proto);
+  public IExternalReference createExternalTree( INode local, boolean dirty, IExternalReference proto);
   
   /**
    * Synchronize the specified reference with its representation in the external store.
@@ -114,21 +114,21 @@ public interface ICachingPolicy
    * @param dirty True if a dirty reference should be inserted.
    * @param xml A string containing a well-formed xml document.
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException;
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException;
   
   /**
    * Find the reference which correlates with the content in the specified subtree and update it.
    * @param reference The reference to be updated.
    * @param element The root of the source subtree.
    */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException;
+  public void update( IExternalReference reference, INode object) throws CachingException;
   
   /**
    * Find the reference which correlates with the content in the specified subtree and remove it.
    * @param parent The parent reference where the child will be added.
    * @param element The root of the source subtree.
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException;
+  public void remove( IExternalReference parent, INode object) throws CachingException;
 
   /**
    * Returns the names of attributes which can be accessed without syncing the reference.

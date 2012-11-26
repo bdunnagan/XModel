@@ -20,13 +20,13 @@
 package org.xmodel.xsd.check;
 
 import java.math.BigDecimal;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 
 public class NumberCheck extends AbstractCheck
 {
-  public NumberCheck( IModelObject schemaLocus)
+  public NumberCheck( INode schemaLocus)
   {
     super( schemaLocus);
     floatNode = schemaLocus.getFirstChild( "float");
@@ -40,7 +40,7 @@ public class NumberCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     String string = Xlate.get( documentLocus, "");
     if ( integerNode != null && string.contains( ".")) return false;
@@ -147,10 +147,10 @@ public class NumberCheck extends AbstractCheck
     return true;
   }
 
-  IModelObject floatNode;
-  IModelObject integerNode;
-  IModelObject minNode;
-  IModelObject maxNode;
+  INode floatNode;
+  INode integerNode;
+  INode minNode;
+  INode maxNode;
   String minString;
   String maxString;
 }

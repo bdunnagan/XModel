@@ -2,7 +2,7 @@ package org.xmodel.caching.sql;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
 
@@ -18,7 +18,7 @@ public class SQLProviderFactory
    * @param annotation The caching policy annotation.
    * @return Returns an instance of ISQLProvider.
    */
-  public synchronized static ISQLProvider getProvider( IModelObject annotation) throws ClassNotFoundException
+  public synchronized static ISQLProvider getProvider( INode annotation) throws ClassNotFoundException
   {
     String id = Xlate.childGet( annotation, "provider", (String)null);
     String host = Xlate.childGet( annotation, "host", (String)null);

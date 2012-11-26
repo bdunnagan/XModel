@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -60,7 +60,7 @@ public class StringJoinFunction extends Function
     assertType( context, 0, ResultType.NODES);
     assertType( context, 1, ResultType.STRING);
 
-    List<IModelObject> sequence = getArgument( 0).evaluateNodes( context);
+    List<INode> sequence = getArgument( 0).evaluateNodes( context);
     String seperator = getArgument( 1).evaluateString( context);
     return stringJoin( sequence, seperator);
   }
@@ -71,19 +71,19 @@ public class StringJoinFunction extends Function
    * @param separator The separator string.
    * @return Returns a string consisting of the values of the specified nodes seperated by the specified string.
    */
-  private String stringJoin( List<IModelObject> sequence, String separator)
+  private String stringJoin( List<INode> sequence, String separator)
   {
     StringBuilder builder = new StringBuilder();
     for( int i=0; i<sequence.size()-1; i++)
     {
-      IModelObject node = sequence.get( i);
+      INode node = sequence.get( i);
       builder.append( Xlate.get( node, ""));
       builder.append( separator);
     }
     
     if ( sequence.size() > 0)
     {
-      IModelObject node = sequence.get( sequence.size()-1);
+      INode node = sequence.get( sequence.size()-1);
       builder.append( Xlate.get( node, ""));
     }
     
@@ -95,7 +95,7 @@ public class StringJoinFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -105,7 +105,7 @@ public class StringJoinFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -135,7 +135,7 @@ public class StringJoinFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     for( IContext context: contexts) getParent().notifyChange( this, context);
   }

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -85,7 +85,7 @@ public class NumberFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -96,7 +96,7 @@ public class NumberFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -158,7 +158,7 @@ public class NumberFunction extends Function
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     IExpression arg0 = getArgument( 0);
     for( IContext context: contexts)
@@ -168,7 +168,7 @@ public class NumberFunction extends Function
       {
         try
         {
-          List<IModelObject> nodes = arg0.evaluateNodes( context);
+          List<INode> nodes = arg0.evaluateNodes( context);
           if ( object.equals( nodes.get( 0))) 
           {
             double oldResult = (oldValue != null)? numericValue( oldValue.toString()): 0;
@@ -189,7 +189,7 @@ public class NumberFunction extends Function
    * @param nodes The node to be converted to a number.
    * @return Return the numeric value of the argument according to the X-Path 1.0 specification.
    */
-  public static double numericValue( IModelObject node)
+  public static double numericValue( INode node)
   {
     try
     {
@@ -207,7 +207,7 @@ public class NumberFunction extends Function
    * @param nodes The node-set to be converted to a number.
    * @return Return the numeric value of the argument according to the X-Path 1.0 specification.
    */
-  public static double numericValue( List<IModelObject> nodes)
+  public static double numericValue( List<INode> nodes)
   {
     try
     {

@@ -21,7 +21,7 @@ package org.xmodel.xsd.check;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xsd.check.SchemaError.Type;
 
 
@@ -30,7 +30,7 @@ import org.xmodel.xsd.check.SchemaError.Type;
  */
 public class RootConstraint extends ConstraintCheck
 {
-  public RootConstraint( IModelObject schemaLocus)
+  public RootConstraint( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -39,7 +39,7 @@ public class RootConstraint extends ConstraintCheck
    * @see org.xmodel.xsd.check.ConstraintCheck#validate(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validate( IModelObject documentLocus, int start, int end)
+  public boolean validate( INode documentLocus, int start, int end)
   {
     return validateOnce( documentLocus, start, end);
   }
@@ -48,7 +48,7 @@ public class RootConstraint extends ConstraintCheck
    * @see org.xmodel.xsd.nu.ConstraintCheck#validate(org.xmodel.IModelObject, int, int)
    */
   @Override
-  public boolean validateOnce( IModelObject documentLocus, int start, int end)
+  public boolean validateOnce( INode documentLocus, int start, int end)
   {
     if ( illegalChildren != null) illegalChildren.clear();
     
@@ -60,7 +60,7 @@ public class RootConstraint extends ConstraintCheck
       { 
         for( int i=index; i<end; i++) 
         {
-          if ( illegalChildren == null) illegalChildren = new ArrayList<IModelObject>();
+          if ( illegalChildren == null) illegalChildren = new ArrayList<INode>();
           illegalChildren.add( documentLocus.getChild( i));
         }
         return false;
@@ -95,9 +95,9 @@ public class RootConstraint extends ConstraintCheck
     
     // create errors for illegal children
     if ( illegalChildren != null)
-      for( IModelObject illegalChild: illegalChildren)
+      for( INode illegalChild: illegalChildren)
         errors.add( new SchemaError( Type.illegalElement, getSchemaLocus(), illegalChild));
   }
   
-  private List<IModelObject> illegalChildren;
+  private List<INode> illegalChildren;
 }

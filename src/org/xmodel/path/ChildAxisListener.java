@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.expression.IContext;
 
@@ -36,7 +36,7 @@ public class ChildAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
     object.addModelListener( this);
   }
@@ -44,7 +44,7 @@ public class ChildAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
     object.removeModelListener( this);
   }
@@ -61,7 +61,7 @@ public class ChildAxisListener extends FanoutListener
    * @see org.xmodel.ModelListener#notifyAddChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     IPath path = getListenerChain().getPath();
     IContext context = getListenerChain().getContext();
@@ -73,7 +73,7 @@ public class ChildAxisListener extends FanoutListener
    * @see org.xmodel.ModelListener#notifyRemoveChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     IPath path = getListenerChain().getPath();
     IContext context = getListenerChain().getContext();

@@ -60,7 +60,7 @@ public class Xsd
    * all includes and imports resolved and populated under the schema root.
    * @param root The root of the schema.
    */
-  public Xsd( IModelObject root)
+  public Xsd( INode root)
   {
     this.root = root;
   }
@@ -70,11 +70,11 @@ public class Xsd
    * @param url The URL.
    * @return Returns the root of the schema with all includes and imports.
    */
-  protected IModelObject load( URL url) throws XmlException
+  protected INode load( URL url) throws XmlException
   {
     // load root xsd
     XmlIO xmlIO = new XmlIO();
-    IModelObject root = xmlIO.read( url);
+    INode root = xmlIO.read( url);
     if ( !root.isType( "xs:schema"))
     {
       root = null;
@@ -87,13 +87,13 @@ public class Xsd
     if ( prefix.length() > 0) qualifyNames( root, prefix);
     
     // load includes
-    List<IModelObject> includes = root.getChildren( "xs:include");
-    for( IModelObject decl: includes) loadInclude( root, prefix, decl);
+    List<INode> includes = root.getChildren( "xs:include");
+    for( INode decl: includes) loadInclude( root, prefix, decl);
     root.removeChildren( "xs:include");
 
     // load imports
-    List<IModelObject> imports = root.getChildren( "xs:import");
-    for( IModelObject decl: imports) loadImport( root, decl);
+    List<INode> imports = root.getChildren( "xs:import");
+    for( INode decl: imports) loadImport( root, decl);
     root.removeChildren( "xs:import");
     
     return root;
@@ -105,11 +105,11 @@ public class Xsd
    * @param url The URL.
    * @return Returns the root of the schema with all includes and imports.
    */
-  protected IModelObject load( String prefix, URL url) throws XmlException
+  protected INode load( String prefix, URL url) throws XmlException
   {
     // load root xsd
     XmlIO xmlIO = new XmlIO();
-    IModelObject root = xmlIO.read( url);
+    INode root = xmlIO.read( url);
     if ( !root.isType( "xs:schema"))
     {
       root = null;
@@ -120,12 +120,12 @@ public class Xsd
     if ( prefix.length() > 0) qualifyNames( root, prefix);
     
     // load includes
-    List<IModelObject> includes = root.getChildren( "xs:include");
-    for( IModelObject decl: includes) loadInclude( root, prefix, decl);
+    List<INode> includes = root.getChildren( "xs:include");
+    for( INode decl: includes) loadInclude( root, prefix, decl);
 
     // load imports
-    List<IModelObject> imports = root.getChildren( "xs:import");
-    for( IModelObject decl: imports) loadImport( root, decl);
+    List<INode> imports = root.getChildren( "xs:import");
+    for( INode decl: imports) loadImport( root, decl);
     
     return root;
   }
@@ -136,7 +136,7 @@ public class Xsd
    * @param prefix The schema prefix.
    * @param decl The include declaration.
    */
-  protected void loadInclude( IModelObject root, String prefix, IModelObject decl) throws XmlException
+  protected void loadInclude( INode root, String prefix, INode decl) throws XmlException
   {
     String spec = Xlate.get( decl, "schemaLocation", "");
     if ( includes == null) includes = new HashSet<String>();
@@ -146,19 +146,19 @@ public class Xsd
     try
     {
       URL url = new URL( spec);
-      IModelObject includeRoot = load( prefix, url);
+      INode includeRoot = load( prefix, url);
       
-      List<IModelObject> simpleTypes = includeRoot.getChildren( "xs:simpleType");
-      for( IModelObject simpleType: simpleTypes) root.addChild( simpleType);
+      List<INode> simpleTypes = includeRoot.getChildren( "xs:simpleType");
+      for( INode simpleType: simpleTypes) root.addChild( simpleType);
       
-      List<IModelObject> complexTypes = includeRoot.getChildren( "xs:complexType");
-      for( IModelObject complexType: complexTypes) root.addChild( complexType);
+      List<INode> complexTypes = includeRoot.getChildren( "xs:complexType");
+      for( INode complexType: complexTypes) root.addChild( complexType);
       
-      List<IModelObject> groups = includeRoot.getChildren( "xs:group");
-      for( IModelObject group: groups) root.addChild( group);
+      List<INode> groups = includeRoot.getChildren( "xs:group");
+      for( INode group: groups) root.addChild( group);
       
-      List<IModelObject> elements = includeRoot.getChildren( "xs:element");
-      for( IModelObject element: elements) root.addChild( element);
+      List<INode> elements = includeRoot.getChildren( "xs:element");
+      for( INode element: elements) root.addChild( element);
     }
     catch( MalformedURLException e)
     {
@@ -171,7 +171,7 @@ public class Xsd
    * @param root The destination of the includes.
    * @param decl The import declaration.
    */
-  protected void loadImport( IModelObject root, IModelObject decl) throws XmlException
+  protected void loadImport( INode root, INode decl) throws XmlException
   {
     String spec = Xlate.get( decl, "schemaLocation", "");
     String namespace = Xlate.get( decl, "namespace", "");
@@ -186,19 +186,19 @@ public class Xsd
     try
     {
       URL url = new URL( spec);
-      IModelObject importRoot = load( prefix, url);
+      INode importRoot = load( prefix, url);
       
-      List<IModelObject> simpleTypes = importRoot.getChildren( "xs:simpleType");
-      for( IModelObject simpleType: simpleTypes) root.addChild( simpleType);
+      List<INode> simpleTypes = importRoot.getChildren( "xs:simpleType");
+      for( INode simpleType: simpleTypes) root.addChild( simpleType);
       
-      List<IModelObject> complexTypes = importRoot.getChildren( "xs:complexType");
-      for( IModelObject complexType: complexTypes) root.addChild( complexType);
+      List<INode> complexTypes = importRoot.getChildren( "xs:complexType");
+      for( INode complexType: complexTypes) root.addChild( complexType);
       
-      List<IModelObject> groups = importRoot.getChildren( "xs:group");
-      for( IModelObject group: groups) root.addChild( group);
+      List<INode> groups = importRoot.getChildren( "xs:group");
+      for( INode group: groups) root.addChild( group);
       
-      List<IModelObject> elements = importRoot.getChildren( "xs:element");
-      for( IModelObject element: elements) root.addChild( element);
+      List<INode> elements = importRoot.getChildren( "xs:element");
+      for( INode element: elements) root.addChild( element);
     }
     catch( MalformedURLException e)
     {
@@ -211,13 +211,13 @@ public class Xsd
    * @param root The root of the schema.
    * @param prefix The prefix.
    */
-  private void qualifyNames( IModelObject root, String prefix)
+  private void qualifyNames( INode root, String prefix)
   {
     // prepend prefix to all names and references
     BreadthFirstIterator iter = new BreadthFirstIterator( root);
     while( iter.hasNext())
     {
-      IModelObject node = (IModelObject)iter.next();
+      INode node = (INode)iter.next();
       if ( node.isType( "xs:element") || node.isType( "xs:simpleType") || node.isType( "xs:complexType") | node.isType( "xs:group"))
       {
         String name = Xlate.get( node, "name", (String)null);
@@ -238,7 +238,7 @@ public class Xsd
    * Returns the root of the schema.
    * @return Returns the root of the schema.
    */
-  public IModelObject getRoot()
+  public INode getRoot()
   {
     return root;
   }
@@ -258,7 +258,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the type of the element.
    */
-  public String getElementType( IModelObject schema)
+  public String getElementType( INode schema)
   {
     return elementTypeStringExpr.evaluateString( new Context( schema), "");
   }
@@ -268,7 +268,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the type declaration for the specified element schema or null.
    */
-  public IModelObject getTypeDeclaration( IModelObject schema)
+  public INode getTypeDeclaration( INode schema)
   {
     return typeDeclarationExpr.queryFirst( schema);
   }
@@ -278,7 +278,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the simple type of the specified element schema.
    */
-  public IModelObject getSimpleType( IModelObject schema)
+  public INode getSimpleType( INode schema)
   {
     return simpleTypeExpr.queryFirst( schema);
   }
@@ -288,7 +288,7 @@ public class Xsd
    * @param schema An element schema.
    * @return Returns the enumerations restriction element for the specified element schema.
    */
-  public IModelObject getEnumerations( IModelObject schema)
+  public INode getEnumerations( INode schema)
   {
     return enumRestrictionExpr.queryFirst( schema);
   }
@@ -298,7 +298,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the minimum number of occurences of the specified element.
    */
-  public int minOccurences( IModelObject schema)
+  public int minOccurences( INode schema)
   {
     return Xlate.get( schema, "minOccurs", 1);
   }
@@ -309,7 +309,7 @@ public class Xsd
    * @param schema The element schema.
    * @return Returns the maximum number of occurences of the specified element.
    */
-  static public int maxOccurences( IModelObject schema)
+  static public int maxOccurences( INode schema)
   {
     String maxOccurs = Xlate.get( schema, "maxOccurs", "");
     if ( maxOccurs.equals( "unbounded")) return -1;
@@ -321,12 +321,12 @@ public class Xsd
    * @param element An element corresponding to the specified schema.
    * @return
    */
-  public IModelObject getElementSchema( IModelObject element)
+  public INode getElementSchema( INode element)
   {
     // find first leaf whose parentage matches the elements
     elementSchemaFinder.setVariable( "name", element.getType());
-    List<IModelObject> leaves = elementSchemaFinder.query( root, null);
-    for( IModelObject leaf: leaves)
+    List<INode> leaves = elementSchemaFinder.query( root, null);
+    for( INode leaf: leaves)
       if ( compareBranch( leaf, element))
         return leaf;
     return null;
@@ -338,7 +338,7 @@ public class Xsd
    * @param path The path.
    * @return Returns the element schema which corresponds to the specified path.
    */
-  public IModelObject getElementSchema( IPath path)
+  public INode getElementSchema( IPath path)
   {
     IPathElement element = path.getPathElement( path.length() - 1);
     String type = element.type();
@@ -346,8 +346,8 @@ public class Xsd
 
     // find first leaf whose parentage matches the elements
     elementSchemaFinder.setVariable( "name", type);
-    List<IModelObject> leaves = elementSchemaFinder.query( root, null);
-    for( IModelObject leaf: leaves)
+    List<INode> leaves = elementSchemaFinder.query( root, null);
+    for( INode leaf: leaves)
       if ( compareBranch( leaf, path, path.length()-1))
         return leaf;
     return null;
@@ -360,7 +360,7 @@ public class Xsd
    * @param path The path.
    * @return Returns the matching element schema.
    */
-  public IModelObject getElementSchema( IModelObject context, IPath path)
+  public INode getElementSchema( INode context, IPath path)
   {
     if ( path.isAbsolute( null)) return getElementSchema( path);
     
@@ -381,9 +381,9 @@ public class Xsd
    * @param element The element.
    * @return Returns the schema element of for the parent of the specified element or null.
    */
-  public IModelObject getElementParentSchema( IModelObject schema, IModelObject element)
+  public INode getElementParentSchema( INode schema, INode element)
   {
-    IModelObject parent = element.getParent();
+    INode parent = element.getParent();
     if ( parent == null) return null;
     
     parentSchemaExpr.setVariable( "name", parent.getType());
@@ -395,12 +395,12 @@ public class Xsd
    * @param element The element.
    * @return Returns the schema of a global element.
    */
-  public IModelObject getRootElementSchema( IModelObject element)
+  public INode getRootElementSchema( INode element)
   {
-    IModelObject schema = getElementSchema( element);
+    INode schema = getElementSchema( element);
     if ( schema == null) return null;
 
-    IModelObject ancestor = findElementHead( schema, element);
+    INode ancestor = findElementHead( schema, element);
     if ( ancestor == null) return null;
     
     rootElementSchemaFinder.setVariable( "name", ancestor.getID());
@@ -413,9 +413,9 @@ public class Xsd
    * @param element An element to which the schema applies.
    * @return Returns null or an ancestor of the specified element.
    */
-  public IModelObject getGlobalElementAncestor( IModelObject element)
+  public INode getGlobalElementAncestor( INode element)
   {
-    IModelObject schema = getElementSchema( element);
+    INode schema = getElementSchema( element);
     if ( schema == null) return null;
     return findElementHead( schema, element);
   }
@@ -428,9 +428,9 @@ public class Xsd
    * @param absolute True if the path should be absolute.
    * @return Returns null or the schema qualified path of the specified element.
    */
-  public CanonicalPath getElementSchemaPath( IModelObject element, boolean absolute)
+  public CanonicalPath getElementSchemaPath( INode element, boolean absolute)
   {
-    IModelObject ancestor = getGlobalElementAncestor( element);
+    INode ancestor = getGlobalElementAncestor( element);
     if ( ancestor == null) return null;
 
     CanonicalPath result = ModelAlgorithms.createRelativePath( ancestor, element);
@@ -447,10 +447,10 @@ public class Xsd
    * Create required attributes of the specified element.
    * @param schema The element schema.
    */
-  public void createRequiredAttributes( IModelObject schema, IModelObject element)
+  public void createRequiredAttributes( INode schema, INode element)
   {
-    List<IModelObject> attributes = requiredAttributeExpr.query( schema, null);
-    for( IModelObject attribute: attributes)
+    List<INode> attributes = requiredAttributeExpr.query( schema, null);
+    for( INode attribute: attributes)
     {
       String name = Xlate.get( attribute, "name", (String)null);
       element.setAttribute( name, generateValue( attribute));
@@ -462,22 +462,22 @@ public class Xsd
    * @param schema The element or attribute schema.
    * @return Returns the value.
    */
-  public String generateValue( IModelObject schema)
+  public String generateValue( INode schema)
   {
     String dfault = Xlate.get( schema, "default", (String)null);
     if ( dfault != null) return dfault;
     
-    IModelObject typeNode = getSimpleType( schema);
+    INode typeNode = getSimpleType( schema);
     String type = Xlate.get( typeNode, "");
     if ( type.equals( "xs:string") || type.equals( "xs:token") || type.equals( "xs:normalizedString"))
     {
-      IModelObject restriction = getEnumerations( schema);
+      INode restriction = getEnumerations( schema);
       if ( restriction == null) return "";
       
-      List<IModelObject> enumerations = restriction.getChildren( "xs:enumeration");
+      List<INode> enumerations = restriction.getChildren( "xs:enumeration");
       if ( enumerations.size() == 0) return "";
       
-      IModelObject enumeration = enumerations.get( 0);
+      INode enumeration = enumerations.get( 0);
       return Xlate.get( enumeration, "value", "");
     }
     else if ( type.equals( "xs:int") || 
@@ -487,20 +487,20 @@ public class Xsd
               type.contains( "decimal") || 
               type.startsWith( "unsigned"))
     {
-      IModelObject restriction = restrictionExpr.queryFirst( schema);
+      INode restriction = restrictionExpr.queryFirst( schema);
       if ( restriction == null) return null;
 
       int value = 0;
-      IModelObject maxInclusive = restriction.getFirstChild( "xs:maxInclusive");
+      INode maxInclusive = restriction.getFirstChild( "xs:maxInclusive");
       if ( maxInclusive != null) value = Xlate.get( maxInclusive, "value", 0);
       
-      IModelObject maxExclusive = restriction.getFirstChild( "xs:maxExclusive");
+      INode maxExclusive = restriction.getFirstChild( "xs:maxExclusive");
       if ( maxExclusive != null) value = Xlate.get( maxExclusive, "value", 0);
 
-      IModelObject minInclusive = restriction.getFirstChild( "xs:minInclusive");
+      INode minInclusive = restriction.getFirstChild( "xs:minInclusive");
       if ( minInclusive != null) value = Xlate.get( minInclusive, "value", 0);
       
-      IModelObject minExclusive = restriction.getFirstChild( "xs:minExclusive");
+      INode minExclusive = restriction.getFirstChild( "xs:minExclusive");
       if ( minExclusive != null) value = Xlate.get( minExclusive, "value", 0);
       
       return Integer.toString( value);
@@ -515,18 +515,18 @@ public class Xsd
    * @param element The element.
    * @return Returns null or an ancestor of the specified element.
    */
-  private IModelObject findElementHead( IModelObject schema, IModelObject element)
+  private INode findElementHead( INode schema, INode element)
   {
     parentSchemaExpr.setVariable( "name", element.getType());
-    List<IModelObject> candidates = parentSchemaExpr.query( schema, null);
+    List<INode> candidates = parentSchemaExpr.query( schema, null);
     if ( candidates.size() == 0) return element;
 
     element = element.getParent();
     if ( element == null) return null;
     
-    for ( IModelObject candidate: candidates)
+    for ( INode candidate: candidates)
     {
-      IModelObject ancestor = findElementHead( candidate, element.getParent());
+      INode ancestor = findElementHead( candidate, element.getParent());
       if ( ancestor != null) return ancestor;
     }
     
@@ -541,16 +541,16 @@ public class Xsd
    * @param element The element.
    * @return Returns true if the specified schema is the schema of the specified element.
    */
-  private boolean compareBranch( IModelObject schema, IModelObject element)
+  private boolean compareBranch( INode schema, INode element)
   {
     parentSchemaExpr.setVariable( "name", element.getType());
-    List<IModelObject> candidates = parentSchemaExpr.query( schema, null);
+    List<INode> candidates = parentSchemaExpr.query( schema, null);
     if ( candidates.size() == 0) return true;
     
     element = element.getParent();
     if ( element == null) return false;
     
-    for ( IModelObject candidate: candidates)
+    for ( INode candidate: candidates)
     {
       if ( compareBranch( candidate, element.getParent()))
         return true;
@@ -568,7 +568,7 @@ public class Xsd
    * @param index The path index.
    * @return Returns true if the schema matches the path segment.
    */
-  private boolean compareBranch( IModelObject schema, IPath path, int index)
+  private boolean compareBranch( INode schema, IPath path, int index)
   {
     index--;
     if ( index < 0) return true;
@@ -578,10 +578,10 @@ public class Xsd
     if ( type == null) type = "*";
     
     parentSchemaExpr.setVariable( "name", type);
-    List<IModelObject> candidates = parentSchemaExpr.query( schema, null);
+    List<INode> candidates = parentSchemaExpr.query( schema, null);
     if ( candidates.size() == 0) return schema.getParent().isType( "xs:schema");
     
-    for ( IModelObject candidate: candidates)
+    for ( INode candidate: candidates)
       if ( compareBranch( candidate, path, index)) 
         return true;
     
@@ -601,15 +601,15 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the schema node which was violated.
    */
-  public IModelObject validate( IModelObject schema, String value)
+  public INode validate( INode schema, String value)
   {
-    IModelObject typeNode = getSimpleType( schema);
+    INode typeNode = getSimpleType( schema);
     String type = Xlate.get( typeNode, "");
     if ( !validateType( type, value)) return typeNode;
     
     if ( type.equals( "xs:string") || type.equals( "xs:token") || type.equals( "xs:normalizedString"))
     {
-      IModelObject constraint = validateEnumeration( schema, value);
+      INode constraint = validateEnumeration( schema, value);
       if ( constraint != null) return constraint;
       
       constraint = validateStringLength( schema, value);
@@ -781,15 +781,15 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated enumeration restriction.
    */
-  public IModelObject validateEnumeration( IModelObject schema, String value)
+  public INode validateEnumeration( INode schema, String value)
   {
-    IModelObject restriction = getEnumerations( schema);
+    INode restriction = getEnumerations( schema);
     if ( restriction == null) return null;
     
-    List<IModelObject> enumerations = restriction.getChildren( "xs:enumeration");
+    List<INode> enumerations = restriction.getChildren( "xs:enumeration");
     if ( enumerations.size() == 0) return null;
     
-    for( IModelObject enumeration: enumerations)
+    for( INode enumeration: enumerations)
     {
       String option = Xlate.get( enumeration, "value", "");
       if ( value.equals( option)) return null;
@@ -807,27 +807,27 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated numeric restriction.
    */
-  public IModelObject validateNumericRange( IModelObject schema, String value)
+  public INode validateNumericRange( INode schema, String value)
   {
     try
     {
       double number = Double.parseDouble( value);
-      IModelObject restriction = restrictionExpr.queryFirst( schema);
+      INode restriction = restrictionExpr.queryFirst( schema);
       if ( restriction == null) return null;
       
-      IModelObject minInclusive = restriction.getFirstChild( "xs:minInclusive");
+      INode minInclusive = restriction.getFirstChild( "xs:minInclusive");
       if ( minInclusive != null && number < Xlate.get( minInclusive, "value", 0)) return minInclusive;
       
-      IModelObject minExclusive = restriction.getFirstChild( "xs:minExclusive");
+      INode minExclusive = restriction.getFirstChild( "xs:minExclusive");
       if ( minExclusive != null && number <= Xlate.get( minExclusive, "value", 0)) return minExclusive;
       
-      IModelObject maxInclusive = restriction.getFirstChild( "xs:maxInclusive");
+      INode maxInclusive = restriction.getFirstChild( "xs:maxInclusive");
       if ( maxInclusive != null && number > Xlate.get( maxInclusive, "value", 0)) return maxInclusive;
       
-      IModelObject maxExclusive = restriction.getFirstChild( "xs:maxExclusive");
+      INode maxExclusive = restriction.getFirstChild( "xs:maxExclusive");
       if ( maxExclusive != null && number >= Xlate.get( maxExclusive, "value", 0)) return maxExclusive;
 
-      IModelObject totalDigits = restriction.getFirstChild( "xs:totalDigits");
+      INode totalDigits = restriction.getFirstChild( "xs:totalDigits");
       if ( totalDigits != null && value.trim().length() > Xlate.get( totalDigits, "value", 0)) return totalDigits;
       
       return null;
@@ -846,19 +846,19 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated constraint.
    */
-  public IModelObject validateStringLength( IModelObject schema, String value)
+  public INode validateStringLength( INode schema, String value)
   {
-    IModelObject restriction = restrictionExpr.queryFirst( schema);
+    INode restriction = restrictionExpr.queryFirst( schema);
     if ( restriction == null) return null;
 
     int actualLength = value.length();
-    IModelObject length = restriction.getFirstChild( "xs:length");
+    INode length = restriction.getFirstChild( "xs:length");
     if ( length != null && actualLength != Xlate.get( length, "value", 0)) return length;
     
-    IModelObject minLength = restriction.getFirstChild( "xs:minLength");
+    INode minLength = restriction.getFirstChild( "xs:minLength");
     if ( minLength != null && actualLength < Xlate.get( minLength, "value", 0)) return minLength;
 
-    IModelObject maxLength = restriction.getFirstChild( "xs:maxLength");
+    INode maxLength = restriction.getFirstChild( "xs:maxLength");
     if ( maxLength != null && actualLength > Xlate.get( maxLength, "value", 0)) return maxLength;
     
     return null;
@@ -871,16 +871,16 @@ public class Xsd
    * @param value The value.
    * @return Returns null or the violated pattern restriction.
    */
-  public IModelObject validateRegex( IModelObject schema, String value)
+  public INode validateRegex( INode schema, String value)
   {
     Pattern compiled = (Pattern)schema.getAttribute( "xm:pattern");
     if ( compiled == null)
     {
       try
       {
-        IModelObject restriction = patternRestrictionExpr.queryFirst( schema);
+        INode restriction = patternRestrictionExpr.queryFirst( schema);
         if ( restriction == null) return null;
-        IModelObject pattern = restriction.getFirstChild( "xs:pattern");
+        INode pattern = restriction.getFirstChild( "xs:pattern");
         compiled = Pattern.compile( Xlate.get( pattern, "value", ""));
         schema.setAttribute( "xm:pattern", compiled);
       }
@@ -894,7 +894,7 @@ public class Xsd
     Matcher matcher = compiled.matcher( value);
     if ( !matcher.find()) 
     {
-      IModelObject restriction = patternRestrictionExpr.queryFirst( schema);
+      INode restriction = patternRestrictionExpr.queryFirst( schema);
       return restriction.getFirstChild( "xs:pattern");
     }
     
@@ -959,7 +959,7 @@ public class Xsd
     "(for $n in (@type | */*/*/@base | */*/@base) return " +
     "  ancestor-or-self::xs:schema/*[ matches( name(), 'xs:simpleType|xs:complexType') and @name = $n]//xs:attribute[ @use = 'required'])");
   
-  private IModelObject root;
+  private INode root;
   private Set<String> includes;
   private Set<String> imports;
   
@@ -969,7 +969,7 @@ public class Xsd
   {
     Xsd xsd = new Xsd( new URL( "http://schema.stonewallnetworks.com/ns/entity/policy.xsd"));
     IPath path = XPath.createPath( "en:site/en:securityPolicy/en:ruleSet/en:securityRule/en:name");
-    IModelObject schema = xsd.getElementSchema( path);
+    INode schema = xsd.getElementSchema( path);
     System.out.println( "->"+schema);
   }
 }

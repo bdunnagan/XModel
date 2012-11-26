@@ -153,7 +153,7 @@ public abstract class AbstractPath implements IPath, IAxis
    * (non-Javadoc)
    * @see org.xmodel.IPath#evaluate(org.xmodel.IModelObject)
    */
-  public boolean isLeaf( IModelObject object)
+  public boolean isLeaf( INode object)
   {
     IPath inversePath = invertPath();
     return inversePath.queryFirst( object) != null;
@@ -162,7 +162,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#isNode(org.xmodel.IModelObject)
    */
-  public boolean isNode( IModelObject object)
+  public boolean isNode( INode object)
   {
     IPath inversePath = invertPath();
     CanonicalPath pathSegment = new CanonicalPath();
@@ -241,7 +241,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#createSubtree(org.xmodel.IModelObject)
    */
-  public IModelObject createSubtree( IModelObject root)
+  public INode createSubtree( INode root)
   {
     ModelAlgorithms.createPathSubtree( root, this, null, null);
     return queryFirst( root);
@@ -292,7 +292,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#setVariable(java.lang.String, org.xmodel.IModelObject)
    */
-  public void setVariable( String name, IModelObject node)
+  public void setVariable( String name, INode node)
   {
     getVariableSource().getScope( "local").set( name, node);
   }
@@ -300,7 +300,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#setVariable(java.lang.String, java.util.List)
    */
-  public void setVariable( String name, List<IModelObject> nodes)
+  public void setVariable( String name, List<INode> nodes)
   {
     getVariableSource().getScope( "local").set( name, nodes);
   }
@@ -317,7 +317,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#query(org.xmodel.IModelObject, java.util.List)
    */
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result)
+  public List<INode> query( INode object, List<INode> result)
   {
     return query( null, object, length(), result);
   }
@@ -325,7 +325,7 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#query(org.xmodel.IModelObject, int, java.util.List)
    */
-  public List<IModelObject> query( IModelObject object, int length, List<IModelObject> result)
+  public List<INode> query( INode object, int length, List<INode> result)
   {
     return query( null, object, length, result);
   }
@@ -334,7 +334,7 @@ public abstract class AbstractPath implements IPath, IAxis
    * @see org.xmodel.IPath#query(org.xmodel.xpath.expression.IContext,
    * org.xmodel.IModelObject, java.util.List)
    */
-  public List<IModelObject> query( IContext context, List<IModelObject> result)
+  public List<INode> query( IContext context, List<INode> result)
   {
     return query( context, context.getObject(), length(), result);
   }
@@ -343,7 +343,7 @@ public abstract class AbstractPath implements IPath, IAxis
    * @see org.xmodel.IPath#query(org.xmodel.xpath.expression.IContext, int, 
    * java.util.List)
    */
-  public List<IModelObject> query( IContext context, int length, List<IModelObject> result)
+  public List<INode> query( IContext context, int length, List<INode> result)
   {
     return query( context, context.getObject(), length, result);
   }
@@ -358,14 +358,14 @@ public abstract class AbstractPath implements IPath, IAxis
    * @param result The list where the result nodes will be stored or null.
    * @return Returns the result argument or a new list if the result argument is null.
    */
-  protected List<IModelObject> query( IContext parent, IModelObject object, int length, List<IModelObject> result)
+  protected List<INode> query( IContext parent, INode object, int length, List<INode> result)
   {
-    if ( result == null) result = new ArrayList<IModelObject>();
-    List<IModelObject> layer = new ArrayList<IModelObject>();
+    if ( result == null) result = new ArrayList<INode>();
+    List<INode> layer = new ArrayList<INode>();
     
     // configure layers so result is nextLayer at end of query
-    List<IModelObject> currLayer = layer;
-    List<IModelObject> nextLayer = result;
+    List<INode> currLayer = layer;
+    List<INode> nextLayer = result;
     if ( (length & 0x1) != 0)
     {
       currLayer = result;
@@ -379,7 +379,7 @@ public abstract class AbstractPath implements IPath, IAxis
     {
       IPathElement element = elements[ i];
       
-      List<IModelObject> swapLayer = currLayer;
+      List<INode> swapLayer = currLayer;
       currLayer = nextLayer;
       nextLayer = swapLayer;
       
@@ -397,11 +397,11 @@ public abstract class AbstractPath implements IPath, IAxis
   /* (non-Javadoc)
    * @see org.xmodel.IPath#queryFirst(org.xmodel.IModelObject)
    */
-  public IModelObject queryFirst( IModelObject object)
+  public INode queryFirst( INode object)
   {
-    List<IModelObject> list = query( object, null);
+    List<INode> list = query( object, null);
     if ( list.size() == 0) return null;
-    return (IModelObject)list.get( 0);
+    return (INode)list.get( 0);
   }
   
   /* (non-Javadoc)

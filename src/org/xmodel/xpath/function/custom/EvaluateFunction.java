@@ -22,7 +22,7 @@ package org.xmodel.xpath.function.custom;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -77,7 +77,7 @@ public class EvaluateFunction extends Function
     IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateBoolean( context);
     
-    for( IModelObject object: getArgument( 0).evaluateNodes( context))
+    for( INode object: getArgument( 0).evaluateNodes( context))
     {
       if ( !expr.evaluateBoolean( new Context( context, object))) 
         return false;
@@ -90,7 +90,7 @@ public class EvaluateFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 3, 3);
     assertType( context, 0, ResultType.NODES);
@@ -99,9 +99,9 @@ public class EvaluateFunction extends Function
     IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateNodes( context);
     
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
-    List<IModelObject> result = new ArrayList<IModelObject>();
-    for( IModelObject object: nodes)
+    List<INode> nodes = getArgument( 0).evaluateNodes( context);
+    List<INode> result = new ArrayList<INode>();
+    for( INode object: nodes)
       result.addAll( expr.evaluateNodes( new Context( context, object))); 
     
     return result;
@@ -120,7 +120,7 @@ public class EvaluateFunction extends Function
     IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateNumber( context);
     
-    IModelObject object = getArgument( 0).queryFirst( context);
+    INode object = getArgument( 0).queryFirst( context);
     return expr.evaluateNumber( new Context( context, object)); 
   }
 
@@ -137,7 +137,7 @@ public class EvaluateFunction extends Function
     IExpression expr = createExpression( spec);
     if ( expr == null) return getArgument( 2).evaluateString( context);
     
-    IModelObject object = getArgument( 0).queryFirst( context);
+    INode object = getArgument( 0).queryFirst( context);
     return expr.evaluateString( new Context( context, object)); 
   }
 
@@ -164,7 +164,7 @@ public class EvaluateFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -173,7 +173,7 @@ public class EvaluateFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -193,7 +193,7 @@ public class EvaluateFunction extends Function
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyChange( this, contexts[ 0]);
   }

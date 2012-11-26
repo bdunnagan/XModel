@@ -47,12 +47,12 @@ public class Schema
    * @param element The element.
    * @return Returns the matching schema element definition.
    */
-  public static IModelObject findSchema( IModelObject schema, IModelObject element)
+  public static INode findSchema( INode schema, INode element)
   {
     int matchLength = 0;
-    IModelObject matchLeaf = null;
+    INode matchLeaf = null;
     
-    List<IModelObject> leaves = null;
+    List<INode> leaves = null;
     if ( element instanceof AttributeNode)
     {
       findMatchingAttributeLeavesExpr.setVariable( "name", element.getType());
@@ -64,7 +64,7 @@ public class Schema
       leaves = findMatchingElementLeavesExpr.query( schema, null);
     }
     
-    for( IModelObject leaf: leaves)
+    for( INode leaf: leaves)
     {
       int length = findMatchLength( leaf, element);
       if ( length > matchLength)
@@ -83,7 +83,7 @@ public class Schema
    * @param element The element.
    * @return Returns the matching length of ancestors.
    */
-  private static int findMatchLength( IModelObject leaf, IModelObject element)
+  private static int findMatchLength( INode leaf, INode element)
   {
     int count = 0;
     while( leaf != null && element != null)
@@ -103,7 +103,7 @@ public class Schema
    * @param document The document to be validated.
    * @return Returns true if the document is valid.
    */
-  public static boolean validate( IModelObject schema, IModelObject document)
+  public static boolean validate( INode schema, INode document)
   {
     String type = schema.getType();
     ICheck check = null;
@@ -120,7 +120,7 @@ public class Schema
    * @param annotate True if the document should be annotated with the validation errors.
    * @return Returns the list of schema errors.
    */
-  public static List<SchemaError> validate( IModelObject schema, IModelObject document, boolean annotate)
+  public static List<SchemaError> validate( INode schema, INode document, boolean annotate)
   {
     String type = schema.getType();
     ICheck check = null;
@@ -144,9 +144,9 @@ public class Schema
    * Remove all annotation elements from the specified document.
    * @param document The document.
    */
-  public static void removeAnnotations( IModelObject document)
+  public static void removeAnnotations( INode document)
   {
-    for( IModelObject annotation: annotationPath.query( document, null))
+    for( INode annotation: annotationPath.query( document, null))
       annotation.removeFromParent();
   }
   
@@ -157,18 +157,18 @@ public class Schema
    * @param optional True if optional nodes should be created.
    * @return Returns the new document.
    */
-  public static IModelObject createDocumentBranch( SchemaTrace trace, boolean optional)
+  public static INode createDocumentBranch( SchemaTrace trace, boolean optional)
   {
     // create complete document for leaf
-    IModelObject leaf = createDocument( trace.getLeaf(), optional);
-    IModelObject node = leaf;
+    INode leaf = createDocument( trace.getLeaf(), optional);
+    INode node = leaf;
     
     // create all ancestors in trace except the root of the schema (i == 0)
     for( int i = trace.getLength() - 2; i > 0; i--)
     {
-      IModelObject schema = trace.getElement( i);
+      INode schema = trace.getElement( i);
       String name = Xlate.get( schema, "name", "");
-      IModelObject parent = new ModelObject( name);
+      INode parent = new ModelObject( name);
       parent.addChild( node);
       node = parent;
     }
@@ -182,7 +182,7 @@ public class Schema
    * @param optional True if optional nodes should be created.
    * @return Returns the new document.
    */
-  public static IModelObject createDocument( IModelObject schema, boolean optional)
+  public static INode createDocument( INode schema, boolean optional)
   {
     return createDocument( schema, null, optional);
   }
@@ -194,9 +194,9 @@ public class Schema
    * @param optional True if optional nodes should be created.
    * @return Returns the new document.
    */
-  public static IModelObject createDocument( IModelObject schema, IModelObjectFactory factory, boolean optional)
+  public static INode createDocument( INode schema, INodeFactory factory, boolean optional)
   {
-    return createDocument( schema, factory, optional, new ArrayList<IModelObject>());
+    return createDocument( schema, factory, optional, new ArrayList<INode>());
   }
   
   /**
@@ -207,7 +207,7 @@ public class Schema
    * @param traversed The current stack of element schemas.
    * @return Returns the new document.
    */
-  public static IModelObject createDocument( IModelObject schema, IModelObjectFactory factory, boolean optional, List<IModelObject> traversed)
+  public static INode createDocument( INode schema, INodeFactory factory, boolean optional, List<INode> traversed)
   {
     if ( !schema.isType( "element"))
       throw new IllegalArgumentException( "Argument must be a simplified schema element tag: "+schema);
@@ -220,11 +220,11 @@ public class Schema
       // create element
       String type = Xlate.get( schema, "name", (String)null);
       if ( type == null) type = Xlate.get( schema, "type", (String)null);
-      IModelObject document = (factory != null)? factory.createObject( null, type): new ModelObject( type);
+      INode document = (factory != null)? factory.createObject( null, type): new ModelObject( type);
       
       // create attributes
-      List<IModelObject> attributes = schemaAttributesPath.query( schema, null);
-      for( IModelObject attribute: attributes)
+      List<INode> attributes = schemaAttributesPath.query( schema, null);
+      for( INode attribute: attributes)
       {
         boolean required = Xlate.get( attribute, "use", "optional").equals( "required");
         if ( required || optional)
@@ -236,7 +236,7 @@ public class Schema
       }
       
       // create value
-      IModelObject value = schema.getFirstChild( "value");
+      INode value = schema.getFirstChild( "value");
       if ( value != null)
       {
         String valueDefault = Xlate.get( value, "default", "");
@@ -244,12 +244,12 @@ public class Schema
       }
       
       // create children, but halt recursion
-      IModelObject constraint = schemaConstraintPath.queryFirst( schema);
+      INode constraint = schemaConstraintPath.queryFirst( schema);
       if ( constraint != null)
       {
-        List<IModelObject> children = new ArrayList<IModelObject>();
+        List<INode> children = new ArrayList<INode>();
         createChildren( constraint, factory, children, optional, traversed);
-        for( IModelObject child: children) document.addChild( child);
+        for( INode child: children) document.addChild( child);
       }
       
       return document;
@@ -269,7 +269,7 @@ public class Schema
    * @param optional True if optional nodes should be created.
    * @param traversed The current stack of element schemas.
    */
-  private static void createChildren( IModelObject schema, IModelObjectFactory factory, List<IModelObject> children, boolean optional, List<IModelObject> traversed)
+  private static void createChildren( INode schema, INodeFactory factory, List<INode> children, boolean optional, List<INode> traversed)
   {
     // check min occurrence
     int min = Xlate.get( schema, "min", 1);
@@ -279,12 +279,12 @@ public class Schema
     boolean allChoices = true;
     if ( schema.isType( "set") || schema.isType( "list") || (schema.isType( "choice") && allChoices))
     {
-      List<IModelObject> constraints = schema.getChildren();
-      for( IModelObject constraint: constraints) createChildren( constraint, factory, children, optional, traversed);
+      List<INode> constraints = schema.getChildren();
+      for( INode constraint: constraints) createChildren( constraint, factory, children, optional, traversed);
     }
     else if ( schema.isType( "choice"))
     {
-      IModelObject constraint = schema.getChild( 0);
+      INode constraint = schema.getChild( 0);
       createChildren( constraint, factory, children, optional, traversed);
     }
     else if ( schema.isType( "child"))
@@ -302,7 +302,7 @@ public class Schema
    * @param document The document.
    * @return Returns a clone of the document with the elements removed.
    */
-  public static IModelObject removeInvalidElements( IModelObject schema, IModelObject document)
+  public static INode removeInvalidElements( INode schema, INode document)
   {
     document = document.cloneTree();
     List<SchemaError> errors = validate( schema, document, false);
@@ -313,7 +313,7 @@ public class Schema
     {
       if ( error.isType( Type.illegalElement))
       {
-        IModelObject locus = error.getDocumentLocus();
+        INode locus = error.getDocumentLocus();
         locus.removeFromParent();
       }
     }
@@ -359,7 +359,7 @@ public class Schema
     doc.setDirty( true);
     
     SchemaTransform transform = new SchemaTransform();
-    IModelObject transformed = transform.transform( xsd.getChild( 0));
+    INode transformed = transform.transform( xsd.getChild( 0));
     
     // validate generated schema against schema.xsd
     List<SchemaError> errors = Schema.validate( transformed, doc.getChild( 0), true);

@@ -20,7 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -34,7 +34,7 @@ public interface IExpressionListener
    * @param context The context of the expression evaluation.
    * @param nodes The nodes which were added.
    */
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes);
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes);
 
   /**
    * Called when one or more nodes are removed from the bound expression's node-set.
@@ -42,7 +42,7 @@ public interface IExpressionListener
    * @param context The context of the expression evaluation.
    * @param nodes The nodes which were removed.
    */
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes);
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes);
 
   /**
    * Called when the result of an expression which evaluates to a <i>STRING</i> changes.
@@ -92,7 +92,7 @@ public interface IExpressionListener
    * @param newValue The new value.
    * @param oldValue The old value.
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue);
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue);
   
   /**
    * Handle an exception encountered during partial evaluation.

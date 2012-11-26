@@ -2,8 +2,8 @@ package org.xmodel.xaction;
 
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -31,11 +31,11 @@ public class Conventions
   {
     if ( object == null) 
     {
-      context.set( var, Collections.<IModelObject>emptyList());
+      context.set( var, Collections.<INode>emptyList());
     }
     else
     {
-      IModelObject holder = new ModelObject( object.getClass().getName());
+      INode holder = new ModelObject( object.getClass().getName());
       holder.setValue( object);
       context.set( var, holder);
     }
@@ -52,7 +52,7 @@ public class Conventions
     List<?> list = (List<?>)context.get( var);
     if ( list == null || list.size() == 0) return null;
     
-    IModelObject holder = (IModelObject)list.get( 0);
+    INode holder = (INode)list.get( 0);
     return holder.getValue();
   }
   
@@ -64,12 +64,12 @@ public class Conventions
    * @return Returns the matcher.
    */
   @SuppressWarnings("unchecked")
-  public static IXmlMatcher getMatcher( XActionDocument doc, IModelObject locus)
+  public static IXmlMatcher getMatcher( XActionDocument doc, INode locus)
   {
     final IExpression matcherExpr = XPath.createExpression( "ancestor-or-self::*/matcher");
     final IExpression loaderExpr = XPath.createExpression( "ancestor-or-self::*/classLoader");
     
-    IModelObject matcherElement = matcherExpr.queryFirst( locus);
+    INode matcherElement = matcherExpr.queryFirst( locus);
     if ( matcherElement == null) return new ConfiguredXmlMatcher();
     
     String className = Xlate.get( matcherElement, (String)null);
@@ -79,7 +79,7 @@ public class Conventions
           ModelAlgorithms.createIdentityPath( matcherElement));
     
     ClassLoader loader = null;
-    IModelObject loaderElement = loaderExpr.queryFirst( locus);
+    INode loaderElement = loaderExpr.queryFirst( locus);
     if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
     if ( loader == null) loader = doc.getClassLoader();
     
@@ -101,12 +101,12 @@ public class Conventions
    * @return Returns the factory.
    */
   @SuppressWarnings("unchecked")
-  public static IModelObjectFactory getFactory( IModelObject locus)
+  public static INodeFactory getFactory( INode locus)
   {
     IExpression factoryExpr = XPath.createExpression( "ancestor-or-self::*/factory");
     IExpression loaderExpr = XPath.createExpression( "ancestor-or-self::*/classLoader");
       
-    IModelObject factoryElement = factoryExpr.queryFirst( locus);
+    INode factoryElement = factoryExpr.queryFirst( locus);
     if ( factoryElement == null) return new ModelObjectFactory();
     
     String className = Xlate.get( factoryElement, (String)null);
@@ -118,13 +118,13 @@ public class Conventions
     }
     
     ClassLoader loader = null;
-    IModelObject loaderElement = loaderExpr.queryFirst( locus);
+    INode loaderElement = loaderExpr.queryFirst( locus);
     if ( loaderElement != null) loader = (ClassLoader)loaderElement.getValue();
     if ( loader == null) loader = Conventions.class.getClassLoader();
     
     try
     {
-      Class<IModelObjectFactory> clss = (Class<IModelObjectFactory>)loader.loadClass( className);
+      Class<INodeFactory> clss = (Class<INodeFactory>)loader.loadClass( className);
       return clss.newInstance();
     }
     catch( Exception e)
@@ -140,7 +140,7 @@ public class Conventions
    * @param aliases Deprecated aliases for the variable attribute.
    * @return Returns the name of the variable to which a result will be assigned.
    */
-  public static String getVarName( IModelObject config, boolean required, String ... aliases)
+  public static String getVarName( INode config, boolean required, String ... aliases)
   {
     String var = Xlate.get( config, "var", (String)null);
     if ( var != null) return var;
@@ -167,7 +167,7 @@ public class Conventions
    * @param message The message.
    * @return Returns the exception.
    */
-  public static XActionException createException( IModelObject config, String message)
+  public static XActionException createException( INode config, String message)
   {
     IPath path = ModelAlgorithms.createIdentityPath( config);
     

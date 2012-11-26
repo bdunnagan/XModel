@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.ScriptAction;
@@ -42,7 +42,7 @@ public class EntityTrigger extends AbstractTrigger
 {
   public EntityTrigger()
   {
-    touched = new HashSet<IModelObject>();
+    touched = new HashSet<INode>();
   }
   
   /* (non-Javadoc)
@@ -79,39 +79,39 @@ public class EntityTrigger extends AbstractTrigger
   }
   
   final IExpressionListener entityListener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
       if ( touched.size() == 0) dispatch();
       touched.addAll( nodes);
-      for( IModelObject node: nodes) listener.install( node);
+      for( INode node: nodes) listener.install( node);
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
       if ( touched.size() == 0) dispatch();
       touched.addAll( nodes);
-      for( IModelObject node: nodes) listener.uninstall( node);
+      for( INode node: nodes) listener.uninstall( node);
     }
   };
   
   private NonSyncingListener listener = new NonSyncingListener() {
-    public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+    public void notifyAddChild( INode parent, INode child, int index)
     {
       super.notifyAddChild( parent, child, index);
       if ( touched.size() == 0) dispatch();
       touched.add( parent);
     }
-    public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+    public void notifyRemoveChild( INode parent, INode child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
       if ( touched.size() == 0) dispatch();
       touched.add( parent);
     }
-    public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+    public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
     {
       if ( touched.size() == 0) dispatch();
       touched.add( object);
     }
-    public void notifyClear( IModelObject object, String attrName, Object oldValue)
+    public void notifyClear( INode object, String attrName, Object oldValue)
     {
       if ( touched.size() == 0) dispatch();
       touched.add( object);
@@ -129,7 +129,7 @@ public class EntityTrigger extends AbstractTrigger
     public void run()
     {
       SLog.debugf( EntityTrigger.this, "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());
-      context.set( "changes", new ArrayList<IModelObject>( touched));
+      context.set( "changes", new ArrayList<INode>( touched));
       script.run( context);
       touched.clear();
     }
@@ -147,5 +147,5 @@ public class EntityTrigger extends AbstractTrigger
   private IExpression entityExpr;
   private ScriptAction script;
   private StatefulContext context;
-  private Set<IModelObject> touched;
+  private Set<INode> touched;
 }

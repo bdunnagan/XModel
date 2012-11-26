@@ -32,7 +32,7 @@ public interface IAncestorListener
    * @param newParent The new parent of the ancestor.
    * @param oldParent The old parent of the ancestor.
    */
-  public void notifyAttach( IModelObject object, IModelObject ancestor, IModelObject newParent, IModelObject oldParent);
+  public void notifyAttach( INode object, INode ancestor, INode newParent, INode oldParent);
 
   /**
    * This method is called when the specified ancestor of the specified object
@@ -41,5 +41,5 @@ public interface IAncestorListener
    * @param ancestor The ancestor of the specified object.
    * @param oldParent The old parent of the ancestor.
    */
-  public void notifyDetach( IModelObject object, IModelObject ancestor, IModelObject oldParent);
+  public void notifyDetach( INode object, INode ancestor, INode oldParent);
 }

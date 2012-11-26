@@ -2,7 +2,7 @@ package org.xmodel.listeners;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -67,9 +67,9 @@ public class SetDetailListener extends ExpressionListener
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
-    for( IModelObject node: nodes)
+    for( INode node: nodes)
     {
       StatefulContext nodeContext = new StatefulContext( context, node);
       for( Detail detail: details) detail.install( nodeContext);
@@ -82,9 +82,9 @@ public class SetDetailListener extends ExpressionListener
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
-    for( IModelObject node: nodes)
+    for( INode node: nodes)
     {
       StatefulContext nodeContext = new StatefulContext( context, node);
       for( Detail detail: details) detail.remove( nodeContext);

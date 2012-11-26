@@ -24,7 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
@@ -182,7 +182,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    * Replace the tilde at the beginning of the path of the specified element.
    * @param element The element.
    */
-  private static void replaceTilde( IModelObject element)
+  private static void replaceTilde( INode element)
   {
     String path = Xlate.get( element, "path", "");
     if ( path.length() > 0 && path.charAt( 0) == '~')
@@ -197,7 +197,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
    * @param element The file system element.
    * @return Returns the absolute path.
    */
-  private File buildChildPath( IModelObject element) throws CachingException
+  private File buildChildPath( INode element) throws CachingException
   {
     String basePath = Xlate.get( element.getParent(), "path", "");
     return new File( basePath, element.getType());

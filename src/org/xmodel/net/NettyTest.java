@@ -1,6 +1,6 @@
 package org.xmodel.net;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Model;
 import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.xml.XmlIO;
@@ -21,7 +21,7 @@ public class NettyTest
       "  <item id='3'>Item 3</item>" +
       "</list>";
 
-    IModelObject list = new XmlIO().read( xml);
+    INode list = new XmlIO().read( xml);
     context.getModel().writeLock();
       context.set( "list", list);
     context.getModel().writeUnlock();

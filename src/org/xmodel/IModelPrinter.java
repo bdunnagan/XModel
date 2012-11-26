@@ -32,24 +32,24 @@ public interface IModelPrinter
    * @param object The root of the subtree to render.
    * @return Returns a string containing the rendered tree.
    */
-  public String renderTree( IModelObject object);
+  public String renderTree( INode object);
   
   /**
    * Render the specified node.
    * @param object The node to render.
    * @return Returns a string containing the rendered node.
    */
-  public String renderObject( IModelObject object);
+  public String renderObject( INode object);
 
   /**
    * Render the subtree rooted at the specified node to the specified OutputStream.
    * @param object The root of the subtree to render.
    */
-  public void printTree( OutputStream stream, IModelObject object) throws IOException;
+  public void printTree( OutputStream stream, INode object) throws IOException;
 
   /**
    * Render the specified node to the specified OutputStream.
    * @param object The node to render.
    */
-  public void printObject( OutputStream stream, IModelObject object) throws IOException;
+  public void printObject( OutputStream stream, INode object) throws IOException;
 }

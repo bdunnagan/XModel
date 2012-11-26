@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -97,9 +97,9 @@ public class TraceFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
-    List<IModelObject> result = getArgument( 0).evaluateNodes( context);
+    List<INode> result = getArgument( 0).evaluateNodes( context);
     System.out.println( getPrefix( context));
     System.out.println( "  eval: "+context+", "+result.size());
     for( int i=0; i<result.size(); i++) System.out.println( "    ["+i+"] "+result.get( i));
@@ -155,7 +155,7 @@ public class TraceFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     System.out.println( getPrefix( context));
     System.out.println( "  added: "+context+", "+nodes.size());
@@ -168,7 +168,7 @@ public class TraceFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     System.out.println( getPrefix( context));
     System.out.println( "  removed: "+context+", "+nodes.size());
@@ -229,7 +229,7 @@ public class TraceFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     System.out.println( getPrefix( contexts[ 0]));
     System.out.println( "  changed: new="+newValue+", old="+oldValue);

@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
@@ -38,7 +38,7 @@ public class BindResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( Channel channel, int correlation, IModelObject element) throws IOException
+  public void send( Channel channel, int correlation, INode element) throws IOException
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     

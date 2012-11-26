@@ -20,8 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
@@ -41,7 +41,7 @@ public class MoveAction extends GuardedAction
   {
     super.configure( document);
 
-    IModelObject viewRoot = document.getRoot();
+    INode viewRoot = document.getRoot();
     
     factory = Conventions.getFactory( viewRoot);
     
@@ -68,11 +68,11 @@ public class MoveAction extends GuardedAction
     if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
     
     // source
-    List<IModelObject> sources = sourceExpr.query( context, null);
+    List<INode> sources = sourceExpr.query( context, null);
     if ( sources.size() == 0) return null;
     
     // fail if target is null
-    List<IModelObject> targets = targetExpr.query( context, null);
+    List<INode> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) return null; 
     
     // index
@@ -80,10 +80,10 @@ public class MoveAction extends GuardedAction
     if ( indexExpr != null) index = (int)indexExpr.evaluateNumber( context);
 
     // move
-    for( IModelObject target: targets)
+    for( INode target: targets)
     {
       int start = (index < 0)? target.getNumberOfChildren(): index;
-      for( IModelObject source: sources)
+      for( INode source: sources)
       {
         if ( !unique || target.getChild( source.getType(), source.getID()) == null)
           target.addChild( source, start);
@@ -97,7 +97,7 @@ public class MoveAction extends GuardedAction
   private IExpression sourceExpr;
   private IExpression targetExpr;
   private IExpression indexExpr;
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private boolean create;
   private boolean unique;
 }

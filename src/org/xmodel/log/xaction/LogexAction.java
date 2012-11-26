@@ -1,6 +1,6 @@
 package org.xmodel.log.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
@@ -37,7 +37,7 @@ public class LogexAction extends GuardedAction
   {
     if ( log.isLevelEnabled( level))
     {
-      IModelObject exception = exceptionExpr.queryFirst( context);
+      INode exception = exceptionExpr.queryFirst( context);
       log.log( level, XmlIO.write( Style.printable, exception));
     }
     return null;

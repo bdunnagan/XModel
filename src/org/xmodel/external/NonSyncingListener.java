@@ -19,7 +19,7 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelListener;
 
 /**
@@ -32,7 +32,7 @@ public class NonSyncingListener extends ModelListener
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
     if ( newParent == null) uninstall( child);
   }
@@ -41,7 +41,7 @@ public class NonSyncingListener extends ModelListener
    * @see org.xmodel.IModelListener#notifyAddChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     install( child);
   }
@@ -50,7 +50,7 @@ public class NonSyncingListener extends ModelListener
    * @see org.xmodel.IModelListener#notifyRemoveChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     uninstall( child);
   }
@@ -59,12 +59,12 @@ public class NonSyncingListener extends ModelListener
    * Install this listener in the specified element and descendants.
    * @param element The element.
    */
-  public void install( IModelObject element)
+  public void install( INode element)
   {
     NonSyncingIterator iter = new NonSyncingIterator( element);
     while ( iter.hasNext())
     {
-      IModelObject object = (IModelObject)iter.next();
+      INode object = (INode)iter.next();
       object.addModelListener( this);
     }
   }
@@ -73,12 +73,12 @@ public class NonSyncingListener extends ModelListener
    * Remove this listener from the specified element and descendants.
    * @param element The element.
    */
-  public void uninstall( IModelObject element)
+  public void uninstall( INode element)
   {
     NonSyncingIterator iter = new NonSyncingIterator( element);
     while ( iter.hasNext())
     {
-      IModelObject object = (IModelObject)iter.next();
+      INode object = (INode)iter.next();
       object.removeModelListener( this);
     }
   }

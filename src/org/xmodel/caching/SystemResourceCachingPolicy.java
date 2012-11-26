@@ -20,7 +20,7 @@
 package org.xmodel.caching;
 
 import java.net.URL;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
@@ -54,7 +54,7 @@ public class SystemResourceCachingPolicy extends ConfiguredCachingPolicy
     {
       XmlIO xmlIO = new XmlIO();
       xmlIO.setFactory( getFactory());
-      IModelObject object = xmlIO.read( url);
+      INode object = xmlIO.read( url);
       if ( object != null) update( reference, object);
     }
     catch( XmlException e)

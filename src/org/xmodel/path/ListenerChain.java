@@ -29,7 +29,7 @@ import static org.xmodel.IAxis.ROOT;
 import static org.xmodel.IAxis.SELF;
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.IPathListener;
@@ -106,7 +106,7 @@ public class ListenerChain implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChain#install(org.xmodel.IModelObject)
    */
-  public void install( IModelObject object)
+  public void install( INode object)
   {
     if ( installed) return;
     installed = true;
@@ -117,7 +117,7 @@ public class ListenerChain implements IListenerChain
     // install first link
     if ( links.length > 0)
     {
-      List<IModelObject> list = new ArrayList<IModelObject>( 1);
+      List<INode> list = new ArrayList<INode>( 1);
       list.add( object);
       links[ 0].install( list);
     }
@@ -126,7 +126,7 @@ public class ListenerChain implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChain#uninstall(org.xmodel.IModelObject)
    */
-  public void uninstall( IModelObject object)
+  public void uninstall( INode object)
   {
     if ( !installed) return;
     
@@ -136,7 +136,7 @@ public class ListenerChain implements IListenerChain
     // install first link
     if ( links.length > 0)
     {
-      List<IModelObject> list = new ArrayList<IModelObject>( 1);
+      List<INode> list = new ArrayList<INode>( 1);
       list.add( object);
       links[ 0].uninstall( list);
     }

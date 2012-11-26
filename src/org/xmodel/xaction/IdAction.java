@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import java.util.Random;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.util.Identifier;
 import org.xmodel.util.Radix;
@@ -47,7 +47,7 @@ public class IdAction extends GuardedAction
   {
     super.configure( document);
 
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");    
     targetExpr = Xlate.get( config, (IExpression)null);
     length = Xlate.get( config, "length", 10);
@@ -63,7 +63,7 @@ public class IdAction extends GuardedAction
     
     if ( targetExpr != null)
     {
-      for ( IModelObject node: targetExpr.query( context, null))
+      for ( INode node: targetExpr.query( context, null))
       {
         String id = generate( length);
         if ( first == null) first = id;

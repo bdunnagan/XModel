@@ -21,7 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -62,7 +62,7 @@ public interface IContext
    * expressions merely pass the context unchanged to their sub-expressions.
    * @return Returns the context node.
    */
-  public IModelObject getObject();
+  public INode getObject();
   
   /**
    * Returns the proximity position of the context node.  The proximity position of an
@@ -117,7 +117,7 @@ public interface IContext
    * @param value The value of the variable.
    * @return Returns the previous value.
    */
-  public List<IModelObject> set( String name, List<IModelObject> value);
+  public List<INode> set( String name, List<INode> value);
   
   /**
    * Set the specified variable. This method has no effect if the context does not have
@@ -127,7 +127,7 @@ public interface IContext
    * @param value The value of the variable.
    * @return Returns the previous value.
    */
-  public List<IModelObject> set( String name, IModelObject value);
+  public List<INode> set( String name, INode value);
 
   public Object get( String name);
   

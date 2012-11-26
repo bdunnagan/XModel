@@ -21,7 +21,7 @@ package org.xmodel.xsd.check;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 
@@ -30,7 +30,7 @@ import org.xmodel.Xlate;
  */
 public class PatternCheck extends AbstractCheck
 {
-  public PatternCheck( IModelObject schemaLocus)
+  public PatternCheck( INode schemaLocus)
   {
     super( schemaLocus);
     String spec = Xlate.get( schemaLocus, "");
@@ -40,7 +40,7 @@ public class PatternCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     String value = Xlate.get( documentLocus, "");
     Matcher matcher = pattern.matcher( value);

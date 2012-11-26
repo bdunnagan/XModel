@@ -31,7 +31,7 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
    * @param object The object whose child will be removed.
    * @param child The child to be removed.
    */
-  public RemoveChildBoundRecord( IModelObject object, IModelObject child)
+  public RemoveChildBoundRecord( INode object, INode child)
   {
     super( object);
     this.child = child;
@@ -45,7 +45,7 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
    * @param child The child to be removed.
    * @param index The index of the child to be removed.
    */
-  public RemoveChildBoundRecord( IModelObject object, IModelObject child, int index)
+  public RemoveChildBoundRecord( INode object, INode child, int index)
   {
     super( object);
     this.child = child;
@@ -68,7 +68,7 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
    */
   public IChangeRecord createUnboundRecord()
   {
-    IModelObject child = this.child;
+    INode child = this.child;
     if ( child == null) child = getBoundObject().getChild(  index);
     IPath childPath = ModelAlgorithms.createRelativePath( getBoundObject(), child);
     return new RemoveChildRecord( getPath(), childPath);
@@ -77,9 +77,9 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#createUnboundRecord(org.xmodel.IModelObject)
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative)
+  public IChangeRecord createUnboundRecord( INode relative)
   {
-    IModelObject child = this.child;
+    INode child = this.child;
     if ( child == null) child = getBoundObject().getChild(  index);
     IPath childPath = ModelAlgorithms.createRelativePath( getBoundObject(), child);
     return new RemoveChildRecord( getRelativePath( relative), childPath);
@@ -97,7 +97,7 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
    * @see org.xmodel.record.AbstractChangeRecord#getChild()
    */
   @Override
-  public IModelObject getChild()
+  public INode getChild()
   {
     return child;
   }
@@ -123,8 +123,8 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
     else if ( child != null)
     {
       // use index but ensure it is correct
-      IModelObject bound = getBoundObject();
-      IModelObject object = bound.getChild( index);
+      INode bound = getBoundObject();
+      INode object = bound.getChild( index);
       if ( object.equals( child)) bound.removeChild( index); else bound.removeChild( child);
     }
     else
@@ -138,13 +138,13 @@ public class RemoveChildBoundRecord extends AbstractBoundRecord
    */
   public String toString()
   {
-    IModelObject parent = getBoundObject();
+    INode parent = getBoundObject();
     if ( index < 0)
       return "remove: child: "+child+" parent: "+parent;
     else
       return "remove: child: "+child+", index: "+index+" parent: "+parent;
   }
 
-  IModelObject child;
+  INode child;
   int index;
 }

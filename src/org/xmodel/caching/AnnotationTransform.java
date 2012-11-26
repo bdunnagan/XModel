@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.UnionChangeSet;
@@ -54,7 +54,7 @@ public class AnnotationTransform
   {
     loader = getClass().getClassLoader();
     factory = new ModelObjectFactory();
-    cachingPolicies = new HashMap<IModelObject, ICachingPolicy>();
+    cachingPolicies = new HashMap<INode, ICachingPolicy>();
   }
   
   /**
@@ -70,7 +70,7 @@ public class AnnotationTransform
    * Set the factory.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -89,15 +89,15 @@ public class AnnotationTransform
    * @param root The element to be transformed.
    * @return Returns the transform of the specified element.
    */
-  public IModelObject transform( IModelObject root)
+  public INode transform( INode root)
   {
-    IModelObject result = root;
+    INode result = root;
     
     expandAllAnnotations( root);
     
-    for( IModelObject annotated: annotatedExpr.query( root, null))
+    for( INode annotated: annotatedExpr.query( root, null))
     {
-      IModelObject annotation = annotated.getFirstChild( "extern:cache");
+      INode annotation = annotated.getFirstChild( "extern:cache");
       //annotation.removeFromParent();
 
       if ( annotated.isType( "extern:match"))
@@ -107,9 +107,9 @@ public class AnnotationTransform
       }
       else
       {
-        IModelObject transformed = transform( annotated, annotation);
+        INode transformed = transform( annotated, annotation);
   
-        IModelObject parent = annotated.getParent();
+        INode parent = annotated.getParent();
         if ( parent != null)
         {
           int index = parent.getChildren().indexOf( annotated);
@@ -133,7 +133,7 @@ public class AnnotationTransform
    * @param annotation The annotation.
    * @return Returns the transformed element.
    */
-  private IModelObject transform( IModelObject element, IModelObject annotation)
+  private INode transform( INode element, INode annotation)
   {
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( annotation, element.getChildren());
     if ( cachingPolicy == null) throw new IllegalArgumentException( "Caching policy not found.");
@@ -147,11 +147,11 @@ public class AnnotationTransform
     
     if ( !dirty) 
     {
-      for ( IModelObject child: element.getChildren())
+      for ( INode child: element.getChildren())
       {
         if ( child != annotation)
         {
-          IModelObject clone = ModelAlgorithms.cloneTree( child, factory);
+          INode clone = ModelAlgorithms.cloneTree( child, factory);
           reference.addChild( transform( clone));
         }
       }
@@ -164,9 +164,9 @@ public class AnnotationTransform
    * Expand all the annotations in the specified tree.
    * @param root The root.
    */
-  private void expandAllAnnotations( IModelObject root)
+  private void expandAllAnnotations( INode root)
   {
-    for( IModelObject object: extendsExpr.query( root, null))
+    for( INode object: extendsExpr.query( root, null))
       expandAnnotation( object);
   }
   
@@ -174,7 +174,7 @@ public class AnnotationTransform
    * Expand the specified annotation with inherited information if the <i>extends</i> attribute is present.
    * @param annotation The annotation to be expanded.
    */
-  private void expandAnnotation( IModelObject annotation)
+  private void expandAnnotation( INode annotation)
   {
     String extendSpec = Xlate.get( annotation, "extends", (String)null);
     if ( extendSpec == null) return;
@@ -184,7 +184,7 @@ public class AnnotationTransform
     
     // find super annotation
     IExpression extendExpr = XPath.createExpression( extendSpec);
-    IModelObject superAnnotation = extendExpr.queryFirst( context);
+    INode superAnnotation = extendExpr.queryFirst( context);
     superAnnotation = superAnnotation.cloneTree();
     
     // expand annotations in the super annotation
@@ -197,7 +197,7 @@ public class AnnotationTransform
     for( IBoundChangeRecord record: changeSet.getRecords())
     {
       // ignore attribute changes for attributes that already exist
-      IModelObject bound = record.getBoundObject();
+      INode bound = record.getBoundObject();
       if ( record.isType( IChangeRecord.CHANGE_ATTRIBUTE))
       {
         String attrName = record.getAttributeName();
@@ -214,7 +214,7 @@ public class AnnotationTransform
    * @param staticStages The static stages (see ICachingPolicy).
    * @return Returns the ConfiguredCachingPolicy.
    */
-  private ConfiguredCachingPolicy createCachingPolicy( IModelObject annotation, List<IModelObject> staticStages)
+  private ConfiguredCachingPolicy createCachingPolicy( INode annotation, List<INode> staticStages)
   {
     String policyClassName = Xlate.get( annotation, "class", (String)null);
     if ( policyClassName == null) return null;
@@ -229,7 +229,7 @@ public class AnnotationTransform
       cachingPolicy.configure( parent, annotation);
       
       // create dynamic next stages
-      for( IModelObject stage: annotation.getChildren( "extern:match"))
+      for( INode stage: annotation.getChildren( "extern:match"))
       {
         IExpression stagePath = Xlate.get( stage, "path", (IExpression)null);
         boolean dirty = Xlate.get( stage, "dirty", true);
@@ -244,7 +244,7 @@ public class AnnotationTransform
       }
       
       // define static next stages
-      for( IModelObject staticStage: staticStages)
+      for( INode staticStage: staticStages)
         if ( !staticStage.isType( "extern:cache") && !staticStage.isType( "extern:match"))
           cachingPolicy.defineNextStage( staticStage);
       
@@ -260,13 +260,13 @@ public class AnnotationTransform
    * @param annotation The annotation.
    * @param className The optionally partial class name.
    */
-  private ConfiguredCachingPolicy createCachingPolicy( ICache cache, IModelObject annotation, String className)
+  private ConfiguredCachingPolicy createCachingPolicy( ICache cache, INode annotation, String className)
   {
     if ( !className.contains( "."))
     {
       IContext context = new Context( parent, annotation);
-      List<IModelObject> packages = packageExpr.query( context, null);
-      for( IModelObject pkg: packages)
+      List<INode> packages = packageExpr.query( context, null);
+      for( INode pkg: packages)
       {
         String packageName = Xlate.get( pkg, "");
         ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( cache, packageName, className);
@@ -340,6 +340,6 @@ public class AnnotationTransform
   
   private ClassLoader loader;
   private IContext parent;
-  private IModelObjectFactory factory;
-  private Map<IModelObject, ICachingPolicy> cachingPolicies;
+  private INodeFactory factory;
+  private Map<INode, ICachingPolicy> cachingPolicies;
 }

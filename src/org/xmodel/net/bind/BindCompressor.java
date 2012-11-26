@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.IExternalReference;
@@ -39,7 +39,7 @@ public class BindCompressor extends TabularCompressor
 {
   public final static class BindResult
   {
-    public IModelObject element;
+    public INode element;
     public int netID;
   }
   
@@ -48,8 +48,8 @@ public class BindCompressor extends TabularCompressor
     super( progressive);
     
     this.protocol = protocol;
-    this.localMap = new ConcurrentHashMap<Integer, IModelObject>();
-    this.remoteMap = new ConcurrentHashMap<Integer, IModelObject>();
+    this.localMap = new ConcurrentHashMap<Integer, INode>();
+    this.remoteMap = new ConcurrentHashMap<Integer, INode>();
   }
   
   /**
@@ -88,7 +88,7 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findLocal( int netID)
+  public INode findLocal( int netID)
   {
     return localMap.get( netID);
   }
@@ -98,7 +98,7 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @return Returns null or the element.
    */
-  public IModelObject findRemote( int netID)
+  public INode findRemote( int netID)
   {
     return remoteMap.get( netID);
   }
@@ -108,7 +108,7 @@ public class BindCompressor extends TabularCompressor
    * @param netID The network identifier.
    * @param element The imposter element.
    */
-  public void setRemoteImposter( int netID, IModelObject element)
+  public void setRemoteImposter( int netID, INode element)
   {
     remoteMap.put( netID, element);
   }
@@ -118,7 +118,7 @@ public class BindCompressor extends TabularCompressor
    * @param element An element that was previously sent downstream.
    * @return Returns the local network identifier.
    */
-  public int getLocalNetID( IModelObject element)
+  public int getLocalNetID( INode element)
   {
     return System.identityHashCode( element);
   }
@@ -128,7 +128,7 @@ public class BindCompressor extends TabularCompressor
    * @param element An element that was previously received from upstream.
    * @return Returns the remote network identifier.
    */
-  public int getRemoteNetID( IModelObject element)
+  public int getRemoteNetID( INode element)
   {
     if ( !(element instanceof IExternalReference)) return 0;
     
@@ -183,7 +183,7 @@ public class BindCompressor extends TabularCompressor
    * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( ChannelBuffer stream, IExternalReference binding) throws IOException, CompressorException
+  protected INode readElement( ChannelBuffer stream, IExternalReference binding) throws IOException, CompressorException
   {
     // read network id
     int netID = stream.readInt();
@@ -195,7 +195,7 @@ public class BindCompressor extends TabularCompressor
     byte flags = stream.readByte();
     
     // create element
-    IModelObject element;
+    INode element;
     if ( binding != null)
     {
       element = binding;
@@ -243,7 +243,7 @@ public class BindCompressor extends TabularCompressor
    * @return Returns the new element.
    */
   @Override
-  protected IModelObject readElement( ChannelBuffer stream) throws IOException, CompressorException
+  protected INode readElement( ChannelBuffer stream) throws IOException, CompressorException
   {
     return readElement( stream, null);
   }
@@ -254,7 +254,7 @@ public class BindCompressor extends TabularCompressor
    * @param element The element.
    */
   @Override
-  protected void writeElement( ChannelBuffer stream, IModelObject element) throws IOException, CompressorException
+  protected void writeElement( ChannelBuffer stream, INode element) throws IOException, CompressorException
   {
     IExternalReference reference = (element instanceof IExternalReference)? (IExternalReference)element: null;
     
@@ -295,8 +295,8 @@ public class BindCompressor extends TabularCompressor
   private final static Log log = Log.getLog( BindCompressor.class);
   
   private BindProtocol protocol;
-  private Map<Integer, IModelObject> localMap;
-  private Map<Integer, IModelObject> remoteMap;
+  private Map<Integer, INode> localMap;
+  private Map<Integer, INode> remoteMap;
   private Channel channel;
   private int timeout;
 }

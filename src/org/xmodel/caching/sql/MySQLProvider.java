@@ -21,7 +21,7 @@ package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 
@@ -38,7 +38,7 @@ public class MySQLProvider implements ISQLProvider
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.SQLCachingPolicy.SQLManager#configure(org.xmodel.IModelObject)
    */
-  public void configure( IModelObject annotation) throws CachingException
+  public void configure( INode annotation) throws CachingException
   {
     String host = Xlate.childGet( annotation, "host", "localhost");
     url = String.format( "jdbc:mysql://%s/", host);  

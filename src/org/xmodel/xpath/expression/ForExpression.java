@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Set;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.VariableMemento;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -74,7 +74,7 @@ public class ForExpression extends Expression
    * org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertType( context, 0, ResultType.NODES);
 
@@ -85,9 +85,9 @@ public class ForExpression extends Expression
     try
     {
       source.addScope( forScope);
-      List<IModelObject> nodes = arg0.evaluateNodes( context);
-      List<IModelObject> result = new ArrayList<IModelObject>();
-      for( IModelObject node: nodes)
+      List<INode> nodes = arg0.evaluateNodes( context);
+      List<INode> result = new ArrayList<INode>();
+      for( INode node: nodes)
       {
         forScope.set( variable, node);
         assertType( context, 1, ResultType.NODES);
@@ -106,11 +106,11 @@ public class ForExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     for( int i=0; i<nodes.size(); i++)
     {
       ReturnContext returnContext = new ReturnContext( context, variable, nodes.get( i));
@@ -134,8 +134,8 @@ public class ForExpression extends Expression
     // bind return expression
     try
     {
-      List<IModelObject> nodes = arg0.evaluateNodes( context);
-      for( IModelObject node: nodes)
+      List<INode> nodes = arg0.evaluateNodes( context);
+      for( INode node: nodes)
       {
         ReturnContext returnContext = new ReturnContext( context, variable, node);
         arg1.bind( returnContext);
@@ -163,8 +163,8 @@ public class ForExpression extends Expression
     // unbind return expression
     try
     {
-      List<IModelObject> nodes = arg0.evaluateNodes( context);
-      for( IModelObject node: nodes)
+      List<INode> nodes = arg0.evaluateNodes( context);
+      for( INode node: nodes)
       {
         ReturnContext returnContext = new ReturnContext( context, variable, node);
         arg1.unbind( returnContext);
@@ -182,19 +182,19 @@ public class ForExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
-      for( IModelObject node: nodes)
+      for( INode node: nodes)
       {
         ReturnContext returnContext = new ReturnContext( context, variable, node);
         try
         {
           arg1.bind( returnContext);
-          List<IModelObject> result = arg1.evaluateNodes( returnContext);
+          List<INode> result = arg1.evaluateNodes( returnContext);
           if ( result.size() > 0) parent.notifyAdd( this, context, result);
         }
         catch( ExpressionException e)
@@ -219,21 +219,21 @@ public class ForExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
       IModel model = context.getModel();
-      for( IModelObject node: nodes)
+      for( INode node: nodes)
       {
         model.revert();
         ReturnContext returnContext = new ReturnContext( context, variable, node);
         try
         {
           arg1.unbind( returnContext);
-          List<IModelObject> result = arg1.evaluateNodes( returnContext);
+          List<INode> result = arg1.evaluateNodes( returnContext);
           model.restore();
           if ( parent != null && result.size() > 0) parent.notifyRemove( this, context, result);
         }
@@ -264,16 +264,16 @@ public class ForExpression extends Expression
     IExpression arg1 = getArgument( 1);
     
     context.getModel().revert();
-    Collection<IModelObject> oldNodes = arg0.evaluateNodes( context, null);
-    if ( oldNodes.size() > 5) oldNodes = new HashSet<IModelObject>( oldNodes);
+    Collection<INode> oldNodes = arg0.evaluateNodes( context, null);
+    if ( oldNodes.size() > 5) oldNodes = new HashSet<INode>( oldNodes);
     
     context.getModel().restore();
-    Collection<IModelObject> newNodes = arg0.evaluateNodes( context, null);
-    if ( newNodes.size() > 5) newNodes = new HashSet<IModelObject>( newNodes);
+    Collection<INode> newNodes = arg0.evaluateNodes( context, null);
+    if ( newNodes.size() > 5) newNodes = new HashSet<INode>( newNodes);
 
     // unbind removed nodes
     context.getModel().revert();
-    for( IModelObject node: oldNodes)
+    for( INode node: oldNodes)
       if ( !newNodes.contains( node))
       {
         ReturnContext returnContext = new ReturnContext( context, variable, node);
@@ -282,7 +282,7 @@ public class ForExpression extends Expression
     
     // bind added nodes
     context.getModel().restore();
-    for( IModelObject node: newNodes)
+    for( INode node: newNodes)
       if ( !oldNodes.contains( node))
       {
         ReturnContext returnContext = new ReturnContext( context, variable, node);
@@ -303,7 +303,7 @@ public class ForExpression extends Expression
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     if ( expression == getArgument( 0))
     {
@@ -379,7 +379,7 @@ class ReturnContext extends Context
    * @param name The name of the iterator variable.
    * @param node The iteration node.
    */
-  public ReturnContext( IContext context, String name, IModelObject node)
+  public ReturnContext( IContext context, String name, INode node)
   {
     super( new ReturnScope( context.getScope(), name, node), context.getObject(), context.getPosition(), context.getSize());
     parent = context;
@@ -454,7 +454,7 @@ class ReturnScope implements IVariableScope
    * @param name The name of the variable.
    * @param node The value of the variable.
    */
-  ReturnScope( IVariableScope parent, String name, IModelObject node)
+  ReturnScope( IVariableScope parent, String name, INode node)
   {
     this.parent = parent;
     this.name = name;
@@ -497,7 +497,7 @@ class ReturnScope implements IVariableScope
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, org.xmodel.IModelObject)
    */
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     throw new UnsupportedOperationException();
   }
@@ -505,7 +505,7 @@ class ReturnScope implements IVariableScope
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#set(java.lang.String, java.util.List)
    */
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     throw new UnsupportedOperationException();
   }
@@ -574,7 +574,7 @@ class ReturnScope implements IVariableScope
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#setPojo(java.lang.String, java.lang.Object, org.xmodel.IModelObjectFactory)
    */
-  public Object setPojo( String name, Object pojo, IModelObjectFactory factory)
+  public Object setPojo( String name, Object pojo, INodeFactory factory)
   {
     throw new UnsupportedOperationException();
   }

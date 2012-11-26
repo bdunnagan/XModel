@@ -21,7 +21,7 @@ package org.xmodel.external;
 
 import org.xmodel.Element;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IExternalReference which extends Element and does not provide listener semantics.
@@ -138,7 +138,7 @@ public class ExternalElement extends Element implements IExternalReference
    * @see org.xmodel.Element#createObject(java.lang.String)
    */
   @Override
-  public IModelObject createObject( String type)
+  public INode createObject( String type)
   {
     return new ExternalElement( type);
   }

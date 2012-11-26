@@ -19,7 +19,7 @@
  */
 package org.xmodel.external;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for the root of a subtree which is backed by an external storage location.
@@ -28,7 +28,7 @@ import org.xmodel.IModelObject;
  * ICachingPolicy, manages the amount of data cached in memory. IExternalReferences are initially
  * dirty when constructed.
  */
-public interface IExternalReference extends IModelObject
+public interface IExternalReference extends INode
 {
   /**
    * Set the ICachingPolicy for this IExternalReference.

@@ -56,11 +56,11 @@ public class PredicateExpression extends Expression implements IPredicate
    * @see org.xmodel.IPredicate#evaluate(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IPath, org.xmodel.IModelObject)
    */
-  public boolean evaluate( IContext parent, IPath candidatePath, IModelObject candidate)
+  public boolean evaluate( IContext parent, IPath candidatePath, INode candidate)
   {
     if ( requiresOrdinalContext())
     {
-      List<IModelObject> nodes = candidatePath.query( parent, null);
+      List<INode> nodes = candidatePath.query( parent, null);
       // FIXME: if nodes contains object more than once then index may be wrong
       int index = nodes.indexOf( candidate);
       return evaluateBoolean( new SubContext( parent, candidate, index+1, nodes.size()), false);
@@ -140,7 +140,7 @@ public class PredicateExpression extends Expression implements IPredicate
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     for( IExpression argument: getArguments())
       argument.createSubtree( context, factory, undo);
@@ -188,12 +188,12 @@ public class PredicateExpression extends Expression implements IPredicate
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     try
     {
       context.getModel().revert();
-      List<IModelObject> oldNodes = expression.evaluateNodes( context);
+      List<INode> oldNodes = expression.evaluateNodes( context);
       context.getModel().restore();
       if ( oldNodes.size() == 0) notifyChange( expression, context, true);
     }
@@ -209,11 +209,11 @@ public class PredicateExpression extends Expression implements IPredicate
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     try
     {
-      List<IModelObject> newNodes = expression.evaluateNodes( context);
+      List<INode> newNodes = expression.evaluateNodes( context);
       if ( newNodes.size() == 0) notifyChange( expression, context, false);
     }
     catch( ExpressionException e)
@@ -283,11 +283,11 @@ public class PredicateExpression extends Expression implements IPredicate
         {
           // revert and reevaluate
           model.revert();
-          Collection<IModelObject> oldNodes = expression.evaluateNodes( context);
+          Collection<INode> oldNodes = expression.evaluateNodes( context);
   
           // restore and reevaluate
           model.restore();
-          Collection<IModelObject> newNodes = expression.evaluateNodes( context);
+          Collection<INode> newNodes = expression.evaluateNodes( context);
 
           if ( oldNodes.size() == 0 && newNodes.size() > 0) notifyChange( this, context, true);
           if ( oldNodes.size() > 0 && newNodes.size() == 0) notifyChange( this, context, false);

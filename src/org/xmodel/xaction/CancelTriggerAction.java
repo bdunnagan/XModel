@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.trigger.ITrigger;
 import org.xmodel.xpath.expression.IContext;
@@ -48,7 +48,7 @@ public class CancelTriggerAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    for( IModelObject holder: instanceExpr.query( context, null))
+    for( INode holder: instanceExpr.query( context, null))
     {
       ITrigger trigger = (ITrigger)holder.getValue();
       if ( trigger != null) 

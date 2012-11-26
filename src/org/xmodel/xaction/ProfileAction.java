@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -37,7 +37,7 @@ public class ProfileAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = getDocument().getRoot();
+    INode config = getDocument().getRoot();
     var = Conventions.getVarName( config, true, "assign");    
     
     // reuse ScriptAction to handle for script (must temporarily remove condition if present)

@@ -20,8 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -55,7 +55,7 @@ public class SetAction extends GuardedAction
    */
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> targets = targetExpr.query( context, null);
+    List<INode> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
 
     // handle java.lang.Object transfer correctly
@@ -67,7 +67,7 @@ public class SetAction extends GuardedAction
       {
         case NODES:
         {
-          IModelObject node = sourceExpr.queryFirst( context);
+          INode node = sourceExpr.queryFirst( context);
           if ( node != null) value = node.getValue();
           break;
         }
@@ -79,12 +79,12 @@ public class SetAction extends GuardedAction
     }
     
     targets = targetExpr.query( context, null);
-    for( IModelObject target: targets) target.setValue( value);
+    for( INode target: targets) target.setValue( value);
     
     return null;
   }
   
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private IExpression sourceExpr;
   private IExpression targetExpr;
 }

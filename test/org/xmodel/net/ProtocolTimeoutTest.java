@@ -5,7 +5,7 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.xaction.IXAction;
@@ -74,7 +74,7 @@ public class ProtocolTimeoutTest
       
       try
       {
-        IModelObject script = new XmlIO().read( "<script><sleep>3000</sleep></script>");
+        INode script = new XmlIO().read( "<script><sleep>3000</sleep></script>");
         session.execute( new StatefulContext(), new String[ 0], script, 500);
       }
       catch( IOException e)
@@ -109,7 +109,7 @@ public class ProtocolTimeoutTest
     for( int i=0; i<3; i++)
     {
       StatefulContext context = new StatefulContext();
-      IModelObject script = new XmlIO().read( "<script><return>'June 23, 1912'</return></script>");
+      INode script = new XmlIO().read( "<script><return>'June 23, 1912'</return></script>");
 
       Callback callback = new Callback( onComplete, onSuccess, onError);
       session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
@@ -145,7 +145,7 @@ public class ProtocolTimeoutTest
     for( int i=0; i<3; i++)
     {
       StatefulContext context = new StatefulContext();
-      IModelObject script = new XmlIO().read( "<script><throw>'June 23, 1912'</throw></script>");
+      INode script = new XmlIO().read( "<script><throw>'June 23, 1912'</throw></script>");
       
       Callback callback = new Callback( onComplete, onSuccess, onError);
       session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
@@ -183,7 +183,7 @@ public class ProtocolTimeoutTest
     for( int i=0; i<3; i++)
     {
       StatefulContext context = new StatefulContext();
-      IModelObject script = new XmlIO().read( "<script><sleep>200</sleep><return>'June 23, 1912'</return></script>");
+      INode script = new XmlIO().read( "<script><sleep>200</sleep><return>'June 23, 1912'</return></script>");
       
       Callback callback = new Callback( onComplete, onSuccess, onError);
       session.execute( context, new String[ 0], script, callback, 1);

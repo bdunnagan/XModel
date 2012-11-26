@@ -7,7 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
@@ -44,7 +44,7 @@ public class GCTest
     script.run( clientContext);
     
 
-    IModelObject serverRoot = new ModelObject( "server");
+    INode serverRoot = new ModelObject( "server");
     serverRoot.getCreateChild( "child");
     
     server = new XioServer( "localhost", 33333);
@@ -85,7 +85,7 @@ public class GCTest
     ref.getChildren();
 
     // remove reference from context
-    clientContext.set( "ref", Collections.<IModelObject>emptyList());
+    clientContext.set( "ref", Collections.<INode>emptyList());
  
     // forcefully disconnect caching policy
     NetworkCachingPolicy cp = (NetworkCachingPolicy)ref.getCachingPolicy();

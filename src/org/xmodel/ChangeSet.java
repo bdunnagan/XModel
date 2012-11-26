@@ -53,7 +53,7 @@ public class ChangeSet implements IChangeSet
   /* (non-Javadoc)
    * @see org.xmodel.IChangeSet#applyChanges(org.xmodel.IModelObject)
    */
-  public void applyChanges( IModelObject object)
+  public void applyChanges( INode object)
   {
     List<IChangeRecord> records = getUnboundRecords();
     for( IChangeRecord record: records) record.applyChange( object);
@@ -71,7 +71,7 @@ public class ChangeSet implements IChangeSet
    * @see org.xmodel.IChangeSet#setAttribute(org.xmodel.IModelObject, 
    * java.lang.String, java.lang.Object)
    */
-  public void setAttribute( IModelObject object, String attrName, Object attrValue)
+  public void setAttribute( INode object, String attrName, Object attrValue)
   {
     if ( !regardNullText && attrName.length() == 0)
     {
@@ -97,7 +97,7 @@ public class ChangeSet implements IChangeSet
   /* (non-Javadoc)
    * @see org.xmodel.IChangeSet#removeAttribute(org.xmodel.IModelObject, java.lang.String)
    */
-  public void removeAttribute( IModelObject object, String attrName)
+  public void removeAttribute( INode object, String attrName)
   {
     // need to perform this test here because removeAttribute doesn't have oldValue
     if ( !regardNullText && attrName.length() == 0)
@@ -114,7 +114,7 @@ public class ChangeSet implements IChangeSet
    * @see org.xmodel.IChangeSet#addChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject)
    */
-  public void addChild( IModelObject object, IModelObject child)
+  public void addChild( INode object, INode child)
   {
     IBoundChangeRecord record = new AddChildBoundRecord( object, child);
     addRecord( record);
@@ -124,7 +124,7 @@ public class ChangeSet implements IChangeSet
    * @see org.xmodel.IChangeSet#addChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void addChild( IModelObject object, IModelObject child, int index)
+  public void addChild( INode object, INode child, int index)
   {
     IBoundChangeRecord record = new AddChildBoundRecord( object, child, index);
     addRecord( record);
@@ -134,7 +134,7 @@ public class ChangeSet implements IChangeSet
    * @see org.xmodel.IChangeSet#removeChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject)
    */
-  public void removeChild( IModelObject object, IModelObject child)
+  public void removeChild( INode object, INode child)
   {
     IBoundChangeRecord record = new RemoveChildBoundRecord( object, child);
     addRecord( record);
@@ -144,7 +144,7 @@ public class ChangeSet implements IChangeSet
    * @see org.xmodel.IChangeSet#removeChild(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, int)
    */
-  public void removeChild( IModelObject object, IModelObject child, int index)
+  public void removeChild( INode object, INode child, int index)
   {
     IBoundChangeRecord record = new RemoveChildBoundRecord( object, child, index);
     addRecord( record);

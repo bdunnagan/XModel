@@ -60,7 +60,7 @@ public class PathExpression extends Expression implements IPathListener
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     return path.query( context, null);
   }
@@ -78,7 +78,7 @@ public class PathExpression extends Expression implements IPathListener
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     ModelAlgorithms.createPathSubtree( context, path, factory, undo);
   }
@@ -125,7 +125,7 @@ public class PathExpression extends Expression implements IPathListener
    * @see org.xmodel.IPathListener#notifyAdd(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IPath, int, java.util.List)
    */
-  public void notifyAdd( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+  public void notifyAdd( IContext context, IPath path, int pathIndex, List<INode> nodes)
   {
     if ( pathIndex < path.length() || parent == null) return;
     if ( !binding) parent.notifyAdd( this, context, nodes);
@@ -134,7 +134,7 @@ public class PathExpression extends Expression implements IPathListener
     if ( parent.requiresValueNotification( this))
     {
       LeafValueListener listener = new LeafValueListener( this, context);
-      for( IModelObject node: nodes) node.addModelListener( listener);
+      for( INode node: nodes) node.addModelListener( listener);
     }
   }
 
@@ -142,7 +142,7 @@ public class PathExpression extends Expression implements IPathListener
    * @see org.xmodel.IPathListener#notifyRemove(org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IPath, int, java.util.List)
    */
-  public void notifyRemove( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+  public void notifyRemove( IContext context, IPath path, int pathIndex, List<INode> nodes)
   {
     if ( pathIndex < path.length() || parent == null) return;
     if ( !binding) parent.notifyRemove( this, context, nodes);
@@ -150,7 +150,7 @@ public class PathExpression extends Expression implements IPathListener
     // uninstall value listener if required
     if ( parent.requiresValueNotification( this))
     {
-      for( IModelObject node: nodes) 
+      for( INode node: nodes) 
       {
         LeafValueListener listener = LeafValueListener.findListener( node, this, context);
         if ( listener != null) 

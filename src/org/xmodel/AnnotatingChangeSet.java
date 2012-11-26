@@ -40,7 +40,7 @@ public class AnnotatingChangeSet extends ChangeSet
    * Set the factory used to create the annotation elements.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -53,13 +53,13 @@ public class AnnotatingChangeSet extends ChangeSet
   {
     for( IBoundChangeRecord record: getRecords())
     {
-      IModelObject bound = record.getBoundObject();
+      INode bound = record.getBoundObject();
       switch( record.getType())
       {
         case IChangeRecord.ADD_CHILD:
         {
-          IModelObject child = record.getChild();
-          IModelObject annotation = factory.createObject( null, "diff:insert");
+          INode child = record.getChild();
+          INode annotation = factory.createObject( null, "diff:insert");
           child.addChild( annotation, 0);
           record.applyChange();
           break;
@@ -67,8 +67,8 @@ public class AnnotatingChangeSet extends ChangeSet
         
         case IChangeRecord.REMOVE_CHILD:
         {
-          IModelObject child = record.getChild();
-          IModelObject annotation = factory.createObject( null, "diff:delete");
+          INode child = record.getChild();
+          INode annotation = factory.createObject( null, "diff:delete");
           child.addChild( annotation, 0);
           break;
         }
@@ -76,7 +76,7 @@ public class AnnotatingChangeSet extends ChangeSet
         case IChangeRecord.CHANGE_ATTRIBUTE:
         {
           String attrName = record.getAttributeName();
-          IModelObject annotation = factory.createObject( null, "diff:change");
+          INode annotation = factory.createObject( null, "diff:change");
           annotation.setAttribute( "attribute", attrName);
           annotation.setAttribute( "from", bound.getAttribute( attrName));
           bound.addChild( annotation, 0);
@@ -87,7 +87,7 @@ public class AnnotatingChangeSet extends ChangeSet
         case IChangeRecord.CLEAR_ATTRIBUTE:
         {
           String attrName = record.getAttributeName();
-          IModelObject annotation = factory.createObject( null, "diff:clear");
+          INode annotation = factory.createObject( null, "diff:clear");
           annotation.setAttribute( "attribute", attrName);
           annotation.setAttribute( "from", bound.getAttribute( attrName));
           bound.addChild( annotation, 0);
@@ -98,7 +98,7 @@ public class AnnotatingChangeSet extends ChangeSet
     }
   }
   
-  private IModelObjectFactory factory = new ModelObjectFactory();
+  private INodeFactory factory = new ModelObjectFactory();
   
   public static void main( String[] args) throws Exception
   {
@@ -118,8 +118,8 @@ public class AnnotatingChangeSet extends ChangeSet
       "  <b id='A4'>T4</b>" +
       "</a>";
     
-    IModelObject r1 = xmlIO.read( xml1);
-    IModelObject r2 = xmlIO.read( xml2);
+    INode r1 = xmlIO.read( xml1);
+    INode r2 = xmlIO.read( xml2);
     
     XmlDiffer differ = new XmlDiffer();
     AnnotatingChangeSet changeSet = new AnnotatingChangeSet();

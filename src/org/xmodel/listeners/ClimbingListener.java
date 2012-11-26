@@ -20,7 +20,7 @@
 package org.xmodel.listeners;
 
 import org.xmodel.IAncestorListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelListener;
 
 /**
@@ -42,7 +42,7 @@ public class ClimbingListener extends ModelListener
   /* (non-Javadoc)
    * @see org.xmodel.ITreeListener#addListenerToTree(org.xmodel.IModelObject)
    */
-  public void addListenerToTree( IModelObject object)
+  public void addListenerToTree( INode object)
   {
     this.object = object;
     while( object != null)
@@ -56,7 +56,7 @@ public class ClimbingListener extends ModelListener
   /* (non-Javadoc)
    * @see org.xmodel.ITreeListener#removeListenerFromTree(org.xmodel.IModelObject)
    */
-  public void removeListenerFromTree( IModelObject object)
+  public void removeListenerFromTree( INode object)
   {
     while( object != null)
     {
@@ -69,7 +69,7 @@ public class ClimbingListener extends ModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
     // handle notification
     if ( newParent == null)
@@ -100,20 +100,20 @@ public class ClimbingListener extends ModelListener
       return false;
   }
   
-  private final void parentAdded( IModelObject ancestor, IModelObject newParent)
+  private final void parentAdded( INode ancestor, INode newParent)
   {
     addListenerToTree( newParent);
     listener.notifyAttach( object, ancestor, newParent, null);
   }
 
-  private final void parentChanged( IModelObject ancestor, IModelObject newParent, IModelObject oldParent)
+  private final void parentChanged( INode ancestor, INode newParent, INode oldParent)
   {
     removeListenerFromTree( oldParent);
     addListenerToTree( newParent);
     listener.notifyAttach( object, ancestor, newParent, oldParent);
   }
   
-  private final void parentRemoved( IModelObject ancestor, IModelObject oldParent)
+  private final void parentRemoved( INode ancestor, INode oldParent)
   {
     removeListenerFromTree( oldParent);
     listener.notifyDetach( object, ancestor, oldParent);
@@ -127,6 +127,6 @@ public class ClimbingListener extends ModelListener
     return "ClimbingListener( object="+object+")";
   }
 
-  IModelObject object;
+  INode object;
   IAncestorListener listener;
 }

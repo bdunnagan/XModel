@@ -20,7 +20,7 @@
 package org.xmodel.diff;
 
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An interface for xml differencing algorithms. The methods are defined in terms of a left-hand-side 
@@ -57,7 +57,7 @@ public interface IXmlDiffer
    * @param changeSet The change set where the change records will be added.
    * @return Returns true if the objects are identical.
    */
-  public boolean diff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public boolean diff( INode lhs, INode rhs, IChangeSet changeSet);
 
   /**
    * Perform a diff and immediately apply the change records. When this method returns, the
@@ -67,7 +67,7 @@ public interface IXmlDiffer
    * @param rhs The right-hand-side tree.
    * @return Returns true if the objects are identical.
    */
-  public boolean diffAndApply( IModelObject lhs, IModelObject rhs);
+  public boolean diffAndApply( INode lhs, INode rhs);
   
   /**
    * Diff just the attributes of the lhs and rhs objects. If the change set is null the 
@@ -77,7 +77,7 @@ public interface IXmlDiffer
    * @param changeSet The change set where change records will be created.
    * @return Returns true if the objects have identical attributes.
    */
-  public boolean diffAttributes( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public boolean diffAttributes( INode lhs, INode rhs, IChangeSet changeSet);
   
   /**
    * Diff just the children of the lhs and rhs objects.  If the change set is null the 
@@ -87,5 +87,5 @@ public interface IXmlDiffer
    * @param changeSet The change set where change records will be created.
    * @return Returns true if the objects have identical attributes.
    */
-  public boolean diffChildren( IModelObject lhs, IModelObject rhs, IChangeSet changeSet);
+  public boolean diffChildren( INode lhs, INode rhs, IChangeSet changeSet);
 }

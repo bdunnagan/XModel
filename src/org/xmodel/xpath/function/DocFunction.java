@@ -24,7 +24,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.xml.IXmlIO;
 import org.xmodel.xml.XmlIO;
@@ -65,7 +65,7 @@ public class DocFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
 
@@ -73,7 +73,7 @@ public class DocFunction extends Function
     {
       String spec = getArgument( 0).evaluateString( context);
       URI uri = new URI( spec);
-      List<IModelObject> result = query( uri);
+      List<INode> result = query( uri);
       if ( result != null) return result;
       return Collections.emptyList();
     }
@@ -92,11 +92,11 @@ public class DocFunction extends Function
    * @param uri The URI.
    * @return Returns the documents.
    */
-  private List<IModelObject> query( URI uri) throws ExpressionException
+  private List<INode> query( URI uri) throws ExpressionException
   {
     try
     {
-      IModelObject element = xmlIO.read( uri.toURL().openStream());
+      INode element = xmlIO.read( uri.toURL().openStream());
       return Collections.singletonList( element);
     }
     catch( MalformedURLException e)

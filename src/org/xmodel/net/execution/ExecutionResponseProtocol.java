@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.IXioCallback;
@@ -24,7 +24,7 @@ public class ExecutionResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<INode>>();
     this.tasks = new ConcurrentHashMap<Integer, ResponseTask>();
   }
 
@@ -49,7 +49,7 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
-    IModelObject response = ExecutionSerializer.buildResponse( context, results);
+    INode response = ExecutionSerializer.buildResponse( context, results);
     ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
@@ -69,7 +69,7 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
-    IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
+    INode response = ExecutionSerializer.buildResponse( context, throwable);
     ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
@@ -87,9 +87,9 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.requestCompressor.decompress( buffer);
+    INode response = bundle.requestCompressor.decompress( buffer);
     
-    SynchronousQueue<IModelObject> queue = queues.remove( correlation);
+    SynchronousQueue<INode> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( response);
     
     ResponseTask task = tasks.remove( correlation);
@@ -107,7 +107,7 @@ public class ExecutionResponseProtocol
   protected int nextCorrelation()
   {
     int correlation = counter.getAndIncrement();
-    queues.put( correlation, new SynchronousQueue<IModelObject>());
+    queues.put( correlation, new SynchronousQueue<INode>());
     return correlation;
   }
   
@@ -133,8 +133,8 @@ public class ExecutionResponseProtocol
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( correlation);
-      IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      SynchronousQueue<INode> queue = queues.get( correlation);
+      INode response = queue.poll( timeout, TimeUnit.MILLISECONDS);
       
       Throwable throwable = ExecutionSerializer.readResponseException( response);
       if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
@@ -186,7 +186,7 @@ public class ExecutionResponseProtocol
      * Set the response element. 
      * @param response The response element.
      */
-    public void setResponse( IModelObject response)
+    public void setResponse( INode response)
     {
       this.response = response;
     }
@@ -222,7 +222,7 @@ public class ExecutionResponseProtocol
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;
-    private IModelObject response;
+    private INode response;
     private String error;
   }
   
@@ -230,6 +230,6 @@ public class ExecutionResponseProtocol
 
   private ExecutionProtocol bundle;
   private AtomicInteger counter;
-  private Map<Integer, SynchronousQueue<IModelObject>> queues;
+  private Map<Integer, SynchronousQueue<INode>> queues;
   private Map<Integer, ResponseTask> tasks;
 }

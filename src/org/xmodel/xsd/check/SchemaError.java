@@ -19,7 +19,7 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.AttributeNode;
 
 /**
@@ -40,7 +40,7 @@ public class SchemaError
    * Create a schema error of the specified type.
    * @param type The type of schema error.
    */
-  public SchemaError( Type type, IModelObject schemaLocus, IModelObject documentLocus)
+  public SchemaError( Type type, INode schemaLocus, INode documentLocus)
   {
     this.type = type;
     this.schemaLocus = schemaLocus;
@@ -78,7 +78,7 @@ public class SchemaError
    * Returns the schema locus where the error occurred.
    * @return Returns the schema locus where the error occurred.
    */
-  public IModelObject getSchemaLocus()
+  public INode getSchemaLocus()
   {
     return schemaLocus;
   }
@@ -87,7 +87,7 @@ public class SchemaError
    * Returns the document locus where the error occurred.
    * @return Returns the document locus where the error occurred.
    */
-  public IModelObject getDocumentLocus()
+  public INode getDocumentLocus()
   {
     return documentLocus;
   }
@@ -121,6 +121,6 @@ public class SchemaError
   }
   
   private Type type;
-  private IModelObject schemaLocus;
-  private IModelObject documentLocus;
+  private INode schemaLocus;
+  private INode documentLocus;
 }

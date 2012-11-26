@@ -21,7 +21,7 @@ package org.xmodel.external;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 
@@ -49,7 +49,7 @@ public class AccessOrderCache implements ICache
   /* (non-Javadoc)
    * @see org.xmodel.external.ICache#configure(org.xmodel.IModelObject)
    */
-  public void configure( IModelObject annotation)
+  public void configure( INode annotation)
   {
     capacity = Xlate.get( annotation, "capacity", 0);
   }
@@ -60,7 +60,7 @@ public class AccessOrderCache implements ICache
   public void add( IExternalReference reference)
   {
     // lock all the ancestors of the reference
-    IModelObject parent = reference.getParent();
+    INode parent = reference.getParent();
     while( parent != null) 
       if ( parent instanceof IExternalReference)
         memoryLock( (IExternalReference)parent);
@@ -81,7 +81,7 @@ public class AccessOrderCache implements ICache
     if ( references.remove( reference))
     {
       // unlock the first ancestor
-      IModelObject parent = reference.getParent();
+      INode parent = reference.getParent();
       while( parent != null)
       {
         if ( parent instanceof IExternalReference)

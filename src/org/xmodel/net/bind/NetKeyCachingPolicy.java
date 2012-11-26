@@ -1,7 +1,7 @@
 package org.xmodel.net.bind;
 
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.diff.DefaultXmlMatcher;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
@@ -48,7 +48,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   {
     try
     {
-      IModelObject element = protocol.syncRequestProtocol.send( channel, netID, timeout);
+      INode element = protocol.syncRequestProtocol.send( channel, netID, timeout);
       if ( element == null) 
       {
         throw new CachingException( String.format( 

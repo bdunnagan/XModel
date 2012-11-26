@@ -24,7 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.zip.Deflater;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
@@ -65,7 +65,7 @@ public class FileSaveAction extends GuardedAction
     File file = new File( fileExpr.evaluateString( context));
     if ( !overwrite && file.exists()) throw new IllegalArgumentException( "File already exists: "+this);
     
-    IModelObject element = sourceExpr.queryFirst( context);
+    INode element = sourceExpr.queryFirst( context);
     if ( element == null)
     {
       try

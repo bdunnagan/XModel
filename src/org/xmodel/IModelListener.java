@@ -47,7 +47,7 @@ public interface IModelListener
    * @param newParent The new parent or null if the object is being detached.
    * @param oldParent The old parent or null if the object is being attached.
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent);
+  public void notifyParent( INode child, INode newParent, INode oldParent);
   
   /**
    * Called when a child is added to a domain object. If the child was added to the end of the list
@@ -55,7 +55,7 @@ public interface IModelListener
    * @param parent The parent to which the child was added.
    * @param child The child that was added.
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index);
+  public void notifyAddChild( INode parent, INode child, int index);
   
   /**
     Called just before the child is removed from a domain object.
@@ -63,7 +63,7 @@ public interface IModelListener
    * @param child The child that will be removed.
    * @param index The index of the child which will be removed.
   */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index);
+  public void notifyRemoveChild( INode parent, INode child, int index);
   
   /**
     Called when an attribute on a domain object is changed or when the value of an object
@@ -73,7 +73,7 @@ public interface IModelListener
     @param newValue The new value of the attribute.
     @param oldValue The original value of the attribute.
   */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue);
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue);
 
   /**
     Called when an attribute on a domain object is cleared or when the value of an object
@@ -82,7 +82,7 @@ public interface IModelListener
     @param attrName The attribute which was changed.
     @param oldValue The original value of the attribute.
   */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue);
+  public void notifyClear( INode object, String attrName, Object oldValue);
   
   /**
    * Called when the dirty state of an external reference changes. An implementation of this method may
@@ -92,5 +92,5 @@ public interface IModelListener
    * @param object The external reference.
    * @param dirty The new dirty state.
    */
-  public void notifyDirty( IModelObject object, boolean dirty);
+  public void notifyDirty( INode object, boolean dirty);
 }

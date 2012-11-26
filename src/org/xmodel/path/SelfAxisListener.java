@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IFanoutListener for an IPathElement with the <i>SELF</i> axis.
@@ -34,14 +34,14 @@ public class SelfAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
   }
 

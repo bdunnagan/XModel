@@ -73,15 +73,15 @@ public class FilteredExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
-    List<IModelObject> unfiltered = arg0.evaluateNodes( context);
-    List<IModelObject> filtered = new ArrayList<IModelObject>( unfiltered.size());
+    List<INode> unfiltered = arg0.evaluateNodes( context);
+    List<INode> filtered = new ArrayList<INode>( unfiltered.size());
     for ( int i=0; i<unfiltered.size(); i++)
     {
-      IModelObject object = unfiltered.get( i);
+      INode object = unfiltered.get( i);
       IContext filterContext = new SubContext( context, object, i+1, unfiltered.size());
       switch( arg1.getType( context))
       {
@@ -107,15 +107,15 @@ public class FilteredExpression extends Expression
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
-    List<IModelObject> unfiltered = arg0.evaluateNodes( context);
+    List<INode> unfiltered = arg0.evaluateNodes( context);
     for ( int i=0; i<unfiltered.size(); i++)
     {
-      IModelObject object = unfiltered.get( i);
+      INode object = unfiltered.get( i);
       IContext filterContext = new SubContext( context, object, i+1, unfiltered.size());
       switch( arg1.getType( context))
       {
         case NODES:   
-          List<IModelObject> filtered = arg1.evaluateNodes( filterContext);
+          List<INode> filtered = arg1.evaluateNodes( filterContext);
           if ( filtered.size() > 0) return true;
           break;
         
@@ -133,9 +133,9 @@ public class FilteredExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
-    List<IModelObject> nodes = getArgument( 0).query( context, null);
+    List<INode> nodes = getArgument( 0).query( context, null);
     for( int i=0; i<nodes.size(); i++)
     {
       getArgument( 1).createSubtree( new SubContext( context, nodes.get( i), i+1, nodes.size()), factory, undo);
@@ -151,10 +151,10 @@ public class FilteredExpression extends Expression
     IExpression arg1 = getArgument( 1);
     arg0.bind( context);
 
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     for( int i=0; i<nodes.size(); i++)
     {
-      IModelObject node = nodes.get( i);
+      INode node = nodes.get( i);
       arg1.bind( new SubContext( context, node, i+1, nodes.size()));
     }
   }
@@ -168,10 +168,10 @@ public class FilteredExpression extends Expression
     IExpression arg1 = getArgument( 1);
     arg0.unbind( context);
 
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     for( int i=0; i<nodes.size(); i++)
     {
-      IModelObject node = nodes.get( i);
+      INode node = nodes.get( i);
       arg1.unbind( new SubContext( context, node, i+1, nodes.size()));
     }
   }
@@ -182,21 +182,21 @@ public class FilteredExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
-      List<IModelObject> lhsNodes = arg0.evaluateNodes( context);
+      List<INode> lhsNodes = arg0.evaluateNodes( context);
       int index = Collections.indexOfSubList( lhsNodes, nodes);
       int count = lhsNodes.size();
       
       // optimize handling of input node-set changes
       if ( arg1.getType( context) == ResultType.BOOLEAN)
       {
-        List<IModelObject> result = new ArrayList<IModelObject>( nodes.size());
-        for( IModelObject node: nodes)
+        List<INode> result = new ArrayList<INode>( nodes.size());
+        for( INode node: nodes)
         {
           IContext filterContext = new SubContext(  context, node, (index++)+1, count);
           if ( arg1.evaluateBoolean( filterContext, false)) result.add( node);
@@ -210,8 +210,8 @@ public class FilteredExpression extends Expression
       }
       else
       {
-        List<IModelObject> filterNodes = new ArrayList<IModelObject>();
-        for( IModelObject node: nodes)
+        List<INode> filterNodes = new ArrayList<INode>();
+        for( INode node: nodes)
         {
           IContext filterContext = new SubContext(  context, node, (index++)+1, count);
           arg1.bind( filterContext);
@@ -237,14 +237,14 @@ public class FilteredExpression extends Expression
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
       context.getModel().revert();
-      List<IModelObject> lhsNodes = arg0.evaluateNodes( context);
+      List<INode> lhsNodes = arg0.evaluateNodes( context);
       
       context.getModel().restore();
       int index = Collections.indexOfSubList( lhsNodes, nodes);
@@ -254,8 +254,8 @@ public class FilteredExpression extends Expression
       if ( arg1.getType( context) == ResultType.BOOLEAN)
       {
         context.getModel().revert();
-        List<IModelObject> result = new ArrayList<IModelObject>( nodes.size());
-        for( IModelObject node: nodes)
+        List<INode> result = new ArrayList<INode>( nodes.size());
+        for( INode node: nodes)
         {
           IContext filterContext = new SubContext( context, node, (index++)+1, count);
           if ( arg1.evaluateBoolean( filterContext, false)) result.add( node);
@@ -271,8 +271,8 @@ public class FilteredExpression extends Expression
       else
       {
         context.getModel().revert();
-        List<IModelObject> filterNodes = new ArrayList<IModelObject>();
-        for( IModelObject node: nodes)
+        List<INode> filterNodes = new ArrayList<INode>();
+        for( INode node: nodes)
         {
           IContext filterContext = new SubContext(  context, node, (index++)+1, count);
           arg1.unbind( filterContext);
@@ -300,7 +300,7 @@ public class FilteredExpression extends Expression
   @Override
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
-    List<IModelObject> list = Collections.singletonList( context.getObject());
+    List<INode> list = Collections.singletonList( context.getObject());
     if ( newValue)
       parent.notifyAdd( this, context.getParent(), list);
     else
@@ -321,22 +321,22 @@ public class FilteredExpression extends Expression
       {
         // revert and reevaluate
         model.revert();
-        Collection<IModelObject> oldNodes = expression.evaluateNodes( context);
-        if ( oldNodes.size() > 3) oldNodes = new LinkedHashSet<IModelObject>( oldNodes);
+        Collection<INode> oldNodes = expression.evaluateNodes( context);
+        if ( oldNodes.size() > 3) oldNodes = new LinkedHashSet<INode>( oldNodes);
 
         // restore and reevaluate
         model.restore();
-        Collection<IModelObject> newNodes = expression.evaluateNodes( context);
-        if ( newNodes.size() > 3) newNodes = new LinkedHashSet<IModelObject>( newNodes);
+        Collection<INode> newNodes = expression.evaluateNodes( context);
+        if ( newNodes.size() > 3) newNodes = new LinkedHashSet<INode>( newNodes);
 
         // notify nodes removed
-        List<IModelObject> removedSet = new ArrayList<IModelObject>( newNodes.size());
-        for( IModelObject node: oldNodes) if ( !newNodes.contains( node)) removedSet.add( node);
+        List<INode> removedSet = new ArrayList<INode>( newNodes.size());
+        for( INode node: oldNodes) if ( !newNodes.contains( node)) removedSet.add( node);
         if ( removedSet.size() > 0) notifyRemove( expression, context, removedSet);
         
         // notify nodes added
-        List<IModelObject> addedSet = new ArrayList<IModelObject>( newNodes.size());
-        for( IModelObject node: newNodes) if ( !oldNodes.contains( node)) addedSet.add( node);
+        List<INode> addedSet = new ArrayList<INode>( newNodes.size());
+        for( INode node: newNodes) if ( !oldNodes.contains( node)) addedSet.add( node);
         if ( addedSet.size() > 0) notifyAdd( expression, context, addedSet);
       }
       break;
@@ -385,7 +385,7 @@ public class FilteredExpression extends Expression
    * java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     // unwind context
     if ( expression == getArgument( 1))

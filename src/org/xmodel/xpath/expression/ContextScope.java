@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.VariableMemento;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -246,7 +246,7 @@ public class ContextScope extends AbstractVariableScope
    * @see org.xmodel.xpath.variable.AbstractVariableScope#set(java.lang.String, org.xmodel.IModelObject)
    */
   @Override
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     if ( reverted) throw new IllegalStateException( "Illegal set on reverted context: "+this);
     return super.set( name, value);
@@ -256,7 +256,7 @@ public class ContextScope extends AbstractVariableScope
    * @see org.xmodel.xpath.variable.AbstractVariableScope#set(java.lang.String, java.util.List)
    */
   @Override
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     if ( reverted) throw new IllegalStateException( "Illegal set on reverted context: "+this);
     return super.set( name, value);

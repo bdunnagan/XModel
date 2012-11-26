@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -59,8 +59,8 @@ public class IndexOfFunction extends Function
     assertArgs( 2, 2);
     assertType( context, ResultType.NODES);
     
-    List<IModelObject> list = getArgument( 0).evaluateNodes( context);
-    IModelObject node = getArgument( 1).queryFirst( context);
+    List<INode> list = getArgument( 0).evaluateNodes( context);
+    INode node = getArgument( 1).queryFirst( context);
     return list.indexOf( node) + 1;
   }
 
@@ -68,7 +68,7 @@ public class IndexOfFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -77,7 +77,7 @@ public class IndexOfFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }

@@ -31,7 +31,7 @@ public class IntersectChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#addChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
   @Override
-  public void addChild( IModelObject object, IModelObject child, int index)
+  public void addChild( INode object, INode child, int index)
   {
   }
 
@@ -39,7 +39,7 @@ public class IntersectChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#addChild(org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
   @Override
-  public void addChild( IModelObject object, IModelObject child)
+  public void addChild( INode object, INode child)
   {
   }
 
@@ -47,7 +47,7 @@ public class IntersectChangeSet extends ChangeSet
    * @see org.xmodel.ChangeSet#setAttribute(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
   @Override
-  public void setAttribute( IModelObject object, String attrName, Object attrValue)
+  public void setAttribute( INode object, String attrName, Object attrValue)
   {
     if ( object.getAttribute( attrName) != null)
       super.setAttribute( object, attrName, attrValue);

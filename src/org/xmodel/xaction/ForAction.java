@@ -21,7 +21,7 @@ package org.xmodel.xaction;
 
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -46,7 +46,7 @@ public class ForAction extends GuardedAction
     super.configure( document);
     
     // node-set iteration
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");    
     sourceExpr = document.getExpression( "source", true);
 
@@ -83,7 +83,7 @@ public class ForAction extends GuardedAction
     // node-set iteration 
     if ( sourceExpr != null)
     {
-      List<IModelObject> nodes = sourceExpr.evaluateNodes( context);
+      List<INode> nodes = sourceExpr.evaluateNodes( context);
       for( int i=0; i<nodes.size(); i++)
       {
         // store the current element in either a variable or the context

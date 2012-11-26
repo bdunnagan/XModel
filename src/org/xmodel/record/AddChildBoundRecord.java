@@ -21,21 +21,21 @@ package org.xmodel.record;
 
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IBoundChangeRecord for adding children.
  */
 public class AddChildBoundRecord extends AbstractBoundRecord
 {
-  public AddChildBoundRecord( IModelObject object, IModelObject child)
+  public AddChildBoundRecord( INode object, INode child)
   {
     super( object);
     this.child = child;
     this.index = -1;
   }
   
-  public AddChildBoundRecord( IModelObject object, IModelObject child, int index)
+  public AddChildBoundRecord( INode object, INode child, int index)
   {
     super( object);
     this.child = child;
@@ -61,7 +61,7 @@ public class AddChildBoundRecord extends AbstractBoundRecord
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#createUnboundRecord(org.xmodel.IModelObject)
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative)
+  public IChangeRecord createUnboundRecord( INode relative)
   {
     return new AddChildRecord( getRelativePath( relative), child, index);
   }
@@ -78,7 +78,7 @@ public class AddChildBoundRecord extends AbstractBoundRecord
    * @see org.xmodel.record.AbstractChangeRecord#getChild()
    */
   @Override
-  public IModelObject getChild()
+  public INode getChild()
   {
     return child;
   }
@@ -108,10 +108,10 @@ public class AddChildBoundRecord extends AbstractBoundRecord
    */
   public String toString()
   {
-    IModelObject parent = getBoundObject();
+    INode parent = getBoundObject();
     return "add child: "+child+", index: "+index+", parent: "+parent;
   }
   
-  IModelObject child;
+  INode child;
   int index;
 }

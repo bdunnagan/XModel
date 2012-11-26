@@ -22,7 +22,7 @@ package org.xmodel.xaction.trigger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.xaction.ScriptAction;
@@ -100,20 +100,20 @@ public class SourceTrigger extends AbstractTrigger
    * @param variable The variable name.
    * @param node The triggering node.
    */
-  private void setTriggerVariable( IContext context, String variable, List<IModelObject> nodes)
+  private void setTriggerVariable( IContext context, String variable, List<INode> nodes)
   {
     IVariableScope scope = context.getScope();
     if ( scope != null) 
     {
-      scope.set( "added", Collections.<IModelObject>emptyList()); 
-      scope.set( "removed", Collections.<IModelObject>emptyList()); 
+      scope.set( "added", Collections.<INode>emptyList()); 
+      scope.set( "removed", Collections.<INode>emptyList()); 
       scope.set( "updated", ""); 
       scope.set( variable, nodes);
     }
   }
 
   final IExpressionListener conditionListener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
       if ( updating) return;
       updating = true;
@@ -122,7 +122,7 @@ public class SourceTrigger extends AbstractTrigger
       {
         NotifyAdd runnable = new NotifyAdd();
         runnable.context = context;
-        runnable.nodes = new ArrayList<IModelObject>( nodes);
+        runnable.nodes = new ArrayList<INode>( nodes);
         if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
@@ -130,7 +130,7 @@ public class SourceTrigger extends AbstractTrigger
         updating = false;
       }
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
       if ( updating) return;
       updating = true;
@@ -139,7 +139,7 @@ public class SourceTrigger extends AbstractTrigger
       {
         NotifyRemove runnable = new NotifyRemove();
         runnable.context = context;
-        runnable.nodes = new ArrayList<IModelObject>( nodes);
+        runnable.nodes = new ArrayList<INode>( nodes);
         if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
       }
       finally
@@ -200,7 +200,7 @@ public class SourceTrigger extends AbstractTrigger
         updating = false;
       }
     }
-    public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+    public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
     {
       if ( updating) return;
       updating = true;
@@ -236,7 +236,7 @@ public class SourceTrigger extends AbstractTrigger
     }
     
     IContext context;
-    List<IModelObject> nodes;
+    List<INode> nodes;
   }
 
   private class NotifyRemove implements Runnable
@@ -249,7 +249,7 @@ public class SourceTrigger extends AbstractTrigger
     }
     
     IContext context;
-    List<IModelObject> nodes;
+    List<INode> nodes;
   }
   
   private class NotifyStringChange implements Runnable
@@ -275,7 +275,7 @@ public class SourceTrigger extends AbstractTrigger
     }
 
     IContext context;
-    IModelObject node;
+    INode node;
     String oldValue;
     String newValue;
   }

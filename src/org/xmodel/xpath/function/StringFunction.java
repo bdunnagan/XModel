@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -98,7 +98,7 @@ public class StringFunction extends Function
    * @param object The object to be converted.
    * @return Returns the string-value of the node.
    */
-  public static String stringValue( IModelObject object)
+  public static String stringValue( INode object)
   {
     Object value = object.getValue();
     if ( value instanceof Number) return stringValue( ((Number)value).doubleValue());
@@ -122,7 +122,7 @@ public class StringFunction extends Function
    * @param nodes The node-set.
    * @return Returns the string-value of the first node in the node-set.
    */
-  public static String stringValue( List<IModelObject> nodes)
+  public static String stringValue( List<INode> nodes)
   {
     if ( nodes.size() == 0) return "";
     return stringValue( nodes.get( 0));
@@ -156,7 +156,7 @@ public class StringFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -167,7 +167,7 @@ public class StringFunction extends Function
    * java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     if ( getParent() != null) notifyChange( this, context);
   }
@@ -217,7 +217,7 @@ public class StringFunction extends Function
    * @see org.xmodel.xpath.expression.IExpression#notifyValue(java.util.Collection, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyChange( this, contexts[ 0]);
   }

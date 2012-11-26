@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.xmodel.AbstractPath;
 import org.xmodel.IAxis;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.PathSyntaxException;
@@ -68,7 +68,7 @@ public class XPath extends AbstractPath implements IAxis
    * @param spec The expression specification.
    * @return Returns the result node-set.
    */
-  public static List<IModelObject> query( String spec)
+  public static List<INode> query( String spec)
   {
     IExpression expression = XPath.createExpression( spec);
     return expression.query( null);
@@ -80,7 +80,7 @@ public class XPath extends AbstractPath implements IAxis
    * @param spec The expression specification.
    * @return Returns the result node-set.
    */
-  public static List<IModelObject> query( IContext context, String spec)
+  public static List<INode> query( IContext context, String spec)
   {
     IExpression expression = XPath.createExpression( spec);
     return expression.query( context, null);
@@ -91,7 +91,7 @@ public class XPath extends AbstractPath implements IAxis
    * @param spec The expression specification.
    * @return Returns the first node of the node-set.
    */
-  public static IModelObject queryFirst( String spec)
+  public static INode queryFirst( String spec)
   {
     IExpression expression = XPath.createExpression( spec);
     return expression.queryFirst();
@@ -103,7 +103,7 @@ public class XPath extends AbstractPath implements IAxis
    * @param spec The expression specification.
    * @return Returns the first node of the node-set.
    */
-  public static IModelObject queryFirst( IContext context, String spec)
+  public static INode queryFirst( IContext context, String spec)
   {
     IExpression expression = XPath.createExpression( spec);
     return expression.queryFirst( context);

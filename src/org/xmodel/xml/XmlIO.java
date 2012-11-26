@@ -44,8 +44,8 @@ import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -64,7 +64,7 @@ public class XmlIO implements IXmlIO
     factory = new ModelObjectFactory();
     skipInputPrefixList = new ArrayList<String>( 3);
     skipOutputPrefixList = new ArrayList<String>( 3);
-    lines = new ArrayList<IModelObject>();
+    lines = new ArrayList<INode>();
     maxLines = 0;
     whitespace = Whitespace.trim;
     oneLineElements = true;
@@ -97,7 +97,7 @@ public class XmlIO implements IXmlIO
    * @param element The element.
    * @return Returns the xml.
    */
-  public static String write( Style style, IModelObject element)
+  public static String write( Style style, INode element)
   {
     XmlIO xmlIO = new XmlIO();
     xmlIO.setOutputStyle( style);
@@ -115,7 +115,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#setFactory(org.xmodel.IModelObjectFactory)
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -189,7 +189,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#read(java.lang.String)
    */
-  public IModelObject read( String xml) throws XmlException
+  public INode read( String xml) throws XmlException
   {
     return read( new StringReader( xml));
   }
@@ -197,7 +197,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#read(java.net.URL)
    */
-  public IModelObject read( URL url) throws XmlException
+  public INode read( URL url) throws XmlException
   {
     try
     {
@@ -215,7 +215,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#read(java.io.InputStream)
    */
-  public IModelObject read( InputStream stream) throws XmlException
+  public INode read( InputStream stream) throws XmlException
   {
     try
     {
@@ -233,7 +233,7 @@ public class XmlIO implements IXmlIO
    * Parse the document with a Reader.
    * @return Returns the parsed document root.
    */
-  protected IModelObject read( Reader reader) throws XmlException
+  protected INode read( Reader reader) throws XmlException
   {
     try
     {
@@ -251,7 +251,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#getLineInformation()
    */
-  public List<IModelObject> getLineInformation()
+  public List<INode> getLineInformation()
   {
     return lines;
   }
@@ -259,7 +259,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(org.xmodel.IModelObject)
    */
-  public String write( IModelObject root)
+  public String write( INode root)
   {
     return write( 0, root);
   }
@@ -267,7 +267,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(org.xmodel.IModelObject, java.io.File)
    */
-  public void write( IModelObject root, File file) throws XmlException
+  public void write( INode root, File file) throws XmlException
   {
     write( 0, root, file);
   }
@@ -275,7 +275,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(org.xmodel.IModelObject, java.io.OutputStream)
    */
-  public void write( IModelObject root, OutputStream stream) throws XmlException
+  public void write( INode root, OutputStream stream) throws XmlException
   {
     write( 0, root, stream);
   }
@@ -283,7 +283,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(int, org.xmodel.IModelObject, java.io.OutputStream)
    */
-  public void write( int depth, IModelObject root, OutputStream stream) throws XmlException
+  public void write( int depth, INode root, OutputStream stream) throws XmlException
   {
     try
     {
@@ -299,7 +299,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(int, org.xmodel.IModelObject, java.io.File)
    */
-  public void write( int depth, IModelObject root, File file) throws XmlException
+  public void write( int depth, INode root, File file) throws XmlException
   {
     try
     {
@@ -316,7 +316,7 @@ public class XmlIO implements IXmlIO
   /* (non-Javadoc)
    * @see org.xmodel.xml.IXmlIO#write(int, org.xmodel.IModelObject)
    */
-  public String write( int depth, IModelObject root)
+  public String write( int depth, INode root)
   {
     if ( buffer == null) buffer = new ByteArrayOutputStream( 1<<15);
     buffer.reset();
@@ -339,7 +339,7 @@ public class XmlIO implements IXmlIO
    * @param root The root of the subtree.
    * @param stream The stream.
    */
-  protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
+  protected void output( int indent, INode root, OutputStream stream) throws IOException
   {
     // write header if requested
     if ( outputHeader) { stream.write( header); stream.write( cr);}
@@ -404,7 +404,7 @@ public class XmlIO implements IXmlIO
     // perform cycle-breaking
     if ( cycleBreaking)
     {
-      if ( cycleSet == null) cycleSet = new HashSet<IModelObject>();
+      if ( cycleSet == null) cycleSet = new HashSet<INode>();
       
       // check cycle set
       if ( cycleSet.contains( root))
@@ -445,7 +445,7 @@ public class XmlIO implements IXmlIO
       }
   
       String value = Xlate.get( root, (String)null);
-      List<IModelObject> children = root.getChildren();
+      List<INode> children = root.getChildren();
       if ( children.size() > 0)
       {
         // start tag
@@ -467,7 +467,7 @@ public class XmlIO implements IXmlIO
           if ( style != Style.compact) writeCR( stream);
           
           // children
-          for( IModelObject child: children) output( indent+2, child, stream);
+          for( INode child: children) output( indent+2, child, stream);
         }
         else
         {
@@ -476,7 +476,7 @@ public class XmlIO implements IXmlIO
           {
             value = encodeEntityReferences( value, "\"\'");        
             int start = 0;
-            for( IModelObject child: children) 
+            for( INode child: children) 
             {
               int index = Xlate.get( child, "!position", -1);
               if ( index < 0) index = value.length();
@@ -489,7 +489,7 @@ public class XmlIO implements IXmlIO
           else
           {
             // children
-            for( IModelObject child: children) 
+            for( INode child: children) 
               output( indent+2, child, stream);
           }
         }
@@ -588,7 +588,7 @@ public class XmlIO implements IXmlIO
    * @param root The root of the subtree.
    * @param stream The stream.
    */
-  protected void writeAttributes( IModelObject root, OutputStream stream) throws IOException
+  protected void writeAttributes( INode root, OutputStream stream) throws IOException
   {
     for ( String attrName: root.getAttributeNames())
     {
@@ -676,7 +676,7 @@ public class XmlIO implements IXmlIO
    * @param tree The root of the tree.
    * @return Returns the xml for the specified tree.
    */
-  public static String toString( IModelObject tree)
+  public static String toString( INode tree)
   {
     XmlIO xmlIO = new XmlIO();
     xmlIO.setOutputStyle( Style.printable);
@@ -781,7 +781,7 @@ public class XmlIO implements IXmlIO
     {
       if ( parent != null)
       {
-        IModelObject pi = factory.createObject( parent, "?"+target);
+        INode pi = factory.createObject( parent, "?"+target);
         
         // line tracking
         int line = locator.getLineNumber()-1;
@@ -828,18 +828,18 @@ public class XmlIO implements IXmlIO
   private SAXParser parser;
   private Whitespace whitespace;
   private ErrorHandler errorHandler;
-  private IModelObjectFactory factory;
-  private IModelObject root;
-  private IModelObject parent;
-  private IModelObject child;
+  private INodeFactory factory;
+  private INode root;
+  private INode parent;
+  private INode child;
   private ByteArrayOutputStream buffer;
   private List<String> skipInputPrefixList;
   private List<String> skipOutputPrefixList;
   private Style style;
-  private Set<IModelObject> cycleSet;
+  private Set<INode> cycleSet;
   private int maxLines;
   private int line;
-  private List<IModelObject> lines;
+  private List<INode> lines;
   private Locator locator;
   private boolean useDocument;
   private boolean outputHeader;
@@ -858,7 +858,7 @@ public class XmlIO implements IXmlIO
     
     XmlIO io = new XmlIO();
     io.setUseDocument( true);
-    IModelObject root = io.read( new StringReader( text));
+    INode root = io.read( new StringReader( text));
     System.out.println( io.write( root));
   }
 }

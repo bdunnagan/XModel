@@ -24,8 +24,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xpath.variable.IVariableListener;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.IVariableSource;
@@ -120,7 +120,7 @@ public class VariableExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     ResultType type = getType( context);
     if ( type == ResultType.UNDEFINED) return Collections.emptyList();
@@ -131,7 +131,7 @@ public class VariableExpression extends Expression
       source.addScope( context.getScope());
       if ( type == ResultType.NODES)
       {
-        return new ArrayList<IModelObject>( (List<IModelObject>)source.getVariable( variable, context));
+        return new ArrayList<INode>( (List<INode>)source.getVariable( variable, context));
       }
       return super.evaluateNodes( context);
     }
@@ -199,11 +199,11 @@ public class VariableExpression extends Expression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     if ( context instanceof StatefulContext)
     {
-      List<IModelObject> emptyList = Collections.emptyList();
+      List<INode> emptyList = Collections.emptyList();
       ((StatefulContext)context).set( variable, emptyList);
     }
   }
@@ -243,7 +243,7 @@ public class VariableExpression extends Expression
       //if ( scope == null) throw new IllegalStateException( "Undefined variable: "+variable);
       scope.addListener( variable, context, listener);
       Object value = scope.get( variable, context);
-      if ( value instanceof List) installValueListener( context, (List<IModelObject>)value);
+      if ( value instanceof List) installValueListener( context, (List<INode>)value);
     }
     catch( ExpressionException e)
     {
@@ -274,7 +274,7 @@ public class VariableExpression extends Expression
       {
         scope.removeListener( variable, context, listener);
         Object value = scope.get( variable, context);
-        if ( value instanceof List) removeValueListener( context, (List<IModelObject>)value);
+        if ( value instanceof List) removeValueListener( context, (List<INode>)value);
       }
     }
     catch( ExpressionException e)
@@ -310,12 +310,12 @@ public class VariableExpression extends Expression
    * @param context The context.
    * @param nodes The nodes.
    */
-  private void installValueListener( IContext context, List<IModelObject> nodes)
+  private void installValueListener( IContext context, List<INode> nodes)
   {
     if ( parent.requiresValueNotification( this))
     {
       LeafValueListener listener = new LeafValueListener( this, context);
-      for( IModelObject node: nodes) node.addModelListener( listener);    
+      for( INode node: nodes) node.addModelListener( listener);    
     }
   }
   
@@ -324,11 +324,11 @@ public class VariableExpression extends Expression
    * @param context The context.
    * @param nodes The nodes.
    */
-  private void removeValueListener( IContext context, List<IModelObject> nodes)
+  private void removeValueListener( IContext context, List<INode> nodes)
   {
     if ( parent.requiresValueNotification( this))
     {
-      for( IModelObject node: nodes) 
+      for( INode node: nodes) 
       {
         LeafValueListener listener = LeafValueListener.findListener( node, this, context);
         if ( listener != null) node.removeModelListener( listener);
@@ -337,12 +337,12 @@ public class VariableExpression extends Expression
   }
   
   final IVariableListener listener = new IVariableListener() {
-    public void notifyAdd( String name, IVariableScope scope, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( String name, IVariableScope scope, IContext context, List<INode> nodes)
     {
       installValueListener( context, nodes);
       parent.notifyAdd( VariableExpression.this, context, nodes);
     }
-    public void notifyRemove( String name, IVariableScope scope, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( String name, IVariableScope scope, IContext context, List<INode> nodes)
     {
       removeValueListener( context, nodes);
       parent.notifyRemove( VariableExpression.this, context, nodes);

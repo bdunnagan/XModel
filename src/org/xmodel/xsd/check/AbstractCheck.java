@@ -21,14 +21,14 @@ package org.xmodel.xsd.check;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
 
 
 public abstract class AbstractCheck implements ICheck
 {
-  public AbstractCheck( IModelObject schemaLocus)
+  public AbstractCheck( INode schemaLocus)
   {
     this.schemaLocus = schemaLocus;
   }
@@ -36,7 +36,7 @@ public abstract class AbstractCheck implements ICheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.check.ICheck#validate(org.xmodel.IModelObject)
    */
-  public boolean validate( IModelObject documentLocus)
+  public boolean validate( INode documentLocus)
   {
     errorLocus = null; 
     if ( errored != null) errored.clear();
@@ -49,7 +49,7 @@ public abstract class AbstractCheck implements ICheck
    * @param documentLocus The document locus.
    * @return Returns true if the document locus is valid.
    */
-  protected abstract boolean validateImpl( IModelObject documentLocus);
+  protected abstract boolean validateImpl( INode documentLocus);
 
   /**
    * Add an ICheck to the errored list.
@@ -64,7 +64,7 @@ public abstract class AbstractCheck implements ICheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#getSchemaLocus()
    */
-  public IModelObject getSchemaLocus()
+  public INode getSchemaLocus()
   {
     return schemaLocus;
   }
@@ -123,7 +123,7 @@ public abstract class AbstractCheck implements ICheck
     }
   }
 
-  private IModelObject schemaLocus;
-  protected IModelObject errorLocus;
+  private INode schemaLocus;
+  protected INode errorLocus;
   protected List<ICheck> errored;
 }

@@ -19,7 +19,7 @@
  */
 package org.xmodel.memento;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An IMemento for the updates which involve removing an attribute.
@@ -52,7 +52,7 @@ public class RemoveAttributeMemento implements IMemento
     oldValue = null;
   }
   
-  public IModelObject object;
+  public INode object;
   public String attrName;
   public Object oldValue;
 }

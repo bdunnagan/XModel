@@ -21,7 +21,7 @@ package org.xmodel.diff;
 
 import java.util.Collection;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -59,7 +59,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @see org.xmodel.diff.nu.IXmlDiffer#diff(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  public boolean diff( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public boolean diff( INode lhs, INode rhs, IChangeSet changeSet)
   {
     try
     {
@@ -91,7 +91,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @see org.xmodel.diff.nu.IXmlDiffer#diffAndApply(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject)
    */
-  public boolean diffAndApply( IModelObject lhs, IModelObject rhs)
+  public boolean diffAndApply( INode lhs, INode rhs)
   {
     IChangeSet changeSet = new RegularChangeSet();
     boolean result = diff( lhs, rhs, changeSet);
@@ -103,7 +103,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @see org.xmodel.diff.nu.IXmlDiffer#diffAttributes(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  public boolean diffAttributes( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public boolean diffAttributes( INode lhs, INode rhs, IChangeSet changeSet)
   {
     int recordCount = (changeSet != null)? changeSet.getSize(): 0;
     
@@ -157,7 +157,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @see org.xmodel.diff.nu.IXmlDiffer#diffChildren(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  public boolean diffChildren( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  public boolean diffChildren( INode lhs, INode rhs, IChangeSet changeSet)
   {
     return internal_diffChildren( lhs, rhs, changeSet);
   }
@@ -169,7 +169,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @param changeSet The change set.
    * @return Returns true if the children differ.
    */
-  protected boolean internal_diffChildren( IModelObject lhs, IModelObject rhs, IChangeSet changeSet)
+  protected boolean internal_diffChildren( INode lhs, INode rhs, IChangeSet changeSet)
   {
     int recordCount = (changeSet != null)? changeSet.getSize(): 0;
     if ( matcher.shouldDiff( lhs, true) && matcher.shouldDiff( rhs, false))
@@ -199,7 +199,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @param changeSet The change set where change records should be created.
    * @return Returns true if lists are identical except for ordering.
    */
-  protected abstract boolean diffSet( IModelObject leftParent, IModelObject rightParent, IChangeSet changeSet);
+  protected abstract boolean diffSet( INode leftParent, INode rightParent, IChangeSet changeSet);
 
   /**
    * Perform an ordered comparison of the left and right children sets and create a minimal set
@@ -212,7 +212,7 @@ public abstract class AbstractXmlDiffer implements IXmlDiffer
    * @param changeSet The change set where change records should be created.
    * @return Returns true if lists are identical.
    */
-  protected abstract boolean diffList( IModelObject leftParent, IModelObject rightParent, IChangeSet changeSet);
+  protected abstract boolean diffList( INode leftParent, INode rightParent, IChangeSet changeSet);
 
   protected IXmlMatcher matcher;
   private int depth;

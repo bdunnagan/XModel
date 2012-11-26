@@ -22,7 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.IModelListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelListener;
 import org.xmodel.ModelListenerList;
 
@@ -84,7 +84,7 @@ public class LeafValueListener extends ModelListener
    * @param context The context.
    * @return Returns the LeafValueListener found or null.
    */
-  static public LeafValueListener findListener( IModelObject object, IExpression expression, IContext context)
+  static public LeafValueListener findListener( INode object, IExpression expression, IContext context)
   {
     ModelListenerList listeners = object.getModelListeners();
     if ( listeners == null) return null;
@@ -104,7 +104,7 @@ public class LeafValueListener extends ModelListener
    * @param expression The expression.
    * @return Returns a list (possibly empty) of LeafValueListeners.
    */
-  static public List<LeafValueListener> findListeners( IModelObject object, IExpression expression)
+  static public List<LeafValueListener> findListeners( INode object, IExpression expression)
   {
     List<LeafValueListener> result = new ArrayList<LeafValueListener>();
     ModelListenerList listeners = object.getModelListeners();
@@ -123,7 +123,7 @@ public class LeafValueListener extends ModelListener
    * @see org.xmodel.ModelListener#notifyChange(
    * org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
    */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
     if ( attrName.length() > 0) return;
     
@@ -136,7 +136,7 @@ public class LeafValueListener extends ModelListener
    * @see org.xmodel.ModelListener#notifyClear(
    * org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
     if ( attrName.length() > 0) return;
     if ( oldValue != null)
@@ -151,7 +151,7 @@ public class LeafValueListener extends ModelListener
    * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
    */
   @Override
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
     // resync if necessary
     if ( dirty) object.getValue();

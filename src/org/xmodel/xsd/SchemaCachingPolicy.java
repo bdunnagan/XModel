@@ -20,7 +20,7 @@
 package org.xmodel.xsd;
 
 import java.net.URL;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -59,7 +59,7 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       url = new URL( string);
-      IModelObject urlObject = reference.cloneObject();
+      INode urlObject = reference.cloneObject();
       Xsd xsd = new Xsd( url);
       unordered = Xlate.get( reference, "unordered", false);
       SchemaTransform transform = new SchemaTransform( unordered);
@@ -76,7 +76,7 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException
   {
     throw new UnsupportedOperationException();
   }
@@ -85,7 +85,7 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
+  public void remove( IExternalReference parent, INode object) throws CachingException
   {
     throw new UnsupportedOperationException();
   }
@@ -94,7 +94,7 @@ public class SchemaCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#update(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void update( IExternalReference reference, IModelObject object) throws CachingException
+  public void update( IExternalReference reference, INode object) throws CachingException
   {
     // cannot use differ here because object contains reference cycles
     reference.removeChildren();

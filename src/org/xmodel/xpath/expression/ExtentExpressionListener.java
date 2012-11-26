@@ -22,7 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 
 
@@ -40,17 +40,17 @@ public abstract class ExtentExpressionListener extends ExpressionListener
    * @param newSet The complete new node-set.
    * @param oldSet The complete old node-set.
    */
-  public abstract void notifyChange( IExpression expression, IContext context, List<IModelObject> newSet, List<IModelObject> oldSet);
+  public abstract void notifyChange( IExpression expression, IContext context, List<INode> newSet, List<INode> oldSet);
   
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.ExpressionListener#notifyAdd(
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IModel model = context.getModel();
-    List<IModelObject> oldSet = Collections.emptyList();
+    List<INode> oldSet = Collections.emptyList();
     try
     {
       model.revert();
@@ -65,7 +65,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
       model.restore();
     }
 
-    List<IModelObject> newSet = Collections.emptyList();
+    List<INode> newSet = Collections.emptyList();
     try
     {
       newSet = expression.evaluateNodes( context);
@@ -84,10 +84,10 @@ public abstract class ExtentExpressionListener extends ExpressionListener
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IModel model = context.getModel();
-    List<IModelObject> oldSet = Collections.emptyList();
+    List<INode> oldSet = Collections.emptyList();
     try
     {
       model.revert();
@@ -102,7 +102,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
       model.restore();
     }
 
-    List<IModelObject> newSet = Collections.emptyList();
+    List<INode> newSet = Collections.emptyList();
     try
     {
       newSet = expression.evaluateNodes( context);
@@ -126,7 +126,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
     if ( expression.getType( context) == ResultType.NODES)
     {
       IModel model = context.getModel();
-      List<IModelObject> oldSet = Collections.emptyList();
+      List<INode> oldSet = Collections.emptyList();
       try
       {
         model.revert();
@@ -141,7 +141,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
         model.restore();
       }
   
-      List<IModelObject> newSet = Collections.emptyList();
+      List<INode> newSet = Collections.emptyList();
       try
       {
         newSet = expression.evaluateNodes( context);

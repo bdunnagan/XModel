@@ -19,7 +19,7 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.expression.IContext;
@@ -46,7 +46,7 @@ public class MarkDirtyAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    for( IModelObject target: targetExpr.query( context, null))
+    for( INode target: targetExpr.query( context, null))
     {
       target = ModelAlgorithms.dereference( target);
       if ( target instanceof IExternalReference)

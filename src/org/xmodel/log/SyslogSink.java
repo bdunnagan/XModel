@@ -6,7 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 
 /**
@@ -29,7 +29,7 @@ public final class SyslogSink implements ILogSink
    * @see org.xmodel.log.ILogSink#configure(org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IModelObject config)
+  public void configure( INode config)
   {
     String host = Xlate.get( config, "host", Xlate.childGet( config, "host", "localhost"));
     int port = Xlate.get( config, "port", Xlate.childGet( config, "port", 514));

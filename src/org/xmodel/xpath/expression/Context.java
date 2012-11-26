@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
 
@@ -45,7 +45,7 @@ public class Context implements IContext
    * Create a context for the given context node with position and size equal to one.
    * @param object The context node.
    */
-  public Context( IModelObject object)
+  public Context( INode object)
   {
     this( object, 1, 1);
   }
@@ -57,7 +57,7 @@ public class Context implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  public Context( IModelObject object, int position, int size)
+  public Context( INode object, int position, int size)
   {
     this.object = object;
     this.position = position;
@@ -72,7 +72,7 @@ public class Context implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  protected Context( IVariableScope scope, IModelObject object, int position, int size)
+  protected Context( IVariableScope scope, INode object, int position, int size)
   {
     this.object = object;
     this.position = position;
@@ -85,7 +85,7 @@ public class Context implements IContext
    * Create a context for the given context node with position and size equal to one.
    * @param object The context node.
    */
-  public Context( IContext scope, IModelObject object)
+  public Context( IContext scope, INode object)
   {
     this( (scope != null)? scope.getScope(): null, object, 1, 1);
   }
@@ -97,7 +97,7 @@ public class Context implements IContext
    * @param position The context position.
    * @param size The context size.
    */
-  public Context( IContext scope, IModelObject object, int position, int size)
+  public Context( IContext scope, INode object, int position, int size)
   {
     this( (scope != null)? scope.getScope(): null, object, position, size);
   }
@@ -145,7 +145,7 @@ public class Context implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getContextNode()
    */
-  public IModelObject getObject()
+  public INode getObject()
   {
     return object;
   }
@@ -178,7 +178,7 @@ public class Context implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, org.xmodel.IModelObject)
    */
-  public List<IModelObject> set( String name, IModelObject value)
+  public List<INode> set( String name, INode value)
   {
     if ( scope != null) return scope.set( name, value);
     return null;
@@ -187,7 +187,7 @@ public class Context implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, java.util.List)
    */
-  public List<IModelObject> set( String name, List<IModelObject> value)
+  public List<INode> set( String name, List<INode> value)
   {
     if ( scope != null) return scope.set( name, value);
     return null;
@@ -324,7 +324,7 @@ public class Context implements IContext
     return sb.toString();
   }
   
-  private IModelObject object;
+  private INode object;
   private int position;
   private int size;
   private Map<IExpression, Integer> updates;

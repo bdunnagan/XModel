@@ -23,7 +23,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 
 /**
@@ -43,7 +43,7 @@ public class TxtAssociation extends AbstractFileAssociation
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  public void apply( INode parent, String name, InputStream stream) throws CachingException
   {
     try
     {

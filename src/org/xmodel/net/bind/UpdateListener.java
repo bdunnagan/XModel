@@ -2,7 +2,7 @@ package org.xmodel.net.bind;
 
 import java.io.IOException;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
@@ -32,7 +32,7 @@ class UpdateListener extends NonSyncingListener
    * @see org.xmodel.external.NonSyncingListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
   @Override
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     super.notifyAddChild( parent, child, index);
     
@@ -52,7 +52,7 @@ class UpdateListener extends NonSyncingListener
    * @see org.xmodel.external.NonSyncingListener#notifyRemoveChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
   @Override
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     super.notifyRemoveChild( parent, child, index);
     
@@ -72,7 +72,7 @@ class UpdateListener extends NonSyncingListener
    * @see org.xmodel.ModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
     if ( !enabled) return;
 
@@ -90,7 +90,7 @@ class UpdateListener extends NonSyncingListener
    * @see org.xmodel.ModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
   @Override
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
     if ( !enabled) return;
     
@@ -108,7 +108,7 @@ class UpdateListener extends NonSyncingListener
    * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
    */
   @Override
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
     //
     // Do not send notifications for network external references, otherwise the remote reference will

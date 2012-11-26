@@ -22,8 +22,8 @@ package org.xmodel.xaction;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
@@ -87,7 +87,7 @@ public class XActionException extends RuntimeException
    * @param factory Null or a factory.
    * @return Returns the exception fragment containing the cause.
    */
-  public IModelObject createExceptionFragment( IModelObjectFactory factory)
+  public INode createExceptionFragment( INodeFactory factory)
   {
     return createExceptionFragment( this, factory);
   }
@@ -98,7 +98,7 @@ public class XActionException extends RuntimeException
    * @param factory Null or a factory.
    * @return Returns the exception fragment containing the cause.
    */
-  public static IModelObject createExceptionFragment( Throwable throwable, IModelObjectFactory factory)
+  public static INode createExceptionFragment( Throwable throwable, INodeFactory factory)
   {
     if ( factory == null) factory = new ModelObjectFactory();
     
@@ -108,13 +108,13 @@ public class XActionException extends RuntimeException
       throwable.printStackTrace( new PrintStream( stream));
       stream.flush();
 
-      IModelObject root = factory.createObject( null, "exception");
+      INode root = factory.createObject( null, "exception");
       String message = throwable.getMessage();
       if ( message == null || message.length() == 0) message = throwable.getClass().getCanonicalName();
       Xlate.childSet( root, "message", message);
       Xlate.childSet( root, "stack", stream.toString());
 
-      IModelObject causeElement = root.getCreateChild( "cause");
+      INode causeElement = root.getCreateChild( "cause");
       Throwable cause = throwable.getCause();
       if ( cause != null && cause != throwable) causeElement.addChild( createExceptionFragment( cause, factory));
 

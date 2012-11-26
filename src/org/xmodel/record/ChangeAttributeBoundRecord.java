@@ -21,7 +21,7 @@ package org.xmodel.record;
 
 import org.xmodel.IBoundChangeRecord;
 import org.xmodel.IChangeRecord;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IBoundChangeRecord for changing attributes.
@@ -32,7 +32,7 @@ public class ChangeAttributeBoundRecord extends AbstractBoundRecord
    * @param object
    * @param attrName
    */
-  public ChangeAttributeBoundRecord( IModelObject object, String attrName)
+  public ChangeAttributeBoundRecord( INode object, String attrName)
   {
     super( object);
     this.attrName = attrName;
@@ -43,7 +43,7 @@ public class ChangeAttributeBoundRecord extends AbstractBoundRecord
    * @param attrName
    * @param attrValue
    */
-  public ChangeAttributeBoundRecord( IModelObject object, String attrName, Object attrValue)
+  public ChangeAttributeBoundRecord( INode object, String attrName, Object attrValue)
   {
     super( object);
     this.attrName = attrName;
@@ -76,7 +76,7 @@ public class ChangeAttributeBoundRecord extends AbstractBoundRecord
   /* (non-Javadoc)
    * @see org.xmodel.IBoundChangeRecord#createUnboundRecord(org.xmodel.IModelObject)
    */
-  public IChangeRecord createUnboundRecord( IModelObject relative)
+  public IChangeRecord createUnboundRecord( INode relative)
   {
     if ( attrValue == null)
       return new ChangeAttributeRecord( getRelativePath( relative), attrName);
@@ -126,7 +126,7 @@ public class ChangeAttributeBoundRecord extends AbstractBoundRecord
    */
   public String toString()
   {
-    IModelObject object = getBoundObject();
+    INode object = getBoundObject();
     String string = (attrName.length() > 0)? attrName: "text()";
     return "set: attribute: "+string+", value: "+attrValue+", object: "+object;
   }

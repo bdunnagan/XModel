@@ -22,7 +22,7 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.XPath;
@@ -50,15 +50,15 @@ public class TryAction extends GuardedAction
     tryScript = document.createScript( "catch", "finally");
     
     // finally script
-    IModelObject finallyNode = document.getRoot().getFirstChild( "finally");
+    INode finallyNode = document.getRoot().getFirstChild( "finally");
     if ( finallyNode != null) finallyScript = document.createScript( finallyNode);
     
     // catch blocks
-    List<IModelObject> catchElements = catchActionExpr.query( document.getRoot(), null);
+    List<INode> catchElements = catchActionExpr.query( document.getRoot(), null);
     catchBlocks = new ArrayList<CatchBlock>( catchElements.size());
     for( int i=0; i<catchElements.size(); i++)
     {
-      IModelObject catchElement = catchElements.get( i);
+      INode catchElement = catchElements.get( i);
       CatchBlock catchBlock = new CatchBlock();
       
       String className = Xlate.get( catchElement, "class", "java.lang.Throwable");
@@ -145,7 +145,7 @@ public class TryAction extends GuardedAction
     IVariableScope scope = context.getScope();
     if ( scope != null)
     {
-      IModelObject exception = XActionException.createExceptionFragment( t, null);
+      INode exception = XActionException.createExceptionFragment( t, null);
       scope.set( "exception", exception);
     }
   }

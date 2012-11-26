@@ -22,7 +22,7 @@ package org.xmodel.xpath.function;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -53,13 +53,13 @@ public class ReverseFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
     assertType( context, 0, ResultType.NODES);
     
     IExpression arg0 = getArgument( 0);
-    List<IModelObject> nodes = arg0.evaluateNodes( context);
+    List<INode> nodes = arg0.evaluateNodes( context);
     Collections.reverse( nodes);
     
     return nodes;
@@ -71,7 +71,7 @@ public class ReverseFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) 
@@ -79,7 +79,7 @@ public class ReverseFunction extends Function
       // obviously, this only reverses the order of the nodes which were added, but
       // this allows the listener to find the position of the first node in the node-set
       // and calculate the other positions from it.
-      nodes = new ArrayList<IModelObject>( nodes);
+      nodes = new ArrayList<INode>( nodes);
       Collections.reverse( nodes);
       parent.notifyAdd( this, context, nodes);
     }
@@ -91,7 +91,7 @@ public class ReverseFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     IExpression parent = getParent();
     if ( parent != null) 
@@ -99,7 +99,7 @@ public class ReverseFunction extends Function
       // obviously, this only reverses the order of the nodes which were removed, but
       // this allows the listener to find the position of the first node in the node-set
       // and calculate the other positions from it.
-      nodes = new ArrayList<IModelObject>( nodes);
+      nodes = new ArrayList<INode>( nodes);
       Collections.reverse( nodes);
       parent.notifyRemove( this, context, nodes);
     }

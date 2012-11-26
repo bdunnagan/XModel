@@ -22,7 +22,7 @@ package org.xmodel.concurrent;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IDispatcher;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelListener;
@@ -41,7 +41,7 @@ import org.xmodel.record.RemoveChildRecord;
  */
 public class MasterSlaveListener extends NonSyncingListener
 {
-  public MasterSlaveListener( IModelObject master, IModelObject slave)
+  public MasterSlaveListener( INode master, INode slave)
   {
     this.master = master;
     this.slave = slave;
@@ -52,14 +52,14 @@ public class MasterSlaveListener extends NonSyncingListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public synchronized void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public synchronized void notifyAddChild( INode parent, INode child, int index)
   {
     super.notifyAddChild( parent, child, index);
     
@@ -70,7 +70,7 @@ public class MasterSlaveListener extends NonSyncingListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyRemoveChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public synchronized void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public synchronized void notifyRemoveChild( INode parent, INode child, int index)
   {
     super.notifyRemoveChild( parent, child, index);
     
@@ -81,7 +81,7 @@ public class MasterSlaveListener extends NonSyncingListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
    */
-  public synchronized void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public synchronized void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
     super.notifyChange( object, attrName, newValue, oldValue);
     
@@ -92,7 +92,7 @@ public class MasterSlaveListener extends NonSyncingListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
-  public synchronized void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public synchronized void notifyClear( INode object, String attrName, Object oldValue)
   {
     super.notifyClear( object, attrName, oldValue);
     
@@ -105,7 +105,7 @@ public class MasterSlaveListener extends NonSyncingListener
    * @param element The element.
    * @return Returns the path of the specified element.
    */
-  protected IPath getPath( IModelObject element)
+  protected IPath getPath( INode element)
   {
     return ModelAlgorithms.createRelativePath( master, element);
   }
@@ -129,8 +129,8 @@ public class MasterSlaveListener extends NonSyncingListener
     private IChangeRecord record;
   }
   
-  private IModelObject master;
-  private IModelObject slave;
+  private INode master;
+  private INode slave;
   private IDispatcher dispatcher;
   
   public static void main( String[] args) throws Exception
@@ -151,7 +151,7 @@ public class MasterSlaveListener extends NonSyncingListener
         listener.install( master);
         
         slave.addModelListener( new ModelListener() {
-          public void notifyChange( IModelObject element, String attrName, Object newValue, Object oldValue)
+          public void notifyChange( INode element, String attrName, Object newValue, Object oldValue)
           {
             System.out.println( newValue);
           }

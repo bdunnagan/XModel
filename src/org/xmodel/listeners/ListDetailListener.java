@@ -2,7 +2,7 @@ package org.xmodel.listeners;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.ExactExpressionListener;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -69,7 +69,7 @@ public class ListDetailListener extends ExactExpressionListener
    * org.xmodel.xpath.expression.IContext, java.util.List, int, int)
    */
   @Override
-  public void notifyInsert( IExpression expression, IContext context, List<IModelObject> nodes, int start, int count)
+  public void notifyInsert( IExpression expression, IContext context, List<INode> nodes, int start, int count)
   {
     for( int i=0; i<count; i++)
     {
@@ -83,7 +83,7 @@ public class ListDetailListener extends ExactExpressionListener
    * @see org.xmodel.xpath.expression.ExactExpressionListener#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List, int, int)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes, int start, int count)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes, int start, int count)
   {
     for( int i=count-1; i>=0; i--)
     {

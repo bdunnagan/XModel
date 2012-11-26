@@ -19,7 +19,7 @@
  */
 package org.xmodel.xsd.check;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.xpath.XPath;
 
@@ -28,7 +28,7 @@ import org.xmodel.xpath.XPath;
  */
 public class SchemaCheck extends AbstractCheck
 {
-  public SchemaCheck( IModelObject schemaLocus)
+  public SchemaCheck( INode schemaLocus)
   {
     super( schemaLocus);
   }
@@ -36,10 +36,10 @@ public class SchemaCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     globalElementFinder.setVariable( "name", documentLocus.getType());
-    IModelObject elementSchemaLocus = globalElementFinder.queryFirst( getSchemaLocus());
+    INode elementSchemaLocus = globalElementFinder.queryFirst( getSchemaLocus());
     if ( elementSchemaLocus == null) 
     {
       addFailed( this);

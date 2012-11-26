@@ -19,7 +19,7 @@
  */
 package org.xmodel.record;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 
@@ -34,7 +34,7 @@ public class RemoveChildRecord extends AbstractChangeRecord
    * @param path The identity path of the target object.
    * @param child The child to be removed.
    */
-  public RemoveChildRecord( IPath path, IModelObject child)
+  public RemoveChildRecord( IPath path, INode child)
   {
     super( path);
     this.child = child;
@@ -80,7 +80,7 @@ public class RemoveChildRecord extends AbstractChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#getChild()
    */
-  public IModelObject getChild()
+  public INode getChild()
   {
     return super.getChild();
   }
@@ -96,7 +96,7 @@ public class RemoveChildRecord extends AbstractChangeRecord
   /* (non-Javadoc)
    * @see org.xmodel.IChangeRecord#applyChange(org.xmodel.IModelObject)
    */
-  public void applyChange( IModelObject root)
+  public void applyChange( INode root)
   {
     if ( path == null) return;
     
@@ -104,12 +104,12 @@ public class RemoveChildRecord extends AbstractChangeRecord
     ModelAlgorithms.createPathSubtree( root, path, null, null);
     
     // apply change
-    IModelObject target = path.queryFirst( root); 
+    INode target = path.queryFirst( root); 
     if ( index < 0)
     {
       if ( child == null)
       {
-        IModelObject child = childPath.queryFirst( target);
+        INode child = childPath.queryFirst( target);
         if ( child != null) target.removeChild( child);
       }
       else
@@ -135,6 +135,6 @@ public class RemoveChildRecord extends AbstractChangeRecord
   }
 
   int index;
-  IModelObject child;
+  INode child;
   IPath childPath;
 }

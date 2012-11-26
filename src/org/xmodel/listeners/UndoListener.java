@@ -21,7 +21,7 @@ package org.xmodel.listeners;
 
 import org.xmodel.IChangeSet;
 import org.xmodel.IModelListener;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IModelListener that populates an IChangeSet with operations that will 
@@ -56,14 +56,14 @@ public class UndoListener implements IModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyParent(org.xmodel.IModelObject, org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     undoSet.removeChild( parent, child);
     if ( redoSet != null) redoSet.addChild( parent, child, index);
@@ -72,7 +72,7 @@ public class UndoListener implements IModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyRemoveChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     undoSet.addChild( parent, child, index);
     if ( redoSet != null) redoSet.removeChild( parent, child);
@@ -81,7 +81,7 @@ public class UndoListener implements IModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
    */
-  public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
   {
     undoSet.setAttribute( object, attrName, oldValue);
     if ( redoSet != null) redoSet.setAttribute( object, attrName, newValue);
@@ -90,7 +90,7 @@ public class UndoListener implements IModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
    */
-  public void notifyClear( IModelObject object, String attrName, Object oldValue)
+  public void notifyClear( INode object, String attrName, Object oldValue)
   {
     undoSet.setAttribute( object, attrName, oldValue);
     if ( redoSet != null) redoSet.removeAttribute( object, attrName);
@@ -99,7 +99,7 @@ public class UndoListener implements IModelListener
   /* (non-Javadoc)
    * @see org.xmodel.IModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
    */
-  public void notifyDirty( IModelObject object, boolean dirty)
+  public void notifyDirty( INode object, boolean dirty)
   {
   }
   

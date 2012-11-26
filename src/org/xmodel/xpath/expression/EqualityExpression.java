@@ -21,8 +21,8 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.xpath.function.NumberFunction;
 import org.xmodel.xpath.function.StringFunction;
 
@@ -125,15 +125,15 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the boolean result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, List<IModelObject> result2)
+  private boolean compareResult( List<INode> result1, List<INode> result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       for ( int j=0; j<result2.size(); j++)
       {
-        IModelObject object2 = (IModelObject)result2.get( j);
+        INode object2 = (INode)result2.get( j);
         String string2 = StringFunction.stringValue( object2);
         if ( operator == Operator.EQ)
         {
@@ -154,11 +154,11 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the boolean result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, double result2)
+  private boolean compareResult( List<INode> result1, double result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       double number1 = NumberFunction.numericValue( string1);
       if ( operator == Operator.EQ)
@@ -179,11 +179,11 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
    * @param result2 One side of the operation.
    * @return Returns the boolean result of the comparison.
    */
-  private boolean compareResult( List<IModelObject> result1, String result2)
+  private boolean compareResult( List<INode> result1, String result2)
   {
     for ( int i=0; i<result1.size(); i++)
     {
-      IModelObject object1 = (IModelObject)result1.get( i);
+      INode object1 = (INode)result1.get( i);
       String string1 = StringFunction.stringValue( object1);
       if ( operator == Operator.EQ)
       {
@@ -241,7 +241,7 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, INodeFactory factory, IChangeSet undo)
   {
     // create assignee node
     getArgument( 0).createSubtree( context, factory, undo);
@@ -249,7 +249,7 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
     // if operator is equals then evaluate rhs and assign to first lhs node
     if ( operator == Operator.EQ)
     {
-      IModelObject lhs = queryFirst( context);
+      INode lhs = queryFirst( context);
       if ( lhs != null) lhs.setValue( getArgument( 1).evaluateString( context));
     }
   }

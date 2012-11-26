@@ -22,7 +22,7 @@ package org.xmodel.caching;
 import java.io.InputStream;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
 
@@ -42,7 +42,7 @@ public class XipAssociation extends AbstractFileAssociation
   /* (non-Javadoc)
    * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  public void apply( INode parent, String name, InputStream stream) throws CachingException
   {
     try
     {
@@ -50,7 +50,7 @@ public class XipAssociation extends AbstractFileAssociation
       while( buffer.writeBytes( stream, 1024) == 1024);
       
       TabularCompressor compressor = new TabularCompressor();
-      IModelObject content = compressor.decompress( buffer);
+      INode content = compressor.decompress( buffer);
       parent.addChild( content);
     }
     catch( Exception e)

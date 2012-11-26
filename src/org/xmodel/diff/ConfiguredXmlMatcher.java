@@ -22,7 +22,7 @@ package org.xmodel.diff;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 
 /**
@@ -34,15 +34,15 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
 {
   public ConfiguredXmlMatcher()
   {
-    ignoreSet = new HashSet<IModelObject>();
-    orderedSet = new HashSet<IModelObject>();
+    ignoreSet = new HashSet<INode>();
+    orderedSet = new HashSet<INode>();
   }
   
   /**
    * Specify an element or attribute to be ignored.
    * @param node The element or attribute.
    */
-  public void ignore( IModelObject node)
+  public void ignore( INode node)
   {
     ignoreSet.add( node);
   }
@@ -51,7 +51,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify an element or attribute to be regarded (cancels previous <code>ignore</code>).
    * @param node The element or attribute.
    */
-  public void regard( IModelObject node)
+  public void regard( INode node)
   {
     ignoreSet.remove( node);
   }
@@ -60,7 +60,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify elements and/or attributes to be ignored.
    * @param nodes The elements and/or attributes.
    */
-  public void ignore( List<IModelObject> nodes)
+  public void ignore( List<INode> nodes)
   {
     ignoreSet.addAll( nodes);
   }
@@ -69,7 +69,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify elements and/or attributes to be regarded (cancels previous <code>ignore</code>).
    * @param nodes The elements and/or attributes.
    */
-  public void regard( List<IModelObject> nodes)
+  public void regard( List<INode> nodes)
   {
     ignoreSet.removeAll( nodes);
   }
@@ -78,7 +78,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify that the children of the specified parent are ordered.
    * @param parent The parent whose children are ordered.
    */
-  public void setOrdered( IModelObject parent)
+  public void setOrdered( INode parent)
   {
     orderedSet.add( parent);
   }
@@ -87,7 +87,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify that the children of the specified parent are unordered (cancels previous <code>setOrdered</code>).
    * @param parent The parent whose children are unordered.
    */
-  public void setUnordered( IModelObject parent)
+  public void setUnordered( INode parent)
   {
     orderedSet.remove( parent);
   }
@@ -96,7 +96,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify that the children of the specified parents are ordered.
    * @param parents The parents whose children are ordered.
    */
-  public void setOrdered( List<IModelObject> parents)
+  public void setOrdered( List<INode> parents)
   {
     orderedSet.addAll( parents);
   }
@@ -105,7 +105,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * Specify that the children of the specified parents are unordered (cancels previous <code>setOrdered</code>).
    * @param parents The parents whose children are unordered.
    */
-  public void setUnordered( List<IModelObject> parents)
+  public void setUnordered( List<INode> parents)
   {
     orderedSet.removeAll( parents);
   }
@@ -114,7 +114,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * @see org.xmodel.diff.DefaultXmlMatcher#isList(org.xmodel.IModelObject)
    */
   @Override
-  public boolean isList( IModelObject parent)
+  public boolean isList( INode parent)
   {
     if ( orderedSet != null && orderedSet.contains( parent)) return true;
     return super.isList( parent);
@@ -124,7 +124,7 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * @see org.xmodel.diff.DefaultXmlMatcher#shouldDiff(org.xmodel.IModelObject, boolean)
    */
   @Override
-  public boolean shouldDiff( IModelObject object, boolean lhs)
+  public boolean shouldDiff( INode object, boolean lhs)
   {
     if ( ignoreSet != null) return !ignoreSet.contains( object);
     return super.shouldDiff( object, lhs);
@@ -134,17 +134,17 @@ public class ConfiguredXmlMatcher extends DefaultXmlMatcher
    * @see org.xmodel.diff.DefaultXmlMatcher#shouldDiff(org.xmodel.IModelObject, java.lang.String, boolean)
    */
   @Override
-  public boolean shouldDiff( IModelObject object, String attrName, boolean lhs)
+  public boolean shouldDiff( INode object, String attrName, boolean lhs)
   {
     if ( ignoreSet != null)
     {
       if ( attrName == null) return !ignoreSet.contains( null);
-      IModelObject node = object.getAttributeNode( attrName);
+      INode node = object.getAttributeNode( attrName);
       return !ignoreSet.contains( node);
     }
     return super.shouldDiff( object, attrName, lhs);
   }
 
-  private Set<IModelObject> ignoreSet;
-  private Set<IModelObject> orderedSet;
+  private Set<INode> ignoreSet;
+  private Set<INode> orderedSet;
 }

@@ -1,6 +1,6 @@
 package org.xmodel.script;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 
 public interface IMethod
@@ -11,7 +11,7 @@ public interface IMethod
    * @param factory The factory being used.
    * @param element The element.
    */
-  public void compile( IContext context, IMethodFactory factory, IModelObject element) throws CompileException;
+  public void compile( IContext context, IMethodFactory factory, INode element) throws CompileException;
   
   /**
    * Execute this method.

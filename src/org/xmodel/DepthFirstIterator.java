@@ -25,13 +25,13 @@ import java.util.*;
  * An iterator which visits all the decendants of a domain object. The tree is visited depth-first
  * and the root object is the first object visited.
  */
-public class DepthFirstIterator implements Iterator<IModelObject>
+public class DepthFirstIterator implements Iterator<INode>
 {
-  public DepthFirstIterator( IModelObject root)
+  public DepthFirstIterator( INode root)
   {
-    stack = new Stack<IModelObject>();
+    stack = new Stack<INode>();
     stack.push( root);
-    references = new HashSet<IModelObject>();
+    references = new HashSet<INode>();
   }
 
   /* (non-Javadoc)
@@ -46,14 +46,14 @@ public class DepthFirstIterator implements Iterator<IModelObject>
   /* (non-Javadoc)
    * @see java.util.Iterator#next()
    */
-  public IModelObject next()
+  public INode next()
   {
-    IModelObject object = stack.pop();
-    List<IModelObject> children = object.getChildren();
-    ListIterator<IModelObject> iter = children.listIterator(children.size());
+    INode object = stack.pop();
+    List<INode> children = object.getChildren();
+    ListIterator<INode> iter = children.listIterator(children.size());
     while( iter.hasPrevious()) 
     {
-      IModelObject child = (IModelObject)iter.previous();
+      INode child = (INode)iter.previous();
       stack.push( child);
     }
     
@@ -73,9 +73,9 @@ public class DepthFirstIterator implements Iterator<IModelObject>
    * @param object The object.
    * @return Returns true if the specified object should be traversed.
    */
-  protected boolean shouldTraverse( IModelObject object)
+  protected boolean shouldTraverse( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     if ( referent != object)
     {
       if ( references.contains( object)) return false;
@@ -84,6 +84,6 @@ public class DepthFirstIterator implements Iterator<IModelObject>
     return true;
   }
   
-  Stack<IModelObject> stack;
-  Set<IModelObject> references;
+  Stack<INode> stack;
+  Set<INode> references;
 }

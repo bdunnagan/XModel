@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
@@ -112,10 +112,10 @@ public class ProtocolTest
         "  <return>count( $payload/*)</return>" +
         "</script>";
     
-    IModelObject payload = new ModelObject( "payload");
+    INode payload = new ModelObject( "payload");
     for( int j=0; j<largePayloadCount; j++)
     {
-      IModelObject child = new ModelObject( "payload");
+      INode child = new ModelObject( "payload");
       payload.addChild( child);
     }
   
@@ -125,7 +125,7 @@ public class ProtocolTest
     XioClient client = clients.get( 0);
     client.connect( address, port).await();
     
-    IModelObject script = new XmlIO().read( scriptXml);
+    INode script = new XmlIO().read( scriptXml);
     Object[] result = client.execute( context, new String[] { "payload"}, script, timeout);
     
     int count = ((Number)result[ 0]).intValue();
@@ -141,17 +141,17 @@ public class ProtocolTest
         "  <return>count( $payload/*)</return>" +
         "</script>";
     
-    IModelObject payload = new ModelObject( "payload");
+    INode payload = new ModelObject( "payload");
     for( int j=0; j<smallPayloadCount; j++)
     {
-      IModelObject child = new ModelObject( "payload");
+      INode child = new ModelObject( "payload");
       payload.addChild( child);
     }
   
     StatefulContext context = new StatefulContext();
     context.set( "payload", payload);
 
-    IModelObject script = new XmlIO().read( scriptXml);
+    INode script = new XmlIO().read( scriptXml);
     
     List<ExecuteTask> tasks = new ArrayList<ExecuteTask>();
     for( XioClient client: clients)
@@ -193,7 +193,7 @@ public class ProtocolTest
   
   private static class ExecuteTask implements Runnable
   {
-    public ExecuteTask( XioClient client, StatefulContext context, IModelObject script)
+    public ExecuteTask( XioClient client, StatefulContext context, INode script)
     {
       this.client = client;
       this.context = context;
@@ -219,7 +219,7 @@ public class ProtocolTest
     
     private XioClient client;
     private StatefulContext context;
-    private IModelObject script;
+    private INode script;
     public List<Object[]> results;
     public Exception e;
   }

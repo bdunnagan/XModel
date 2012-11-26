@@ -2,7 +2,7 @@ package org.xmodel.xaction.debug;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.xaction.IXAction;
@@ -146,13 +146,13 @@ public class Debugger
     if ( shouldBreak) breaker.breakpoint( context);
   }
   
-  public synchronized IModelObject getStack()
+  public synchronized INode getStack()
   {
-    IModelObject stackNode = new ModelObject( "stack");
+    INode stackNode = new ModelObject( "stack");
     
     for( DebugThread thread: threadList)
     {
-      IModelObject threadNode = new ModelObject( "thread");
+      INode threadNode = new ModelObject( "thread");
       threadNode.setID( String.format( "%X", thread.hashCode()));
       Xlate.set( threadNode, "name", thread.thread);
       
@@ -161,7 +161,7 @@ public class Debugger
       {
         DebugFrame frame = thread.frames.get( i);
         
-        IModelObject frameNode = new ModelObject( "frame");
+        INode frameNode = new ModelObject( "frame");
         frameNode.setID( String.format( "%X", frame.hashCode()));
         Xlate.set( frameNode, "name", frame.getName());
         
@@ -170,7 +170,7 @@ public class Debugger
           IVariableScope scope = frame.context.getScope();
           for( String var: (i==0)? scope.getAll(): scope.getVariables())
           {
-            IModelObject varNode = new ModelObject( "var", var);
+            INode varNode = new ModelObject( "var", var);
             Object object = scope.get( var);
             serializeVariable( varNode, object);
             frameNode.addChild( varNode);
@@ -201,14 +201,14 @@ public class Debugger
    * @param varNode The stack variable node.
    * @param value The value of the variable.
    */
-  private static void serializeVariable( IModelObject varNode, Object value)
+  private static void serializeVariable( INode varNode, Object value)
   {
     if ( value instanceof List)
     {
       Xlate.set( varNode, "type", "nodes");
       for( Object object: (List<?>)value)
       {
-        varNode.addChild( ((IModelObject)object).cloneTree());
+        varNode.addChild( ((INode)object).cloneTree());
       }
     }
     else
@@ -268,7 +268,7 @@ public class Debugger
     
     public String getName()
     {
-      IModelObject config = action.getDocument().getRoot().cloneObject();
+      INode config = action.getDocument().getRoot().cloneObject();
       config.clearModel();
       config.removeAttribute( "xaction");
       config.removeAttribute( "xm:compiled");

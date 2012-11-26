@@ -3,7 +3,7 @@ package org.xmodel.net.bind;
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioException;
@@ -31,7 +31,7 @@ public class SyncRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the result of the sync.
    */
-  public IModelObject send( Channel channel, int netID, int timeout) throws InterruptedException
+  public INode send( Channel channel, int netID, int timeout) throws InterruptedException
   {
     int correlation = bundle.syncResponseProtocol.nextCorrelation();
     log.debugf( "SyncRequestProtocol.send (sync): corr=%d, timeout=%d, netID=%X", correlation, timeout, netID);
@@ -56,7 +56,7 @@ public class SyncRequestProtocol
     int correlation = buffer.readInt();
     int netID = buffer.readInt();
     
-    IModelObject element = bundle.responseCompressor.findLocal( netID);
+    INode element = bundle.responseCompressor.findLocal( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
     UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
@@ -73,7 +73,7 @@ public class SyncRequestProtocol
    * @param element The local element to sync.
    * @param listener The listener.
    */
-  private void sync( Channel channel, int correlation, long netID, IModelObject element, UpdateListener listener)
+  private void sync( Channel channel, int correlation, long netID, INode element, UpdateListener listener)
   {
     try
     {
@@ -112,7 +112,7 @@ public class SyncRequestProtocol
   
   private class SyncRunnable implements Runnable
   {
-    public SyncRunnable( Channel channel, int correlation, long netID, IModelObject element, UpdateListener listener)
+    public SyncRunnable( Channel channel, int correlation, long netID, INode element, UpdateListener listener)
     {
       this.channel = channel;
       this.correlation = correlation;
@@ -133,7 +133,7 @@ public class SyncRequestProtocol
     private Channel channel;
     private int correlation;
     private long netID;
-    private IModelObject element;
+    private INode element;
     private UpdateListener listener;
   }
   

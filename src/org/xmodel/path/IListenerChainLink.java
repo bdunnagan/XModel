@@ -20,7 +20,7 @@
 package org.xmodel.path;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 
 
@@ -50,7 +50,7 @@ public interface IListenerChainLink
    * However, the list may contain additional objects which do not lie on the path.
    * @param list A list containing objects belonging to this layer.
    */
-  public void install( List<IModelObject> list);
+  public void install( List<INode> list);
   
   /**
    * Uninstall the chain segment beginning with this IListenerChainLink on the objects in the given
@@ -58,31 +58,31 @@ public interface IListenerChainLink
    * However, the list may contain additional objects which do not lie on the path.
    * @param list A list containing objects belonging to this layer.
    */
-  public void uninstall( List<IModelObject> list);
+  public void uninstall( List<INode> list);
   
   /**
    * Install the chain segment beginning with this IListenerChainLink on the specified object.
    * @param object The object where this listener will be installed.
    */
-  public void incrementalInstall( IModelObject object);
+  public void incrementalInstall( INode object);
   
   /**
    * Uninstall the chain segment beginning with this IListenerChainLink from the specified object.
    * @param object The object where this listener will be installed.
    */
-  public void incrementalUninstall( IModelObject object);
+  public void incrementalUninstall( INode object);
   
   /**
    * Install the chain segment beginning with this IListenerChainLink on the specified objects.
    * @param objects The objects where this listener will be installed.
    */
-  public void incrementalInstall( List<IModelObject> objects);
+  public void incrementalInstall( List<INode> objects);
   
   /**
    * Uninstall the chain segment beginning with this IListenerChainLink from the specified objects.
    * @param objects The objects where this listener will be installed.
    */
-  public void incrementalUninstall( List<IModelObject> objects);
+  public void incrementalUninstall( List<INode> objects);
   
   /**
    * Returns the chain of which this link is a part.

@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import org.xmodel.IChangeSet;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 
 
@@ -52,7 +52,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     setMatcher( matcher);
   }
   
-  public XmlDiffer( IModelObjectFactory factory)
+  public XmlDiffer( INodeFactory factory)
   {
     this();
     setFactory( factory);
@@ -62,7 +62,7 @@ public class XmlDiffer extends AbstractXmlDiffer
    * Set the factory which is used to clone objects from the right-hand tree into the left-hand tree.
    * @param factory The new factory.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public void setFactory( INodeFactory factory)
   {
     this.factory = factory;
   }
@@ -71,7 +71,7 @@ public class XmlDiffer extends AbstractXmlDiffer
    * Returns the IModelObjectFactory defined on this differ.
    * @return Returns the IModelObjectFactory defined on this differ.
    */
-  public IModelObjectFactory getFactory()
+  public INodeFactory getFactory()
   {
     return factory;
   }
@@ -80,17 +80,17 @@ public class XmlDiffer extends AbstractXmlDiffer
    * @see org.xmodel.diff.nu.AbstractXmlDiffer#diffSet(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  protected boolean diffSet( IModelObject lParent, IModelObject rParent, IChangeSet changeSet)
+  protected boolean diffSet( INode lParent, INode rParent, IChangeSet changeSet)
   {
     IXmlMatcher matcher = getMatcher();
     
-    List<IModelObject> rightSet = rParent.getChildren();
-    List<IModelObject> rightSetCopy = new ArrayList<IModelObject>( rightSet);
-    List<IModelObject> leftSet = lParent.getChildren();
+    List<INode> rightSet = rParent.getChildren();
+    List<INode> rightSetCopy = new ArrayList<INode>( rightSet);
+    List<INode> leftSet = lParent.getChildren();
     int recordCount = (changeSet != null)? changeSet.getSize(): 0;
     
     // remove objects that shouldn't be differenced from copy of right set
-    ListIterator<IModelObject> rightIter = rightSetCopy.listIterator();
+    ListIterator<INode> rightIter = rightSetCopy.listIterator();
     while( rightIter.hasNext())
     {
       if ( !matcher.shouldDiff( rightIter.next(), false))
@@ -99,14 +99,14 @@ public class XmlDiffer extends AbstractXmlDiffer
     
     // diff sets
     int removeIndex = 0;
-    for( IModelObject left: leftSet)
+    for( INode left: leftSet)
     {
       if ( matcher.shouldDiff( left, true))
       {
         int matchIndex = matcher.findMatch( rightSetCopy, left);
         if ( matchIndex >= 0)
         {
-          IModelObject rightMatch = rightSetCopy.get( matchIndex);
+          INode rightMatch = rightSetCopy.get( matchIndex);
           if ( !diff( left, rightMatch, changeSet) && changeSet == null) return false;
           
           // remove match from right set for (1)
@@ -126,7 +126,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     if ( changeSet == null && rightSetCopy.size() > 0) return false;
     
     // (1) add what is left in copy of right set
-    for( IModelObject right: rightSetCopy)
+    for( INode right: rightSetCopy)
       changeSet.addChild( lParent, getFactoryClone( right));
   
     if ( changeSet != null) return changeSet.getSize() == recordCount; else return true;
@@ -136,7 +136,7 @@ public class XmlDiffer extends AbstractXmlDiffer
    * @see org.xmodel.diff.nu.AbstractXmlDiffer#diffList(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IChangeSet)
    */
-  protected boolean diffList( IModelObject lParent, IModelObject rParent, IChangeSet changeSet)
+  protected boolean diffList( INode lParent, INode rParent, IChangeSet changeSet)
   {
     if ( changeSet == null) return compareList( lParent, rParent);
 
@@ -153,10 +153,10 @@ public class XmlDiffer extends AbstractXmlDiffer
    * @param rParent The right parent.
    * @return Returns true if the children are identical.
    */
-  protected boolean compareList( IModelObject lParent, IModelObject rParent)
+  protected boolean compareList( INode lParent, INode rParent)
   {
-    List<IModelObject> lList = lParent.getChildren();
-    List<IModelObject> rList = rParent.getChildren();
+    List<INode> lList = lParent.getChildren();
+    List<INode> rList = rParent.getChildren();
     if ( lList.size() != rList.size()) return false;
     
     for( int i=0; i<lList.size(); i++)
@@ -173,7 +173,7 @@ public class XmlDiffer extends AbstractXmlDiffer
    * @param object The object to be cloned.
    * @return Returns a clone of the specified object or the object.
    */
-  public IModelObject getFactoryClone( IModelObject object)
+  public INode getFactoryClone( INode object)
   {
     if ( factory != null) return ModelAlgorithms.cloneTree( object, factory);
     return object;
@@ -187,7 +187,7 @@ public class XmlDiffer extends AbstractXmlDiffer
      * @param rParent The right-hand-side parent.
      * @param changeSet The change set.
      */
-    public void diff( IModelObject lParent, IModelObject rParent, IChangeSet changeSet)
+    public void diff( INode lParent, INode rParent, IChangeSet changeSet)
     {
       this.changeSet = changeSet;
       this.lParent = lParent;
@@ -200,7 +200,7 @@ public class XmlDiffer extends AbstractXmlDiffer
      */
     public boolean isMatch( Object lObject, Object rObject)
     {
-      return matcher.isMatch( (IModelObject)lObject, (IModelObject)rObject);
+      return matcher.isMatch( (INode)lObject, (INode)rObject);
     }
     
     /* (non-Javadoc)
@@ -208,12 +208,12 @@ public class XmlDiffer extends AbstractXmlDiffer
      */
     public void notifyEqual( final List<?> lhs, int lIndex, int lAdjust, final List<?> rhs, int rIndex, int count)
     {
-      IModelObject lParent = this.lParent;
-      IModelObject rParent = this.rParent;
+      INode lParent = this.lParent;
+      INode rParent = this.rParent;
       for( int i=0; i<count; i++)
       {
-        IModelObject lChild = lParent.getChild( lIndex++);
-        IModelObject rChild = rParent.getChild( rIndex++);
+        INode lChild = lParent.getChild( lIndex++);
+        INode rChild = rParent.getChild( rIndex++);
         XmlDiffer.this.diff( lChild, rChild, changeSet);
       }
       this.lParent = lParent;
@@ -227,7 +227,7 @@ public class XmlDiffer extends AbstractXmlDiffer
     {
       for( int i=0; i<count; i++)
       {
-        IModelObject clone = getFactoryClone( rParent.getChild( rIndex+i));
+        INode clone = getFactoryClone( rParent.getChild( rIndex+i));
         changeSet.addChild( lParent, clone, rIndex+i);
       }
     }
@@ -244,10 +244,10 @@ public class XmlDiffer extends AbstractXmlDiffer
     }
 
     IChangeSet changeSet;
-    IModelObject lParent;
-    IModelObject rParent;
+    INode lParent;
+    INode rParent;
   };
   
-  IModelObjectFactory factory;
+  INodeFactory factory;
   XmlListDiffer listDiffer;
 }

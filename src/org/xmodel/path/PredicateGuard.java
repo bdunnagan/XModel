@@ -71,15 +71,15 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#install(java.util.List)
    */
-  public void install( List<IModelObject> list)
+  public void install( List<INode> list)
   {
     IListenerChain chain = getListenerChain();
     IContext parent = chain.getContext();
-    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list.size());
+    List<INode> nextLayer = new ArrayList<INode>( list.size());
     IPredicate predicate = getPredicate();
     for ( int i=0; i<list.size(); i++)
     {
-      IModelObject object = list.get( i);
+      INode object = list.get( i);
       predicate.bind( new SubContext( parent, object, i+1, list.size()));
       if ( predicate.evaluate( parent, candidatePath, object)) nextLayer.add( object);
     }
@@ -90,14 +90,14 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#uninstall(java.util.List)
    */
-  public void uninstall( List<IModelObject> list)
+  public void uninstall( List<INode> list)
   {
     IContext parent = getListenerChain().getContext();
-    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list.size());
+    List<INode> nextLayer = new ArrayList<INode>( list.size());
     IPredicate predicate = getPredicate();
     for ( int i=0; i<list.size(); i++)
     {
-      IModelObject object = list.get( i);
+      INode object = list.get( i);
       predicate.unbind( new SubContext( parent, object, i+1, list.size()));
       if ( predicate.evaluate( parent, candidatePath, object)) nextLayer.add( object);
     }
@@ -108,7 +108,7 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(org.xmodel.IModelObject)
    */
-  public void incrementalInstall( IModelObject object)
+  public void incrementalInstall( INode object)
   {
     incrementalInstall( Collections.singletonList( object));
   }
@@ -116,7 +116,7 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(org.xmodel.IModelObject)
    */
-  public void incrementalUninstall( IModelObject object)
+  public void incrementalUninstall( INode object)
   {
     incrementalUninstall( Collections.singletonList( object));
   }
@@ -124,12 +124,12 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalInstall(java.util.List)
    */
-  public void incrementalInstall( List<IModelObject> list)
+  public void incrementalInstall( List<INode> list)
   {
     // find candidates
     IListenerChain chain = getListenerChain();
     IContext bound = chain.getContext();
-    List<IModelObject> candidates = candidatePath.query( bound, null);
+    List<INode> candidates = candidatePath.query( bound, null);
 
     // find index of first object
     int start = Collections.indexOfSubList( candidates, list);
@@ -142,10 +142,10 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
       predicate.bind( new SubContext( parent, list.get( i), i+start+1, count));
 
     // evaluate predicate
-    List<IModelObject> filtered = new ArrayList<IModelObject>( list.size());
+    List<INode> filtered = new ArrayList<INode>( list.size());
     for( int i=0; i<list.size(); i++)
     {
-      IModelObject object = list.get( i);
+      INode object = list.get( i);
       if ( predicate.evaluate( parent, candidatePath, object))
         filtered.add( object);
     }
@@ -156,14 +156,14 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   /* (non-Javadoc)
    * @see org.xmodel.path.IListenerChainLink#incrementalUninstall(java.util.List)
    */
-  public void incrementalUninstall( List<IModelObject> list)
+  public void incrementalUninstall( List<INode> list)
   {
     // find candidates
     IListenerChain chain = getListenerChain();
     IContext bound = chain.getContext();
     IModel model = bound.getModel();
     model.revert();
-    List<IModelObject> candidates = candidatePath.query( bound, null);
+    List<INode> candidates = candidatePath.query( bound, null);
     model.restore();
 
     // find index of first object
@@ -178,10 +178,10 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
 
     // evaluate predicate
     model.revert();
-    List<IModelObject> filtered = new ArrayList<IModelObject>( list.size());
+    List<INode> filtered = new ArrayList<INode>( list.size());
     for( int i=0; i<list.size(); i++)
     {
-      IModelObject object = list.get( i);
+      INode object = list.get( i);
       if ( predicate.evaluate( parent, candidatePath, object))
         filtered.add( object);
     }
@@ -241,10 +241,10 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
     IListenerChainLink previous = links[ getPathIndex()];
 
     context.getModel().revert();
-    List<IModelObject> oldCandidates = candidatePath.query( parent, null);
+    List<INode> oldCandidates = candidatePath.query( parent, null);
     
     context.getModel().restore();
-    List<IModelObject> newCandidates = candidatePath.query( parent, null);
+    List<INode> newCandidates = candidatePath.query( parent, null);
 
     // ensure that all SubContext instances have correct indices
     previous.uninstall( oldCandidates);

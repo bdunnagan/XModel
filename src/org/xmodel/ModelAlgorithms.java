@@ -63,17 +63,17 @@ public class ModelAlgorithms implements IAxis
    * @param object The object to be matched.
    * @return Returns the best match for the specified object.   
    */
-  public static IModelObject findFastMatch( List<IModelObject> list, IModelObject object)
+  public static INode findFastMatch( List<INode> list, INode object)
   {
-    IModelObject match = findFastSimpleMatch( list, object);
+    INode match = findFastSimpleMatch( list, object);
     if ( match != null) return match;
 
     // compare ancestry
     int maxDepth = 0;
-    for( IModelObject node: list)
+    for( INode node: list)
     {
-      IModelObject ancestor1 = object;
-      IModelObject ancestor2 = node;
+      INode ancestor1 = object;
+      INode ancestor2 = node;
       int depth = 0;
       while( ancestor1 != null && ancestor2 != null)
       {
@@ -103,13 +103,13 @@ public class ModelAlgorithms implements IAxis
    * @param object The object to be matched.
    * @return Returns null or the best match for the specified object.   
    */
-  public static IModelObject findFastSimpleMatch( List<IModelObject> list, IModelObject object)
+  public static INode findFastSimpleMatch( List<INode> list, INode object)
   {
     // look for exact match
-    IModelObject referent = dereference( object);
-    for( IModelObject node: list)
+    INode referent = dereference( object);
+    for( INode node: list)
     {
-      IModelObject nodeReferent = dereference( node);
+      INode nodeReferent = dereference( node);
       if ( referent == nodeReferent) return node;
     }
     
@@ -117,7 +117,7 @@ public class ModelAlgorithms implements IAxis
     String id = object.getID();
     if ( id.length() > 0)
     {
-      for( IModelObject node: list)
+      for( INode node: list)
         if ( node.getID().equals( id))
           return node;
     }
@@ -126,7 +126,7 @@ public class ModelAlgorithms implements IAxis
       Object value = object.getValue();
       if ( value != null)
       {
-        for( IModelObject node: list)
+        for( INode node: list)
         {
           Object nodeValue = node.getValue();
           if ( nodeValue != null && nodeValue.equals( value))
@@ -136,9 +136,9 @@ public class ModelAlgorithms implements IAxis
       else
       {
         int matches = 0;
-        IModelObject match = null;
+        INode match = null;
         String type = object.getType();
-        for( IModelObject node: list)
+        for( INode node: list)
           if ( node.getType().equals( type))
           {
             match = node;
@@ -161,12 +161,12 @@ public class ModelAlgorithms implements IAxis
    * @param object The object to be matched.
    * @return Returns the best match for the specified object.
    */
-  public static IModelObject findBestMatch( List<IModelObject> list, IModelObject object)
+  public static INode findBestMatch( List<INode> list, INode object)
   {
     // narrow candidates by type
     String type = object.getType();
-    List<IModelObject> candidates = new ArrayList<IModelObject>( list.size());
-    for( IModelObject candidate: list)
+    List<INode> candidates = new ArrayList<INode>( list.size());
+    for( INode candidate: list)
       if ( candidate.getType().equals( type))
         candidates.add( candidate);
     
@@ -178,16 +178,16 @@ public class ModelAlgorithms implements IAxis
     String id = object.getID();
     if ( id != null && id.length() > 0)
     {
-      for( IModelObject candidate: candidates)
+      for( INode candidate: candidates)
         if ( candidate.getID().equals( id))
           return candidate;
     }
     
     // diff candidates
-    IModelObject minCandidate = null;
+    INode minCandidate = null;
     int minRecords = Integer.MAX_VALUE;
     XmlDiffer differ = new XmlDiffer();
-    for( IModelObject candidate: candidates)
+    for( INode candidate: candidates)
     {
       ChangeSet changeSet = new ChangeSet();
       differ.diff( candidate, object, changeSet);
@@ -208,25 +208,25 @@ public class ModelAlgorithms implements IAxis
    * @param object2 The second object.
    * @return Returns null or the common ancestor of the two objects.
    */
-  public static IModelObject findCommonAncestor( IModelObject object1, IModelObject object2)
+  public static INode findCommonAncestor( INode object1, INode object2)
   {
     // find common ancestor
-    IModelObject ancestor = null;
+    INode ancestor = null;
     
     // get this depth
     int thisDepth = 0;
-    for ( IModelObject object = object1; object != null; object = object.getParent()) thisDepth++;
+    for ( INode object = object1; object != null; object = object.getParent()) thisDepth++;
     thisDepth--;
     
     // get peer depth
     int peerDepth = 0;
-    for ( IModelObject object = object2; object != null; object = object.getParent()) peerDepth++;
+    for ( INode object = object2; object != null; object = object.getParent()) peerDepth++;
     peerDepth--;
     
     
     // start at the same level
-    IModelObject lhs = object1;
-    IModelObject rhs = object2;
+    INode lhs = object1;
+    INode rhs = object2;
     int startDepth = (peerDepth < thisDepth)? peerDepth: thisDepth;
     for ( int i=thisDepth; i>=startDepth; i--) lhs = lhs.getParent();
     for ( int i=peerDepth; i>=startDepth; i--) rhs = rhs.getParent();
@@ -255,7 +255,7 @@ public class ModelAlgorithms implements IAxis
    * @param endObject The ending peer object.
    * @return Returns a peer path.
    */
-  public static CanonicalPath createRelativePath( IModelObject startObject, IModelObject endObject)
+  public static CanonicalPath createRelativePath( INode startObject, INode endObject)
   {
     // if objects are the same then...
     if ( startObject == endObject)
@@ -278,13 +278,13 @@ public class ModelAlgorithms implements IAxis
     }
     
     // find common ancestor
-    IModelObject ancestor = findCommonAncestor( startObject, endObject);
+    INode ancestor = findCommonAncestor( startObject, endObject);
     
     // create section of path from ancestor to peer
     CanonicalPath path = new CanonicalPath();
     IPath identityPath = createIdentityPath( endObject);
     int pathIndex = identityPath.length();
-    for ( IModelObject object = endObject; object != ancestor; object = object.getParent())
+    for ( INode object = endObject; object != ancestor; object = object.getParent())
       path.addElement( 0, identityPath.getPathElement( --pathIndex));
         
     // if startObject is ancestor of endObject
@@ -313,7 +313,7 @@ public class ModelAlgorithms implements IAxis
    * @param object The root of the subtree to clone.
    * @return Returns a complete clone of the subtree.
    */
-  public static IModelObject cloneTree( IModelObject object)
+  public static INode cloneTree( INode object)
   {
     return cloneTree( object, null);
   }
@@ -326,21 +326,21 @@ public class ModelAlgorithms implements IAxis
    * @return Returns a complete clone of the subtree.
    * TODO: Optimize cloning with backdoor for fast object creation without involving IModel
    */
-  public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory)
+  public static INode cloneTree( INode object, INodeFactory factory)
   {
-    IModelObject thisDup = (factory == null)? object.cloneObject(): factory.createClone( object);
-    Fifo<IModelObject> fifo = new Fifo<IModelObject>();
+    INode thisDup = (factory == null)? object.cloneObject(): factory.createClone( object);
+    Fifo<INode> fifo = new Fifo<INode>();
     fifo.push( object);
     fifo.push( thisDup);
     while( !fifo.empty())
     {
-      IModelObject source = (IModelObject)fifo.pop();
-      IModelObject sourceDup = (IModelObject)fifo.pop();
-      List<IModelObject> children = source.getChildren();
+      INode source = (INode)fifo.pop();
+      INode sourceDup = (INode)fifo.pop();
+      List<INode> children = source.getChildren();
       for ( int i=0; i<children.size(); i++)
       {
-        IModelObject child = (IModelObject)children.get( i);
-        IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
+        INode child = (INode)children.get( i);
+        INode childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
         if ( childDup != null)
         {
           childDup.clearModel();
@@ -361,26 +361,26 @@ public class ModelAlgorithms implements IAxis
    * @param factory Null or the factory to use for elements that are not IExternalReference instances.
    * @return Returns the clone.
    */
-  public static IModelObject cloneExternalTree( IModelObject object, IModelObjectFactory factory)
+  public static INode cloneExternalTree( INode object, INodeFactory factory)
   {
     ReferenceFactory referenceFactory = new ReferenceFactory();
     referenceFactory.delegate = factory;
     
-    IModelObject thisDup = (referenceFactory == null)? object.cloneObject(): referenceFactory.createClone( object);
+    INode thisDup = (referenceFactory == null)? object.cloneObject(): referenceFactory.createClone( object);
     if ( object.isDirty()) return thisDup;
     
-    Fifo<IModelObject> fifo = new Fifo<IModelObject>();
+    Fifo<INode> fifo = new Fifo<INode>();
     fifo.push( object);
     fifo.push( thisDup);
     while( !fifo.empty())
     {
-      IModelObject source = (IModelObject)fifo.pop();
-      IModelObject sourceDup = (IModelObject)fifo.pop();
-      List<IModelObject> children = source.getChildren();
+      INode source = (INode)fifo.pop();
+      INode sourceDup = (INode)fifo.pop();
+      List<INode> children = source.getChildren();
       for ( int i=0; i<children.size(); i++)
       {
-        IModelObject child = (IModelObject)children.get( i);
-        IModelObject childDup = (referenceFactory == null)? child.cloneObject(): referenceFactory.createClone( child);
+        INode child = (INode)children.get( i);
+        INode childDup = (referenceFactory == null)? child.cloneObject(): referenceFactory.createClone( child);
         sourceDup.addChild( childDup);
         if ( !child.isDirty())
         {
@@ -397,7 +397,7 @@ public class ModelAlgorithms implements IAxis
    * @param object The branch point to be cloned.
    * @return Returns the clone of the specified object.
    */
-  public static IModelObject cloneBranch( IModelObject object)
+  public static INode cloneBranch( INode object)
   {
     return cloneBranch( object, null);
   }
@@ -408,17 +408,17 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory to use when creating objects in the tree.
    * @return Returns the clone of the specified object.
    */
-  public static IModelObject cloneBranch( IModelObject object, IModelObjectFactory factory)
+  public static INode cloneBranch( INode object, INodeFactory factory)
   {
     // clone tree
-    IModelObject clone = cloneTree( object, factory);
+    INode clone = cloneTree( object, factory);
     
     // clone ancestors
-    IModelObject child = clone;
+    INode child = clone;
     object = object.getParent();
     while( object != null)
     {
-      IModelObject parent = (factory == null)? object.cloneObject(): factory.createClone( object);
+      INode parent = (factory == null)? object.cloneObject(): factory.createClone( object);
       parent.addChild( child);
       child = parent;
       object = object.getParent();
@@ -432,7 +432,7 @@ public class ModelAlgorithms implements IAxis
    * @param source The source object whose attributes will be copied.
    * @param destination The destination object where the attributes will be copied.
    */
-  public static void copyAttributes( IModelObject source, IModelObject destination)
+  public static void copyAttributes( INode source, INode destination)
   {
     Collection<String> attrNames = source.getAttributeNames();
     for( String attrName: attrNames)
@@ -449,12 +449,12 @@ public class ModelAlgorithms implements IAxis
    * @param source The source object whose children will be copied.
    * @param destination The destination object where the children will be copied.
    */
-  public static void copyChildren( IModelObject source, IModelObject destination, IModelObjectFactory factory)
+  public static void copyChildren( INode source, INode destination, INodeFactory factory)
   {
     if ( factory == null) factory = new ModelObjectFactory();
-    for ( IModelObject child: source.getChildren())
+    for ( INode child: source.getChildren())
     {
-      IModelObject clone = cloneTree( child, factory);
+      INode clone = cloneTree( child, factory);
       destination.addChild( clone);
     }
   }
@@ -464,11 +464,11 @@ public class ModelAlgorithms implements IAxis
    * @param source The source object whose children will be copied.
    * @param destination The destination object where the children will be copied.
    */
-  public static void moveChildren( IModelObject source, IModelObject destination)
+  public static void moveChildren( INode source, INode destination)
   {
     // copy list since children will be removed from original list when moved
-    List<IModelObject> children = new ArrayList<IModelObject>( source.getChildren());
-    for ( IModelObject child: children) destination.addChild( child);
+    List<INode> children = new ArrayList<INode>( source.getChildren());
+    for ( INode child: children) destination.addChild( child);
   }
   
   /**
@@ -477,9 +477,9 @@ public class ModelAlgorithms implements IAxis
    * @param original The original child.
    * @param replacement The replacement child.
    */
-  public static void substitute( IModelObject original, IModelObject replacement)
+  public static void substitute( INode original, INode replacement)
   {
-    IModelObject parent = original.getParent();
+    INode parent = original.getParent();
     if ( parent != null)
     {
       int index = parent.getChildren().indexOf( original);
@@ -494,7 +494,7 @@ public class ModelAlgorithms implements IAxis
    * IPathElement for each ancestor.
    * @return Returns the identity path for the given object.
    */
-  public static CanonicalPath createIdentityPath( IModelObject object)
+  public static CanonicalPath createIdentityPath( INode object)
   {
     return createIdentityPath( object, false);
   }
@@ -507,12 +507,12 @@ public class ModelAlgorithms implements IAxis
    * @param useName True if name attribute should be used if present.
    * @return Returns the identity path for the given object.
    */
-  public static CanonicalPath createIdentityPath( IModelObject object, boolean useName)
+  public static CanonicalPath createIdentityPath( INode object, boolean useName)
   {
     CanonicalPath path = new CanonicalPath();
     while( object != null)
     {
-      IModelObject parent = object.getParent();
+      INode parent = object.getParent();
       
       int axis = (parent == null)? IAxis.ROOT: IAxis.CHILD;
       if ( object instanceof AttributeNode) axis = IAxis.ATTRIBUTE;
@@ -541,7 +541,7 @@ public class ModelAlgorithms implements IAxis
       }
       else
       {
-        List<IModelObject> children = Collections.emptyList();
+        List<INode> children = Collections.emptyList();
         if ( parent != null) children = parent.getChildren( object.getType());
         if ( children.size() > 1 && !(object instanceof AttributeNode))
         {
@@ -569,9 +569,9 @@ public class ModelAlgorithms implements IAxis
    * @param object The object whose identity path will be created.
    * @return Returns the identity path.
    */
-  public static IExpression createIdentityExpression( IModelObject object)
+  public static IExpression createIdentityExpression( INode object)
   {
-    IModelObject root = object.getRoot();
+    INode root = object.getRoot();
     String collection = root.getType();
     
     // create relative path
@@ -595,7 +595,7 @@ public class ModelAlgorithms implements IAxis
    * includes an IPathElement for each ancestor.
    * @return Returns the type path for the given object.
    */
-  public static CanonicalPath createTypePath( IModelObject object)
+  public static CanonicalPath createTypePath( INode object)
   {
     CanonicalPath path = new CanonicalPath();
     while( object != null)
@@ -641,11 +641,11 @@ public class ModelAlgorithms implements IAxis
    * @param end The leaf of the index path.
    * @return Returns null or the index path.
    */
-  public static int[] createIndexPath( IModelObject start, IModelObject end)
+  public static int[] createIndexPath( INode start, INode end)
   {
     // count ancestors
     int count = 0;
-    IModelObject ancestor = end;
+    INode ancestor = end;
     while( ancestor != null && ancestor != start)
     {
       count++;
@@ -656,7 +656,7 @@ public class ModelAlgorithms implements IAxis
     int[] indices = new int[ count];
     for( int i=indices.length-1; i>=0; i--)
     {
-      IModelObject parent = end.getParent();
+      INode parent = end.getParent();
       indices[ i] = parent.getChildren().indexOf( end);
       end = end.getParent();
     }
@@ -670,7 +670,7 @@ public class ModelAlgorithms implements IAxis
    * @param indices The array of indices.
    * @return Returns null or the leaf of the index path.
    */
-  public static IModelObject evaluateIndexPath( IModelObject root, int[] indices)
+  public static INode evaluateIndexPath( INode root, int[] indices)
   {
     if ( indices.length == 0) return root;
     for( int i=0; i<indices.length; i++)
@@ -688,7 +688,7 @@ public class ModelAlgorithms implements IAxis
    * @param object The object for which the index path will be created.
    * @return Returns the index path for the object or null.
    */
-  public static String createIndexPathString( IModelObject object)
+  public static String createIndexPathString( INode object)
   {
     String type = object.getType();
     if ( object instanceof AttributeNode) type = "@"+type;
@@ -697,7 +697,7 @@ public class ModelAlgorithms implements IAxis
     while( object != null)
     {
       String step = "/"+type;
-      IModelObject parent = object.getParent();
+      INode parent = object.getParent();
       if ( parent != null)
       {
         int index = parent.getChildren().indexOf( object);
@@ -737,9 +737,9 @@ public class ModelAlgorithms implements IAxis
    * @param ancestor The ancestor being considered.
    * @return Returns true if the given ancestor is an ancestor of the given object.
    */
-  public static boolean isAncestor( IModelObject object, IModelObject ancestor)
+  public static boolean isAncestor( INode object, INode ancestor)
   {
-    IModelObject parent = object.getParent();
+    INode parent = object.getParent();
     for ( ; parent != null; parent = parent.getParent())
       if ( parent == ancestor) 
         return true;
@@ -754,13 +754,13 @@ public class ModelAlgorithms implements IAxis
    * @param root The root of the subtree to hash.
    * @return Returns a long hash value for the subtree.
    */
-  public static long calculateTreeHash( IModelObject root)
+  public static long calculateTreeHash( INode root)
   {
     CRC32 crc32 = new CRC32();
     BreadthFirstIterator treeIter = new BreadthFirstIterator( root);
     while( treeIter.hasNext())
     {
-      IModelObject object = (IModelObject)treeIter.next();
+      INode object = (INode)treeIter.next();
       crc32.update( object.getType().getBytes());
       Iterator<String> attrIter = object.getAttributeNames().iterator();
       while( attrIter.hasNext())
@@ -782,20 +782,20 @@ public class ModelAlgorithms implements IAxis
    * @param rhs The right-hand object.
    * @return Returns -1, 0 or 1.
    */
-  public static int compareDocumentOrder( IModelObject lhs, IModelObject rhs)
+  public static int compareDocumentOrder( INode lhs, INode rhs)
   {
-    IModelObject ancestor = findCommonAncestor( lhs, rhs);
+    INode ancestor = findCommonAncestor( lhs, rhs);
     if ( ancestor == null) return 0;
     
-    IModelObject leftParent = lhs;
+    INode leftParent = lhs;
     while( leftParent.getParent() != null && leftParent.getParent() != ancestor)
       leftParent = leftParent.getParent();
     
-    IModelObject rightParent = null;
+    INode rightParent = null;
     while( rightParent.getParent() != null && rightParent.getParent() != ancestor)
       rightParent = rightParent.getParent();
     
-    List<IModelObject> children = ancestor.getChildren();
+    List<INode> children = ancestor.getChildren();
     int leftIndex = children.indexOf( leftParent);
     int rightIndex = children.indexOf( rightParent);
     if ( leftIndex < rightIndex) return -1;
@@ -825,7 +825,7 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
    */
-  public static void createPathSubtree( IContext context, IExpression expression, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( IContext context, IExpression expression, INodeFactory factory, IChangeSet undo)
   {
     expression.createSubtree( context, factory, undo);
   }
@@ -839,7 +839,7 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
    */
-  public static void createPathSubtree( IModelObject object, IPath path, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( INode object, IPath path, INodeFactory factory, IChangeSet undo)
   {
     createPathSubtree( new Context( object), path, factory, undo);
   }
@@ -853,32 +853,32 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
    */
-  public static void createPathSubtree( IContext context, IPath path, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( IContext context, IPath path, INodeFactory factory, IChangeSet undo)
   {
     if ( factory == null) factory = new ModelObjectFactory();
     
     // create result list
     int length = path.length();
-    List<IModelObject> result = new ArrayList<IModelObject>();
+    List<INode> result = new ArrayList<INode>();
     
     // configure layers so result is nextLayer at end of query
     boolean even = (length % 2) == 0;
-    List<IModelObject> currLayer = even? new ArrayList<IModelObject>(): result;
-    List<IModelObject> nextLayer = even? result: new ArrayList<IModelObject>();
+    List<INode> currLayer = even? new ArrayList<INode>(): result;
+    List<INode> nextLayer = even? result: new ArrayList<INode>();
     
     // query each location
     nextLayer.add( context.getObject());
     for ( int i=0; i<length; i++)
     {
       IPathElement element = path.getPathElement( i);
-      List<IModelObject> swapLayer = currLayer;
+      List<INode> swapLayer = currLayer;
       currLayer = nextLayer;
       nextLayer = swapLayer;
       nextLayer.clear();
       int currSize = currLayer.size();
       for ( int j=0; j<currSize; j++)
       {
-        IModelObject layerObject = (IModelObject)currLayer.get( j);
+        INode layerObject = (INode)currLayer.get( j);
         element.query( context, layerObject, nextLayer);
       }
       
@@ -888,7 +888,7 @@ public class ModelAlgorithms implements IAxis
       {
         for ( int j=0; j<currSize; j++)
         {
-          IModelObject layerObject = currLayer.get( j);
+          INode layerObject = currLayer.get( j);
           if ( (element.axis() & IAxis.ATTRIBUTE) != 0)
           {
             layerObject.setAttribute( element.type(), "");
@@ -898,7 +898,7 @@ public class ModelAlgorithms implements IAxis
           else
           {
             if ( element.type() == null) return;
-            IModelObject newObject = factory.createObject( layerObject, element.type());
+            INode newObject = factory.createObject( layerObject, element.type());
             layerObject.addChild( newObject);
             nextLayer.add( newObject);
             if ( undo != null) undo.removeChild( layerObject, newObject);
@@ -913,9 +913,9 @@ public class ModelAlgorithms implements IAxis
    * @param object The object.
    * @return Returns the dereferenced object.
    */
-  public static IModelObject dereference( IModelObject object)
+  public static INode dereference( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     while( referent != object) 
     {
       object = referent;
@@ -975,11 +975,11 @@ public class ModelAlgorithms implements IAxis
    * @param slave The slave.
    * @return Returns the master clone, or null if the argument is null.
    */
-  public static IModelObject createMasterClone( IModelObject slave)
+  public static INode createMasterClone( INode slave)
   {
     if ( slave == null) return null;
     
-    IModelObject master = slave.cloneTree();
+    INode master = slave.cloneTree();
     MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
     masterListener.install( master);
     return master;
@@ -992,11 +992,11 @@ public class ModelAlgorithms implements IAxis
    * @param master The master.
    * @return Returns the slave clone, or null if the argument is null.
    */
-  public static IModelObject createSlaveClone( IModelObject master)
+  public static INode createSlaveClone( INode master)
   {
     if ( master == null) return null;
     
-    IModelObject slave = master.cloneTree();
+    INode slave = master.cloneTree();
     MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
     masterListener.install( master);
     return slave;
@@ -1007,7 +1007,7 @@ public class ModelAlgorithms implements IAxis
    */
   private static class ReferenceFactory extends ModelObjectFactory
   {
-    public IModelObject createClone( IModelObject object)
+    public INode createClone( INode object)
     {
       if ( object instanceof IExternalReference)
       {
@@ -1031,7 +1031,7 @@ public class ModelAlgorithms implements IAxis
       return super.createClone( object);
     }
     
-    public IModelObjectFactory delegate;
+    public INodeFactory delegate;
   }
   
   private static String rstamp;
@@ -1058,8 +1058,8 @@ public class ModelAlgorithms implements IAxis
       "</a>";
     
     XmlIO xmlIO = new XmlIO();
-    IModelObject root = xmlIO.read( xml);
-    IModelObject leaf = root.getChild( 1).getChild( 0);
+    INode root = xmlIO.read( xml);
+    INode leaf = root.getChild( 1).getChild( 0);
     IPath path = ModelAlgorithms.createIdentityPath( leaf, true);
     System.out.println( path.toString());
   }

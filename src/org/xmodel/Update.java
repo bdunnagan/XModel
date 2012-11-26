@@ -64,7 +64,7 @@ public final class Update
    * @param newValue The new value.
    * @param oldValue The old value.
    */
-  public void setAttribute( IModelObject object, String attrName, Object newValue, Object oldValue)
+  public void setAttribute( INode object, String attrName, Object newValue, Object oldValue)
   {
     setAttributeMemento.object = object;
     setAttributeMemento.attrName = attrName;
@@ -79,7 +79,7 @@ public final class Update
    * @param attrName The name of the attribute.
    * @param oldValue The old value.
    */
-  public void removeAttribute( IModelObject object, String attrName, Object oldValue)
+  public void removeAttribute( INode object, String attrName, Object oldValue)
   {
     removeAttributeMemento.object = object;
     removeAttributeMemento.attrName = attrName;
@@ -93,7 +93,7 @@ public final class Update
    * @param child The child.
    * @param index The index.
    */
-  public void addChild( IModelObject parent, IModelObject child, int index)
+  public void addChild( INode parent, INode child, int index)
   {
     addChildMemento.parent = parent;
     addChildMemento.child = child;
@@ -103,7 +103,7 @@ public final class Update
     removeChildMemento.parent = child.getParent();
     if ( removeChildMemento.parent != null)
     {
-      List<IModelObject> children = removeChildMemento.parent.getChildren();
+      List<INode> children = removeChildMemento.parent.getChildren();
       removeChildMemento.child = child;
       removeChildMemento.index = children.indexOf( child);
     }
@@ -121,7 +121,7 @@ public final class Update
    * @param child The child.
    * @param index The index.
    */
-  public void removeChild( IModelObject parent, IModelObject child, int index)
+  public void removeChild( INode parent, INode child, int index)
   {
     removeChildMemento.parent = parent;
     removeChildMemento.child = child;
@@ -141,7 +141,7 @@ public final class Update
    * @param oldIndex The old index.
    * @param newIndex The new index.
    */
-  public void moveChild( IModelObject parent, IModelObject child, int oldIndex, int newIndex)
+  public void moveChild( INode parent, INode child, int oldIndex, int newIndex)
   {
     moveChildMemento.parent = parent;
     moveChildMemento.child = child;

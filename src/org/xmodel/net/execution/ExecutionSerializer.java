@@ -3,7 +3,7 @@ package org.xmodel.net.execution;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.AttributeNode;
@@ -27,7 +27,7 @@ public class ExecutionSerializer
    * @param script The script.
    * @return Returns the document root.
    */
-  public static IModelObject buildRequest( IContext context, String[] variables, IModelObject script)
+  public static INode buildRequest( IContext context, String[] variables, INode script)
   {
     ModelObject request = new ModelObject( "request");
 
@@ -46,7 +46,7 @@ public class ExecutionSerializer
    * @param context The context.
    * @return Returns the script to be executed.
    */
-  public static IModelObject readRequest( IModelObject request, IContext context)
+  public static INode readRequest( INode request, IContext context)
   {
     // read variable assignments
     readScope( request, context);
@@ -61,7 +61,7 @@ public class ExecutionSerializer
    * @param objects The result array (may be null).
    * @return Returns the document root.
    */
-  public static IModelObject buildResponse( IContext context, Object[] objects)
+  public static INode buildResponse( IContext context, Object[] objects)
   {
     ModelObject response = new ModelObject( "response");
 
@@ -79,17 +79,17 @@ public class ExecutionSerializer
         ModelObject result = new ModelObject( "result");
         results.addChild( result);
         
-        List<IModelObject> nodes = tryCastToList( object);
+        List<INode> nodes = tryCastToList( object);
         if ( nodes != null)
         {
           result.setAttribute( "type", "nodes");
           
-          for( IModelObject node: nodes)
+          for( INode node: nodes)
           {
             ModelObject item = new ModelObject( "item");
             result.addChild( item);
 
-            IModelObject copy = node.cloneTree();
+            INode copy = node.cloneTree();
             item.addChild( copy);
             
             if ( node instanceof AttributeNode || node instanceof TextNode)
@@ -114,7 +114,7 @@ public class ExecutionSerializer
    * @param throwable An exception that was thrown during remote execution.
    * @return Returns the document root.
    */
-  public static IModelObject buildResponse( IContext context, Throwable throwable)
+  public static INode buildResponse( IContext context, Throwable throwable)
   {
     ModelObject response = new ModelObject( "response");
     response.getCreateChild( "exception").setValue( throwable);
@@ -127,15 +127,15 @@ public class ExecutionSerializer
    * @return Returns null or the node-set.
    */
   @SuppressWarnings("unchecked")
-  private static List<IModelObject> tryCastToList( Object result)
+  private static List<INode> tryCastToList( Object result)
   {
     if ( result instanceof List)
     {
-      return (List<IModelObject>)result;
+      return (List<INode>)result;
     }
-    else if ( result instanceof IModelObject)
+    else if ( result instanceof INode)
     {
-      return Collections.singletonList( (IModelObject)result);
+      return Collections.singletonList( (INode)result);
     }
     
     return null;
@@ -147,7 +147,7 @@ public class ExecutionSerializer
    * @param context The context.
    * @return Returns null or the results array.
    */
-  public static Object[] readResponse( IModelObject response, IContext context)
+  public static Object[] readResponse( INode response, IContext context)
   {
     // read variable assignments
     readScope( response, context);
@@ -155,22 +155,22 @@ public class ExecutionSerializer
     // read results
     Object[] objects = null;
     
-    IModelObject results = response.getFirstChild( "results");
+    INode results = response.getFirstChild( "results");
     if ( results != null)
     {
       objects = new Object[ results.getNumberOfChildren()];
       
       int index = 0;
-      for( IModelObject result: results.getChildren( "result"))
+      for( INode result: results.getChildren( "result"))
       {
-        List<IModelObject> items = result.getChildren();
+        List<INode> items = result.getChildren();
         if ( Xlate.get( result, "type", "").equals( "nodes"))
         {
-          List<IModelObject> nodes = new ArrayList<IModelObject>( items.size());
+          List<INode> nodes = new ArrayList<INode>( items.size());
           
-          for( IModelObject item: items)
+          for( INode item: items)
           {
-            IModelObject node = item.getChild( 0);
+            INode node = item.getChild( 0);
             
             String attrName = Xlate.get( item, "attr", (String)null);
             if ( attrName != null)
@@ -202,9 +202,9 @@ public class ExecutionSerializer
    * @param response The response.
    * @return Returns null or the exception.
    */
-  public static Throwable readResponseException( IModelObject response)
+  public static Throwable readResponseException( INode response)
   {
-    IModelObject child = response.getFirstChild( "exception");
+    INode child = response.getFirstChild( "exception");
     return (child != null)? (Throwable)child.getValue(): null;
   }
   
@@ -215,7 +215,7 @@ public class ExecutionSerializer
    * @param root The request or response element.
    */
   @SuppressWarnings("unchecked")
-  public static void buildScope( IContext context, String[] variables, IModelObject root)
+  public static void buildScope( IContext context, String[] variables, INode root)
   {
     IVariableScope scope = context.getScope();
     if ( variables == null) variables = scope.getVariables().toArray( new String[ 0]);
@@ -230,7 +230,7 @@ public class ExecutionSerializer
       {
         if ( scope.getType( variable, context) == ResultType.NODES)
         {
-          for( IModelObject node: (List<IModelObject>)object)
+          for( INode node: (List<INode>)object)
           {
             if ( node instanceof TextNode || node instanceof AttributeNode)
             {
@@ -256,15 +256,15 @@ public class ExecutionSerializer
    * @param root The request or response element.
    * @param context The target context.
    */
-  public static void readScope( IModelObject root, IContext context)
+  public static void readScope( INode root, IContext context)
   {
     IVariableScope scope = context.getScope();
-    for( IModelObject assignment: root.getChildren( "assign"))
+    for( INode assignment: root.getChildren( "assign"))
     {
       String variable = Xlate.get( assignment, "name", (String)null);
       if ( assignment.getNumberOfChildren() > 0)
       {
-        scope.set( variable, new ArrayList<IModelObject>( assignment.getChildren()));
+        scope.set( variable, new ArrayList<INode>( assignment.getChildren()));
         assignment.removeChildren();
       }
       else

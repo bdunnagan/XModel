@@ -20,7 +20,7 @@
 package org.xmodel.xpath.function.custom;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.util.Radix;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -59,7 +59,7 @@ public class HashCodeFunction extends Function
     assertArgs( 1, 1);
     assertType( context, ResultType.NODES);
     
-    List<IModelObject> objects = getArgument( 0).evaluateNodes( context);
+    List<INode> objects = getArgument( 0).evaluateNodes( context);
     if ( objects.size() == 0) return "";
     
     return Radix.convert( objects.get( 0).hashCode(), 10);
@@ -69,7 +69,7 @@ public class HashCodeFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyAdd(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }
@@ -78,7 +78,7 @@ public class HashCodeFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#notifyRemove(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyChange( this, context);
   }

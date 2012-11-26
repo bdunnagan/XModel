@@ -19,7 +19,7 @@
  */
 package org.xmodel.path;
 
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 
 /**
  * An implementation of IFanoutListener for an IPathElement with the <i>PARENT</i> axis.
@@ -34,7 +34,7 @@ public class ParentAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
     object.addModelListener( this);
   }
@@ -42,7 +42,7 @@ public class ParentAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
     object.removeModelListener( this);
   }
@@ -59,7 +59,7 @@ public class ParentAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyParent(org.xmodel.IModelObject, 
    * org.xmodel.IModelObject, org.xmodel.IModelObject)
    */
-  public void notifyParent( IModelObject child, IModelObject newParent, IModelObject oldParent)
+  public void notifyParent( INode child, INode newParent, INode oldParent)
   {
     if ( oldParent != null) getNextListener().incrementalUninstall( oldParent);
     if ( newParent != null) getNextListener().incrementalInstall( newParent);

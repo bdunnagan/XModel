@@ -22,20 +22,20 @@ package org.xmodel.external;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.util.Fifo;
 
 
 /**
  * A BreadthFirstIterator which does not sync IExternalReferences.
  */
-public class NonSyncingIterator implements Iterator<IModelObject>
+public class NonSyncingIterator implements Iterator<INode>
 {
-  public NonSyncingIterator( IModelObject root)
+  public NonSyncingIterator( INode root)
   {
-    fifo = new Fifo<IModelObject>();
+    fifo = new Fifo<INode>();
     fifo.push( root);
-    references = new HashSet<IModelObject>();
+    references = new HashSet<INode>();
   }
   
   /* (non-Javadoc)
@@ -50,15 +50,15 @@ public class NonSyncingIterator implements Iterator<IModelObject>
   /* (non-Javadoc)
    * @see java.util.Iterator#next()
    */
-  public IModelObject next()
+  public INode next()
   {
-    IModelObject object = (IModelObject)fifo.pop();
+    INode object = (INode)fifo.pop();
     if ( !object.isDirty())
     {
-      Iterator<IModelObject> iter = object.getChildren().iterator();
+      Iterator<INode> iter = object.getChildren().iterator();
       while( iter.hasNext()) 
       {
-        IModelObject child = (IModelObject)iter.next();
+        INode child = (INode)iter.next();
         fifo.push( child);
       }
     }
@@ -78,9 +78,9 @@ public class NonSyncingIterator implements Iterator<IModelObject>
    * @param object The object.
    * @return Returns true if the specified object should be traversed.
    */
-  protected boolean shouldTraverse( IModelObject object)
+  protected boolean shouldTraverse( INode object)
   {
-    IModelObject referent = object.getReferent();
+    INode referent = object.getReferent();
     if ( referent != object)
     {
       if ( references.contains( object)) return false;
@@ -89,6 +89,6 @@ public class NonSyncingIterator implements Iterator<IModelObject>
     return true;
   }
   
-  Fifo<IModelObject> fifo;
-  Set<IModelObject> references;
+  Fifo<INode> fifo;
+  Set<INode> references;
 }

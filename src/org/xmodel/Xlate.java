@@ -43,7 +43,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static boolean get( IModelObject object, boolean defaultValue)
+  public static boolean get( INode object, boolean defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -59,7 +59,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static short get( IModelObject object, short defaultValue)
+  public static short get( INode object, short defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -82,7 +82,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static int get( IModelObject object, int defaultValue)
+  public static int get( INode object, int defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -105,7 +105,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static long get( IModelObject object, long defaultValue)
+  public static long get( INode object, long defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -128,7 +128,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static float get( IModelObject object, float defaultValue)
+  public static float get( INode object, float defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -151,7 +151,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static double get( IModelObject object, double defaultValue)
+  public static double get( INode object, double defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -174,7 +174,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static byte get( IModelObject object, byte defaultValue)
+  public static byte get( INode object, byte defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -197,7 +197,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static byte[] get( IModelObject object, byte[] defaultValue)
+  public static byte[] get( INode object, byte[] defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -220,7 +220,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static char get( IModelObject object, char defaultValue)
+  public static char get( INode object, char defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -236,7 +236,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static char[] get( IModelObject object, char[] defaultValue)
+  public static char[] get( INode object, char[] defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -251,7 +251,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static String get( IModelObject object, String defaultValue)
+  public static String get( INode object, String defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -266,7 +266,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static IExpression get( IModelObject object, IExpression defaultValue)
+  public static IExpression get( INode object, IExpression defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -282,7 +282,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value or the default value.
    */
-  public static <T extends Object> T get( IModelObject object, T defaultValue)
+  public static <T extends Object> T get( INode object, T defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
@@ -298,7 +298,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static boolean get( IModelObject object, String attrName, boolean defaultValue)
+  public static boolean get( INode object, String attrName, boolean defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -315,7 +315,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static short get( IModelObject object, String attrName, short defaultValue)
+  public static short get( INode object, String attrName, short defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -339,7 +339,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static int get( IModelObject object, String attrName, int defaultValue)
+  public static int get( INode object, String attrName, int defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -363,7 +363,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static long get( IModelObject object, String attrName, long defaultValue)
+  public static long get( INode object, String attrName, long defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -387,7 +387,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static float get( IModelObject object, String attrName, float defaultValue)
+  public static float get( INode object, String attrName, float defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -411,7 +411,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static double get( IModelObject object, String attrName, double defaultValue)
+  public static double get( INode object, String attrName, double defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -435,7 +435,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static byte get( IModelObject object, String attrName, byte defaultValue)
+  public static byte get( INode object, String attrName, byte defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -459,7 +459,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static byte[] get( IModelObject object, String attrName, byte[] defaultValue)
+  public static byte[] get( INode object, String attrName, byte[] defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -483,7 +483,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static char get( IModelObject object, String attrName, char defaultValue)
+  public static char get( INode object, String attrName, char defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -500,7 +500,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static char[] get( IModelObject object, String attrName, char[] defaultValue)
+  public static char[] get( INode object, String attrName, char[] defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -516,7 +516,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static String get( IModelObject object, String attrName, String defaultValue)
+  public static String get( INode object, String attrName, String defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -532,7 +532,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static <T extends Object> T get( IModelObject object, String attrName, T defaultValue)
+  public static <T extends Object> T get( INode object, String attrName, T defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -548,7 +548,7 @@ public class Xlate
    * @param defaultValue The default value returned if the attribute doesn't exist.
    * @return Returns the converted value of the attribute or the default value.
    */
-  public static IExpression get( IModelObject object, String attrName, IExpression defaultValue)
+  public static IExpression get( INode object, String attrName, IExpression defaultValue)
   {
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
@@ -565,7 +565,7 @@ public class Xlate
    * @param value The value of the attribute.
    * @return Returns the old value.
    */
-  public static boolean set( IModelObject object, boolean value)
+  public static boolean set( INode object, boolean value)
   {
     boolean old = get( object, false);
     object.setValue( value);
@@ -578,7 +578,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static short set( IModelObject object, short value)
+  public static short set( INode object, short value)
   {
     short old = get( object, (short)0);
     object.setValue( value);
@@ -591,7 +591,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static int set( IModelObject object, int value)
+  public static int set( INode object, int value)
   {
     int old = get( object, 0);
     object.setValue( value);
@@ -604,7 +604,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static long set( IModelObject object, long value)
+  public static long set( INode object, long value)
   {
     long old = get( object, (long)0);
     object.setValue( value);
@@ -617,7 +617,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static float set( IModelObject object, float value)
+  public static float set( INode object, float value)
   {
     float old = get( object, (float)0);
     object.setValue( value);
@@ -630,7 +630,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static double set( IModelObject object, double value)
+  public static double set( INode object, double value)
   {
     double old = get( object, (double)0);
     object.setValue( value);
@@ -643,7 +643,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static byte set( IModelObject object, byte value)
+  public static byte set( INode object, byte value)
   {
     byte old = get( object, value);
     object.setValue( value);
@@ -656,7 +656,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static byte[] set( IModelObject object, byte[] value)
+  public static byte[] set( INode object, byte[] value)
   {
     byte[] old = get( object, (byte[])null);
 
@@ -677,7 +677,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static char set( IModelObject object, char value)
+  public static char set( INode object, char value)
   {
     char old = get( object, '\0');
     object.setValue( Character.toString( value));
@@ -690,7 +690,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static char[] set( IModelObject object, char[] value)
+  public static char[] set( INode object, char[] value)
   {
     char[] old = get( object, (char[])null);
     String attrValue = new String( value);
@@ -704,7 +704,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static String set( IModelObject object, String value)
+  public static String set( INode object, String value)
   {
     String old = get( object, (String)null);
     object.setValue( value);
@@ -716,7 +716,7 @@ public class Xlate
    * @param object The object on which to set the attribute.
    * @param value The value of the attribute.
    */
-  public static <T extends Object> T set( IModelObject object, T value)
+  public static <T extends Object> T set( INode object, T value)
   {
     T old = get( object, (T)null);
     object.setValue( value);
@@ -730,7 +730,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static boolean set( IModelObject object, String attrName, boolean value)
+  public static boolean set( INode object, String attrName, boolean value)
   {
     boolean old = get( object, attrName, false);
     object.setAttribute( attrName, value);
@@ -744,7 +744,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static short set( IModelObject object, String attrName, short value)
+  public static short set( INode object, String attrName, short value)
   {
     short old = get( object, attrName, (short)0);
     object.setAttribute( attrName, value);
@@ -758,7 +758,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static int set( IModelObject object, String attrName, int value)
+  public static int set( INode object, String attrName, int value)
   {
     int old = get( object, attrName, (int)0);
     object.setAttribute( attrName, value);
@@ -772,7 +772,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static long set( IModelObject object, String attrName, long value)
+  public static long set( INode object, String attrName, long value)
   {
     long old = get( object, attrName, (long)0);
     object.setAttribute( attrName, value);
@@ -786,7 +786,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static float set( IModelObject object, String attrName, float value)
+  public static float set( INode object, String attrName, float value)
   {
     float old = get( object, attrName, (float)0);
     object.setAttribute( attrName, value);
@@ -800,7 +800,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static double set( IModelObject object, String attrName, double value)
+  public static double set( INode object, String attrName, double value)
   {
     double old = get( object, attrName, (double)0);
     object.setAttribute( attrName, value);
@@ -814,7 +814,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static byte set( IModelObject object, String attrName, byte value)
+  public static byte set( INode object, String attrName, byte value)
   {
     byte old = get( object, attrName, (byte)0);
     object.setAttribute( attrName, value);
@@ -828,7 +828,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static byte[] set( IModelObject object, String attrName, byte[] value)
+  public static byte[] set( INode object, String attrName, byte[] value)
   {
     byte[] old = get( object, attrName, (byte[])null);
 
@@ -850,7 +850,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static char set( IModelObject object, String attrName, char value)
+  public static char set( INode object, String attrName, char value)
   {
     char old = get( object, attrName, (char)0);
     object.setAttribute( attrName, Character.toString( value));
@@ -864,7 +864,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static char[] set( IModelObject object, String attrName, char[] value)
+  public static char[] set( INode object, String attrName, char[] value)
   {
     char[] old = get( object, attrName, (char[])null);
     String attrValue = new String( value);
@@ -879,7 +879,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static String set( IModelObject object, String attrName, String value)
+  public static String set( INode object, String attrName, String value)
   {
     String old = get( object, attrName, (String)null);
     object.setAttribute( attrName, value);
@@ -893,7 +893,7 @@ public class Xlate
    * @param attrName The name of the attribute.
    * @param value The value of the attribute.
    */
-  public static <T extends Object> T set( IModelObject object, String attrName, T value)
+  public static <T extends Object> T set( INode object, String attrName, T value)
   {
     T old = get( object, attrName, (T)null);
     object.setAttribute( attrName, value);
@@ -908,7 +908,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static boolean childGet( IModelObject parent, String childType, boolean defaultValue)
+  public static boolean childGet( INode parent, String childType, boolean defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -922,7 +922,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static short childGet( IModelObject parent, String childType, short defaultValue)
+  public static short childGet( INode parent, String childType, short defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -936,7 +936,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static int childGet( IModelObject parent, String childType, int defaultValue)
+  public static int childGet( INode parent, String childType, int defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -950,7 +950,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static long childGet( IModelObject parent, String childType, long defaultValue)
+  public static long childGet( INode parent, String childType, long defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -964,7 +964,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static float childGet( IModelObject parent, String childType, float defaultValue)
+  public static float childGet( INode parent, String childType, float defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -978,7 +978,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static double childGet( IModelObject parent, String childType, double defaultValue)
+  public static double childGet( INode parent, String childType, double defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -992,7 +992,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static byte childGet( IModelObject parent, String childType, byte defaultValue)
+  public static byte childGet( INode parent, String childType, byte defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1006,7 +1006,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static byte[] childGet( IModelObject parent, String childType, byte[] defaultValue)
+  public static byte[] childGet( INode parent, String childType, byte[] defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1020,7 +1020,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static char childGet( IModelObject parent, String childType, char defaultValue)
+  public static char childGet( INode parent, String childType, char defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1034,7 +1034,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static char[] childGet( IModelObject parent, String childType, char[] defaultValue)
+  public static char[] childGet( INode parent, String childType, char[] defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1048,7 +1048,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static String childGet( IModelObject parent, String childType, String defaultValue)
+  public static String childGet( INode parent, String childType, String defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1062,7 +1062,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static IExpression childGet( IModelObject parent, String childType, IExpression defaultValue)
+  public static IExpression childGet( INode parent, String childType, IExpression defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1076,7 +1076,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static <T extends Object> T childGet( IModelObject parent, String childType, T defaultValue)
+  public static <T extends Object> T childGet( INode parent, String childType, T defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( parent.getFirstChild( childType), defaultValue);
@@ -1090,7 +1090,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static boolean childSet( IModelObject parent, String childType, boolean value)
+  public static boolean childSet( INode parent, String childType, boolean value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1103,7 +1103,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static short childSet( IModelObject parent, String childType, short value)
+  public static short childSet( INode parent, String childType, short value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1116,7 +1116,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static int childSet( IModelObject parent, String childType, int value)
+  public static int childSet( INode parent, String childType, int value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1129,7 +1129,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static long childSet( IModelObject parent, String childType, long value)
+  public static long childSet( INode parent, String childType, long value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1142,7 +1142,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static float childSet( IModelObject parent, String childType, float value)
+  public static float childSet( INode parent, String childType, float value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1155,7 +1155,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static double childSet( IModelObject parent, String childType, double value)
+  public static double childSet( INode parent, String childType, double value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1168,7 +1168,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static byte childSet( IModelObject parent, String childType, byte value)
+  public static byte childSet( INode parent, String childType, byte value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1181,7 +1181,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static byte[] childSet( IModelObject parent, String childType, byte[] value)
+  public static byte[] childSet( INode parent, String childType, byte[] value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1194,7 +1194,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static char childSet( IModelObject parent, String childType, char value)
+  public static char childSet( INode parent, String childType, char value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1207,7 +1207,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static char[] childSet( IModelObject parent, String childType, char[] value)
+  public static char[] childSet( INode parent, String childType, char[] value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1220,7 +1220,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static String childSet( IModelObject parent, String childType, String value)
+  public static String childSet( INode parent, String childType, String value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1233,7 +1233,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static IExpression childSet( IModelObject parent, String childType, IExpression value)
+  public static IExpression childSet( INode parent, String childType, IExpression value)
   {
     return set( parent.getCreateChild( childType), value);
   }
@@ -1246,7 +1246,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static <T extends Object> T childSet( IModelObject parent, String childType, T value)
+  public static <T extends Object> T childSet( INode parent, String childType, T value)
   {
     return set( parent.getCreateChild( childType), value);
   }  
@@ -1259,7 +1259,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static boolean pathGet( IModelObject parent, String path, boolean defaultValue)
+  public static boolean pathGet( INode parent, String path, boolean defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1273,7 +1273,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static short pathGet( IModelObject parent, String path, short defaultValue)
+  public static short pathGet( INode parent, String path, short defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1287,7 +1287,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static int pathGet( IModelObject parent, String path, int defaultValue)
+  public static int pathGet( INode parent, String path, int defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1301,7 +1301,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static long pathGet( IModelObject parent, String path, long defaultValue)
+  public static long pathGet( INode parent, String path, long defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1315,7 +1315,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static float pathGet( IModelObject parent, String path, float defaultValue)
+  public static float pathGet( INode parent, String path, float defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1329,7 +1329,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static double pathGet( IModelObject parent, String path, double defaultValue)
+  public static double pathGet( INode parent, String path, double defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1343,7 +1343,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static byte pathGet( IModelObject parent, String path, byte defaultValue)
+  public static byte pathGet( INode parent, String path, byte defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1357,7 +1357,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static byte[] pathGet( IModelObject parent, String path, byte[] defaultValue)
+  public static byte[] pathGet( INode parent, String path, byte[] defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1371,7 +1371,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static char pathGet( IModelObject parent, String path, char defaultValue)
+  public static char pathGet( INode parent, String path, char defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1385,7 +1385,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static char[] pathGet( IModelObject parent, String path, char[] defaultValue)
+  public static char[] pathGet( INode parent, String path, char[] defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1399,7 +1399,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static String pathGet( IModelObject parent, String path, String defaultValue)
+  public static String pathGet( INode parent, String path, String defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1413,7 +1413,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static IExpression pathGet( IModelObject parent, String path, IExpression defaultValue)
+  public static IExpression pathGet( INode parent, String path, IExpression defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1427,7 +1427,7 @@ public class Xlate
    * @param defaultValue The default value if the value does not exist.
    * @return Returns the value.
    */
-  public static <T extends Object> T pathGet( IModelObject parent, String path, T defaultValue)
+  public static <T extends Object> T pathGet( INode parent, String path, T defaultValue)
   {
     if ( parent == null) return defaultValue;
     return get( evaluate( parent, path), defaultValue);
@@ -1441,7 +1441,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static boolean pathSet( IModelObject parent, String path, boolean value)
+  public static boolean pathSet( INode parent, String path, boolean value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1454,7 +1454,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static short pathSet( IModelObject parent, String path, short value)
+  public static short pathSet( INode parent, String path, short value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1467,7 +1467,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static int pathSet( IModelObject parent, String path, int value)
+  public static int pathSet( INode parent, String path, int value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1480,7 +1480,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static long pathSet( IModelObject parent, String path, long value)
+  public static long pathSet( INode parent, String path, long value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1493,7 +1493,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static float pathSet( IModelObject parent, String path, float value)
+  public static float pathSet( INode parent, String path, float value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1506,7 +1506,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static double pathSet( IModelObject parent, String path, double value)
+  public static double pathSet( INode parent, String path, double value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1519,7 +1519,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static byte pathSet( IModelObject parent, String path, byte value)
+  public static byte pathSet( INode parent, String path, byte value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1532,7 +1532,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static byte[] pathSet( IModelObject parent, String path, byte[] value)
+  public static byte[] pathSet( INode parent, String path, byte[] value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1545,7 +1545,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static char pathSet( IModelObject parent, String path, char value)
+  public static char pathSet( INode parent, String path, char value)
   {
     IPath xpath = XPath.createPath( path);
     xpath.createSubtree( parent);
@@ -1560,7 +1560,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static char[] pathSet( IModelObject parent, String path, char[] value)
+  public static char[] pathSet( INode parent, String path, char[] value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1573,7 +1573,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static String pathSet( IModelObject parent, String path, String value)
+  public static String pathSet( INode parent, String path, String value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1586,7 +1586,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static IExpression pathSet( IModelObject parent, String path, IExpression value)
+  public static IExpression pathSet( INode parent, String path, IExpression value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1599,7 +1599,7 @@ public class Xlate
    * @param value The value.
    * @return Returns the previous value.
    */
-  public static <T extends Object> T pathSet( IModelObject parent, String path, T value)
+  public static <T extends Object> T pathSet( INode parent, String path, T value)
   {
     return set( evaluate( parent, path), value);
   }
@@ -1610,7 +1610,7 @@ public class Xlate
    * @param path A simple, relative path (only child axes, no predicates).
    * @return Returns the first node on the path.
    */
-  private static IModelObject evaluate( IModelObject parent, String path)
+  private static INode evaluate( INode parent, String path)
   {
     IPath xpath = XPath.createPath( path);
     xpath.createSubtree( parent);

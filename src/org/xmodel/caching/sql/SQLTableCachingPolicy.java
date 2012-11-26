@@ -36,7 +36,7 @@ import java.util.Set;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
@@ -79,9 +79,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowCachingPolicy = new SQLRowCachingPolicy( this, cache);
     updateMonitor = new SQLEntityListener();
     
-    rowInserts = new HashMap<IModelObject, List<IModelObject>>();
-    rowDeletes = new HashMap<IModelObject, List<IModelObject>>();
-    rowUpdates = new HashMap<IModelObject, List<String>>();
+    rowInserts = new HashMap<INode, List<INode>>();
+    rowDeletes = new HashMap<INode, List<INode>>();
+    rowUpdates = new HashMap<INode, List<String>>();
     
     if ( providers == null)
     {
@@ -94,7 +94,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.IModelObject)
    */
   @Override
-  public void configure( IContext context, IModelObject annotation) throws CachingException
+  public void configure( IContext context, INode annotation) throws CachingException
   {
     super.configure( context, annotation);
     
@@ -108,7 +108,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     readonly = Xlate.childGet( annotation, "readonly", false);
     
     excluded = new ArrayList<String>( 3);
-    for( IModelObject element: annotation.getChildren( "exclude"))
+    for( INode element: annotation.getChildren( "exclude"))
       excluded.add( Xlate.get( element, ""));
     
     IExpression whereExpr = Xlate.childGet( annotation, "where", (IExpression)null);
@@ -121,7 +121,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
     xmlColumns = new HashSet<String>( 1);
-    for( IModelObject column: annotation.getChildren( "xml"))
+    for( INode column: annotation.getChildren( "xml"))
       xmlColumns.add( Xlate.get( column, (String)null));
     
     // add second stage
@@ -186,10 +186,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       statement = createTableSelectStatement( reference);
       ResultSet result = statement.executeQuery();
 
-      IModelObject parent = reference.cloneObject();
+      INode parent = reference.cloneObject();
       while( result.next())
       {
-        IModelObject row = getFactory().createObject( reference, rowElementName);
+        INode row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
           row.setID( result.getString( 1));
@@ -222,12 +222,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param reference The reference which is in the process of being synced.
    * @return Returns the prototype row element.
    */
-  protected IModelObject createRowPrototype( IExternalReference reference) throws CachingException
+  protected INode createRowPrototype( IExternalReference reference) throws CachingException
   {
     PreparedStatement statement = null;
     try
     {
-      IModelObject object = getFactory().createObject( reference.getParent(), rowElementName);
+      INode object = getFactory().createObject( reference.getParent(), rowElementName);
       ModelAlgorithms.copyAttributes( reference, object);
 
       statement = createRowSelectStatement( reference);
@@ -251,7 +251,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param result The result set.
    * @param object The row element to be populated.
    */
-  protected void populateRowElement( ResultSet result, IModelObject object) throws SQLException
+  protected void populateRowElement( ResultSet result, INode object) throws SQLException
   {
     for( int i=0; i<columnNames.size(); i++)
     {
@@ -275,7 +275,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param column The column name.
    * @param value The database column value.
    */
-  private void importColumn( IModelObject row, String column, Object value)
+  private void importColumn( INode row, String column, Object value)
   {
     if ( otherKeys.contains( column))
     {
@@ -292,7 +292,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
         try
         {
-          IModelObject superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
+          INode superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
           ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
         }
         catch( Exception e)
@@ -307,7 +307,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           String xml = "<superroot>"+value.toString()+"</superroot>";
           if ( xml.length() > 0)
           {
-            IModelObject superroot = new XmlIO().read( xml);
+            INode superroot = new XmlIO().read( xml);
             ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
           }
         }
@@ -330,7 +330,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param columnType The column type.
    * @return Returns the exported value.
    */
-  private Object exportColumn( IModelObject row, String column, int type)
+  private Object exportColumn( INode row, String column, int type)
   {
     if ( xmlColumns.contains( column))
     {
@@ -353,7 +353,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       else
       {
         StringBuilder sb = new StringBuilder();
-        for( IModelObject child: row.getFirstChild( column).getChildren())
+        for( INode child: row.getFirstChild( column).getChildren())
           sb.append( XmlIO.write( Style.compact, child));
         return sb.toString();
       }
@@ -368,7 +368,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, boolean)
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException
   {
     IExternalReference reference = rowCachingPolicy.createExternalTree( object, dirty, parent);
     parent.addChild( reference, index);
@@ -378,7 +378,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject)
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
+  public void remove( IExternalReference parent, INode object) throws CachingException
   {
     if ( object.getParent() == parent) object.removeFromParent();
   }
@@ -388,7 +388,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param annotation The caching policy annotation.
    * @return Returns the SQLManager for the specified reference.
    */
-  private static ISQLProvider getProvider( IModelObject annotation) throws CachingException
+  private static ISQLProvider getProvider( INode annotation) throws CachingException
   {
     try
     {
@@ -564,7 +564,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The rows to be inserted in the table.
    * @return Returns a prepared statement which will insert one or more nodes.
    */
-  private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, List<INode> nodes) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
@@ -575,7 +575,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
-    for( IModelObject node: nodes)
+    for( INode node: nodes)
     {
       statement.setString( 1, node.getID());
       for( int i=0; i<columnNames.size(); i++)
@@ -664,7 +664,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The rows to be updated in the table.
    * @return Returns a prepared statement which will delete one or more rows.
    */
-  private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<INode> nodes) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "DELETE FROM "); sb.append( tableName);
@@ -673,7 +673,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
-    for( IModelObject node: nodes)
+    for( INode node: nodes)
     {
       statement.setString( 1, node.getID());
       statement.addBatch();
@@ -687,14 +687,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param object The object.
    * @return Returns true if the specified object is a table reference.
    */
-  protected boolean isTable( IModelObject object)
+  protected boolean isTable( INode object)
   {
     if ( !(object instanceof IExternalReference)) return false;
     
     IExternalReference reference = (IExternalReference)object;
     if ( reference.getCachingPolicy() instanceof SQLTableCachingPolicy)
     {
-      IModelObject parent = object.getParent();
+      INode parent = object.getParent();
       if ( parent == null || !(parent instanceof IExternalReference)) return true;
     }
 
@@ -729,7 +729,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     connection.setCatalog( catalog);
     
-    for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
+    for( Map.Entry<INode, List<INode>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
       statement.execute();
@@ -737,7 +737,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     rowDeletes.clear();
     
-    for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
+    for( Map.Entry<INode, List<INode>> entry: rowInserts.entrySet())
     {
       PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
       statement.execute();
@@ -745,7 +745,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     rowInserts.clear();
     
-    for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
+    for( Map.Entry<INode, List<String>> entry: rowUpdates.entrySet())
     {
       PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
       statement.execute();
@@ -794,7 +794,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
      * @see org.xmodel.external.NonSyncingListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
      */
     @Override
-    public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+    public void notifyAddChild( INode parent, INode child, int index)
     {
       super.notifyAddChild( parent, child, index);
       
@@ -805,10 +805,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           SQLRowCachingPolicy cachingPolicy = (SQLRowCachingPolicy)((IExternalReference)child).getCachingPolicy();
           cachingPolicy.parent = SQLTableCachingPolicy.this;
           
-          List<IModelObject> inserts = rowInserts.get( parent);
+          List<INode> inserts = rowInserts.get( parent);
           if ( inserts == null)
           {
-            inserts = new ArrayList<IModelObject>();
+            inserts = new ArrayList<INode>();
             rowInserts.put( parent, inserts);
           }
           inserts.add( child);
@@ -828,7 +828,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
      * @see org.xmodel.external.NonSyncingListener#notifyRemoveChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
      */
     @Override
-    public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+    public void notifyRemoveChild( INode parent, INode child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
       
@@ -836,10 +836,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         if ( isTable( parent))
         {
-          List<IModelObject> deletes = rowDeletes.get( parent);
+          List<INode> deletes = rowDeletes.get( parent);
           if ( deletes == null)
           {
-            deletes = new ArrayList<IModelObject>();
+            deletes = new ArrayList<INode>();
             rowDeletes.put( parent, deletes);
           }
           deletes.add( child);
@@ -862,7 +862,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
      * @see org.xmodel.ModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
      */
     @Override
-    public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+    public void notifyChange( INode object, String attrName, Object newValue, Object oldValue)
     {
       super.notifyChange( object, attrName, newValue, oldValue);
       
@@ -905,7 +905,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
      * @see org.xmodel.ModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
      */
     @Override
-    public void notifyClear( IModelObject object, String attrName, Object oldValue)
+    public void notifyClear( INode object, String attrName, Object oldValue)
     {
       super.notifyClear( object, attrName, oldValue);
       notifyChange( object, attrName, null, null);
@@ -935,9 +935,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private Set<String> xmlColumns;
   private SQLEntityListener updateMonitor;
   private SQLTransaction transaction;
-  private Map<IModelObject, List<IModelObject>> rowInserts;
-  private Map<IModelObject, List<IModelObject>> rowDeletes;
-  private Map<IModelObject, List<String>> rowUpdates;  
+  private Map<INode, List<INode>> rowInserts;
+  private Map<INode, List<INode>> rowDeletes;
+  private Map<INode, List<String>> rowUpdates;  
   private ICompressor compressor;
 }
 

@@ -24,8 +24,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.List;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 
 /**
  * An interface for generating an XModel from an XML document and vice versa.
@@ -45,7 +45,7 @@ public interface IXmlIO
    * Set the factory to use to create objects when parsing XML.
    * @param factory The factory.
    */
-  public void setFactory( IModelObjectFactory factory);
+  public void setFactory( INodeFactory factory);
   
   /**
    * Set the maximum number of lines to be written (0 for unlimited).
@@ -58,21 +58,21 @@ public interface IXmlIO
    * @param xml A string containing a well-formed XML document.
    * @return Returns the root of the model.
    */
-  public IModelObject read( String xml) throws XmlException;
+  public INode read( String xml) throws XmlException;
   
   /**
    * Read the XML document at the specified URL.
    * @param url The url pointing to an XML document.
    * @return Returns the root of the model.
    */
-  public IModelObject read( URL url) throws XmlException;
+  public INode read( URL url) throws XmlException;
 
   /**
    * Read an XML document from the specified stream.
    * @param stream The stream.
    * @return Returns the root of the model.
    */
-  public IModelObject read( InputStream stream) throws XmlException;
+  public INode read( InputStream stream) throws XmlException;
 
   /**
    * Returns a list with one entry per line in the output document. Each entry contains the element whose
@@ -81,34 +81,34 @@ public interface IXmlIO
    * is the list index plus one.
    * @return Returns a list representing the element on each line of the output document.
    */
-  public List<IModelObject> getLineInformation();
+  public List<INode> getLineInformation();
   
   /**
    * Write the subtree with the specified root to a string and return it.
    * @param root The root of the subtree.
    */
-  public String write( IModelObject root);
+  public String write( INode root);
   
   /**
    * Write the subtree with the specified root to the specified file.
    * @param root The root of the subtree.
    * @param file The file to be written.
    */
-  public void write( IModelObject root, File file) throws XmlException;
+  public void write( INode root, File file) throws XmlException;
   
   /**
    * Write the subtree with the specified root to the specified PrintStream.
    * @param root The root of the subtree.
    * @param stream The output stream.
    */
-  public void write( IModelObject root, OutputStream stream) throws XmlException;
+  public void write( INode root, OutputStream stream) throws XmlException;
   
   /**
    * Write the subtree with the specified root to a string and return it.
    * @param depth The number of spaces to indent.
    * @param root The root of the subtree.
    */
-  public String write( int depth, IModelObject root);
+  public String write( int depth, INode root);
   
   /**
    * Write the subtree with the specified root to the specified file.
@@ -116,7 +116,7 @@ public interface IXmlIO
    * @param root The root of the subtree.
    * @param file The file to be written.
    */
-  public void write( int depth, IModelObject root, File file) throws XmlException;
+  public void write( int depth, INode root, File file) throws XmlException;
   
   /**
    * Write the subtree with the specified root to the specified PrintStream.
@@ -124,7 +124,7 @@ public interface IXmlIO
    * @param root The root of the subtree.
    * @param stream The output stream.
    */
-  public void write( int depth, IModelObject root, OutputStream stream) throws XmlException;
+  public void write( int depth, INode root, OutputStream stream) throws XmlException;
   
   /**
    * Tell the implementation not to generate objects or attributes with the specified prefix on read.

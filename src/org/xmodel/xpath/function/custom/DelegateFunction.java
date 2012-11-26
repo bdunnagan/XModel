@@ -21,7 +21,7 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.ExpressionListener;
@@ -120,7 +120,7 @@ public class DelegateFunction extends Function
    * @see org.xmodel.xpath.expression.Expression#evaluateNodes(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
+  public List<INode> evaluateNodes( IContext context) throws ExpressionException
   {
     stitchup();
     return implementation.evaluateNodes( context);
@@ -171,7 +171,7 @@ public class DelegateFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyAdd( this, context, nodes);
   }
@@ -181,7 +181,7 @@ public class DelegateFunction extends Function
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
   @Override
-  public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
   {
     getParent().notifyRemove( this, context, nodes);
   }
@@ -231,7 +231,7 @@ public class DelegateFunction extends Function
    * org.xmodel.xpath.expression.IContext[], org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+  public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
   {
     getParent().notifyValue( this, contexts, object, newValue, oldValue);
   }
@@ -301,11 +301,11 @@ public class DelegateFunction extends Function
   }
   
   final IExpressionListener implementationListener = new ExpressionListener() {
-    public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyAdd( IExpression expression, IContext context, List<INode> nodes)
     {
       getParent().notifyAdd( DelegateFunction.this, context, nodes);
     }
-    public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+    public void notifyRemove( IExpression expression, IContext context, List<INode> nodes)
     {
       getParent().notifyRemove( DelegateFunction.this, context, nodes);
     }
@@ -321,7 +321,7 @@ public class DelegateFunction extends Function
     {
       getParent().notifyChange( DelegateFunction.this, context, newValue, oldValue);
     }
-    public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
+    public void notifyValue( IExpression expression, IContext[] contexts, INode object, Object newValue, Object oldValue)
     {
       getParent().notifyValue( DelegateFunction.this, contexts, object, newValue, oldValue);
     }

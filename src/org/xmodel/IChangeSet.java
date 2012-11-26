@@ -34,21 +34,21 @@ public interface IChangeSet extends Runnable
    * @param attrName The name of the attribute.
    * @param attrValue The new value of the attribute.
    */
-  public void setAttribute( IModelObject object, String attrName, Object attrValue);
+  public void setAttribute( INode object, String attrName, Object attrValue);
   
   /**
    * Add a bound change record for removing and attribute from a domain object.
    * @param object The bound object.
    * @param attrName The name of the attribute.
    */
-  public void removeAttribute( IModelObject object, String attrName);
+  public void removeAttribute( INode object, String attrName);
   
   /**
    * Add a bound change record for adding a child to a domain object. 
    * @param object The bound object.
    * @param child The child to be added.
    */
-  public void addChild( IModelObject object, IModelObject child);
+  public void addChild( INode object, INode child);
 
   /**
    * Add a bound change record for adding a child to a domain object at the specified index.
@@ -56,14 +56,14 @@ public interface IChangeSet extends Runnable
    * @param child The child to be added.
    * @param index The index where the child should be inserted.
    */
-  public void addChild( IModelObject object, IModelObject child, int index);
+  public void addChild( INode object, INode child, int index);
 
   /**
    * Add a bound change record for removing a child to a domain object. 
    * @param object The bound object.
    * @param child The child to be removed.
    */
-  public void removeChild( IModelObject object, IModelObject child);
+  public void removeChild( INode object, INode child);
 
   /**
    * Add a bound change record for removing a child to a domain object at the specified index. 
@@ -71,7 +71,7 @@ public interface IChangeSet extends Runnable
    * @param child The child to be removed.
    * @param index The index of the child to be removed.
    */
-  public void removeChild( IModelObject object, IModelObject child, int index);
+  public void removeChild( INode object, INode child, int index);
 
   /**
    * Remove redundant records and sets of records which do not
@@ -119,7 +119,7 @@ public interface IChangeSet extends Runnable
    * Apply the changes to the specified object.
    * @param object
    */
-  public void applyChanges( IModelObject object);
+  public void applyChanges( INode object);
   
   /**
    * Clear the contents of this IChangeSet.

@@ -2,7 +2,7 @@ package org.xmodel.net.execution;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -52,7 +52,7 @@ public class ExecutionPrivilege
    * @param script The script.
    * @return Returns true if the specified script contains only scripting elements that are permitted to execute.
    */
-  public boolean isPermitted( IContext context, IModelObject script)
+  public boolean isPermitted( IContext context, INode script)
   {
     StatefulContext scriptContext = new StatefulContext( context, script.cloneTree());
     for( Entry entry: entries)
@@ -78,8 +78,8 @@ public class ExecutionPrivilege
      */
     public boolean isPermitted( IContext context)
     {
-      List<IModelObject> elements = expression.query( context, null);
-      for( IModelObject element: elements) element.removeFromParent();
+      List<INode> elements = expression.query( context, null);
+      for( INode element: elements) element.removeFromParent();
       return (elements.size() == 0 || permit);
     }
 

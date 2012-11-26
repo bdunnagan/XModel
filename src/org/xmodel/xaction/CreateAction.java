@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.DepthFirstIterator;
 import org.xmodel.IModel;
-import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
+import org.xmodel.INode;
+import org.xmodel.INodeFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.caching.AnnotationTransform;
@@ -51,7 +51,7 @@ public class CreateAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");
     
     collectionExpr = Xlate.get( config, "collection", (IExpression)null);
@@ -73,10 +73,10 @@ public class CreateAction extends GuardedAction
     XActionDocument document = getDocument();
 
     // get parent
-    IModelObject parent = (parentExpr != null)? parentExpr.queryFirst( context): null;
+    INode parent = (parentExpr != null)? parentExpr.queryFirst( context): null;
 
     // create element
-    List<IModelObject> elements = new ArrayList<IModelObject>( 1);
+    List<INode> elements = new ArrayList<INode>( 1);
     
     // create element from name string
     if ( nameExpr != null)
@@ -87,9 +87,9 @@ public class CreateAction extends GuardedAction
     }
         
     // create children
-    for( IModelObject child: document.getRoot().getChildren())
+    for( INode child: document.getRoot().getChildren())
     {
-      IModelObject element = ModelAlgorithms.cloneTree( child, factory);
+      INode element = ModelAlgorithms.cloneTree( child, factory);
       replaceTemplateExpressions( context, element);
       elements.add( element);
     }
@@ -99,7 +99,7 @@ public class CreateAction extends GuardedAction
     {
       for( int i=0; i<elements.size(); i++)
       {
-        IModelObject element = elements.get( i);
+        INode element = elements.get( i);
         AnnotationTransform transform = new AnnotationTransform();
         transform.setFactory( factory);
         transform.setParentContext( context);
@@ -116,12 +116,12 @@ public class CreateAction extends GuardedAction
       {
         IExternalReference pRef = (IExternalReference)parent;
         int index = parent.getNumberOfChildren();
-        for( IModelObject element: elements)
+        for( INode element: elements)
           pRef.getCachingPolicy().insert( pRef, element, index++, false);
       }
       else
       {
-        for( IModelObject element: elements)
+        for( INode element: elements)
           parent.addChild( element);
       }
     }
@@ -138,7 +138,7 @@ public class CreateAction extends GuardedAction
     if ( collection != null && elements.size() > 0)
     {
       IModel model = elements.get( 0).getModel();
-      for( IModelObject element: elements)
+      for( INode element: elements)
         model.addRoot( collection, element);
     }
     
@@ -150,12 +150,12 @@ public class CreateAction extends GuardedAction
    * @param context The context of the action.
    * @param template The raw template model.
    */
-  private void replaceTemplateExpressions( IContext context, IModelObject template)
+  private void replaceTemplateExpressions( IContext context, INode template)
   {
     DepthFirstIterator iter = new DepthFirstIterator( template);
     while( iter.hasNext())
     {
-      IModelObject element = (IModelObject)iter.next();
+      INode element = (INode)iter.next();
       String[] attrNames = element.getAttributeNames().toArray( new String[ 0]);
       for( String attrName: attrNames)
       {
@@ -206,7 +206,7 @@ public class CreateAction extends GuardedAction
     switch( expression.getType( context))
     {
       case NODES:
-        IModelObject node = expression.queryFirst( context);
+        INode node = expression.queryFirst( context);
         return (node != null)? node.getValue(): null;
         
       case NUMBER:
@@ -222,7 +222,7 @@ public class CreateAction extends GuardedAction
     return null;
   }
   
-  private IModelObjectFactory factory;
+  private INodeFactory factory;
   private String var;
   private IExpression collectionExpr;
   private IExpression parentExpr;

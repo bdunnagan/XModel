@@ -20,7 +20,7 @@
 package org.xmodel.xaction;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xml.IXmlIO.Style;
@@ -42,7 +42,7 @@ public class PrintAction extends GuardedAction
   {
     super.configure( document);
     
-    IModelObject config = document.getRoot();
+    INode config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");    
     style = Xlate.get( config, "style", "printable");
     sourceExpr = document.getExpression( config);
@@ -59,8 +59,8 @@ public class PrintAction extends GuardedAction
     switch( sourceExpr.getType( context))
     {
       case NODES:
-        List<IModelObject> sources = sourceExpr.query( context, null);
-        for( IModelObject source: sources) 
+        List<INode> sources = sourceExpr.query( context, null);
+        for( INode source: sources) 
         {
           sb.append( xmlIO.write( source));
         }

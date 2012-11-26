@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
 
@@ -20,7 +20,7 @@ public class SyncResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<INode>>();
   }
   
   /**
@@ -38,7 +38,7 @@ public class SyncResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( Channel channel, int correlation, IModelObject element) throws IOException
+  public void send( Channel channel, int correlation, INode element) throws IOException
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -58,11 +58,11 @@ public class SyncResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
-    IModelObject element = bundle.requestCompressor.decompress( buffer);
+    INode element = bundle.requestCompressor.decompress( buffer);
     
     log.debugf( "SyncResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     
-    SynchronousQueue<IModelObject> queue = queues.remove( correlation);
+    SynchronousQueue<INode> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( element); 
   }
 
@@ -73,7 +73,7 @@ public class SyncResponseProtocol
   protected int nextCorrelation()
   {
     int correlation = counter.getAndIncrement();
-    queues.put( correlation, new SynchronousQueue<IModelObject>());
+    queues.put( correlation, new SynchronousQueue<INode>());
     return correlation;
   }
   
@@ -83,11 +83,11 @@ public class SyncResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected INode waitForResponse( long correlation, int timeout) throws InterruptedException
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( correlation);
+      SynchronousQueue<INode> queue = queues.get( correlation);
       return queue.poll( timeout, TimeUnit.MILLISECONDS);
     }
     finally
@@ -100,5 +100,5 @@ public class SyncResponseProtocol
 
   private BindProtocol bundle;
   private AtomicInteger counter;
-  private Map<Integer, SynchronousQueue<IModelObject>> queues;
+  private Map<Integer, SynchronousQueue<INode>> queues;
 }

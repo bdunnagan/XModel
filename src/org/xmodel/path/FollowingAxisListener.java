@@ -47,13 +47,13 @@ public class FollowingAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#installListeners(org.xmodel.IModelObject)
    */
-  protected void installListeners( IModelObject object)
+  protected void installListeners( INode object)
   {
     // TODO: need to add support for sibling notification in IModelListener & IModelObject
     FollowingIterator iter = new FollowingIterator( object);
     while( iter.hasNext())
     {
-      IModelObject following = (IModelObject)iter.next();
+      INode following = (INode)iter.next();
       following.addModelListener( this);
     }
   }
@@ -61,12 +61,12 @@ public class FollowingAxisListener extends FanoutListener
   /* (non-Javadoc)
    * @see org.xmodel.path.FanoutListener#uninstallListeners(org.xmodel.IModelObject)
    */
-  protected void uninstallListeners( IModelObject object)
+  protected void uninstallListeners( INode object)
   {
     FollowingIterator iter = new FollowingIterator( object);
     while( iter.hasNext())
     {
-      IModelObject following = (IModelObject)iter.next();
+      INode following = (INode)iter.next();
       following.removeModelListener( this);
     }
   }
@@ -83,13 +83,13 @@ public class FollowingAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyAddChild(
    * org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+  public void notifyAddChild( INode parent, INode child, int index)
   {
     // install next link (* see above)
     FollowingIterator iter = new FollowingIterator( child);
     while( iter.hasNext())
     {
-      IModelObject following = (IModelObject)iter.next();
+      INode following = (INode)iter.next();
       if ( fanoutElement.evaluate( null, null, following)) 
         getNextListener().incrementalInstall( following);
     }
@@ -102,7 +102,7 @@ public class FollowingAxisListener extends FanoutListener
    * @see org.xmodel.path.ListenerChainLink#notifyRemoveChild(
    * org.xmodel.IModelObject, org.xmodel.IModelObject, int)
    */
-  public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+  public void notifyRemoveChild( INode parent, INode child, int index)
   {
     // uninstall my listeners
     uninstallListeners( child);
@@ -111,7 +111,7 @@ public class FollowingAxisListener extends FanoutListener
     BreadthFirstIterator iter = new BreadthFirstIterator( child);
     while( iter.hasNext())
     {
-      IModelObject descendant = (IModelObject)iter.next();
+      INode descendant = (INode)iter.next();
       if ( fanoutElement.evaluate( null, null, descendant)) 
         getNextListener().incrementalUninstall( descendant);
     }
@@ -125,21 +125,21 @@ public class FollowingAxisListener extends FanoutListener
   {
     String xml = "<node id='1'><node id='2'></node></node>";
     XmlIO xmlIO = new XmlIO();
-    IModelObject root = xmlIO.read( xml);
+    INode root = xmlIO.read( xml);
     
     final IPath path2 = XPath.createPath( "nested::node[ last()]"); 
     
     IPath path1 = XPath.createPath( "nested::node");
     path1.addPathListener( new Context( root), new IPathListener() {
-      public void notifyAdd( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+      public void notifyAdd( IContext context, IPath path, int pathIndex, List<INode> nodes)
       {
         // this method will be called three times:
         // 1. leaf is not the same as the nodes.get( 0) so notification never happens (flaw)
         // 2. leaf is the same as nodes.get( 0) so notification is deferred
         // 3. this is the deferred notification
         System.out.println( "node: "+nodes.get( 0));
-        IModelObject node = nodes.get( 0);
-        IModelObject leaf = path2.queryFirst( node);
+        INode node = nodes.get( 0);
+        INode leaf = path2.queryFirst( node);
         if ( leaf != null)
         {
           node = new ModelObject( "node");
@@ -147,7 +147,7 @@ public class FollowingAxisListener extends FanoutListener
           leaf.addChild( node);
         }
       }
-      public void notifyRemove( IContext context, IPath path, int pathIndex, List<IModelObject> nodes)
+      public void notifyRemove( IContext context, IPath path, int pathIndex, List<INode> nodes)
       {
       }
     });

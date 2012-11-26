@@ -20,7 +20,7 @@
 package org.xmodel.caching;
 
 import java.util.Properties;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -48,7 +48,7 @@ public class EnvironmentCachingPolicy extends ConfiguredCachingPolicy
     Properties properties = System.getProperties();
     for( Object key: properties.keySet())
     {
-      IModelObject property = getFactory().createObject( reference, "property");
+      INode property = getFactory().createObject( reference, "property");
       property.setAttribute( "id", key);
       property.setValue( properties.get( key));
       reference.addChild( property);
@@ -59,14 +59,14 @@ public class EnvironmentCachingPolicy extends ConfiguredCachingPolicy
    * @see org.xmodel.external.ICachingPolicy#insert(org.xmodel.external.IExternalReference, 
    * org.xmodel.IModelObject, int, boolean)
    */
-  public void insert( IExternalReference parent, IModelObject object, int index, boolean dirty) throws CachingException
+  public void insert( IExternalReference parent, INode object, int index, boolean dirty) throws CachingException
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.external.ICachingPolicy#remove(org.xmodel.external.IExternalReference, org.xmodel.IModelObject)
    */
-  public void remove( IExternalReference parent, IModelObject object) throws CachingException
+  public void remove( IExternalReference parent, INode object) throws CachingException
   {
   }
 }

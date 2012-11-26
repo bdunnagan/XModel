@@ -20,7 +20,7 @@
 package org.xmodel.xsd.check;
 
 import java.util.List;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.TextNode;
@@ -32,7 +32,7 @@ import org.xmodel.xsd.check.SchemaError.Type;
  */
 public class ValueCheck extends AbstractCheck
 {
-  public ValueCheck( IModelObject schemaLocus)
+  public ValueCheck( INode schemaLocus)
   {
     super( schemaLocus);
     
@@ -43,10 +43,10 @@ public class ValueCheck extends AbstractCheck
       required = Xlate.get( schemaLocus, "use", "optional").equals( "required");
     }
     
-    IModelObject typeNode = schemaLocus.getFirstChild( "type");
+    INode typeNode = schemaLocus.getFirstChild( "type");
     if ( typeNode != null)
     {
-      List<IModelObject> validations = typeNode.getChildren();
+      List<INode> validations = typeNode.getChildren();
       typeChecks = new TypeCheck[ validations.size()];
       for( int i=0; i<typeChecks.length; i++)
         typeChecks[ i] = new TypeCheck( validations.get( i));
@@ -60,11 +60,11 @@ public class ValueCheck extends AbstractCheck
   /* (non-Javadoc)
    * @see org.xmodel.xsd.nu.ICheck#validateImpl(org.xmodel.IModelObject)
    */
-  protected boolean validateImpl( IModelObject documentLocus)
+  protected boolean validateImpl( INode documentLocus)
   {
     if ( !(documentLocus instanceof AttributeNode) && !(documentLocus instanceof TextNode))
     {
-      IModelObject node = documentLocus.getAttributeNode( attrName);
+      INode node = documentLocus.getAttributeNode( attrName);
       if ( node == null && attrName.length() == 0)
       {
         documentLocus.setValue( "");

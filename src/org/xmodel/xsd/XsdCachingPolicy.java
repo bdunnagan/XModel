@@ -20,7 +20,7 @@
 package org.xmodel.xsd;
 
 import java.net.URL;
-import org.xmodel.IModelObject;
+import org.xmodel.INode;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
@@ -61,9 +61,9 @@ public class XsdCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       url = new URL( string);
-      IModelObject urlObject = reference.cloneObject();
+      INode urlObject = reference.cloneObject();
       Xsd xsd = new Xsd( url);
-      IModelObject rootTag = xsd.getRoot();
+      INode rootTag = xsd.getRoot();
       urlObject.addChild( rootTag);
       update( reference, urlObject);
     }
