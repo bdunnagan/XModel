@@ -62,7 +62,7 @@ public class GlobalSettings
     if ( model == null && create)
     {
       model = new Model();
-      SLog.infof( this, "CREATE MODEL=%X", model.hashCode());
+      SLog.debugf( this, "Created new model: %X", model.hashCode());
       threadModel.set( model);
     }
     return model;

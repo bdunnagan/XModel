@@ -3,11 +3,11 @@ package org.xmodel.net;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -25,11 +25,8 @@ public class ProtocolMirrorTest
   {
     context = new StatefulContext();
     
-    server = new XioServer( host, port);
-    server.setPingTimeout( timeout);
-    server.setServerContext( context);
-    server.setDispatcher( new ImmediateDispatcher());
-    server.start( false);
+    server = new XioServer( context, context);
+    server.start( host, port);
     
 //    Log.getLog( TcpBase.class).setLevel( Log.all);
 //    Log.getLog( Client.class).setLevel( Log.all);
@@ -40,8 +37,8 @@ public class ProtocolMirrorTest
   
   @After public void shutdown() throws IOException
   {
-    for( Session session: clients)
-      session.close();
+    for( XioClient client: clients)
+      client.close();
     
     clients.clear();
     clients = null;
@@ -50,7 +47,7 @@ public class ProtocolMirrorTest
     server = null;
   }
   
-  @Test public void attachTest() throws IOException
+  @Test public void attachTest() throws Exception
   {
     createClients( defaultClientCount);
     
@@ -70,19 +67,18 @@ public class ProtocolMirrorTest
     }
   }
   
-  private void createClients( int count) throws IOException
+  private void createClients( int count) throws Exception
   {
-    clients = new ArrayList<Session>();
+    clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      XioClient client = new XioClient( host, port, true);
-      client.setPingTimeout( timeout);
-      Session session = client.connect( timeout);
-      clients.add( session);
+      XioClient client = new XioClient( null, null);
+      client.connect( host, port).await( timeout);
+      clients.add( client);
     }
   }
   
   private StatefulContext context;
   private XioServer server;
-  private List<Session> clients;
+  private List<XioClient> clients;
 }

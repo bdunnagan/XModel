@@ -2,14 +2,12 @@ package org.xmodel.caching.sql;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
-import org.xmodel.ModelObjectFactory;
 
 /**
  * This class provides a configurable transform from the results of a SQL query to one
@@ -26,77 +24,48 @@ public class SQLTransform
   public SQLTransform( PreparedStatement statement)
   {
     this.statement = statement;
-    rowElementFactory = new ModelObjectFactory();
-    columnElementFactory = new ModelObjectFactory();
-    attributes = new HashMap<String, String>();
-    children = new HashMap<String, String>();
-  }
-  
-  /**
-   * Set the factory for row elements.
-   * @param factory The factory.
-   */
-  public void setRowElementFactory( IModelObjectFactory factory)
-  {
-    rowElementFactory = factory;
-  }
-  
-  /**
-   * Set the factory for columns containing xml.
-   * @param factory The factory.
-   */
-  public void setColumnElementFactory( IModelObjectFactory factory)
-  {
-    columnElementFactory = factory;
-  }
-  
-  /**
-   * Set the element name to be used for row elements.
-   * @param name The name of each row element.
-   */
-  public void setRowElementName( String name)
-  {
-    rowElementName = name;
-  }
-  
-  /**
-   * Map the specified column to an attribute.
-   * @param column The column name.
-   * @param attribute The attribute name.
-   */
-  public void mapAttribute( String column, String attribute)
-  {
-    attributes.put( column, attribute);
-  }
-  
-  /**
-   * Map the specified column to a child.
-   * @param column The column name.
-   * @param child The child name.
-   */
-  public void mapChild( String column, String child)
-  {
-    children.put( column, child);
   }
 
+  /**
+   * Create a row element for the specified row.
+   * @param index The zero-based index of the row.
+   * @param result The ResultSet object pointing to the row.
+   * @return Returns the 
+   */
+  public IModelObject createRow( int index, ResultSet result, ResultSetMetaData meta)
+  {
+  }
+  
+  /**
+   * Create the representation of the column in the specified parent element.
+   * @param index The zero-based index of the column.
+   * @param result The ResultSet object point to the current row.
+   * @param parent The row element.
+   */
+  public void createColumn( int index, ResultSet result, IModelObject parent)
+  {
+  }
+  
   /**
    * Execute the query.
    * @return Returns the transformed result-set.
    */
   public List<IModelObject> execute() throws SQLException
   {
+    List<IModelObject> rows = new ArrayList<IModelObject>();
+    
     ResultSet result = statement.executeQuery();
     while( result.next())
     {
-      IModelObject rowElement = rowElementFactory.createObject( null, rowElementName);
-      
+      IModelObject row = createRow( result.getRow() - 1, result);
+      for( int i=0; i<columnCount; i++)
+      {
+        createColumn( i, result, row);
+      }
     }    
+    
+    return rows;
   }
-  
+
   private PreparedStatement statement;
-  private IModelObjectFactory rowElementFactory;
-  private IModelObjectFactory columnElementFactory;
-  private String rowElementName;
-  private Map<String, String> attributes;
-  private Map<String, String> children;
 }
