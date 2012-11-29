@@ -117,6 +117,12 @@ public class AssignAction extends GuardedAction
             for( IModelObject source: sources) clones.add( ModelAlgorithms.cloneTree( source, factory));
             setVariable( scope, clones);
           }
+          else if ( mode.equals( "clone"))
+          {
+            List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
+            for( IModelObject source: sources) clones.add( ModelAlgorithms.cloneExternalTree( source, factory));
+            setVariable( scope, clones);
+          }
           else if ( mode.equals( "fk1"))
           {
             List<IModelObject> fks = new ArrayList<IModelObject>( sources.size());

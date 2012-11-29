@@ -121,7 +121,7 @@ public class ScriptAction extends GuardedAction
     
     // optionally create local variable context
     privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
-        
+
     // special handling of <if>, <elseif>, <else>
     IfAction ifAction = null;
     

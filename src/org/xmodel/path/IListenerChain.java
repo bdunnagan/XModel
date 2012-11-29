@@ -19,12 +19,10 @@
  */
 package org.xmodel.path;
 
-import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.IPathListener;
 import org.xmodel.xpath.expression.IContext;
-
 
 /**
  * An interface for a chain of listeners used to implement the IPathListener mechanism.  A listener chain
@@ -67,32 +65,4 @@ public interface IListenerChain
    * @param object The object where the listener chain will be uninstalled.
    */
   public void uninstall( IModelObject object);
-  
-  /**
-   * Print debug information about layer install.
-   * @param list The layer on which the listener will be installed.
-   * @param pathIndex The index of the layer.
-   */
-  public void debugInstall( List<IModelObject> list, int pathIndex);
-  
-  /**
-   * Print debug information about layer uninstall.
-   * @param list The layer on which the listener will be uninstalled.
-   * @param pathIndex The index of the layer.
-   */
-  public void debugUninstall( List<IModelObject> list, int pathIndex);
-  
-  /**
-   * Print debug information about incremental install.
-   * @param list The objects where the link will be installed.
-   * @param pathIndex The index of the layer.
-   */
-  public void debugIncrementalInstall( List<IModelObject> list, int pathIndex);
-  
-  /**
-   * Print debug information about incremental uninstall.
-   * @param list The objects where the link will be uninstalled.
-   * @param pathIndex The index of the layer.
-   */
-  public void debugIncrementalUninstall( List<IModelObject> list, int pathIndex);
 }

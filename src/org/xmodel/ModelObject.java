@@ -90,7 +90,7 @@ public class ModelObject implements IModelObject
    */
   public IModel getModel()
   {
-    if ( model == null) model = ModelRegistry.getInstance().getModel();
+    if ( model == null) model = GlobalSettings.getInstance().getModel();
     return model;
   }
 
@@ -99,7 +99,7 @@ public class ModelObject implements IModelObject
    */
   public void setID( String id)
   {
-    writeAttributeAccess( "id");
+    notifyAccessAttributes( "id", true);
     setAttribute( "id", id);
   }
 
@@ -108,7 +108,7 @@ public class ModelObject implements IModelObject
    */
   public String getID()
   {
-    readAttributeAccess( "id");
+    notifyAccessAttributes( "id", false);
     return Xlate.get( this, "id", "");
   }
 
@@ -149,7 +149,7 @@ public class ModelObject implements IModelObject
    */
   public Object setAttribute( String attrName, Object attrValue)
   {
-    writeAttributeAccess( attrName);
+    notifyAccessAttributes( attrName, true);
     
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
@@ -192,7 +192,7 @@ public class ModelObject implements IModelObject
    */
   public Object getAttribute( String attrName)
   {
-    readAttributeAccess( attrName);
+    notifyAccessAttributes( attrName, false);
     
     if ( attributes == null) return null;
     return attributes.get( attrName);
@@ -212,7 +212,7 @@ public class ModelObject implements IModelObject
    */
   public Collection<String> getAttributeNames()
   {
-    readAttributeAccess( null);
+    notifyAccessAttributes( null, false);
     
     if ( attributes == null) return Collections.emptyList();
     return attributes.keySet();
@@ -223,7 +223,7 @@ public class ModelObject implements IModelObject
    */
   public Object removeAttribute( String attrName)
   {
-    writeAttributeAccess( attrName);
+    notifyAccessAttributes( attrName, true);
     
     Object oldValue = getAttribute( attrName);
     if ( oldValue == null) return null;
@@ -325,7 +325,7 @@ public class ModelObject implements IModelObject
     }
     else
     {
-      writeChildrenAccess();
+      notifyAccessChildren( true);
       
       IModelObject oldParent = child.getParent();
       if ( oldParent == this)
@@ -420,7 +420,7 @@ public class ModelObject implements IModelObject
     }
     else
     {
-      writeChildrenAccess();
+      notifyAccessChildren( true);
       
       // bail if no children
       if ( children == null) return null;
@@ -461,7 +461,7 @@ public class ModelObject implements IModelObject
     }
     else
     {
-      writeChildrenAccess();
+      notifyAccessChildren( true);
       
       // bail if no children
       if ( children == null) return;
@@ -539,7 +539,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject getChild( int index)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     // bail if no children
     if ( children == null) return null;
@@ -556,7 +556,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject getFirstChild( String type)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     if ( children != null)
     {
@@ -572,7 +572,7 @@ public class ModelObject implements IModelObject
    */
   public IModelObject getChild( String type, String name)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     if ( children != null)
     {
@@ -617,7 +617,7 @@ public class ModelObject implements IModelObject
    */
   public List<IModelObject> getChildren( String type, String name)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     List<IModelObject> result = new ArrayList<IModelObject>( 1);
     if ( children != null)
@@ -634,9 +634,11 @@ public class ModelObject implements IModelObject
    */
   public List<IModelObject> getChildren()
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
+    
     List<IModelObject> result = children;
     if ( children == null) result = Collections.emptyList();
+    
     return result;
   }
 
@@ -645,7 +647,7 @@ public class ModelObject implements IModelObject
    */
   public List<IModelObject> getChildren( String type)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     if ( children != null)
     {
@@ -664,7 +666,7 @@ public class ModelObject implements IModelObject
    */
   public Set<String> getTypesOfChildren()
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     
     HashSet<String> set = new HashSet<String>();
     if ( children != null)
@@ -680,7 +682,7 @@ public class ModelObject implements IModelObject
    */
   public int getNumberOfChildren()
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     return (children == null)? 0: children.size();
   }
 
@@ -689,7 +691,7 @@ public class ModelObject implements IModelObject
    */
   public int getNumberOfChildren( String type)
   {
-    readChildrenAccess();
+    notifyAccessChildren( false);
     return getChildren( type).size();
   }
 
@@ -961,40 +963,19 @@ public class ModelObject implements IModelObject
   }
 
   /**
-   * Convenience method for notifying subclasses when this object has been read accessed. This
-   * method is not called when the <code>getType</code> or <code>isType</code> methods are
-   * called since the type of the object never changes. The attrName will be null if all of
-   * the attributes are being accessed.
-   * @param attrName The name of the attribute being read or null.
+   * Called just before a request that accesses the attributes of this object is fulfilled.
+   * @param name The name of the attribute, or null if all attributes are being accessed.
+   * @param write True if write access.
    */
-  protected void readAttributeAccess( String attrName)
+  protected void notifyAccessAttributes( String name, boolean write)
   {
   }
   
   /**
-   * Convenience method for notifying subclasses when the list of children of this object is
-   * accessed for reading. This method is called first so that the children can be populated
-   * if they have not been already.
+   * Called just before a request that accesses the children of this object is fulfilled.
+   * @param write True if write access.
    */
-  protected void readChildrenAccess()
-  {
-  }
-  
-  /**
-   * Convenience method for notifying subclasses when this object has been write accessed. This
-   * method is not called when the parent is changed.
-   * @param attrName The name of the attribute.
-   */
-  protected void writeAttributeAccess( String attrName)
-  {
-  }
-  
-  /**
-   * Convenience method for notifying subclasses when the list of children of this object is
-   * accessed for writing. This method is called first so that the children can be populated
-   * if they have not been already.
-   */
-  protected void writeChildrenAccess()
+  protected void notifyAccessChildren( boolean write)
   {
   }
   

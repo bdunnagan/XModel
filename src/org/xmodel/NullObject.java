@@ -219,6 +219,7 @@ public class NullObject implements IModelObject
   @Override
   public void clearModel()
   {
+    model = null;
   }
 
   /* (non-Javadoc)
@@ -226,7 +227,7 @@ public class NullObject implements IModelObject
    */
   public IModel getModel()
   {
-    if ( model == null) model = ModelRegistry.getInstance().getModel();
+    if ( model == null) model = GlobalSettings.getInstance().getModel();
     return model;
   }
 

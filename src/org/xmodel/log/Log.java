@@ -134,6 +134,15 @@ public final class Log
       log.setSink( sink);
   }
   
+  /**
+   * Set the default sink.
+   * @param sink The sink.
+   */
+  public synchronized static void setDefaultSink( ILogSink sink)
+  {
+    defaultSink = sink;
+  }
+  
   protected Log()
   {
     this.mask = problems | info;
@@ -173,7 +182,71 @@ public final class Log
   {
     return (mask & level) != 0;
   }
-
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean verbose()
+  {
+    return (mask & Log.verbose) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean debug()
+  {
+    return (mask & Log.debug) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean info()
+  {
+    return (mask & Log.info) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean warn()
+  {
+    return (mask & Log.warn) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean error()
+  {
+    return (mask & Log.error) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean severe()
+  {
+    return (mask & Log.severe) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean fatal()
+  {
+    return (mask & Log.fatal) != 0;
+  }
+  
+  /**
+   * @return Returns true if the specified level is enabled.
+   */
+  public boolean exception()
+  {
+    return (mask & Log.exception) != 0;
+  }
+  
   /**
    * Log a verbose message.
    * @param message The message.
@@ -464,10 +537,10 @@ public final class Log
   }
   
   protected static PackageMap map = new PackageMap();
-  private static ILogSink defaultSink = new FormatSink( new MultiSink( new ConsoleSink(), new FileSink()));
+  private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
   
   @SuppressWarnings("unused")
-  private static LogManager configMonitor = new LogManager();
+  private static LogManager logManager = new LogManager();
   
   private volatile int mask;
   private volatile ILogSink sink;

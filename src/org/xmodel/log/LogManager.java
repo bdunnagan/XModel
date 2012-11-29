@@ -6,6 +6,12 @@ import java.io.FileInputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.xml.XmlIO;
@@ -37,7 +43,7 @@ public final class LogManager implements Runnable
    */
   public LogManager()
   {
-    period = 10000;
+    period = 10;
     
     String path = System.getProperty( "org.xmodel.log.config");
     if ( path == null) path = "logging.xml";
@@ -51,31 +57,20 @@ public final class LogManager implements Runnable
 
     Thread.setDefaultUncaughtExceptionHandler( new UncaughtExceptionLogger());
     
-    if ( config != null) start();
-  }
-  
-  /**
-   * Start the configuration monitoring thread.
-   */
-  public void start()
-  {
-    if ( thread != null) stop(); else updateConfig();
-    
-    thread = new Thread( this, "Log-Config");
-    thread.setDaemon( true);
-    thread.setPriority( Thread.MIN_PRIORITY);
-    thread.start();
-  }
-  
-  /**
-   * Stop the configuration monitoring thread.
-   */
-  public void stop()
-  {
-    if ( thread != null) 
+    if ( config != null)
     {
-      thread.interrupt();
-      thread = null;
+      run();
+      
+      scheduler = Executors.newScheduledThreadPool( 1, new ThreadFactory() {
+        @Override public Thread newThread( Runnable runnable)
+        {
+          Thread thread = new Thread( runnable, "Logvisor");
+          thread.setDaemon( true);
+          return thread;
+        }
+      });
+      
+      future = scheduler.schedule( this, period, TimeUnit.SECONDS);
     }
   }
   
@@ -118,6 +113,16 @@ public final class LogManager implements Runnable
     {
       IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
       period = Xlate.childGet( root, "reload", 5) * 1000;
+
+      ILogSink[] defaultSinks = configure( root);
+      if ( defaultSinks.length == 1)
+      {
+        Log.setDefaultSink( defaultSinks[ 0]);
+      }
+      else if ( defaultSinks.length > 1)
+      {
+        Log.setDefaultSink( new MultiSink( defaultSinks));
+      }
       
       for( IModelObject child: root.getChildren( "log"))
       {
@@ -154,24 +159,23 @@ public final class LogManager implements Runnable
   @Override
   public void run()
   {
-    while( true)
+    long modified = config.lastModified();
+    if ( modified > timestamp)
     {
-      long modified = config.lastModified();
-      if ( modified > timestamp)
-      {
-        if ( timestamp > 0) SLog.warn( this, "Reloaded logging configuration.");
-        timestamp = modified;
-        updateConfig();
-      }
-
-      if ( period < 0) break;
-      if ( period < 1000) period = 1000;
-      try { Thread.sleep( period);} catch( Exception e) { break;}
+      if ( timestamp > 0) SLog.info( this, "Reloaded logging configuration.");
+      timestamp = modified;
+      updateConfig();
     }
+    
+    if ( period <= 0) period = 1;
+    
+    if ( future != null && future.cancel( false))
+      future = scheduler.schedule( this, period, TimeUnit.SECONDS);
   }
 
   private File config;
   private long timestamp;
   private int period;
-  private Thread thread;
+  private ScheduledExecutorService scheduler;
+  private ScheduledFuture<?> future;
 }

@@ -366,7 +366,7 @@ public interface IModelObject
   public IModelObject getRoot();
 
   /**
-   * Add a model listener to this object at the default priority of 100.
+   * Add a model listener to this object.
    * @param listener The model listener to be added.
    */
   public void addModelListener( IModelListener listener);

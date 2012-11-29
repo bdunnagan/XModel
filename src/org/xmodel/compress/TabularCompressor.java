@@ -19,24 +19,28 @@
  */
 package org.xmodel.compress;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
+import org.jboss.netty.buffer.ChannelBufferOutputStream;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-import org.xmodel.log.SLog;
+import org.xmodel.log.Log;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
@@ -74,81 +78,99 @@ public class TabularCompressor extends AbstractCompressor
     this.progressive = progressive;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
+  /**
+   * Predefine the tag table. If the compressor does not encounter tags which are not defined
+   * in the table then the table will not be written to the output. This is useful when all
+   * the tags are known in advance.
+   * @param table The table.
    */
-  public void compress( IModelObject element, OutputStream finalArrayOut) throws CompressorException
+  public void defineTagTable( List<String> table)
   {
-    ByteArrayOutputStream contentArrayOut = new ByteArrayOutputStream( 1024);
-    DataOutputStream contentOut = new DataOutputStream( contentArrayOut);
-    
-    try
-    {
-      // create content and decide if compression is required
-      writeElement( contentOut, element);
-      
-      // write header
-      byte header = 0;
-      if ( predefined) header |= 0x20;
-      finalArrayOut.write( header);
-      
-      // optionally compress everything but header
-      OutputStream rawOut = finalArrayOut;
-      
-      // write table
-      if ( !predefined)
-      {
-        DataOutputStream tableOut = new DataOutputStream( rawOut);
-        writeTable( tableOut);
-        tableOut.flush();
-      }
-      
-      // write content
-      contentOut.flush();
-      byte[] content = contentArrayOut.toByteArray();
-      rawOut.write( content);
-      rawOut.flush();
-      rawOut.close();
-    }
-    catch( IOException e)
-    {
-      throw new CompressorException( e);
-    }
-    
-    if ( progressive)
-      predefined = true;
+    this.table = table;
+    map.clear();
+    for( int i=0; i<table.size(); i++) map.put( table.get( i), i);
+    predefined = true;
+  }
+  
+  /**
+   * Clear the predefined tag table.
+   */
+  public void clearTagTable()
+  {
+    map.clear();
+    table.clear();
+    predefined = false;
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
+   */
+  @Override
+  public void compress( IModelObject element, OutputStream stream) throws IOException
+  {
+    ChannelBuffer buffer = compress( element);
+    buffer.readBytes( stream, buffer.readableBytes());
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#decompress(java.io.InputStream)
    */
-  public IModelObject decompress( InputStream rawArrayIn) throws CompressorException
+  @Override
+  public IModelObject decompress( InputStream stream) throws IOException
   {
-    try
-    {
-      // read header
-      byte header = (byte)rawArrayIn.read();
-      boolean predefined = (header & 0x20) != 0;
-      
-      if ( (header & 0xC0) != 0) throw new CompressorException( "Post compression not supported!");
+    DataInputStream input = new DataInputStream( stream);
+    
+    // header flags
+    int flags = input.readUnsignedByte();
+    boolean predefined = (flags & 0x20) != 0;
+    
+    // table
+    if ( !predefined) readTable( input);
 
-      // optionally decompress everything but header
-      InputStream rawIn = rawArrayIn;
-      DataInputStream dataIn = new DataInputStream( rawIn);
-      
-      // read table
-      if ( !predefined) readTable( dataIn);
-      
-      // read content
-      IModelObject element = readElement( dataIn);
-      dataIn.close();
-      
-      return element;
-    }
-    catch( IOException e)
-    {
-      throw new CompressorException( "Error in data stream: ", e);
-    }
+    // log
+    log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
+    
+    // content
+    return readElement( input);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
+   */
+  @Override
+  public ChannelBuffer compress( IModelObject element) throws IOException
+  {
+    // content
+    ChannelBuffer content = ChannelBuffers.dynamicBuffer( ByteOrder.BIG_ENDIAN, initialContentBufferSize);
+    writeElement( new DataOutputStream( new ChannelBufferOutputStream( content)), element);
+  
+    // header (including table)
+    ChannelBuffer header = ChannelBuffers.dynamicBuffer( ByteOrder.BIG_ENDIAN, initialHeaderBufferSize);
+  
+    // write header flags
+    byte flags = 0;
+    if ( predefined) flags |= 0x20;
+    header.writeByte( flags);
+    
+    // write table if necessary
+    if ( !predefined) writeTable( new DataOutputStream( new ChannelBufferOutputStream( header)));    
+    
+    // log
+    log.debugf( "%x.compress( %s): predefined=%s, header=%d, content=%d", hashCode(), element.getType(), predefined, header.writerIndex(), content.writerIndex());
+    
+    // progressive compression assumes a send/receive pair of compressors to remember table entries
+    if ( progressive) predefined = true;
+
+    return ChannelBuffers.wrappedBuffer( header, content);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#decompress(org.jboss.netty.buffer.ChannelBuffer)
+   */
+  @Override
+  public IModelObject decompress( ChannelBuffer input) throws IOException
+  {
+    return decompress( new ChannelBufferInputStream( input));
   }
 
   /**
@@ -156,7 +178,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the new element.
    */
-  private IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
+  protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
   {
     // read tag name
     String type = readHash( stream);
@@ -166,6 +188,7 @@ public class TabularCompressor extends AbstractCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
     
+    element.clearModel();
     return element;
   }
   
@@ -174,13 +197,13 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param element The element.
    */
-  private void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
+  protected void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
   {
     // write tag name
     writeHash( stream, element.getType());
     
     // write attributes and children
-    writeAttributes( stream, element);
+    writeAttributes( stream, element, element.getAttributeNames());
     writeChildren( stream, element);
   }
   
@@ -189,12 +212,12 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @param node The node whose attributes are being read.
    */
-  private void readAttributes( DataInputStream stream, IModelObject node) throws IOException, CompressorException
+  protected void readAttributes( DataInputStream stream, IModelObject node) throws IOException, CompressorException
   {
     boolean useJavaSerialization = false;
     
     // read count
-    int count = stream.read();
+    int count = stream.readUnsignedByte();
     if ( count > 127)
     {
       count -= 128;
@@ -209,7 +232,7 @@ public class TabularCompressor extends AbstractCompressor
         String attrName = readHash( stream);
         try
         {
-          Object attrValue = readObject( stream);
+          Object attrValue = serializer.readObject( stream);
           node.setAttribute( attrName, attrValue);
         }
         catch( ClassNotFoundException e)
@@ -235,7 +258,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @param node The node whose children are being read.
    */
-  private void readChildren( DataInputStream stream, IModelObject node) throws IOException, CompressorException
+  protected void readChildren( DataInputStream stream, IModelObject node) throws IOException, CompressorException
   {
     // read count
     int count = readValue( stream);
@@ -252,10 +275,10 @@ public class TabularCompressor extends AbstractCompressor
    * Write the attributes of the specified node into the buffer at the given offset.
    * @param stream The output stream.
    * @param node The node whose attributes are to be written.
+   * @param attrNames The names of the attributes to write.
    */
-  private void writeAttributes( DataOutputStream stream, IModelObject node) throws IOException, CompressorException
+  protected void writeAttributes( DataOutputStream stream, IModelObject node, Collection<String> attrNames) throws IOException, CompressorException
   {
-    Collection<String> attrNames = node.getAttributeNames();
     boolean useJavaSerialization = false;
     int count = attrNames.size();
     
@@ -279,19 +302,20 @@ public class TabularCompressor extends AbstractCompressor
     if ( useJavaSerialization)
     {
       // write count
-      stream.write( count + 128);
+      stream.writeByte( count + 128);
       
       // write attributes
       for( String attrName: attrNames)
       {
         writeHash( stream, attrName);
-        writeObject( stream, node.getAttributeNode( attrName));
+        if ( attrName.length() == 0) serializer.writeValue( stream, node); 
+        else serializer.writeObject( stream, node.getAttribute( attrName));
       }
     }
     else
     {
       // write count
-      stream.write( count);
+      stream.writeByte( count);
       
       // write attributes
       for( String attrName: attrNames)
@@ -307,7 +331,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param node The node whose children are to be written.
    */
-  private void writeChildren( DataOutputStream stream, IModelObject node) throws IOException, CompressorException
+  protected void writeChildren( DataOutputStream stream, IModelObject node) throws IOException, CompressorException
   {
     // write count
     List<IModelObject> children = node.getChildren();
@@ -323,10 +347,14 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the name.
    */
-  private String readHash( DataInputStream stream) throws IOException, CompressorException
+  protected String readHash( DataInputStream stream) throws IOException, CompressorException
   {
     int index = readValue( stream);
-    if ( index >= table.size()) throw new CompressorException( "Table entry not found.");
+    if ( index >= table.size()) 
+    {
+      log.errorf( "Compressor table:\n%s", dumpTable());
+      throw new CompressorException( String.format( "Table entry %d not found.", index));
+    }
     return table.get( index);
   }
   
@@ -335,7 +363,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param name The name.
    */
-  private void writeHash( DataOutputStream stream, String name) throws IOException, CompressorException
+  protected void writeHash( DataOutputStream stream, String name) throws IOException, CompressorException
   {
     Integer hash = map.get( name);
     if ( hash == null)
@@ -343,7 +371,7 @@ public class TabularCompressor extends AbstractCompressor
       hash = hashIndex++;
       table.add( name);
       map.put( name, hash);
-      if ( progressive) predefined = false;
+      predefined = false;
     }
     writeValue( stream, hash);
   }
@@ -353,7 +381,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the text.
    */
-  private String readText( DataInputStream stream) throws IOException
+  protected String readText( DataInputStream stream) throws IOException
   {
     int length = readValue( stream);
     byte[] bytes = new byte[ length];
@@ -366,37 +394,17 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param text The text.
    */
-  private void writeText( DataOutputStream stream, String text) throws CompressorException, IOException
+  protected void writeText( DataOutputStream stream, String text) throws CompressorException, IOException
   {
     writeValue( stream, text.length());
-    stream.writeBytes( text);
+    stream.write( text.getBytes());
   }
   
-  /**
-   * Deserialize a Java Object from the stream.
-   * @return Returns the object.
-   */
-  private Object readObject( DataInputStream stream) throws IOException, ClassNotFoundException
-  {
-    return serializer.readObject( stream);
-  }
-  
-  /**
-   * Serialize a Java Object to the stream.
-   * @param stream The stream.
-   * @param node The node containing the object.
-   * @return Returns the number of bytes written.
-   */
-  private int writeObject( DataOutputStream stream, IModelObject node) throws IOException
-  {
-    return serializer.writeObject( stream, node);
-  }
-
   /**
    * Read the hash table from the stream.
    * @param stream The input stream.
    */
-  private void readTable( DataInputStream stream) throws IOException, CompressorException
+  protected void readTable( DataInputStream stream) throws IOException, CompressorException
   {
     table = new ArrayList<String>();
     
@@ -421,10 +429,8 @@ public class TabularCompressor extends AbstractCompressor
    * Write the hash table to the stream.
    * @param stream The output stream.
    */
-  private void writeTable( DataOutputStream stream) throws IOException, CompressorException
+  protected void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
-    int startSize = stream.size();
-    
     // write table size
     Set<String> keys = map.keySet();
     writeValue( stream, keys.size());
@@ -432,12 +438,9 @@ public class TabularCompressor extends AbstractCompressor
     // write entries
     for( String key: keys) 
     {
-      stream.writeBytes( key);
-      stream.write( 0);
+      stream.write( key.getBytes());
+      stream.writeByte( 0);
     }
-    
-    // log
-    SLog.debugf( this, "Wrote table: entries=%d, size=%d.", keys.size(), stream.size() - startSize);
   }
   
   /**
@@ -445,7 +448,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the value.
    */
-  private int readValue( DataInputStream stream) throws IOException
+  protected int readValue( DataInputStream stream) throws IOException
   {
     int b1 = stream.readUnsignedByte();
     if ( (b1 & 0x80) != 0)
@@ -467,7 +470,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The output stream.
    * @param value The value.
    */
-  private void writeValue( DataOutputStream stream, int value) throws IOException, CompressorException
+  protected void writeValue( DataOutputStream stream, int value) throws IOException, CompressorException
   {
     if ( value > 127)
     {
@@ -479,7 +482,26 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
+  
+  /**
+   * Dump the string table.
+   * @return Returns a string containing the table dump.
+   */
+  private String dumpTable()
+  {
+    StringBuilder sb = new StringBuilder();
+    for( int i=0; i<table.size(); i++)
+    {
+      sb.append( String.format( "%d = '%s'\n", i, table.get( i)));
+    }
+    return sb.toString();
+  }
     
+  private final static Log log = Log.getLog( TabularCompressor.class);
+  
+  private final static int initialContentBufferSize = 256;
+  private final static int initialHeaderBufferSize = 256;
+  
   private List<String> table;
   private Map<String, Integer> map;
   private int hashIndex;

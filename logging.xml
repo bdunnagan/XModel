@@ -1,0 +1,6 @@
+<logging>
+  <log name="org.xmodel.compress.*" level="problems"/>
+  <log name="org.xmodel.net.*" level="debug"/>
+  <log name="org.xmodel.net.bind" level="all"/>
+  <log name="org.xmodel.net.execution" level="all"/>
+</logging>

@@ -230,7 +230,7 @@ TOKEN:
 {
   <LITERAL:("\"" (~["\""])* "\"") | ("'"  (~["'"] )* "'" )>
   |  <#_DIGIT_:  ["0"-"9"] >
-  |  <NUMBER:  (<_DIGIT_>)+ ( "." (<_DIGIT_>)* )? | "." (<_DIGIT_>)+>
+  |  <NUMBER:  (<_DIGIT_>)+ ("." (<_DIGIT_>)* )? (("e" | "E") ("-" | "+")? (<_DIGIT_>)+)? >
 }
 
 /* optimized for performance: sorted tokens by length (I think...) */

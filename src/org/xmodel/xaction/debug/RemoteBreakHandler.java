@@ -1,10 +1,13 @@
 package org.xmodel.xaction.debug;
 
 import java.util.concurrent.Semaphore;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
+
+import org.xmodel.Model;
+import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.log.SLog;
-import org.xmodel.net.Server;
+import org.xmodel.net.XioServer;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An implementation of IBreakHandler for network debugging.
@@ -20,9 +23,11 @@ public class RemoteBreakHandler implements IBreakHandler
     try
     {
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
-      server = new Server( "localhost", port);
-      server.setDispatcher( new ThreadPoolDispatcher( 1));
-      server.start( true);
+      
+      IContext context = new StatefulContext();
+      context.getModel().setDispatcher( new SerialExecutorDispatcher( new Model(), 1));
+      server = new XioServer( context, context);
+      server.start( "localhost", port);
     }
     catch( Exception e)
     {
@@ -57,5 +62,5 @@ public class RemoteBreakHandler implements IBreakHandler
   }
 
   private Semaphore lock;
-  private Server server;
+  private XioServer server;
 }

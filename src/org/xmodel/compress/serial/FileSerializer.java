@@ -1,23 +1,21 @@
 package org.xmodel.compress.serial;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
-import org.xmodel.compress.ISerializer;
 
 /**
  * An implementation of ISerializer that serializes a java.io.File object.
  */
-public class FileSerializer implements ISerializer
+public class FileSerializer extends AbstractSerializer
 {
   /* (non-Javadoc)
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( DataInput input) throws IOException, ClassNotFoundException, CompressorException
   {
     int length = input.readInt();
     byte[] bytes = new byte[ length];
@@ -35,9 +33,9 @@ public class FileSerializer implements ISerializer
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( DataOutputStream output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
-    File file = (File)node.getValue();
+    File file = (File)object;
     
     byte[] bytes = file.getPath().getBytes();
     int total = bytes.length;

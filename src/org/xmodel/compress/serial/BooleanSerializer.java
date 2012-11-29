@@ -1,33 +1,31 @@
 package org.xmodel.compress.serial;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
-import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
-import org.xmodel.compress.ISerializer;
 
 /**
  * An implementation of ISerializer that serializes java.lang.Boolean.
  */
-public class BooleanSerializer implements ISerializer
+public class BooleanSerializer extends AbstractSerializer
 {
   /* (non-Javadoc)
    * @see org.xmodel.compress.ISerializer#readObject(java.io.DataInput)
    */
   @Override
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException
+  public Object readObject( DataInput input) throws IOException, ClassNotFoundException, CompressorException
   {
-    return input.readBoolean();
+    return input.readByte();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.compress.ISerializer#writeObject(java.io.DataOutput, java.lang.Object)
    */
   @Override
-  public int writeObject( DataOutputStream output, IModelObject node) throws IOException, CompressorException
+  public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
-    output.writeBoolean( (Boolean)node.getValue());
+    output.writeByte( (Boolean)object? 1 : 0);
     return 1;
   }
 }

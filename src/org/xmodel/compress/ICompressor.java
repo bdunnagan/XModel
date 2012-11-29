@@ -19,8 +19,10 @@
  */
 package org.xmodel.compress;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
@@ -40,33 +42,32 @@ public interface ICompressor
    * @param serializer The serializer.
    */
   public void setSerializer( ISerializer serializer);
-  
+
   /**
-   * Compress the specified tree into a byte sequence.
-   * @param element The root of the tree to be compressed.
-   * @return Returns the byte array.
+   * Compress the specified element to the specified stream.
+   * @param element The element.
+   * @param stream The stream.
    */
-  public byte[] compress( IModelObject element) throws CompressorException;
+  public void compress( IModelObject element, OutputStream stream) throws IOException;
+
+  /**
+   * Decompress the next element from the specified stream.
+   * @param stream The stream.
+   * @return Returns the element.
+   */
+  public IModelObject decompress( InputStream stream) throws IOException;
   
   /**
-   * Decompress the specified byte sequence.
-   * @param bytes A byte array.
-   * @param offset The offset into the byte array.
+   * Compress the specified element into the specified output buffer.
+   * @param element The element.
+   * @return Returns the channel buffer containing the compressed data.
+   */
+  public ChannelBuffer compress( IModelObject element) throws IOException;
+  
+  /**
+   * Decompress an element from the specified input buffer.
+   * @param input The input buffer.
    * @return Returns the decompressed element.
    */
-  public IModelObject decompress( byte[] bytes, int offset) throws CompressorException;
-  
-  /**
-   * Compress to the specified output stream.
-   * @param element The element to compress.
-   * @param stream The output stream.
-   */
-  public void compress( IModelObject element, OutputStream stream) throws CompressorException;
-  
-  /**
-   * Decompress from the specified input stream.
-   * @param stream The input stream.
-   * @return Returns the decompressed element.
-   */
-  public IModelObject decompress( InputStream stream) throws CompressorException;
+  public IModelObject decompress( ChannelBuffer input) throws IOException;
 }

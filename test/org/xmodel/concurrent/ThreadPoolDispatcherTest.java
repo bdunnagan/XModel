@@ -1,12 +1,15 @@
 package org.xmodel.concurrent;
 
 import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
+import org.xmodel.Model;
 import org.xmodel.ModelListener;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -27,7 +30,7 @@ public class ThreadPoolDispatcherTest
   @Test
   public void sequencingTest() throws Exception
   {
-    dispatcher = new ThreadPoolDispatcher( 16, 100, false);
+    dispatcher = new SerialExecutorDispatcher( new Model(), 16, 100, false);
     
     final Runnable runnable = new UpdateRunnable();
     final Random random = new Random();
@@ -59,10 +62,11 @@ public class ThreadPoolDispatcherTest
   @SuppressWarnings("unchecked")
   public void lockTest() throws Exception
   {
-    Log.getLog( ThreadPoolDispatcher.class).setLevel( Log.all);
+    Log.getLog( SerialExecutorDispatcher.class).setLevel( Log.all);
     
-    dispatcher = new ThreadPoolDispatcher( 16, 100);
-    dispatcher.lock();
+    Model model = new Model();
+    dispatcher = new SerialExecutorDispatcher( model, 16, 100, false);
+    model.writeLock();
     
     final Runnable runnable = new UpdateRunnable();
     final Random random = new Random();
@@ -91,7 +95,7 @@ public class ThreadPoolDispatcherTest
     Thread.sleep( 1000);
     assertTrue( context.get( "x") == null);
     
-    dispatcher.unlock();
+    model.writeUnlock();
     semaphore.acquireUninterruptibly();
     
     List<IModelObject> list = (List<IModelObject>)context.get( "x");
@@ -146,7 +150,7 @@ public class ThreadPoolDispatcherTest
   }
   
   private StatefulContext context;
-  private ThreadPoolDispatcher dispatcher;
+  private SerialExecutorDispatcher dispatcher;
   private Semaphore semaphore;
   private long start;
 }

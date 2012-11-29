@@ -388,6 +388,7 @@ public class ModelAlgorithms implements IAxis
           fifo.push( childDup);
         }
       }
+      sourceDup.clearModel();
     }
     return thisDup;
   }
@@ -1016,7 +1017,10 @@ public class ModelAlgorithms implements IAxis
         if ( reference.isDirty())
         {
           for( String attrName: reference.getStaticAttributes())
-            clone.setAttribute( attrName, reference.getAttribute( attrName));
+          {
+            if ( attrName.equals( "*")) copyAttributes( reference, clone);
+            else clone.setAttribute( attrName, reference.getAttribute( attrName));
+          }
         }
         else
         {

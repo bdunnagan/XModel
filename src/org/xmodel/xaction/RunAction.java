@@ -26,18 +26,17 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.NullObject;
+import org.xmodel.Xlate;
 import org.xmodel.log.Log;
-import org.xmodel.log.SLog;
-import org.xmodel.net.Client;
-import org.xmodel.net.ICallback;
-import org.xmodel.net.Session;
-import org.xmodel.xml.IXmlIO.Style;
-import org.xmodel.xml.XmlIO;
+import org.xmodel.net.IXioCallback;
+import org.xmodel.net.XioClient;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -78,6 +77,8 @@ public class RunAction extends GuardedAction
     onCompleteExpr = document.getExpression( "onComplete", true);
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
+    
+    dispatcherExpr = document.getExpression( "dispatcher", true);
   }
 
   /* (non-Javadoc)
@@ -86,7 +87,18 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( hostExpr == null) runLocal( context); else runRemote( context);   
+    if ( hostExpr != null)
+    {
+      runRemote( context);
+    }
+    else if ( dispatcherExpr != null)
+    {
+      runLocalAsync( context);
+    }
+    else
+    {
+      runLocalSync( context); 
+    }
     return null;
   }
 
@@ -96,7 +108,7 @@ public class RunAction extends GuardedAction
    * @return Returns the execution result.
    */
   @SuppressWarnings("unchecked")
-  private Object[] runLocal( IContext context)
+  private Object[] runLocalSync( IContext context)
   {
     Object[] results = null;
 
@@ -130,6 +142,30 @@ public class RunAction extends GuardedAction
   }
   
   /**
+   * Dispatch the script via the specified dispatcher.
+   * @param context The context.
+   * @param dispatcher The dispatcher.
+   */
+  private void runLocalAsync( IContext context)
+  {
+    IModelObject dispatcherNode = dispatcherExpr.queryFirst( context);
+    if ( dispatcherNode == null)
+    {
+      log.warnf( "Dispatcher not found, '%s'", dispatcherExpr);
+      return;
+    }
+    
+    IDispatcher dispatcher = (IDispatcher)dispatcherNode.getValue();
+    IXAction script = getScript( getScriptNode( context));
+    
+    //
+    // Must create a new context here without the original context object, because otherwise the
+    // new dispatcher will end up using the original context object's model.
+    //
+    dispatcher.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
+  }
+  
+  /**
    * Perform remote execution.
    * @param context The context.
    * @return Returns the execution result.
@@ -148,72 +184,41 @@ public class RunAction extends GuardedAction
     String[] varArray = vars.split( "\\s*,\\s*");
     IModelObject scriptNode = getScriptNode( context);
 
-    Client client = null;
+    XioClient client = null;
     try
     {
-      if ( log.isLevelEnabled( Log.debug))
-      {
-        log.debugf( "Remote on %s:%d, %s ...", host, port, getScriptDescription( context));
-      }
-
-      client = new Client( host, port, false);
-      client.setPingTimeout( timeout);
+      log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
+      
+      client = new XioClient( context, context);
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
         try
         {
-          Session session = connect( client, timeout);
-          if ( session == null) throw new IOException( "Session not established.");
-          Object[] result = session.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+          if ( !client.connect( host, port, connectionRetries).await( timeout)) throw new IOException( "Connection not established.");
+          Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         finally
         {
-          if ( client != null) try { client.disconnect();} catch( Exception e) {}
+          if ( client != null) try { client.close();} catch( Exception e) {}
         }
       }
       else
       {
-        Callback callback = new Callback( client, onComplete, onSuccess, onError);
-        ConnectionRetryRunnable runnable = new ConnectionRetryRunnable( client, context, varArray, scriptNode, callback, timeout);
-        runnable.run();
+        AsyncExecuter callback = new AsyncExecuter( client, context, varArray, scriptNode, timeout, onComplete, onSuccess, onError);
+        client.connect( host, port, connectionRetries).addListener( callback); 
       }
       
       log.debug( "Finished remote.");
     }
-    catch( IOException e)
+    catch( Exception e)
     {
-      if ( onComplete != null || onError != null)
-      {
-        context.set( "error", e.getMessage());
-        if ( onError != null) onError.run( context);
-        if ( onComplete != null) onComplete.run( context);
-      }
-      else
-      {
-        throw new XActionException( e);
-      }
+      handleException( e, context, onComplete, onError);
     }
     
     return null;
-  }
-  
-  /**
-   * Try to connect to the server and employ a retry mechanism.
-   * @param client The client.
-   * @param timeout The timeout.
-   * @return Returns the connection session.
-   */
-  private Session connect( Client client, int timeout) throws IOException
-  {
-    for( int i=0; i<2; i++)
-    {
-      try { return client.connect( timeout);} catch( IOException e) {}
-      try { Thread.sleep( 1000);} catch( InterruptedException e) {}
-    }
-    return client.connect( timeout);
   }
   
   /**
@@ -244,44 +249,51 @@ public class RunAction extends GuardedAction
     IXAction script = null;
     if ( expression != null)
     {
-      IModelObject scriptNode = expression.queryFirst( context);
-      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
-      if ( attribute != null) script = attribute.script;
-      if ( script == null)
-      {
-        script = document.createScript( scriptNode);
-        if ( script != null)
-        {
-          scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
-        }
-        else
-        {
-          SLog.warnf( this, "Script not found: %s", expression);
-        }
-      }
+      script = getScript( expression.queryFirst( context));
+      if ( script == null) log.warnf( "Script not found for expression, %s", expression);
     }
     return script;
   }
-  
-  private String getScriptDescription( IContext context)
+
+  /**
+   * Compile, or get the already compiled, script for the specified node.
+   * @param scriptNode The script node.
+   * @return Returns null or the script.
+   */
+  private IXAction getScript( IModelObject scriptNode)
   {
-    if ( scriptExpr != null) return scriptExpr.toString();
+    if ( scriptNode == null) return null;
     
-    IModelObject node = getScriptNode( context);
-    return XmlIO.write( Style.printable, node);
+    CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+    if ( attribute != null) return attribute.script;
+    
+    IXAction script = document.createScript( scriptNode);
+    if ( script != null) scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+    return script;
   }
   
   /**
-   * Schedule connection retry.
-   * @param task The timer task.
-   * @param delay The delay in milliseconds.
+   * Handle an exception thrown during async execution.
+   * @param t The exception.
+   * @param context The execution context.
+   * @param onComplete The onComplete script.
+   * @param onError The onError script.
    */
-  private synchronized void scheduleConnectionRetry( TimerTask task, int delay)
+  private void handleException( Throwable t, IContext context, IXAction onComplete, IXAction onError)
   {
-    if ( connectionRetryTimer == null) connectionRetryTimer = new Timer();
-    connectionRetryTimer.schedule( task, delay);
+    if ( onComplete != null || onError != null)
+    {
+      context.set( "error", t.getMessage());
+      if ( onError != null) onError.run( context);
+      if ( onComplete != null) onComplete.run( context);
+    }
+    else
+    {
+      throw new XActionException( t);
+    }
   }
   
+  // TODO: Move this mechanism to GlobalSettings or IModel
   private final static class CompiledAttribute
   {
     public CompiledAttribute( IXAction script)
@@ -292,14 +304,69 @@ public class RunAction extends GuardedAction
     public IXAction script;
   }
   
-  private final static class Callback implements ICallback
+  private final static class ScriptRunnable implements Runnable
   {
-    public Callback( Client client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public ScriptRunnable( IContext context, IXAction script)
+    {
+      this.context = context;
+      this.script = script;
+    }
+    
+    @Override
+    public void run()
+    {
+      script.run( context);
+    }
+    
+    private IContext context;
+    private IXAction script;
+  }
+  
+  private final class AsyncExecuter implements IXioCallback, Runnable, ChannelFutureListener
+  {
+    public AsyncExecuter( XioClient client, IContext context, String[] vars, IModelObject element, int timeout, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
       this.client = client;
+      this.context = context;
+      this.vars = vars;
+      this.element = element;
+      this.timeout = timeout;
       this.onComplete = onComplete;
       this.onSuccess = onSuccess;
       this.onError = onError;
+    }
+    
+    /* (non-Javadoc)
+     * @see org.jboss.netty.channel.ChannelFutureListener#operationComplete(org.jboss.netty.channel.ChannelFuture)
+     */
+    @Override
+    public void operationComplete( ChannelFuture future) throws Exception
+    {
+      this.future = future;
+      context.getModel().dispatch( this);
+    }
+    
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run()
+    {
+      if ( !future.isSuccess())
+      {
+        handleException( future.getCause(), context, onComplete, onError);
+      }
+      else
+      {
+        try
+        {
+          client.execute( context, vars, element, this, timeout);
+        }
+        catch( Exception e)
+        {
+          handleException( e, context, onComplete, onError);
+        }
+      }
     }
     
     /* (non-Javadoc)
@@ -309,124 +376,48 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-      if ( client != null) try { client.disconnect();} catch( Exception e) {}
+      if ( client != null) try { client.close();} catch( Exception e) {}
     }
 
     /* (non-Javadoc)
-     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext)
+     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext, java.lang.Object[])
      */
     @Override
-    public void onSuccess( IContext context)
+    public void onSuccess( IContext context, Object[] results)
     {
-      if ( onSuccess != null) onSuccess.run( context);
+      if ( onSuccess != null) 
+      {
+        if ( var != null && results.length > 0) context.getScope().set( var, results[ 0]);
+        onSuccess.run( context);
+      }
     }
 
     /* (non-Javadoc)
      * @see org.xmodel.net.ICallback#onError(org.xmodel.xpath.expression.IContext)
      */
     @Override
-    public void onError( IContext context)
+    public void onError( IContext context, String error)
     {
-      if ( onError != null) onError.run( context);
+      if ( onError != null) 
+      {
+        context.set( "error", error);
+        onError.run( context);
+      }
     }
     
-    private Client client;
+    private XioClient client;
+    private IContext context;
+    private String[] vars;
+    private IModelObject element;
+    private int timeout;
+    private ChannelFuture future;
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;
   }
   
-  private final class ConnectionRetryRunnable implements Runnable
-  {
-    public ConnectionRetryRunnable( Client client, IContext context, String[] varArray, IModelObject scriptNode, ICallback callback, int timeout)
-    {
-      this.client = client;
-      this.context = context;
-      this.varArray = varArray;
-      this.scriptNode = scriptNode;
-      this.callback = callback;
-      this.timeout = timeout;
-      this.retries = 3;
-    }
-    
-    /* (non-Javadoc)
-     * @see java.lang.Runnable#run()
-     */
-    @Override
-    public void run()
-    {
-      Session session = null;
-      if ( --retries > 0)
-      {
-        try
-        {
-          session = client.connect( timeout);
-        }
-        catch( IOException e)
-        {
-          log.warn( e.getMessage());
-        }
-        
-        if ( session == null)
-        {
-          scheduleConnectionRetry( new RetryTask(), 1000);
-          return;
-        }
-      }
-      else
-      {
-        try
-        {
-          session = client.connect( timeout);
-          if ( session == null) throw new IOException( "Session not established.");
-        }
-        catch( IOException e1)
-        {
-          log.warn( e1.getMessage());
-          context.set( "error", e1.getMessage());
-          try { callback.onError( context);} catch( Exception e2) { log.exception( e2);}
-          try { callback.onComplete( context);} catch( Exception e2) { log.exception( e2);}
-          
-          return;
-        }
-      }
-      
-      try
-      {
-        session.execute( (StatefulContext)context, varArray, scriptNode, callback, timeout);
-      }
-      catch( IOException e1)
-      {
-        log.warn( e1.getMessage());
-        context.set( "error", e1.getMessage());
-        try { callback.onError( context);} catch( Exception e2) { log.exception( e2);}
-        try { callback.onComplete( context);} catch( Exception e2) { log.exception( e2);}
-      }
-    }
-    
-    private class RetryTask extends TimerTask
-    {
-      /* (non-Javadoc)
-       * @see java.util.TimerTask#run()
-       */
-      @Override
-      public void run()
-      {
-        context.getModel().dispatch( ConnectionRetryRunnable.this);
-      }
-    };
-
-    private Client client;
-    private IContext context;
-    private String[] varArray;
-    private IModelObject scriptNode;
-    private ICallback callback;
-    private int timeout;
-    private int retries;
-  }
-
   private final static Log log = Log.getLog( RunAction.class);
-  private static Timer connectionRetryTimer;
+  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
   
   private String var;
   private IExpression varsExpr;
@@ -439,4 +430,5 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
+  private IExpression dispatcherExpr;
 }

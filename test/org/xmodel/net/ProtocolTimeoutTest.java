@@ -1,12 +1,13 @@
 package org.xmodel.net;
 
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.BlockingDispatcher;
 import org.xmodel.IModelObject;
-import org.xmodel.concurrent.ThreadPoolDispatcher;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xml.XmlIO;
@@ -39,16 +40,9 @@ public class ProtocolTimeoutTest
       Stopwatch sw = new Stopwatch();
       sw.start();
       
-      try
-      {
-        Client client = new Client( host, port, true);
-        client.setPingTimeout( timeout);
-        Session session = client.connect( 100, 0);
-        assertTrue( "Test-case error: connection was established.", session == null);
-      }
-      catch( IOException e)
-      {
-      }
+      XioClient client = new XioClient( null, null);
+      client.connect( host, port).await( timeout);
+      assertTrue( "Test-case error: connection was established.", client == null);
       
       sw.stop();
       assertTrue( "Connection timed-out late: "+sw.elapsed, sw.elapsed < 200);
@@ -57,16 +51,14 @@ public class ProtocolTimeoutTest
   
   @Test public void executeTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port);
-    server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
-    server.start( false);
+    StatefulContext context = new StatefulContext();
+    XioServer server = new XioServer( context, context);
+    server.start( host, port);
 
     for( int i=0; i<3; i++)
     {
-      Client client = new Client( host, port, true);
-      client.setPingTimeout( timeout);
-      Session session = client.connect( timeout, 0);
+      XioClient client = new XioClient( null, null);
+      client.connect( host, port).await( timeout);
   
       Stopwatch sw = new Stopwatch();
       sw.start();
@@ -74,7 +66,7 @@ public class ProtocolTimeoutTest
       try
       {
         IModelObject script = new XmlIO().read( "<script><sleep>3000</sleep></script>");
-        session.execute( new StatefulContext(), new String[ 0], script, 500);
+        client.execute( new StatefulContext(), new String[ 0], script, 500);
       }
       catch( IOException e)
       {
@@ -84,7 +76,7 @@ public class ProtocolTimeoutTest
       assertTrue( "Execution timed-out early.", sw.elapsed >= 500);
       assertTrue( "Execution did not timeout.", sw.elapsed < 3000);
       
-      client.disconnect();
+      client.close();
     }
     
     server.stop();
@@ -92,14 +84,12 @@ public class ProtocolTimeoutTest
   
   @Test public void asyncExecuteSuccessTest() throws Exception
   {
-    Server server = new Server( host, port);
-    server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
-    server.start( false);
+    StatefulContext context = new StatefulContext();
+    XioServer server = new XioServer( context, context);
+    server.start( host, port);
 
-    Client client = new Client( host, port, true);
-    client.setPingTimeout( timeout);
-    Session session = client.connect( timeout, 0);
+    XioClient client = new XioClient( null, null);
+    client.connect( host, port).await( timeout);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
     IXAction onSuccess = XActionDocument.parseScript( "<script><assign var='success'>1</assign></script>");
@@ -107,11 +97,11 @@ public class ProtocolTimeoutTest
     
     for( int i=0; i<3; i++)
     {
-      StatefulContext context = new StatefulContext();
+      context = new StatefulContext();
       IModelObject script = new XmlIO().read( "<script><return>'June 23, 1912'</return></script>");
 
       Callback callback = new Callback( onComplete, onSuccess, onError);
-      session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
+      client.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
   
       BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
       dispatcher.process();
@@ -122,20 +112,18 @@ public class ProtocolTimeoutTest
       assertTrue( "Error script should not have been executed.", context.get( "err") == null);
     }
     
-    client.disconnect();
+    client.close();
     server.stop();
   }
   
   @Test public void asyncExecuteErrorTest() throws Exception
   {
-    Server server = new Server( host, port);
-    server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
-    server.start( false);
+    StatefulContext context = new StatefulContext();
+    XioServer server = new XioServer( context, context);
+    server.start( host, port);
 
-    Client client = new Client( host, port, true);
-    client.setPingTimeout( timeout);
-    Session session = client.connect( timeout, 0);
+    XioClient client = new XioClient( null, null);
+    client.connect( host, port).await( timeout);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
     IXAction onSuccess = XActionDocument.parseScript( "<script><assign var='success'>1</assign></script>");
@@ -143,11 +131,11 @@ public class ProtocolTimeoutTest
     
     for( int i=0; i<3; i++)
     {
-      StatefulContext context = new StatefulContext();
+      context = new StatefulContext();
       IModelObject script = new XmlIO().read( "<script><throw>'June 23, 1912'</throw></script>");
       
       Callback callback = new Callback( onComplete, onSuccess, onError);
-      session.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
+      client.execute( context, new String[ 0], script, callback, Integer.MAX_VALUE);
   
       BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
       dispatcher.process();
@@ -160,20 +148,18 @@ public class ProtocolTimeoutTest
       assertTrue( "Success script should not have been executed.", context.get( "success") == null);
     }
     
-    client.disconnect();
+    client.close();
     server.stop();
   }
   
   @Test public void asyncExecuteTimeoutTest() throws Exception
   {
-    Server server = new Server( host, port);
-    server.setPingTimeout( timeout);
-    server.setDispatcher( new ThreadPoolDispatcher( 1));
-    server.start( false);
+    StatefulContext context = new StatefulContext();
+    XioServer server = new XioServer( context, context);
+    server.start( host, port);
 
-    Client client = new Client( host, port, true);
-    client.setPingTimeout( timeout);
-    Session session = client.connect( timeout, 0);
+    XioClient client = new XioClient( null, null);
+    client.connect( host, port).await( timeout);
 
     IXAction onComplete = XActionDocument.parseScript( "<script><assign var='complete'>1</assign></script>");
     IXAction onSuccess = XActionDocument.parseScript( "<script><assign var='success'>1</assign></script>");
@@ -181,11 +167,11 @@ public class ProtocolTimeoutTest
     
     for( int i=0; i<3; i++)
     {
-      StatefulContext context = new StatefulContext();
+      context = new StatefulContext();
       IModelObject script = new XmlIO().read( "<script><sleep>200</sleep><return>'June 23, 1912'</return></script>");
       
       Callback callback = new Callback( onComplete, onSuccess, onError);
-      session.execute( context, new String[ 0], script, callback, 1);
+      client.execute( context, new String[ 0], script, callback, 1);
   
       try { Thread.sleep( 500);} catch( Exception e) {}
       BlockingDispatcher dispatcher = (BlockingDispatcher)context.getModel().getDispatcher();
@@ -199,11 +185,11 @@ public class ProtocolTimeoutTest
       assertTrue( "Success script should not have been executed.", context.get( "success") == null);
     }
     
-    client.disconnect();
+    client.close();
     server.stop();
   }
   
-  private final static class Callback implements ICallback
+  private final static class Callback implements IXioCallback
   {
     public Callback( IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
@@ -222,23 +208,23 @@ public class ProtocolTimeoutTest
     }
 
     /* (non-Javadoc)
-     * @see org.xmodel.net.ICallback#onSuccess(org.xmodel.xpath.expression.IContext)
+     * @see org.xmodel.net.IXioCallback#onSuccess(org.xmodel.xpath.expression.IContext, java.lang.Object[])
      */
     @Override
-    public void onSuccess( IContext context)
+    public void onSuccess( IContext context, Object[] results)
     {
       if ( onSuccess != null) onSuccess.run( context);
     }
 
     /* (non-Javadoc)
-     * @see org.xmodel.net.ICallback#onError(org.xmodel.xpath.expression.IContext)
+     * @see org.xmodel.net.IXioCallback#onError(org.xmodel.xpath.expression.IContext, java.lang.String)
      */
     @Override
-    public void onError( IContext context)
+    public void onError( IContext context, String error)
     {
       if ( onError != null) onError.run( context);
     }
-    
+
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;

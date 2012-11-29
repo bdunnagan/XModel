@@ -2,17 +2,18 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.ImmediateDispatcher;
 import org.xmodel.ModelObject;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
@@ -23,7 +24,7 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class ProtocolTest
 {
-  public final static String host = "localhost";
+  public final static String address = "localhost";
   public final static int port = 10000;
   public final static int timeout = 30000;
   public final static int defaultClientCount = 10;
@@ -34,10 +35,8 @@ public class ProtocolTest
   
   @Before public void start() throws IOException
   {
-    server = new Server( host, port);
-    server.setPingTimeout( timeout);
-    server.setDispatcher( new ImmediateDispatcher());
-    server.start( false);
+    server = new XioServer( null, null);
+    server.start( address, port);
     
 //    Log.getLog( TcpBase.class).setLevel( Log.all);
 //    Log.getLog( Connection.class).setLevel( Log.all);
@@ -48,9 +47,9 @@ public class ProtocolTest
   
   @After public void shutdown() throws IOException
   {
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
-      if ( client.isConnected()) client.disconnect();
+      if ( client.isConnected()) client.close();
       client = null;
     }
     clients.clear();
@@ -60,30 +59,30 @@ public class ProtocolTest
     server = null;
   }
   
-  @Test public void connectAndDisconnect() throws IOException
+  @Test public void connectAndDisconnect() throws Exception
   {
     createClients( defaultClientCount);
     
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
-      Session session = client.connect( timeout);
-      assertTrue( "Session is null", session != null);
+      client.connect( address, port).await();
       assertTrue( "Client is not connected", client.isConnected());
     }
     
-    for( Client client: clients)
+    Thread.sleep( 2000);
+    
+    for( XioClient client: clients)
     {
-      client.disconnect();
+      client.close();
       assertFalse( "Client is not disconnected", client.isConnected());
     }
     
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
-      Session session = client.connect( timeout);
-      assertTrue( "Session is null", session != null);
+      client.connect( address, port).await();
       assertTrue( "Client is not connected", client.isConnected());
       
-      client.disconnect();
+      client.close();
       assertFalse( "Client is not disconnected", client.isConnected());
     }
     
@@ -91,23 +90,20 @@ public class ProtocolTest
     int tally = 0;
     for( int i=0; i<passes; i++)
     {
-      for( Client client: clients)
+      for( XioClient client: clients)
       {
-        Session session = client.connect( timeout);
-        if ( session != null)
+        client.connect( address, port).await();
+        client.close();
+        if ( !client.isConnected())
         {
-          client.disconnect();
-          if ( !client.isConnected())
-          {
-            tally++;
-          }
+          tally++;
         }
       }
     }
     assertTrue( "Client connect/disconnect tally is not correct", tally == clients.size() * passes);
   }
   
-  @Test public void largeExecutePayload() throws IOException, XmlException
+  @Test public void largeExecutePayload() throws Exception
   {
     createClients( 1);
 
@@ -126,11 +122,11 @@ public class ProtocolTest
     StatefulContext context = new StatefulContext();
     context.set( "payload", payload);
     
-    Client client = clients.get( 0);
-    Session session = client.connect( timeout);
+    XioClient client = clients.get( 0);
+    client.connect( address, port).await();
     
     IModelObject script = new XmlIO().read( scriptXml);
-    Object[] result = session.execute( context, new String[] { "payload"}, script, timeout);
+    Object[] result = client.execute( context, new String[] { "payload"}, script, timeout);
     
     int count = ((Number)result[ 0]).intValue();
     assertTrue( String.format( "Payload count is %d, should be %d", count, largePayloadCount), count == largePayloadCount);
@@ -158,10 +154,10 @@ public class ProtocolTest
     IModelObject script = new XmlIO().read( scriptXml);
     
     List<ExecuteTask> tasks = new ArrayList<ExecuteTask>();
-    for( Client client: clients)
+    for( XioClient client: clients)
     {
-      Session session = client.connect( timeout);
-      tasks.add( new ExecuteTask( session, context, script));
+      client.connect( address, port).await();
+      tasks.add( new ExecuteTask( client, context, script));
     }
     
     ExecutorService executor = Executors.newFixedThreadPool( defaultClientCount);
@@ -185,20 +181,21 @@ public class ProtocolTest
   
   private void createClients( int count) throws IOException
   {
-    clients = new ArrayList<Client>();
+    clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      Client client = new Client( host, port, true);
-      client.setPingTimeout( timeout);
+      StatefulContext context = new StatefulContext();
+      context.getModel();
+      XioClient client = new XioClient( context, context);
       clients.add( client);
     }
   }
   
   private static class ExecuteTask implements Runnable
   {
-    public ExecuteTask( Session session, StatefulContext context, IModelObject script)
+    public ExecuteTask( XioClient client, StatefulContext context, IModelObject script)
     {
-      this.session = session;
+      this.client = client;
       this.context = context;
       this.script = script;
       this.results = new ArrayList<Object[]>();
@@ -210,23 +207,23 @@ public class ProtocolTest
       {
         for( int i=0; i<executeLoopCount; i++)
         {
-          Object[] result = session.execute( context, new String[] { "payload"}, script, timeout);
+          Object[] result = client.execute( context, new String[] { "payload"}, script, timeout);
           results.add( result);
         }
       }
-      catch( IOException e)
+      catch( Exception e)
       {
         this.e = e;
       }
     }
     
-    private Session session;
+    private XioClient client;
     private StatefulContext context;
     private IModelObject script;
     public List<Object[]> results;
-    public IOException e;
+    public Exception e;
   }
   
-  private Server server;
-  private List<Client> clients;
+  private XioServer server;
+  private List<XioClient> clients;
 }

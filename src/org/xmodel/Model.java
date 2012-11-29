@@ -21,7 +21,7 @@ package org.xmodel;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,12 +63,54 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.IModel#readLock()
+   */
+  @Override
+  public void readLock() throws InterruptedException
+  {
+    try
+    {
+      log.debugf( "Entered Model.readLock( %X) ...", hashCode());
+      lock.readLock().lockInterruptibly();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#readLockUninterruptibly()
+   */
+  @Override
+  public void readLockUninterruptibly()
+  {
+    try
+    {
+      log.debugf( "Entered Model.readLockUninterruptibly( %X) ...", hashCode());
+      lock.readLock().lock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLockUninterruptibly( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean readLock( int timeout, TimeUnit unit) throws InterruptedException
+  public boolean readLock( int timeout, TimeUnit units) throws InterruptedException
   {
-    return lock.readLock().tryLock( timeout, unit);
+    try
+    {
+      log.debugf( "Entered Model.readLock( %X, %d, %s) ...", hashCode(), timeout, units);
+      return lock.readLock().tryLock( timeout, units);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readLock( %X, %d, %s).", hashCode(), timeout, units);
+    }
   }
 
   /* (non-Javadoc)
@@ -77,21 +119,78 @@ public class Model implements IModel
   @Override
   public void readUnlock()
   {
-    lock.readLock().unlock();
+    try
+    {
+      log.debugf( "Entered Model.readUnlock( %X) ...", hashCode());
+      lock.readLock().unlock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.readUnlock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeLock()
+   */
+  @Override
+  public void writeLock() throws InterruptedException
+  {
+    try
+    {
+      log.debugf( "Entered Model.writeLock( %X) ...", hashCode());
+      
+      lock.writeLock().lockInterruptibly();
+      setThread( Thread.currentThread());
+      GlobalSettings.getInstance().setModel( this);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeLock( %X).", hashCode());
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#writeLockUninterruptibly()
+   */
+  @Override
+  public void writeLockUninterruptibly()
+  {
+    try
+    {
+      log.debugf( "Entered Model.writeLockUninterruptibly( %X) ...", hashCode());
+      lock.writeLock().lock();
+      setThread( Thread.currentThread());
+      GlobalSettings.getInstance().setModel( this);
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeLockUninterruptibly( %X).", hashCode());
+    }
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModel#writeLock(int, java.util.concurrent.TimeUnit)
    */
   @Override
-  public boolean writeLock( int timeout, TimeUnit unit) throws InterruptedException
+  public boolean writeLock( int timeout, TimeUnit units) throws InterruptedException
   {
-    if ( lock.writeLock().tryLock( timeout, unit))
+    try
     {
-      setThread( Thread.currentThread());
-      ModelRegistry.getInstance().setModel( this);
+      log.debugf( "Entered Model.writeLock( %X, %d, %s) ...", hashCode(), timeout, units);
+      
+      if ( lock.writeLock().tryLock( timeout, units))
+      {
+        setThread( Thread.currentThread());
+        GlobalSettings.getInstance().setModel( this);
+      }
+      
+      return false;
     }
-    return false;
+    finally
+    {
+      log.debugf( "Exited Model.writeLock( %X, %d, %s).", hashCode(), timeout, units);
+    }
   }
 
   /* (non-Javadoc)
@@ -100,9 +199,18 @@ public class Model implements IModel
   @Override
   public void writeUnlock()
   {
-    setThread( null);
-    ModelRegistry.getInstance().setModel( null);
-    lock.writeLock().unlock();
+    try
+    {
+      log.debugf( "Entered Model.writeUnlock( %X) ...", hashCode());
+      
+      setThread( null);
+      //GlobalSettings.getInstance().setModel( null);
+      lock.writeLock().unlock();
+    }
+    finally
+    {
+      log.debugf( "Exited Model.writeUnlock( %X).", hashCode());
+    }
   }
 
   /* (non-Javadoc)
@@ -216,14 +324,6 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModel#unlock()
-   */
-  public void unlock()
-  {
-    frozen.clear();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModel#isLocked(org.xmodel.IModelObject)
    */
   public IChangeSet isFrozen( IModelObject object)
@@ -243,7 +343,8 @@ public class Model implements IModel
       Thread correctThread = debugMap.get( this);
       if ( correctThread != currentThread)
       {
-        SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), correctThread.getName());
+        SLog.severef( this, "Thread access: model=%X, expected=%s", hashCode(), (correctThread != null)? correctThread.getName(): "");
+        debugMap.put( this, currentThread);
       }
     }
     
@@ -336,8 +437,7 @@ public class Model implements IModel
    */
   public void dispatch( Runnable runnable)
   {
-    if ( dispatcher == null) 
-      throw new IllegalStateException( "Dispatcher is not defined.");
+    if ( dispatcher == null) throw new IllegalStateException( "Dispatcher is not defined.");
     dispatcher.execute( runnable);
   }
 
@@ -365,10 +465,29 @@ public class Model implements IModel
     log.exception( e);
   }
   
-  private static Log log = Log.getLog( "org.xmodel");
+  private static Log log = Log.getLog( Model.class);
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
-  private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new HashMap<Model, Thread>()): null;
+  private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new Cache()): null;
+  
+  private static class Cache extends LinkedHashMap<Model, Thread>
+  {
+    private static final long serialVersionUID = 6237694180217498908L;
+
+    public Cache()
+    {
+      super( 150, 0.75f, true);
+    }
+    
+    /* (non-Javadoc)
+     * @see java.util.LinkedHashMap#removeEldestEntry(java.util.Map.Entry)
+     */
+    @Override
+    protected boolean removeEldestEntry( Map.Entry<Model, Thread> eldest) 
+    {
+      return size() > 100;
+    }
+  }
 
   private ReentrantReadWriteLock lock;
   private MultiMap<String, IModelObject> collections;

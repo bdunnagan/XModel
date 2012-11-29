@@ -64,12 +64,6 @@ public class BlockingDispatcher implements IDispatcher
   @Override
   public void shutdown( boolean immediate)
   {
-    if ( watchdog != null)
-    {
-      watchdog.interrupt();
-      watchdog = null;
-    }
-    
     shutdown = immediate? 2: 1;
     
     queue.offer( new Runnable() {
@@ -88,19 +82,12 @@ public class BlockingDispatcher implements IDispatcher
   {
     processing = true;
     
-    if ( watchdog == null)
-    {
-      watchdog = new Watchdog( watchdogTimeout * 1000);
-      watchdog.start();
-    }
-    
     try
     {
       if ( shutdown > 0) return false;
       
       log.verbosef( "[%s] Waiting for dequeue ...", thread.getName());
       Runnable first = queue.poll( petTimeout, TimeUnit.SECONDS);
-      if ( watchdog != null) watchdog.pet();
       
       if ( shutdown == 2) return false;
       
@@ -131,7 +118,6 @@ public class BlockingDispatcher implements IDispatcher
     return true;
   }
 
-  private static int watchdogTimeout = 5 * 60;
   private static int petTimeout = 3 * 60;
   
   private static Log log = Log.getLog( BlockingDispatcher.class);
@@ -140,6 +126,5 @@ public class BlockingDispatcher implements IDispatcher
   private List<Runnable> dequeued;
   private volatile boolean processing;
   private volatile int shutdown;
-  private Watchdog watchdog;
   private Thread thread;
 }

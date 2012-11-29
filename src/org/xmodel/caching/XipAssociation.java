@@ -20,6 +20,8 @@
 package org.xmodel.caching;
 
 import java.io.InputStream;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
@@ -44,8 +46,11 @@ public class XipAssociation extends AbstractFileAssociation
   {
     try
     {
+      ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+      while( buffer.writeBytes( stream, 1024) == 1024);
+      
       TabularCompressor compressor = new TabularCompressor();
-      IModelObject content = compressor.decompress( stream);
+      IModelObject content = compressor.decompress( buffer);
       parent.addChild( content);
     }
     catch( Exception e)

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.external.GroupTransaction;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
@@ -23,7 +24,7 @@ public class TransactionAction extends ScriptAction
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), false);
-    setExpr = document.getExpression( "set", true);
+    setExpr = Xlate.get( document.getRoot(), "set", (IExpression)null);
     timeoutExpr = document.getExpression( "timeout", true);
   }
 

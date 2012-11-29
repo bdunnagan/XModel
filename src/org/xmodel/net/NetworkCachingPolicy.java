@@ -1,6 +1,5 @@
 package org.xmodel.net;
 
-import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -13,12 +12,15 @@ import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An ICachingPolicy that accesses data across a network.
  */
 public class NetworkCachingPolicy extends ConfiguredCachingPolicy
 {
+  public final static int defaultPort = 27600;
+  
   public NetworkCachingPolicy()
   {
     this( new UnboundedCache());
@@ -38,30 +40,17 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void finalize() throws Throwable
   {
-    if ( client != null) 
-    {
-      try { client.disconnect();} catch( Exception e) {}
-      client = null;
-    }
-    
+    close();
     super.finalize();
   }
 
   /**
-   * @return Returns the client used to communicate with the remote host.
+   * Close the network connection.
    */
-  public Client getClient()
+  public void close()
   {
-    return client;
-  }
-
-  /**
-   * Set the static attributes.
-   * @param list The list of static attribute names.
-   */
-  public void setStaticAttributes( List<String> list)
-  {
-    setStaticAttributes( list.toArray( new String[ 0]));
+    if ( client != null && client.isConnected())
+      client.close();
   }
   
   /* (non-Javadoc)
@@ -73,45 +62,12 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
-    port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", Server.defaultPort));
+    port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", defaultPort));
     timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30000));
     
-    pubsub = Xlate.get( annotation, "mode", Xlate.childGet( annotation, "mode", "mirror")).equals( "pubsub");
+    readonly = Xlate.get( annotation, "readonly", Xlate.childGet( annotation, "readonly", false));
     query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
     validate( query);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
-   */
-  @Override
-  protected void syncImpl( IExternalReference reference) throws CachingException
-  {
-    if ( query == null)
-    {
-      query = Xlate.get( reference, "query", (String)null);
-      if ( query == null) throw new CachingException( "Query not defined.");
-    }
-    
-    SLog.debugf( this, "sync: %s:%d, %s", host, port, reference);
-    
-    if ( client != null && client.isConnected())
-      try { client.disconnect();} catch( Exception e) {}
-    
-    try
-    {
-      client = new Client( host, port, true);
-      client.setDispatcher( reference.getModel().getDispatcher());
-      client.setPingTimeout( timeout);
-      
-      Session session = client.connect( timeout);
-      if ( session != null) session.attach( timeout, query, pubsub, reference);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( String.format( 
-          "Unable to attach to xpath, '%s'", query), e);
-    }
   }
 
   /**
@@ -131,10 +87,53 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  private Client client;
+  /**
+   * Set the remote network identifier for this caching policy. 
+   * @param netID The network identifier.
+   */
+  public void setRemoteNetID( int netID)
+  {
+    this.netID = netID;
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
+   */
+  @Override
+  protected void syncImpl( IExternalReference reference) throws CachingException
+  {
+    if ( query == null)
+    {
+      query = Xlate.get( reference, "query", (String)null);
+      if ( query == null) throw new CachingException( "Query not defined.");
+    }
+    
+    SLog.debugf( this, "sync: %s:%d, %s", host, port, reference);
+    
+    try
+    {
+      if ( client == null)
+      {
+        StatefulContext context = new StatefulContext();
+        context.getModel();
+        client = new XioClient( context, context);
+        client.connect( host, port, 3, timeout / 3).await();
+      }
+
+      client.bind( reference, readonly, query, timeout);
+    }
+    catch( Exception e)
+    {
+      throw new CachingException( String.format( 
+          "Unable to attach to xpath, '%s'", query), e);
+    }
+  }
+
+  private XioClient client;
   private String host;
   private int port;
-  private boolean pubsub;
+  private boolean readonly;
   private String query;
   private int timeout;
+  private int netID;
 }

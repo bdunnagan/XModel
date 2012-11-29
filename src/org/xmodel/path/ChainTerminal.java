@@ -58,9 +58,6 @@ public class ChainTerminal implements IListenerChainLink
    */
   public void install( List<IModelObject> list)
   {
-    // debug
-    getListenerChain().debugInstall( list, getPathIndex());
-
     IPathListener listener = chain.getPathListener();
     if ( listener != null)
     {
@@ -94,9 +91,6 @@ public class ChainTerminal implements IListenerChainLink
         log.exception( e);
       }
     }
-    
-    // debug
-    getListenerChain().debugUninstall( list, getPathIndex());
   }
 
   /* (non-Javadoc)
@@ -120,9 +114,6 @@ public class ChainTerminal implements IListenerChainLink
    */
   public void incrementalInstall( List<IModelObject> list)
   {
-    // debug
-    getListenerChain().debugIncrementalInstall( list, getPathIndex());
-    
     IPathListener listener = chain.getPathListener();
     if ( listener != null)
     {
@@ -156,9 +147,6 @@ public class ChainTerminal implements IListenerChainLink
         log.exception( e);
       }
     }
-
-    // debug
-    getListenerChain().debugIncrementalUninstall( list, getPathIndex());
   }
 
   /* (non-Javadoc)

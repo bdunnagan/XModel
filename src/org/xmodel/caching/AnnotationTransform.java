@@ -221,6 +221,7 @@ public class AnnotationTransform
     
     String cacheClassName = Xlate.get( annotation, "cache", "org.xmodel.external.UnboundedCache");
     ICache cache = createCache( cacheClassName);
+    cache.configure( annotation);
     
     ConfiguredCachingPolicy cachingPolicy = createCachingPolicy( cache, annotation, policyClassName);
     if ( cachingPolicy != null)

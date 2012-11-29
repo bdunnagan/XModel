@@ -45,9 +45,6 @@ public abstract class FanoutListener extends ListenerChainLink
    */
   public void install( List<IModelObject> list)
   {
-    // debug
-    getListenerChain().debugInstall( list, getPathIndex());
-
     // install listeners and do notification
     notifyAdd( list);
     for ( IModelObject object: list) installListeners( object);
@@ -75,9 +72,6 @@ public abstract class FanoutListener extends ListenerChainLink
 
     // do notification
     notifyRemove( list);
-    
-    // debug
-    getListenerChain().debugUninstall( list, getPathIndex());
   }
 
   /* (non-Javadoc)
@@ -101,9 +95,6 @@ public abstract class FanoutListener extends ListenerChainLink
    */
   public void incrementalInstall( List<IModelObject> list)
   {
-    // debug
-    getListenerChain().debugIncrementalInstall( list, getPathIndex());
-    
     // do notification
     notifyAdd( list);
     
@@ -134,9 +125,6 @@ public abstract class FanoutListener extends ListenerChainLink
 
     // do notification
     notifyRemove( list);
-
-    // debug
-    getListenerChain().debugIncrementalUninstall( list, getPathIndex()); 
   }
 
   /**

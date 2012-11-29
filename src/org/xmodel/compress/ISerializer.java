@@ -1,15 +1,12 @@
 package org.xmodel.compress;
 
-import org.xmodel.IModelObject;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
+import org.xmodel.IModelObject;
 
 /**
- * An interface for serialization of objects stored in attributes.  This interface is intended for use
- * by implementations of ICommpressor when attribute values that are not CharSequence instances are
- * encountered.  This interface is not provided in preference to standard Java serialization.
- * Note that only one of each type of method should return a non-null value.
+ * A serialization interface for implementing compact representations of a small domain of data-types (e.g. XPath 1.0).
  */
 public interface ISerializer
 {
@@ -18,7 +15,7 @@ public interface ISerializer
    * @param input The input.
    * @return Returns the object (may be null).
    */
-  public Object readObject( DataInputStream input) throws IOException, ClassNotFoundException, CompressorException;
+  public Object readObject( DataInput input) throws IOException, ClassNotFoundException;
   
   /**
    * Write an object to the specified output.
@@ -26,5 +23,13 @@ public interface ISerializer
    * @param object The object.
    * @return Returns the number of bytes written.
    */
-  public int writeObject( DataOutputStream output, IModelObject object) throws IOException, CompressorException;
+  public int writeObject( DataOutput output, Object object) throws IOException, CompressorException;
+  
+  /**
+   * Write the value of the specified element to the specified output.
+   * @param output The output.
+   * @param element The element.
+   * @return Rturns the number of bytes written.
+   */
+  public int writeValue( DataOutput output, IModelObject element) throws IOException, CompressorException;
 }

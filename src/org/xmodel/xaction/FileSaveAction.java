@@ -22,13 +22,14 @@ package org.xmodel.xaction;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.xml.XmlIO;
+import org.xmodel.compress.ZipCompressor;
 import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -81,15 +82,13 @@ public class FileSaveAction extends GuardedAction
     
     if ( mode.equals( "compressed"))
     {
-      if ( compressor == null) compressor = new TabularCompressor();
+      if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
       try
       {
         FileOutputStream stream = new FileOutputStream( file);
-        compressor.compress( element, stream);
+        ChannelBuffer buffer = compressor.compress( element);
+        buffer.readBytes( stream, buffer.readableBytes());
         stream.close();
-      }
-      catch( CompressorException e)
-      {
       }
       catch( IOException e)
       {

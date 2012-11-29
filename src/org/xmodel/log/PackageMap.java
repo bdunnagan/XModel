@@ -35,7 +35,7 @@ public class PackageMap
       Log wildcard = item.logs.get( "*");
       if ( wildcard == null)
       {
-        Item ancestor = item.parent;
+        Item ancestor = item;
         while( ancestor != null && wildcard == null)
         {
           wildcard = ancestor.logs.get( "**");
