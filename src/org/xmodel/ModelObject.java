@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.xmodel.listeners.ClimbingListener;
 import org.xmodel.log.Log;
 import org.xmodel.memento.AddChildMemento;
 import org.xmodel.memento.IMemento;
@@ -829,25 +827,6 @@ public class ModelObject implements IModelObject
     return pathListeners;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
-    ClimbingListener climber = new ClimbingListener( listener);
-    climber.addListenerToTree( this);
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
-    // this works because ClimbingListener implements the equals method
-    ClimbingListener climber = new ClimbingListener( listener);
-    climber.removeListenerFromTree( this);
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */

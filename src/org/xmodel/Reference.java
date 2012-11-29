@@ -432,22 +432,6 @@ public class Reference implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
-    referent.addAncestorListener( listener);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
-    referent.removeAncestorListener( listener);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */
   public IModelObject cloneObject()

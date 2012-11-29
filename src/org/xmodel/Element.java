@@ -715,22 +715,6 @@ public class Element implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
-    throw new UnsupportedOperationException();
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
-    throw new UnsupportedOperationException();
-  }
-  
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#cloneObject()
    */
   public IModelObject cloneObject()

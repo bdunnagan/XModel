@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Set;
 import org.xmodel.memento.IMemento;
 
-
 /**
  * The interface for objects in a hierarchical data model suitable for representing the content of
  * an XML document. Each element has one parent, zero or more attributes and zero or more children.
@@ -390,18 +389,6 @@ public interface IModelObject
    * @return Returns the PathListenerList associated with this object.
    */
   public PathListenerList getPathListeners();
-  
-  /**
-   * Add a ancestor listener to this object.
-   * @param listener The model listener to be added.
-   */
-  public void addAncestorListener( IAncestorListener listener);
-  
-  /**
-   * Remove a ancestor listener from this object.
-   * @param listener The model listener to be removed.
-   */
-  public void removeAncestorListener( IAncestorListener listener);
   
   /**
    * Returns a copy of this object including attributes but not including children.
