@@ -183,9 +183,8 @@ public interface IModelObject
   public IModelObject removeChild( int index);
   
   /**
-   * Remove a child of this object and return the object.
-   * @param type The type of the child.
-   * @param name The name of the child.
+   * Remove a child of this object.
+   * @param child The child to be removed.
    * @return Returns the object that was removed.
    */
   public void removeChild( IModelObject object);
