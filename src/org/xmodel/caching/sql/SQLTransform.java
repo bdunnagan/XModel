@@ -10,12 +10,10 @@ import java.util.List;
 import org.xmodel.IModelObject;
 
 /**
- * This class provides a configurable transform from the results of a SQL query to one
- * or more elements. This class allows each column in the result-set to be mapped to an
- * attribute or a child.  Unmapped columns are mapped to children with the same name as
- * the column name returned by the SQL statement.
+ * An implementation of ISQLQueryTransform that aims to be as efficient as possible, including
+ * avoiding the use of ResultSetMetaData.
  */
-public class SQLTransform
+public class SQLTransform implements ISQLQueryTransform
 {
   /**
    * Create a SQLTransform from the specified statement.
@@ -32,7 +30,7 @@ public class SQLTransform
    * @param result The ResultSet object pointing to the row.
    * @return Returns the 
    */
-  public IModelObject createRow( int index, ResultSet result, ResultSetMetaData meta)
+  public IModelObject createRow( int index, ResultSet result)
   {
   }
   
@@ -46,15 +44,13 @@ public class SQLTransform
   {
   }
   
-  /**
-   * Execute the query.
-   * @return Returns the transformed result-set.
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLQueryTransform#transform(java.sql.ResultSet)
    */
-  public List<IModelObject> execute() throws SQLException
+  @Override
+  public List<IModelObject> transform( ResultSet result) throws SQLException
   {
     List<IModelObject> rows = new ArrayList<IModelObject>();
-    
-    ResultSet result = statement.executeQuery();
     while( result.next())
     {
       IModelObject row = createRow( result.getRow() - 1, result);
@@ -63,7 +59,6 @@ public class SQLTransform
         createColumn( i, result, row);
       }
     }    
-    
     return rows;
   }
 
