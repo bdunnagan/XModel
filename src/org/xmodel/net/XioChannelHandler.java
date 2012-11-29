@@ -150,7 +150,7 @@ public class XioChannelHandler extends SimpleChannelHandler
       case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
       
       case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
-      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer); return true;
+      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer, length); return true;
       case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); return true;
       case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); return true;
       case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); return true;

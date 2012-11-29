@@ -42,27 +42,39 @@ public class BindResponseProtocol
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
-    ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
-    ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, buffer2.readableBytes());
-    buffer1.writeInt( correlation);
-    
-    // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    if ( element != null)
+    {
+      ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
+      ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, buffer2.readableBytes());
+      buffer1.writeInt( correlation);
+      
+      // ignoring write buffer overflow for this type of messaging
+      channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    }
+    else
+    {
+      ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, 0);
+      buffer.writeInt( correlation);
+      
+      // ignoring write buffer overflow for this type of messaging
+      channel.write( buffer);
+    }
   }
   
   /**
    * Handle the next bind response message in the specified buffer.
    * @param channel The channel.
    * @param buffer The buffer.
+   * @param length The message length.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( Channel channel, ChannelBuffer buffer, long length) throws IOException
   {
     int correlation = buffer.readInt();
-
+    
     BindRecord record = pending.remove( correlation);
     if ( record != null) 
     {
-      bundle.requestCompressor.decompress( buffer, record.reference);
+      if ( length > 4) bundle.requestCompressor.decompress( buffer, record.reference);
       record.semaphore.release();
     }
     
