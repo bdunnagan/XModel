@@ -17,10 +17,36 @@ import org.xmodel.external.ICachingPolicy;
 public interface IStorageClass
 {
   /**
-   * @return Returns true if this storage class stores an instance of IModel.
+   * Returns an IStorageClass that can store an instance of ICachingPolicy.
+   * @return Returns null or a new instance of IStorageClass.
    */
-  public boolean storesModel();
+  public IStorageClass setCachingPolicyStorageClass();
   
+  /**
+   * Returns an IStorageClass that can store a children.
+   * @return Returns null or a new instance of IStorageClass.
+   */
+  public IStorageClass getChildrenStorageClass();
+
+  /**
+   * Returns an IStorageClass that can store the specified attribute.
+   * @param name The name of the attribute.
+   * @return Returns null or a new instance of IStorageClass.
+   */
+  public IStorageClass setAttributeStorageClass( String name);
+
+  /**
+   * Returns an IStorageClass that can store an instance of ModelListenerList.
+   * @return Returns null or a new instance of IStorageClass.
+   */
+  public IStorageClass getModelListenersStorageClass();
+
+  /**
+   * Returns an IStorageClass that can store an instance of PathListenerList.
+   * @return Returns null or a new instance of IStorageClass.
+   */
+  public IStorageClass getPathListenersStorageClass();
+
   /**
    * Set the model.
    * @param model The model.
@@ -31,11 +57,6 @@ public interface IStorageClass
    * @return Returns the model.
    */
   public IModel getModel();
-  
-  /**
-   * @return Returns true if this storage class stores an instance of ICachingPolicy and dirty state.
-   */
-  public boolean storesCachingPolicy();
   
   /**
    * Set the dirty flag.
@@ -60,20 +81,9 @@ public interface IStorageClass
   public ICachingPolicy getCachingPolicy();
   
   /**
-   * @return Returns true if this storage class stores children.
-   */
-  public boolean storesChildren();
-  
-  /**
    * @return Returns the list of children.
    */
   public List<IModelObject> getChildren();
-  
-  /**
-   * @param name The name of the attribute.
-   * @return Returns true if this storage class stores multiple attributes.
-   */
-  public boolean storesAttributes( String name);
   
   /**
    * Set an attribute on this object. If the attribute had a previous value, 
@@ -98,19 +108,9 @@ public interface IStorageClass
   public Collection<String> getAttributeNames();
   
   /**
-   * @return Returns true if this storage class stores an instance of ModelListenerList.
-   */
-  public boolean storesModelListeners();
-  
-  /**
    * @return Returns the storage for IModelListener instances.
    */
   public ModelListenerList getModelListeners();
-  
-  /**
-   * @return Returns true if this storage class stores an instance of PathListenerList.
-   */
-  public boolean storesPathListeners();
   
   /**
    * @return Returns the storage for IPathListener instances.

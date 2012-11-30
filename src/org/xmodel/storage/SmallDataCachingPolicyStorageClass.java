@@ -19,6 +19,16 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
+  public SmallDataCachingPolicyStorageClass( ValueStorageClass storageClass)
+  {
+    name1 = "";
+    value1 = storageClass.value;
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
   public SmallDataCachingPolicyStorageClass( SmallDataStorageClass storageClass)
   {
     name1 = storageClass.name1;
@@ -31,12 +41,51 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModel()
+   * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public boolean storesModel()
+  public IStorageClass setCachingPolicyStorageClass()
   {
-    return false;
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
+   */
+  @Override
+  public IStorageClass getChildrenStorageClass()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
+   */
+  @Override
+  public IStorageClass setAttributeStorageClass( String name)
+  {
+    if ( name1 == null || name1.equals( name)) return null;
+    if ( name2 == null || name2.equals( name)) return null;
+    if ( name3 == null || name3.equals( name)) return null;
+    return new DataAndCachingPolicyStorageClass( this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getModelListenersStorageClass()
+  {
+    return new ModelListenerAndCachingPolicyStorageClass( this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getPathListenersStorageClass()
+  {
+    return new PathListenerAndCachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -45,7 +94,6 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public void setModel( IModel model)
   {
-    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -54,16 +102,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IModel getModel()
   {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesCachingPolicy()
-   */
-  @Override
-  public boolean storesCachingPolicy()
-  {
-    return true;
+    return null;
   }
 
   /* (non-Javadoc)
@@ -103,15 +142,6 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesChildren()
-   */
-  @Override
-  public boolean storesChildren()
-  {
-    return true;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildren()
    */
   @Override
@@ -119,18 +149,6 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   {
     if ( children == null) children = new ArrayList<IModelObject>( 3);
     return children;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesAttributes(java.lang.String)
-   */
-  @Override
-  public boolean storesAttributes( String name)
-  {
-    if ( name1 == null || name1.equals( name)) return true;
-    if ( name2 == null || name2.equals( name)) return true;
-    if ( name3 == null || name3.equals( name)) return true;
-    return false;
   }
 
   /* (non-Javadoc)
@@ -171,30 +189,12 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModelListeners()
-   */
-  @Override
-  public boolean storesModelListeners()
-  {
-    return false;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListeners()
    */
   @Override
   public ModelListenerList getModelListeners()
   {
     throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesPathListeners()
-   */
-  @Override
-  public boolean storesPathListeners()
-  {
-    return false;
   }
 
   /* (non-Javadoc)

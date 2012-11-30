@@ -21,6 +21,33 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
+  public PathListenerAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
+  {
+    attributes = new HashMap<String, Object>();
+    attributes.put( storageClass.name1, storageClass.value1);
+    attributes.put( storageClass.name2, storageClass.value2);
+    attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+    cachingPolicy = storageClass.cachingPolicy;
+    dirty = storageClass.dirty;
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public PathListenerAndCachingPolicyStorageClass( DataAndCachingPolicyStorageClass storageClass)
+  {
+    attributes = storageClass.attributes;
+    children = storageClass.children;
+    cachingPolicy = storageClass.cachingPolicy;
+    dirty = storageClass.dirty;
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
   public PathListenerAndCachingPolicyStorageClass( PathListenerStorageClass storageClass)
   {
     model = storageClass.model;
@@ -30,13 +57,63 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
     pathListeners = storageClass.pathListeners;
   }
     
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public PathListenerAndCachingPolicyStorageClass( ModelListenerAndCachingPolicyStorageClass storageClass)
+  {
+    model = storageClass.model;
+    attributes = storageClass.attributes;
+    children = storageClass.children;
+    modelListeners = storageClass.modelListeners;
+    cachingPolicy = storageClass.cachingPolicy;
+    dirty = storageClass.dirty;
+  }
+    
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModel()
+   * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public boolean storesModel()
+  public IStorageClass setCachingPolicyStorageClass()
   {
-    return true;
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
+   */
+  @Override
+  public IStorageClass getChildrenStorageClass()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
+   */
+  @Override
+  public IStorageClass setAttributeStorageClass( String name)
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getModelListenersStorageClass()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getPathListenersStorageClass()
+  {
+    return null;
   }
 
   /* (non-Javadoc)
@@ -55,15 +132,6 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   public IModel getModel()
   {
     return model;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesCachingPolicy()
-   */
-  @Override
-  public boolean storesCachingPolicy()
-  {
-    return true;
   }
 
   /* (non-Javadoc)
@@ -103,15 +171,6 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesChildren()
-   */
-  @Override
-  public boolean storesChildren()
-  {
-    return true;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildren()
    */
   @Override
@@ -119,15 +178,6 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   {
     if ( children == null) children = new ArrayList<IModelObject>( 3);
     return children;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesAttributes(java.lang.String)
-   */
-  @Override
-  public boolean storesAttributes( String name)
-  {
-    return true;
   }
 
   /* (non-Javadoc)
@@ -160,15 +210,6 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModelListeners()
-   */
-  @Override
-  public boolean storesModelListeners()
-  {
-    return false;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListeners()
    */
   @Override
@@ -176,15 +217,6 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   {
     if ( modelListeners == null) modelListeners = new ModelListenerList();
     return modelListeners;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesPathListeners()
-   */
-  @Override
-  public boolean storesPathListeners()
-  {
-    return true;
   }
 
   /* (non-Javadoc)

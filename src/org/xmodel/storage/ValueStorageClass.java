@@ -15,12 +15,48 @@ import org.xmodel.external.ICachingPolicy;
 public final class ValueStorageClass implements IStorageClass
 {
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModel()
+   * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public boolean storesModel()
+  public IStorageClass setCachingPolicyStorageClass()
   {
-    return false;
+    return new SmallDataCachingPolicyStorageClass( this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
+   */
+  @Override
+  public IStorageClass getChildrenStorageClass()
+  {
+    return new SmallDataStorageClass( this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
+   */
+  @Override
+  public IStorageClass setAttributeStorageClass( String name)
+  {
+    return (name.length() > 0)? new SmallDataStorageClass( this): null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getModelListenersStorageClass()
+  {
+    return new ModelListenerStorageClass( this);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getPathListenersStorageClass()
+  {
+    return new PathListenerStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -29,7 +65,6 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public void setModel( IModel model)
   {
-    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -38,16 +73,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public IModel getModel()
   {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesCachingPolicy()
-   */
-  @Override
-  public boolean storesCachingPolicy()
-  {
-    return false;
+    return null;
   }
 
   /* (non-Javadoc)
@@ -87,30 +113,12 @@ public final class ValueStorageClass implements IStorageClass
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesChildren()
-   */
-  @Override
-  public boolean storesChildren()
-  {
-    return false;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildren()
    */
   @Override
   public List<IModelObject> getChildren()
   {
     return Collections.emptyList();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesAttributes(java.lang.String)
-   */
-  @Override
-  public boolean storesAttributes( String name)
-  {
-    return (name.length() == 0);
   }
 
   /* (non-Javadoc)
@@ -145,30 +153,12 @@ public final class ValueStorageClass implements IStorageClass
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModelListeners()
-   */
-  @Override
-  public boolean storesModelListeners()
-  {
-    return false;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListeners()
    */
   @Override
   public ModelListenerList getModelListeners()
   {
     throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesPathListeners()
-   */
-  @Override
-  public boolean storesPathListeners()
-  {
-    return false;
   }
 
   /* (non-Javadoc)

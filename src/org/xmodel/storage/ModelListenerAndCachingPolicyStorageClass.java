@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -21,6 +20,33 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
+  public ModelListenerAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
+  {
+    attributes = new HashMap<String, Object>();
+    attributes.put( storageClass.name1, storageClass.value1);
+    attributes.put( storageClass.name2, storageClass.value2);
+    attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+    cachingPolicy = storageClass.cachingPolicy;
+    dirty = storageClass.dirty;
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public ModelListenerAndCachingPolicyStorageClass( DataAndCachingPolicyStorageClass storageClass)
+  {
+    attributes = storageClass.attributes;
+    children = storageClass.children;
+    cachingPolicy = storageClass.cachingPolicy;
+    dirty = storageClass.dirty;
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
   public ModelListenerAndCachingPolicyStorageClass( ModelListenerStorageClass storageClass)
   {
     model = storageClass.model;
@@ -30,12 +56,48 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModel()
+   * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public boolean storesModel()
+  public IStorageClass setCachingPolicyStorageClass()
   {
-    return true;
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
+   */
+  @Override
+  public IStorageClass getChildrenStorageClass()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
+   */
+  @Override
+  public IStorageClass setAttributeStorageClass( String name)
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getModelListenersStorageClass()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
+   */
+  @Override
+  public IStorageClass getPathListenersStorageClass()
+  {
+    return new PathListenerAndCachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -54,15 +116,6 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   public IModel getModel()
   {
     return model;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesCachingPolicy()
-   */
-  @Override
-  public boolean storesCachingPolicy()
-  {
-    return true;
   }
 
   /* (non-Javadoc)
@@ -102,15 +155,6 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesChildren()
-   */
-  @Override
-  public boolean storesChildren()
-  {
-    return true;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildren()
    */
   @Override
@@ -118,15 +162,6 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   {
     if ( children == null) children = new ArrayList<IModelObject>( 3);
     return children;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesAttributes(java.lang.String)
-   */
-  @Override
-  public boolean storesAttributes( String name)
-  {
-    return true;
   }
 
   /* (non-Javadoc)
@@ -159,30 +194,12 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesModelListeners()
-   */
-  @Override
-  public boolean storesModelListeners()
-  {
-    return true;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListeners()
    */
   @Override
   public ModelListenerList getModelListeners()
   {
     return modelListeners;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#storesPathListeners()
-   */
-  @Override
-  public boolean storesPathListeners()
-  {
-    return false;
   }
 
   /* (non-Javadoc)
