@@ -1,8 +1,11 @@
 package org.xmodel.storage;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -10,10 +13,23 @@ import org.xmodel.PathListenerList;
 import org.xmodel.external.ICachingPolicy;
 
 /**
- * An IStorageClass that only stores the element value.
+ * An IStorageClass that only stores attributes and children.
  */
-public final class ValueStorageClass implements IStorageClass
+public final class DataStorageClass implements IStorageClass
 {
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public DataStorageClass( SmallDataStorageClass storageClass)
+  {
+    attributes = new HashMap<String, Object>();
+    attributes.put( storageClass.name1, storageClass.value1);
+    attributes.put( storageClass.name2, storageClass.value2);
+    attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#storesModel()
    */
@@ -92,7 +108,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public boolean storesChildren()
   {
-    return false;
+    return true;
   }
 
   /* (non-Javadoc)
@@ -101,7 +117,8 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    return Collections.emptyList();
+    if ( children == null) children = new ArrayList<IModelObject>( 3);
+    return children;
   }
 
   /* (non-Javadoc)
@@ -110,29 +127,27 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public boolean storesAttributes( String name)
   {
-    return (name.length() == 0);
+    return true;
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttribute(java.lang.String, java.lang.Object)
    */
   @Override
-  public Object setAttribute( String attrName, Object attrValue)
+  public Object setAttribute( String name, Object value)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
-    Object previous = value;
-    value = attrValue;
-    return previous;
+    if ( attributes == null) attributes = new HashMap<String, Object>();
+    return attributes.put( name, value);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getAttribute(java.lang.String)
    */
   @Override
-  public Object getAttribute( String attrName)
+  public Object getAttribute( String name)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
-    return value;
+    if ( attributes == null) return null;
+    return attributes.get( name);
   }
 
   /* (non-Javadoc)
@@ -141,7 +156,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return (value != null)? attributes: Collections.<String>emptyList();
+    return attributes.keySet();
   }
 
   /* (non-Javadoc)
@@ -179,8 +194,7 @@ public final class ValueStorageClass implements IStorageClass
   {
     throw new UnsupportedOperationException();
   }
-  
-  private final static List<String> attributes = Collections.singletonList( "");
-  
-  protected Object value;
+
+  protected Map<String, Object> attributes;
+  protected List<IModelObject> children;
 }

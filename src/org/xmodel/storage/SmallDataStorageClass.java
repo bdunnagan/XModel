@@ -1,8 +1,9 @@
 package org.xmodel.storage;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -10,10 +11,20 @@ import org.xmodel.PathListenerList;
 import org.xmodel.external.ICachingPolicy;
 
 /**
- * An IStorageClass that only stores the element value.
+ * An IStorageClass that stores a maximum of three attributes plus children.
  */
-public final class ValueStorageClass implements IStorageClass
+public final class SmallDataStorageClass implements IStorageClass
 {
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public SmallDataStorageClass( ValueStorageClass storageClass)
+  {
+    name1 = "";
+    value1 = storageClass.value;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#storesModel()
    */
@@ -92,7 +103,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public boolean storesChildren()
   {
-    return false;
+    return true;
   }
 
   /* (non-Javadoc)
@@ -101,7 +112,8 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    return Collections.emptyList();
+    if ( children == null) children = new ArrayList<IModelObject>( 3);
+    return children;
   }
 
   /* (non-Javadoc)
@@ -110,29 +122,34 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public boolean storesAttributes( String name)
   {
-    return (name.length() == 0);
+    if ( name1 == null || name1.equals( name)) return true;
+    if ( name2 == null || name2.equals( name)) return true;
+    if ( name3 == null || name3.equals( name)) return true;
+    return false;
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttribute(java.lang.String, java.lang.Object)
    */
   @Override
-  public Object setAttribute( String attrName, Object attrValue)
+  public Object setAttribute( String name, Object value)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
-    Object previous = value;
-    value = attrValue;
-    return previous;
+    if ( name1 == null || name1.equals( name)) { name1 = name; Object old = value1; value1 = value; return old;}
+    if ( name2 == null || name2.equals( name)) { name2 = name; Object old = value2; value2 = value; return old;}
+    if ( name3 == null || name3.equals( name)) { name3 = name; Object old = value3; value3 = value; return old;}
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getAttribute(java.lang.String)
    */
   @Override
-  public Object getAttribute( String attrName)
+  public Object getAttribute( String name)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
-    return value;
+    if ( name1 != null || name1.equals( name)) return value1;
+    if ( name2 != null || name2.equals( name)) return value2;
+    if ( name3 != null || name3.equals( name)) return value3;
+    return null;
   }
 
   /* (non-Javadoc)
@@ -141,7 +158,11 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return (value != null)? attributes: Collections.<String>emptyList();
+    List<String> names = new ArrayList<String>( 3);
+    if ( name1 != null) names.add( name1);
+    if ( name2 != null) names.add( name2);
+    if ( name3 != null) names.add( name3);
+    return names;
   }
 
   /* (non-Javadoc)
@@ -180,7 +201,11 @@ public final class ValueStorageClass implements IStorageClass
     throw new UnsupportedOperationException();
   }
   
-  private final static List<String> attributes = Collections.singletonList( "");
-  
-  protected Object value;
+  protected String name1;
+  protected Object value1;
+  protected String name2;
+  protected Object value2;
+  protected String name3;
+  protected Object value3;
+  protected List<IModelObject> children;
 }
