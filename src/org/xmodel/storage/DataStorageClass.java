@@ -45,7 +45,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -54,7 +54,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)

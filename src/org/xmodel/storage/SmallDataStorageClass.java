@@ -40,7 +40,7 @@ public final class SmallDataStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)

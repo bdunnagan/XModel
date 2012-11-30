@@ -38,7 +38,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    return (name.length() > 0)? new SmallDataStorageClass( this): null;
+    return (name.length() > 0)? new SmallDataStorageClass( this): this;
   }
 
   /* (non-Javadoc)
@@ -118,7 +118,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    return Collections.emptyList();
+    return null;
   }
 
   /* (non-Javadoc)

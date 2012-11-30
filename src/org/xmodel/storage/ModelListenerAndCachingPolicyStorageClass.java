@@ -61,7 +61,7 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   @Override
   public IStorageClass setCachingPolicyStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -70,7 +70,7 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -79,7 +79,7 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -88,7 +88,7 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)

@@ -35,6 +35,7 @@ import org.xmodel.memento.RemoveAttributeMemento;
 import org.xmodel.memento.RemoveChildMemento;
 import org.xmodel.memento.SetAttributeMemento;
 import org.xmodel.memento.SetParentMemento;
+import org.xmodel.storage.IStorageClass;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 
@@ -80,7 +81,7 @@ public class ModelObject implements IModelObject
   @Override
   public void clearModel()
   {
-    model = null;
+    storageClass.setModel( null);
   }
 
   /* (non-Javadoc)
@@ -88,8 +89,9 @@ public class ModelObject implements IModelObject
    */
   public IModel getModel()
   {
-    if ( model == null) model = GlobalSettings.getInstance().getModel();
-    return model;
+    IModel model = storageClass.getModel();
+    if ( model == null && parent != null) return parent.getModel();
+    return GlobalSettings.getInstance().getModel();
   }
 
   /* (non-Javadoc)
@@ -191,9 +193,7 @@ public class ModelObject implements IModelObject
   public Object getAttribute( String attrName)
   {
     notifyAccessAttributes( attrName, false);
-    
-    if ( attributes == null) return null;
-    return attributes.get( attrName);
+    return storageClass.getAttribute( attrName);
   }
 
   /* (non-Javadoc)
@@ -211,9 +211,7 @@ public class ModelObject implements IModelObject
   public Collection<String> getAttributeNames()
   {
     notifyAccessAttributes( null, false);
-    
-    if ( attributes == null) return Collections.emptyList();
-    return attributes.keySet();
+    return storageClass.getAttributeNames();
   }
 
   /* (non-Javadoc)
@@ -284,8 +282,8 @@ public class ModelObject implements IModelObject
    */
   protected Object setAttributeImpl( String attrName, Object attrValue)
   {
-    if ( attributes == null) attributes = new HashMap<String,Object>();
-    return attributes.put( attrName.intern(), attrValue);
+    storageClass = storageClass.setAttributeStorageClass( attrName);
+    return storageClass.setAttribute( attrName, attrValue);
   }
 
   /**
@@ -304,8 +302,8 @@ public class ModelObject implements IModelObject
    */
   public void addChild( IModelObject child)
   {
-    int index = (children != null)? children.size(): 0;
-    addChild( child, index);
+    storageClass = storageClass.getChildrenStorageClass();
+    addChild( child, -1);
   }
 
   /* (non-Javadoc)
@@ -395,8 +393,9 @@ public class ModelObject implements IModelObject
    */
   protected void addChildImpl( IModelObject child, int index)
   {
-    if ( children == null) children = new ArrayList<IModelObject>( 1);
-    if ( index >= 0) children.add( index, child); else children.add( child);
+    storageClass = storageClass.getChildrenStorageClass();
+    if ( index == -1) index = storageClass.getChildren().size();
+    storageClass.getChildren().add( index, child);
   }
   
   /* (non-Javadoc)
@@ -409,7 +408,7 @@ public class ModelObject implements IModelObject
     if ( transaction != null)
     {
       // bail if no children
-      if ( children == null) return null;
+      if ( storageClass.getChildren() == null) return null;
       
       // create change record
       IModelObject child = getChild( index);
@@ -421,9 +420,9 @@ public class ModelObject implements IModelObject
       notifyAccessChildren( true);
       
       // bail if no children
-      if ( children == null) return null;
+      if ( storageClass.getChildren() == null) return null;
       
-      IModelObject child = children.get( index);
+      IModelObject child = storageClass.getChildren().get( index);
       if ( child != null)
       {
         Update update = model.startUpdate();
@@ -462,9 +461,9 @@ public class ModelObject implements IModelObject
       notifyAccessChildren( true);
       
       // bail if no children
-      if ( children == null) return;
+      if ( storageClass.getChildren() == null) return;
       
-      int index = children.indexOf( child);
+      int index = storageClass.getChildren().indexOf( child);
       if ( index >= 0)
       {
         Update update = model.startUpdate();
@@ -493,10 +492,9 @@ public class ModelObject implements IModelObject
    */
   protected IModelObject removeChildImpl( int index)
   {
+    List<IModelObject> children = storageClass.getChildren();
     if ( children == null) return null;
-    IModelObject child = children.remove( index);
-    if ( children.size() == 0) children = null;
-    return child;
+    return children.remove( index);
   }
   
   /* (non-Javadoc)
@@ -504,8 +502,9 @@ public class ModelObject implements IModelObject
    */
   public void removeChildren()
   {
+    List<IModelObject> children = storageClass.getChildren();
     while( children != null && children.size() > 0)
-      removeChild( children.size()-1);
+      removeChild( children.size() - 1);
   }
 
   /* (non-Javadoc)
@@ -513,6 +512,7 @@ public class ModelObject implements IModelObject
    */
   public void removeChildren( String type)
   {
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       List<IModelObject> list = new ArrayList<IModelObject>( children.size());
@@ -539,6 +539,8 @@ public class ModelObject implements IModelObject
   {
     notifyAccessChildren( false);
     
+    List<IModelObject> children = storageClass.getChildren();
+    
     // bail if no children
     if ( children == null) return null;
     
@@ -556,6 +558,7 @@ public class ModelObject implements IModelObject
   {
     notifyAccessChildren( false);
     
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       for( IModelObject child: children)
@@ -572,6 +575,7 @@ public class ModelObject implements IModelObject
   {
     notifyAccessChildren( false);
     
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       for( IModelObject child: children)
@@ -618,6 +622,7 @@ public class ModelObject implements IModelObject
     notifyAccessChildren( false);
     
     List<IModelObject> result = new ArrayList<IModelObject>( 1);
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       for( IModelObject child: children)
@@ -634,6 +639,7 @@ public class ModelObject implements IModelObject
   {
     notifyAccessChildren( false);
     
+    List<IModelObject> children = storageClass.getChildren();
     List<IModelObject> result = children;
     if ( children == null) result = Collections.emptyList();
     
@@ -647,6 +653,7 @@ public class ModelObject implements IModelObject
   {
     notifyAccessChildren( false);
     
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       List<IModelObject> result = new ArrayList<IModelObject>( children.size());
@@ -667,6 +674,7 @@ public class ModelObject implements IModelObject
     notifyAccessChildren( false);
     
     HashSet<String> set = new HashSet<String>();
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null)
     {
       for( IModelObject child: children)
@@ -681,6 +689,7 @@ public class ModelObject implements IModelObject
   public int getNumberOfChildren()
   {
     notifyAccessChildren( false);
+    List<IModelObject> children = storageClass.getChildren();
     return (children == null)? 0: children.size();
   }
 
@@ -797,8 +806,8 @@ public class ModelObject implements IModelObject
    */
   public void addModelListener( IModelListener listener)
   {
-    if ( listeners == null) listeners = new ModelListenerList();
-    listeners.addListener( listener);
+    storageClass = storageClass.getModelListenersStorageClass();
+    storageClass.getModelListeners().addListener( listener);
   }
 
   /* (non-Javadoc)
@@ -806,6 +815,7 @@ public class ModelObject implements IModelObject
    */
   public void removeModelListener( IModelListener listener)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners == null) return;
     listeners.removeListener( listener);
   }
@@ -815,7 +825,7 @@ public class ModelObject implements IModelObject
    */
   public ModelListenerList getModelListeners()
   {
-    return listeners;
+    return storageClass.getModelListeners();
   }
 
   /* (non-Javadoc)
@@ -823,8 +833,8 @@ public class ModelObject implements IModelObject
    */
   public PathListenerList getPathListeners()
   {
-    if ( pathListeners == null) pathListeners = new PathListenerList();
-    return pathListeners;
+    storageClass = storageClass.getPathListenersStorageClass();
+    return storageClass.getPathListeners();
   }
 
   /* (non-Javadoc)
@@ -1046,6 +1056,7 @@ public class ModelObject implements IModelObject
    */
   private void notifyParent( IModelObject newParent, IModelObject oldParent)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners != null) listeners.notifyParent( this, newParent, oldParent);
   }
   
@@ -1060,6 +1071,7 @@ public class ModelObject implements IModelObject
    */
   private void notifyAddChild( IModelObject child, int index)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners != null) listeners.notifyAddChild( this, child, index);
   }
   
@@ -1074,6 +1086,7 @@ public class ModelObject implements IModelObject
    */
   private void notifyRemoveChild( IModelObject child, int index)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners != null) listeners.notifyRemoveChild( this, child, index);
   }
   
@@ -1089,6 +1102,7 @@ public class ModelObject implements IModelObject
    */
   private void notifyChange( String attrName, Object newValue, Object oldValue)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners != null) listeners.notifyChange( this, attrName, newValue, oldValue);
   }
   
@@ -1103,6 +1117,7 @@ public class ModelObject implements IModelObject
    */
   private void notifyClear( String attrName, Object oldValue)
   {
+    ModelListenerList listeners = storageClass.getModelListeners();
     if ( listeners != null) listeners.notifyClear( this, attrName, oldValue);
   }
   
@@ -1116,13 +1131,9 @@ public class ModelObject implements IModelObject
     return super.equals( object);
   }
   
-  private IModel model;
-  private String type;
   private IModelObject parent;
-  private List<IModelObject> children;
-  private Map<String, Object> attributes;
-  private ModelListenerList listeners;
-  private PathListenerList pathListeners;
+  private String type;
+  private IStorageClass storageClass;
   
   private static Log log = Log.getLog( "org.xmodel");
 }

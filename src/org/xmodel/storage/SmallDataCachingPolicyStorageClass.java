@@ -46,7 +46,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IStorageClass setCachingPolicyStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -55,7 +55,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)

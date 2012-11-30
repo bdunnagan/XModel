@@ -25,6 +25,7 @@ public final class PathListenerStorageClass implements IStorageClass
   {
     attributes = new HashMap<String, Object>();
     attributes.put( "", storageClass.value);
+    pathListeners = new PathListenerList();
   }
   
   /**
@@ -46,6 +47,7 @@ public final class PathListenerStorageClass implements IStorageClass
   {
     attributes = storageClass.attributes;
     children = storageClass.children;
+    pathListeners = new PathListenerList();
   }
   
   /* (non-Javadoc)
@@ -63,7 +65,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -72,7 +74,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -81,7 +83,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -90,7 +92,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public IStorageClass getPathListenersStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)

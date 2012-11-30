@@ -30,6 +30,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    pathListeners = new PathListenerList();
   }
   
   /**
@@ -42,6 +43,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    pathListeners = new PathListenerList();
   }
   
   /**
@@ -55,6 +57,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
     children = storageClass.children;
     modelListeners = storageClass.modelListeners;
     pathListeners = storageClass.pathListeners;
+    pathListeners = new PathListenerList();
   }
     
   /**
@@ -69,6 +72,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
     modelListeners = storageClass.modelListeners;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    pathListeners = new PathListenerList();
   }
     
   /* (non-Javadoc)
@@ -77,7 +81,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   @Override
   public IStorageClass setCachingPolicyStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -86,7 +90,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -95,7 +99,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -104,7 +108,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
@@ -113,7 +117,7 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
   @Override
   public IStorageClass getPathListenersStorageClass()
   {
-    return null;
+    return this;
   }
 
   /* (non-Javadoc)
