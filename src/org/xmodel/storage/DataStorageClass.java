@@ -33,6 +33,16 @@ public final class DataStorageClass implements IStorageClass
   }
   
   /* (non-Javadoc)
+   * @see java.lang.Object#finalize()
+   */
+  @Override
+  protected void finalize() throws Throwable
+  {
+    super.finalize();
+    Statistics.decrement( this);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
