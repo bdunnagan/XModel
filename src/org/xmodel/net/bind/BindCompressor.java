@@ -63,7 +63,7 @@ public class BindCompressor extends TabularCompressor
    */
   public void reset()
   {
-    log.infof( "%X.reset()", hashCode());
+    log.debugf( "%X.reset()", hashCode());
     localMap.clear();
     remoteMap.clear();
     remoteKeys.clear();
