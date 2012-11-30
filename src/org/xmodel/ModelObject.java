@@ -82,7 +82,7 @@ public class ModelObject implements IModelObject
    */
   public ModelObject( IStorageClass storageClass, String type)
   {
-    this.type = type;
+    this.type = type.intern();
     this.storageClass = storageClass;
   }
   
