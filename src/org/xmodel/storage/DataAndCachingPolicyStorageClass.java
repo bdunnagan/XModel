@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -23,6 +22,9 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
    */
   public DataAndCachingPolicyStorageClass( DataStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = storageClass.attributes;
     children = storageClass.children;
   }
@@ -33,6 +35,9 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
    */
   public DataAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = new HashMap<String, Object>();
     attributes.put( storageClass.name1, storageClass.value1);
     attributes.put( storageClass.name2, storageClass.value2);
@@ -185,7 +190,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public ModelListenerList getModelListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   /* (non-Javadoc)
@@ -194,7 +199,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public PathListenerList getPathListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   protected Map<String, Object> attributes;

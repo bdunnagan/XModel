@@ -27,7 +27,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
-import org.xmodel.GlobalSettings;
 import org.xmodel.diff.IXmlDiffer;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xpath.expression.Context;
@@ -479,34 +478,6 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     }
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#toString(java.lang.String)
-   */
-  public String toString( String indent)
-  {
-    IModel model = GlobalSettings.getInstance().getModel();
-    boolean syncLock = model.getSyncLock();
-    model.setSyncLock( true);
-
-    try
-    {
-      return getClass().getSimpleName();
-    }
-    finally
-    {
-      model.setSyncLock( syncLock);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
-  @Override
-  public String toString()
-  {
-    return toString( "");
-  }
-
   /**
    * A bag to hold the definition of a dynamic next-stage.
    */

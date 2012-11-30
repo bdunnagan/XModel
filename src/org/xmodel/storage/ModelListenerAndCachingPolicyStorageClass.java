@@ -20,15 +20,36 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
+  public ModelListenerAndCachingPolicyStorageClass( SmallDataStorageClass storageClass)
+  {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
+    attributes = new HashMap<String, Object>();
+    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
+    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
+    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+    modelListeners = new ModelListenerList();
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
   public ModelListenerAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = new HashMap<String, Object>();
-    attributes.put( storageClass.name1, storageClass.value1);
-    attributes.put( storageClass.name2, storageClass.value2);
-    attributes.put( storageClass.name3, storageClass.value3);
+    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
+    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
+    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    modelListeners = new ModelListenerList();
   }
   
   /**
@@ -37,10 +58,14 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
    */
   public ModelListenerAndCachingPolicyStorageClass( DataAndCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = storageClass.attributes;
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    modelListeners = new ModelListenerList();
   }
   
   /**
@@ -49,6 +74,9 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
    */
   public ModelListenerAndCachingPolicyStorageClass( ModelListenerStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     model = storageClass.model;
     attributes = storageClass.attributes;
     children = storageClass.children;
@@ -208,7 +236,7 @@ public final class ModelListenerAndCachingPolicyStorageClass implements IStorage
   @Override
   public PathListenerList getPathListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   protected IModel model;

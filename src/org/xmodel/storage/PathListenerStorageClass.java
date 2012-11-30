@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -17,14 +16,32 @@ import org.xmodel.external.ICachingPolicy;
  */
 public final class PathListenerStorageClass implements IStorageClass
 {
+  public PathListenerStorageClass( SmallDataStorageClass storageClass)
+  {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
+    attributes = new HashMap<String, Object>();
+    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
+    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
+    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+    modelListeners = new ModelListenerList();
+    pathListeners = new PathListenerList();
+  }
+  
   /**
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
   public PathListenerStorageClass( ValueStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = new HashMap<String, Object>();
     attributes.put( "", storageClass.value);
+    modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
   }
   
@@ -34,8 +51,12 @@ public final class PathListenerStorageClass implements IStorageClass
    */
   public PathListenerStorageClass( DataStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = storageClass.attributes;
     children = storageClass.children;
+    modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
   }
   
@@ -45,8 +66,12 @@ public final class PathListenerStorageClass implements IStorageClass
    */
   public PathListenerStorageClass( ModelListenerStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = storageClass.attributes;
     children = storageClass.children;
+    modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
   }
   

@@ -23,6 +23,7 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObject;
+import org.xmodel.storage.SmallDataCachingPolicyStorageClass;
 
 /**
  * An implementation of IExternalReference which extends ModelObject to provide listener semantics.
@@ -35,8 +36,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public ExternalReference( String type)
   {
-    super( type);
-    dirty = false;
+    super( new SmallDataCachingPolicyStorageClass(), type);
   }
   
   /* (non-Javadoc)
@@ -44,23 +44,8 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setCachingPolicy( ICachingPolicy newCachingPolicy)
   {
-    if ( cachingPolicy != null)
-    {
-      try { clearCache();} catch( CachingException e) {}
-      ICache cache = cachingPolicy.getCache();
-      if ( cache != null) cache.remove( this);
-    }
-    cachingPolicy = newCachingPolicy;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#getStaticAttributes()
-   */
-  public String[] getStaticAttributes()
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) return new String[ 0];
-    return cachingPolicy.getStaticAttributes();
+    storageClass = storageClass.setCachingPolicyStorageClass();
+    storageClass.setCachingPolicy( newCachingPolicy);
   }
 
   /* (non-Javadoc)
@@ -68,9 +53,11 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setDirty( boolean dirty)
   {
+    storageClass = storageClass.setCachingPolicyStorageClass();
+    
     // 050109: added this back during xidget tree development
-    boolean wasDirty = this.dirty;
-    this.dirty = dirty;
+    boolean wasDirty = storageClass.getDirty();
+    storageClass.setDirty( dirty);
     if ( wasDirty != dirty) 
     {
       notifyDirty( dirty);
@@ -79,7 +66,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
       {
         // resync immediately if reference has listeners
         ModelListenerList listeners = getModelListeners();
-        if ( listeners != null && listeners.count() > 0) sync();
+        if ( listeners != null && listeners.count() > 0) getChildren();
       }
     }
   }
@@ -89,7 +76,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public boolean isDirty()
   {
-    return dirty;
+    return storageClass.getDirty();
   }
 
   /* (non-Javadoc)
@@ -97,7 +84,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public ICachingPolicy getCachingPolicy()
   {
-    return cachingPolicy;
+    return storageClass.getCachingPolicy();
   }
 
   /* (non-Javadoc)
@@ -128,6 +115,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
   @Override
   protected void notifyAccessAttributes( String name, boolean write)
   {
+    ICachingPolicy cachingPolicy = storageClass.getCachingPolicy();
     if ( cachingPolicy != null) cachingPolicy.notifyAccessAttributes( this, name, write);
   }
 
@@ -137,6 +125,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
   @Override
   protected void notifyAccessChildren( boolean write)
   {
+    ICachingPolicy cachingPolicy = storageClass.getCachingPolicy();
     if ( cachingPolicy != null) cachingPolicy.notifyAccessChildren( this, write);
   }
 
@@ -171,12 +160,9 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
 
   /* (non-Javadoc)
-   * @see java.lang.Object#toString()
+   * @see org.xmodel.ModelObject#toString()
    */
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#toString(java.lang.String)
-   */
-  public String toString( String indent)
+  public String toString()
   {
     IModel model = getModel();
     boolean wasSyncLocked = model.getSyncLock();
@@ -185,8 +171,8 @@ public class ExternalReference extends ModelObject implements IExternalReference
     {
       ICachingPolicy cachingPolicy = getCachingPolicy();
       StringBuilder sb = new StringBuilder();
-      sb.append( indent); sb.append( "&"); sb.append( super.toString()); sb.append( " + ");
-      if ( cachingPolicy != null) sb.append( cachingPolicy.toString( indent+"  "));
+      sb.append( "&"); sb.append( super.toString()); sb.append( " + ");
+      if ( cachingPolicy != null) sb.append( cachingPolicy.toString());
       return sb.toString();
     }
     finally
@@ -194,15 +180,4 @@ public class ExternalReference extends ModelObject implements IExternalReference
       model.setSyncLock( wasSyncLocked);
     }
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.ModelObject#toString()
-   */
-  public String toString()
-  {
-    return toString( "");
-  }
-
-  private ICachingPolicy cachingPolicy;
-  private boolean dirty;
 }

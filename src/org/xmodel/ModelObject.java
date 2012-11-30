@@ -22,10 +22,8 @@ package org.xmodel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.xmodel.log.Log;
 import org.xmodel.memento.AddChildMemento;
@@ -36,6 +34,8 @@ import org.xmodel.memento.RemoveChildMemento;
 import org.xmodel.memento.SetAttributeMemento;
 import org.xmodel.memento.SetParentMemento;
 import org.xmodel.storage.IStorageClass;
+import org.xmodel.storage.SmallDataStorageClass;
+import org.xmodel.storage.ValueStorageClass;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
 
@@ -61,7 +61,7 @@ public class ModelObject implements IModelObject
    */
   public ModelObject( String type)
   {
-    this.type = type.intern();
+    this( new ValueStorageClass(), type);
   }
   
   /**
@@ -71,8 +71,19 @@ public class ModelObject implements IModelObject
    */
   public ModelObject( String type, String id)
   {
-    this( type);
+    this( new SmallDataStorageClass(), type);
     setAttributeImpl( "id", id);
+  }
+  
+  /**
+   * Create a ModelObject with the specified initial IStorageClass and type.
+   * @param storageClass The initial storage class.
+   * @param type The type.
+   */
+  public ModelObject( IStorageClass storageClass, String type)
+  {
+    this.type = type;
+    this.storageClass = storageClass;
   }
   
   /* (non-Javadoc)
@@ -151,6 +162,8 @@ public class ModelObject implements IModelObject
   {
     notifyAccessAttributes( attrName, true);
     
+    storageClass = storageClass.setAttributeStorageClass( attrName);
+    
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
 
@@ -201,8 +214,8 @@ public class ModelObject implements IModelObject
    */
   public IModelObject getAttributeNode( String attrName)
   {
-    if ( attributes != null && !attributes.containsKey( attrName)) return null;
-    return new AttributeNode( attrName, this);
+    Object value = storageClass.getAttribute( attrName);
+    return (value != null)? new AttributeNode( attrName, this): null;
   }
 
   /* (non-Javadoc)
@@ -293,8 +306,7 @@ public class ModelObject implements IModelObject
    */
   protected Object removeAttributeImpl( String attrName)
   {
-    if ( attributes == null) return null;
-    return attributes.remove( attrName);
+    return storageClass.setAttribute( attrName, null);
   }
   
   /* (non-Javadoc)
@@ -312,6 +324,8 @@ public class ModelObject implements IModelObject
   public void addChild( IModelObject child, int index)
   {
     if ( child == this) throw new IllegalArgumentException();
+    
+    if ( index < 0) index += getChildren().size() + 1;
     
     IModel model = getModel();
     IChangeSet transaction = getModel().isFrozen( this);
@@ -879,10 +893,7 @@ public class ModelObject implements IModelObject
     if ( iMemento instanceof SetAttributeMemento)
     {
       SetAttributeMemento memento = (SetAttributeMemento)iMemento;
-      if ( memento.oldValue == null)
-        attributes.remove( memento.attrName);
-      else
-        attributes.put( memento.attrName, memento.oldValue);
+      storageClass.setAttribute( memento.attrName, memento.oldValue);
     }
     else if ( iMemento instanceof SetParentMemento)
     {
@@ -892,24 +903,24 @@ public class ModelObject implements IModelObject
     else if ( iMemento instanceof AddChildMemento)
     {
       AddChildMemento memento = (AddChildMemento)iMemento;
-      children.remove( memento.index);
+      storageClass.getChildren().remove( memento.index);
     }
     else if ( iMemento instanceof RemoveChildMemento)
     {
       RemoveChildMemento memento = (RemoveChildMemento)iMemento;
-      if ( children == null) children = new ArrayList<IModelObject>( 1);
-      children.add( memento.index, memento.child);
+      storageClass.getChildren().add( memento.index, memento.child);
     }
     else if ( iMemento instanceof MoveChildMemento)
     {
       MoveChildMemento memento = (MoveChildMemento)iMemento;
+      List<IModelObject> children = storageClass.getChildren();
       children.remove( (memento.newIndex > memento.oldIndex)? (memento.newIndex - 1): memento.newIndex);
       children.add( memento.oldIndex, memento.child);
     }
     else
     {
       RemoveAttributeMemento memento = (RemoveAttributeMemento)iMemento;
-      attributes.put( memento.attrName, memento.oldValue);
+      storageClass.setAttribute( memento.attrName, memento.oldValue);
     }
   }
 
@@ -921,7 +932,7 @@ public class ModelObject implements IModelObject
     if ( iMemento instanceof SetAttributeMemento)
     {
       SetAttributeMemento memento = (SetAttributeMemento)iMemento;
-      attributes.put( memento.attrName, memento.newValue);
+      storageClass.setAttribute( memento.attrName, memento.newValue);
     }
     else if ( iMemento instanceof SetParentMemento)
     {
@@ -931,23 +942,24 @@ public class ModelObject implements IModelObject
     else if ( iMemento instanceof AddChildMemento)
     {
       AddChildMemento memento = (AddChildMemento)iMemento;
-      children.add( memento.index, memento.child);
+      storageClass.getChildren().add( memento.index, memento.child);
     }
     else if ( iMemento instanceof RemoveChildMemento)
     {
       RemoveChildMemento memento = (RemoveChildMemento)iMemento;
-      children.remove( memento.index);
+      storageClass.getChildren().remove( memento.index);
     }
     else if ( iMemento instanceof MoveChildMemento)
     {
       MoveChildMemento memento = (MoveChildMemento)iMemento;
+      List<IModelObject> children = storageClass.getChildren();
       children.remove( memento.oldIndex);
       children.add( (memento.newIndex > memento.oldIndex)? (memento.newIndex - 1): memento.newIndex, memento.child);
     }
     else
     {
       RemoveAttributeMemento memento = (RemoveAttributeMemento)iMemento;
-      attributes.remove( memento.attrName);
+      storageClass.setAttribute( memento.attrName, null);
     }
   }
 
@@ -977,26 +989,20 @@ public class ModelObject implements IModelObject
     builder.append( '<');
     builder.append( getType());
 
+    // value
+    Object text = storageClass.getAttribute( "");
+    if ( text == null) text = "";
+    
     // attributes
-    Object text = "";
-    if ( attributes != null)
+    for( String attrName: storageClass.getAttributeNames())
     {
-      for( Map.Entry<String, Object> entry: attributes.entrySet())
-      {
-        String attrName = entry.getKey();
-        if ( attrName.length() > 0 && attrName.charAt( 0) != '!')
-        {
-          builder.append( ' ');
-          builder.append( attrName);
-          builder.append( "='");
-          builder.append( entry.getValue());
-          builder.append( '\'');
-        }
-      }
-      text = attributes.get( "");
+      if ( attrName.length() == 0) continue;
+      builder.append( ' '); builder.append( attrName); builder.append( "='"); builder.append( storageClass.getAttribute( attrName));
+      builder.append( '\'');
     }
     
     // children
+    List<IModelObject> children = storageClass.getChildren();
     if ( children != null && children.size() > 0)
     {
       if ( text == null || text.equals( ""))
@@ -1131,9 +1137,9 @@ public class ModelObject implements IModelObject
     return super.equals( object);
   }
   
-  private IModelObject parent;
-  private String type;
-  private IStorageClass storageClass;
+  protected IModelObject parent;
+  protected String type;
+  protected IStorageClass storageClass;
   
   private static Log log = Log.getLog( "org.xmodel");
 }

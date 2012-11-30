@@ -43,12 +43,6 @@ public interface IExternalReference extends IModelObject
   public ICachingPolicy getCachingPolicy();
  
   /**
-   * Returns the names of attributes which can be accessed without syncing the reference.
-   * @return Returns the names of attributes which can be accessed without syncing the reference.
-   */
-  public String[] getStaticAttributes();
-  
-  /**
    * Set whether this object is dirty or not.  This method should not be called after the object
    * has been sync'ed once.  The <code>clearCache</code> method should be used to transition
    * back to the dirty state.
@@ -56,19 +50,6 @@ public interface IExternalReference extends IModelObject
    */
   public void setDirty( boolean dirty);
   
-  /**
-   * Returns true if this IExternalReference has never been accessed.
-   * @return Returns true if this IExternalReference has never been accessed.
-   */
-  public boolean isDirty();
-  
-  /**
-   * Synchronize this IExternalReference using the installed ICachingPolicy. If no ICachingPolicy is
-   * installed then this method will throw a CachingException. CachingExceptions may also be thrown
-   * due to errors from IExternalStore.
-   */
-  public void sync() throws CachingException;
-
   /**
    * @return Returns a new transaction.
    */
@@ -80,11 +61,4 @@ public interface IExternalReference extends IModelObject
    * the object will be immediately resync'ed.
    */
   public void clearCache() throws CachingException;
-  
-  /**
-   * Returns a string representation of the reference with the specified indentation.
-   * @param indent The indentation (usually spaces).
-   * @return Returns a string representation.
-   */
-  public String toString( String indent);
 }

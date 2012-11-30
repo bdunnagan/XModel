@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.zip.CRC32;
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.util.Fifo;
 import org.xmodel.xml.XmlIO;
@@ -36,6 +37,7 @@ import org.xmodel.xpath.PathElement;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.EqualityExpression;
+import org.xmodel.xpath.expression.EqualityExpression.Operator;
 import org.xmodel.xpath.expression.FilteredExpression;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -43,7 +45,6 @@ import org.xmodel.xpath.expression.LiteralExpression;
 import org.xmodel.xpath.expression.PathExpression;
 import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.RootExpression;
-import org.xmodel.xpath.expression.EqualityExpression.Operator;
 import org.xmodel.xpath.function.CollectionFunction;
 
 
@@ -1016,10 +1017,14 @@ public class ModelAlgorithms implements IAxis
         IExternalReference clone = (IExternalReference)reference.createObject( reference.getType());
         if ( reference.isDirty())
         {
-          for( String attrName: reference.getStaticAttributes())
+          ICachingPolicy cachingPolicy = reference.getCachingPolicy();
+          if ( cachingPolicy != null)
           {
-            if ( attrName.equals( "*")) copyAttributes( reference, clone);
-            else clone.setAttribute( attrName, reference.getAttribute( attrName));
+            for( String attrName: cachingPolicy.getStaticAttributes())
+            {
+              if ( attrName.equals( "*")) copyAttributes( reference, clone);
+              else clone.setAttribute( attrName, reference.getAttribute( attrName));
+            }
           }
         }
         else

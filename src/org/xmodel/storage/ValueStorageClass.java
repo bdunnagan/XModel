@@ -14,6 +14,11 @@ import org.xmodel.external.ICachingPolicy;
  */
 public final class ValueStorageClass implements IStorageClass
 {
+  public ValueStorageClass()
+  {
+    Statistics.increment( this);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
@@ -127,10 +132,16 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String attrName, Object attrValue)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
-    Object previous = value;
-    value = attrValue;
-    return previous;
+    if ( attrName.length() == 0)
+    {
+      Object previous = value;
+      value = attrValue;
+      return previous;
+    }
+    
+    if ( attrValue != null) throw new UnsupportedOperationException();
+    
+    return null;
   }
 
   /* (non-Javadoc)
@@ -139,7 +150,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String attrName)
   {
-    if ( attrName.length() > 0) throw new UnsupportedOperationException();
+    if ( attrName.length() > 0) return null;
     return value;
   }
 
@@ -158,7 +169,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public ModelListenerList getModelListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   /* (non-Javadoc)
@@ -167,7 +178,7 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public PathListenerList getPathListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
   
   private final static List<String> attributes = Collections.singletonList( "");

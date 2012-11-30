@@ -3,7 +3,6 @@ package org.xmodel.storage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -15,14 +14,25 @@ import org.xmodel.external.ICachingPolicy;
  */
 public final class SmallDataCachingPolicyStorageClass implements IStorageClass
 {
+  public SmallDataCachingPolicyStorageClass()
+  {
+    Statistics.increment( this);
+  }
+  
   /**
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
   public SmallDataCachingPolicyStorageClass( ValueStorageClass storageClass)
   {
-    name1 = "";
-    value1 = storageClass.value;
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
+    if ( storageClass.value != null)
+    {
+      name1 = "";
+      value1 = storageClass.value;
+    }
   }
   
   /**
@@ -31,6 +41,9 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
    */
   public SmallDataCachingPolicyStorageClass( SmallDataStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     name1 = storageClass.name1;
     value1 = storageClass.value1;
     name2 = storageClass.name2;
@@ -64,9 +77,9 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IStorageClass setAttributeStorageClass( String name)
   {
-    if ( name1 == null || name1.equals( name)) return null;
-    if ( name2 == null || name2.equals( name)) return null;
-    if ( name3 == null || name3.equals( name)) return null;
+    if ( name1 == null || name1.equals( name)) return this;
+    if ( name2 == null || name2.equals( name)) return this;
+    if ( name3 == null || name3.equals( name)) return this;
     return new DataAndCachingPolicyStorageClass( this);
   }
 
@@ -157,10 +170,26 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
-    if ( name1 == null || name1.equals( name)) { name1 = name; Object old = value1; value1 = value; return old;}
-    if ( name2 == null || name2.equals( name)) { name2 = name; Object old = value2; value2 = value; return old;}
-    if ( name3 == null || name3.equals( name)) { name3 = name; Object old = value3; value3 = value; return old;}
-    throw new UnsupportedOperationException();
+    if ( value != null)
+    {
+      // search for existing
+      if ( name1 != null && name1.equals( name)) { Object old = value1; value1 = value; return old;}
+      if ( name2 != null && name2.equals( name)) { Object old = value2; value2 = value; return old;}
+      if ( name3 != null && name3.equals( name)) { Object old = value3; value3 = value; return old;}
+      
+      // search for space
+      if ( name1 == null) { name1 = name; value1 = value; return null;}
+      if ( name2 == null) { name2 = name; value2 = value; return null;}
+      if ( name3 == null) { name3 = name; value3 = value; return null;}
+    }
+    else
+    {
+      if ( name1 != null && name1.equals( name)) { name1 = null; Object old = value1; value1 = value; return old;}
+      if ( name2 != null && name2.equals( name)) { name2 = null; Object old = value2; value2 = value; return old;}
+      if ( name3 != null && name3.equals( name)) { name3 = null; Object old = value3; value3 = value; return old;}
+    }
+    
+    throw new IllegalStateException();
   }
 
   /* (non-Javadoc)
@@ -169,9 +198,9 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String name)
   {
-    if ( name1 != null || name1.equals( name)) return value1;
-    if ( name2 != null || name2.equals( name)) return value2;
-    if ( name3 != null || name3.equals( name)) return value3;
+    if ( name1 != null && name1.equals( name)) return value1;
+    if ( name2 != null && name2.equals( name)) return value2;
+    if ( name3 != null && name3.equals( name)) return value3;
     return null;
   }
 
@@ -194,7 +223,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public ModelListenerList getModelListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   /* (non-Javadoc)
@@ -203,7 +232,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public PathListenerList getPathListeners()
   {
-    throw new UnsupportedOperationException();
+    return null;
   }
   
   protected String name1;

@@ -32,6 +32,7 @@ import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.NetworkCachingPolicy;
@@ -304,15 +305,21 @@ public class BindCompressor extends TabularCompressor
     // write static attributes
     if ( reference != null)
     {
-      String[] attrNames = reference.getStaticAttributes();
-      writeValue( stream, attrNames.length);
-      for( String attrName: attrNames) writeHash( stream, attrName);
+      ICachingPolicy cachingPolicy = reference.getCachingPolicy();
+      if ( cachingPolicy != null)
+      {
+        String[] attrNames = cachingPolicy.getStaticAttributes();
+        writeValue( stream, attrNames.length);
+        for( String attrName: attrNames) writeHash( stream, attrName);
+      }
     }
    
     // write attributes and children
     if ( element.isDirty())
     {
-      writeAttributes( stream, element, Arrays.asList( reference.getStaticAttributes()));
+      ICachingPolicy cachingPolicy = reference.getCachingPolicy();
+      String[] staticNames = (cachingPolicy != null)? cachingPolicy.getStaticAttributes(): new String[ 0];
+      writeAttributes( stream, element, Arrays.asList( staticNames));
     }
     else
     {

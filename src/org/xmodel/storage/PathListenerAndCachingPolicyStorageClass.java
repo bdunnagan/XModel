@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -21,15 +20,37 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
    * Copy the data from the specified storage class.
    * @param storageClass The storage class to be copied.
    */
+  public PathListenerAndCachingPolicyStorageClass( SmallDataStorageClass storageClass)
+  {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
+    attributes = new HashMap<String, Object>();
+    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
+    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
+    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
+    children = storageClass.children;
+    modelListeners = new ModelListenerList();
+    pathListeners = new PathListenerList();
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
   public PathListenerAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = new HashMap<String, Object>();
-    attributes.put( storageClass.name1, storageClass.value1);
-    attributes.put( storageClass.name2, storageClass.value2);
-    attributes.put( storageClass.name3, storageClass.value3);
+    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
+    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
+    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
   }
   
@@ -39,10 +60,14 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
    */
   public PathListenerAndCachingPolicyStorageClass( DataAndCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     attributes = storageClass.attributes;
     children = storageClass.children;
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
+    modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
   }
   
@@ -52,12 +77,14 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
    */
   public PathListenerAndCachingPolicyStorageClass( PathListenerStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     model = storageClass.model;
     attributes = storageClass.attributes;
     children = storageClass.children;
     modelListeners = storageClass.modelListeners;
     pathListeners = storageClass.pathListeners;
-    pathListeners = new PathListenerList();
   }
     
   /**
@@ -66,13 +93,16 @@ public final class PathListenerAndCachingPolicyStorageClass implements IStorageC
    */
   public PathListenerAndCachingPolicyStorageClass( ModelListenerAndCachingPolicyStorageClass storageClass)
   {
+    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
     model = storageClass.model;
     attributes = storageClass.attributes;
     children = storageClass.children;
     modelListeners = storageClass.modelListeners;
+    pathListeners = new PathListenerList();
     cachingPolicy = storageClass.cachingPolicy;
     dirty = storageClass.dirty;
-    pathListeners = new PathListenerList();
   }
     
   /* (non-Javadoc)

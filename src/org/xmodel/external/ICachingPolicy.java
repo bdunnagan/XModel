@@ -158,11 +158,4 @@ public interface ICachingPolicy
    * @param attrNames An array of attribute names.
    */
   public void setStaticAttributes( String[] attrNames);
-
-  /**
-   * Create a string representation with the specified indentation.
-   * @param indent The indentation (usually spaces).
-   * @return Returns the string representation.
-   */
-  public String toString( String indent);
 }
