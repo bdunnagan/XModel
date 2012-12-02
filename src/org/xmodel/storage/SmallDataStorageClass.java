@@ -35,7 +35,6 @@ public final class SmallDataStorageClass implements IStorageClass
    */
   public SmallDataStorageClass( ValueStorageClass storageClass)
   {
-    Statistics.decrement( storageClass);
     Statistics.increment( this);
     
     if ( storageClass.value != null)
@@ -49,9 +48,9 @@ public final class SmallDataStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
-    return new SmallDataCachingPolicyStorageClass( this);
+    return new CachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -60,14 +59,14 @@ public final class SmallDataStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return this;
+    return new MediumDataStorageClass( this);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
     if ( name1 == null || name1.equals( name)) return this;
     if ( name2 == null || name2.equals( name)) return this;
@@ -152,8 +151,7 @@ public final class SmallDataStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    if ( children == null) children = new ArrayList<IModelObject>( 3);
-    return children;
+    return null;
   }
 
   /* (non-Javadoc)
@@ -233,5 +231,4 @@ public final class SmallDataStorageClass implements IStorageClass
   protected Object value2;
   protected String name3;
   protected Object value3;
-  protected List<IModelObject> children;
 }

@@ -23,7 +23,8 @@ import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObject;
-import org.xmodel.storage.SmallDataCachingPolicyStorageClass;
+import org.xmodel.storage.CachingPolicyStorageClass;
+import org.xmodel.storage.ValueStorageClass;
 
 /**
  * An implementation of IExternalReference which extends ModelObject to provide listener semantics.
@@ -36,7 +37,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public ExternalReference( String type)
   {
-    super( new SmallDataCachingPolicyStorageClass(), type);
+    super( new CachingPolicyStorageClass( new ValueStorageClass()), type);
   }
   
   /* (non-Javadoc)
@@ -44,7 +45,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setCachingPolicy( ICachingPolicy newCachingPolicy)
   {
-    storageClass = storageClass.setCachingPolicyStorageClass();
+    storageClass = storageClass.getCachingPolicyStorageClass();
     storageClass.setCachingPolicy( newCachingPolicy);
   }
 
@@ -53,7 +54,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public void setDirty( boolean dirty)
   {
-    storageClass = storageClass.setCachingPolicyStorageClass();
+    storageClass = storageClass.getCachingPolicyStorageClass();
     
     // 050109: added this back during xidget tree development
     boolean wasDirty = storageClass.getDirty();

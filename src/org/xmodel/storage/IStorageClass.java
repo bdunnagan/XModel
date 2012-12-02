@@ -20,7 +20,7 @@ public interface IStorageClass
    * Returns an IStorageClass that can store an instance of ICachingPolicy.
    * @return Returns null or a new instance of IStorageClass.
    */
-  public IStorageClass setCachingPolicyStorageClass();
+  public IStorageClass getCachingPolicyStorageClass();
   
   /**
    * Returns an IStorageClass that can store a children.
@@ -33,7 +33,7 @@ public interface IStorageClass
    * @param name The name of the attribute.
    * @return Returns null or a new instance of IStorageClass.
    */
-  public IStorageClass setAttributeStorageClass( String name);
+  public IStorageClass getAttributeStorageClass( String name);
 
   /**
    * Returns an IStorageClass that can store an instance of ModelListenerList.

@@ -31,7 +31,7 @@ public class Statistics
       counts.put( storageClass.getClass(), count);
     }
     
-    count.incrementAndGet();
+    count.decrementAndGet();
     dump();
   }
   

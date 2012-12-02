@@ -33,9 +33,9 @@ public final class ValueStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
-    return new SmallDataCachingPolicyStorageClass( this);
+    return new CachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -44,14 +44,14 @@ public final class ValueStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
-    return new SmallDataStorageClass( this);
+    return new MediumDataStorageClass( this);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
     return (name.length() > 0)? new SmallDataStorageClass( this): this;
   }

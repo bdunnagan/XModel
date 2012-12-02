@@ -10,13 +10,43 @@ import org.xmodel.PathListenerList;
 import org.xmodel.external.ICachingPolicy;
 
 /**
- * An IStorageClass that stores a maximum of three attributes, children and an instance of ICachingPolicy and dirty flag.
+ * An IStorageClass that stores a maximum of three attributes plus children.
  */
-public final class SmallDataCachingPolicyStorageClass implements IStorageClass
+public final class MediumDataStorageClass implements IStorageClass
 {
-  public SmallDataCachingPolicyStorageClass()
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public MediumDataStorageClass( ValueStorageClass storageClass)
   {
     Statistics.increment( this);
+    
+    if ( storageClass.value != null)
+    {
+      name1 = "";
+      value1 = storageClass.value;
+    }
+    
+    children = new ArrayList<IModelObject>( 5);
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public MediumDataStorageClass( SmallDataStorageClass storageClass)
+  {
+    Statistics.increment( this);
+    
+    name1 = storageClass.name1;
+    value1 = storageClass.value1;
+    name2 = storageClass.name2;
+    value2 = storageClass.value2;
+    name3 = storageClass.name3;
+    value3 = storageClass.value3;
+    
+    children = new ArrayList<IModelObject>( 5);
   }
   
   /* (non-Javadoc)
@@ -29,47 +59,13 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
     Statistics.decrement( this);
   }
 
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public SmallDataCachingPolicyStorageClass( ValueStorageClass storageClass)
-  {
-    Statistics.decrement( storageClass);
-    Statistics.increment( this);
-    
-    if ( storageClass.value != null)
-    {
-      name1 = "";
-      value1 = storageClass.value;
-    }
-  }
-  
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public SmallDataCachingPolicyStorageClass( SmallDataStorageClass storageClass)
-  {
-    Statistics.decrement( storageClass);
-    Statistics.increment( this);
-    
-    name1 = storageClass.name1;
-    value1 = storageClass.value1;
-    name2 = storageClass.name2;
-    value2 = storageClass.value2;
-    name3 = storageClass.name3;
-    value3 = storageClass.value3;
-    children = storageClass.children;
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
-    return this;
+    return new CachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -85,12 +81,12 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
     if ( name1 == null || name1.equals( name)) return this;
     if ( name2 == null || name2.equals( name)) return this;
     if ( name3 == null || name3.equals( name)) return this;
-    return new DataAndCachingPolicyStorageClass( this);
+    return new DataStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -99,7 +95,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return new ModelListenerAndCachingPolicyStorageClass( this);
+    return new ModelListenerStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -108,7 +104,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public IStorageClass getPathListenersStorageClass()
   {
-    return new PathListenerAndCachingPolicyStorageClass( this);
+    return new PathListenerStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -134,7 +130,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public void setDirty( boolean dirty)
   {
-    this.dirty = dirty;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -143,7 +139,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public boolean getDirty()
   {
-    return dirty;
+    return false;
   }
 
   /* (non-Javadoc)
@@ -152,7 +148,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public void setCachingPolicy( ICachingPolicy cachingPolicy)
   {
-    this.cachingPolicy = cachingPolicy;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -161,7 +157,7 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public ICachingPolicy getCachingPolicy()
   {
-    return cachingPolicy;
+    return null;
   }
 
   /* (non-Javadoc)
@@ -170,7 +166,6 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    if ( children == null) children = new ArrayList<IModelObject>( 3);
     return children;
   }
 
@@ -252,6 +247,4 @@ public final class SmallDataCachingPolicyStorageClass implements IStorageClass
   protected String name3;
   protected Object value3;
   protected List<IModelObject> children;
-  protected ICachingPolicy cachingPolicy;
-  protected boolean dirty;
 }

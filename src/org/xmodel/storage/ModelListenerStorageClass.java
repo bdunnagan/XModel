@@ -1,10 +1,7 @@
 package org.xmodel.storage;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -16,44 +13,10 @@ import org.xmodel.external.ICachingPolicy;
  */
 public final class ModelListenerStorageClass implements IStorageClass
 {
-  public ModelListenerStorageClass( SmallDataStorageClass storageClass)
+  public ModelListenerStorageClass( IStorageClass storageClass)
   {
-    Statistics.decrement( storageClass);
     Statistics.increment( this);
-    
-    attributes = new HashMap<String, Object>();
-    if ( storageClass.name1 != null) attributes.put( storageClass.name1, storageClass.value1);
-    if ( storageClass.name2 != null) attributes.put( storageClass.name2, storageClass.value2);
-    if ( storageClass.name3 != null) attributes.put( storageClass.name3, storageClass.value3);
-    children = storageClass.children;
-    modelListeners = new ModelListenerList();
-  }
-  
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public ModelListenerStorageClass( ValueStorageClass storageClass)
-  {
-    Statistics.decrement( storageClass);
-    Statistics.increment( this);
-    
-    attributes = new HashMap<String, Object>();
-    attributes.put( "", storageClass.value);
-    modelListeners = new ModelListenerList();
-  }
-  
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public ModelListenerStorageClass( DataStorageClass storageClass)
-  {
-    Statistics.decrement( storageClass);
-    Statistics.increment( this);
-    
-    attributes = storageClass.attributes;
-    children = storageClass.children;
+    this.storageClass = storageClass;
     modelListeners = new ModelListenerList();
   }
   
@@ -71,8 +34,9 @@ public final class ModelListenerStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
+    storageClass = storageClass.getCachingPolicyStorageClass();
     return this;
   }
 
@@ -82,6 +46,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public IStorageClass getChildrenStorageClass()
   {
+    storageClass = storageClass.getChildrenStorageClass();
     return this;
   }
 
@@ -89,8 +54,9 @@ public final class ModelListenerStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
+    storageClass = storageClass.getAttributeStorageClass( name);
     return this;
   }
 
@@ -118,7 +84,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public void setModel( IModel model)
   {
-    this.model = model;
+    storageClass.setModel( model);
   }
 
   /* (non-Javadoc)
@@ -127,7 +93,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public IModel getModel()
   {
-    return model;
+    return storageClass.getModel();
   }
 
   /* (non-Javadoc)
@@ -172,8 +138,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    if ( children == null) children = new ArrayList<IModelObject>( 3);
-    return children;
+    return storageClass.getChildren();
   }
 
   /* (non-Javadoc)
@@ -182,8 +147,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
-    if ( attributes == null) attributes = new HashMap<String, Object>();
-    return attributes.put( name, value);
+    return storageClass.setAttribute( name, value);
   }
 
   /* (non-Javadoc)
@@ -192,8 +156,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String name)
   {
-    if ( attributes == null) return null;
-    return attributes.get( name);
+    return storageClass.getAttribute( name);
   }
 
   /* (non-Javadoc)
@@ -202,7 +165,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return attributes.keySet();
+    return storageClass.getAttributeNames();
   }
 
   /* (non-Javadoc)
@@ -223,8 +186,6 @@ public final class ModelListenerStorageClass implements IStorageClass
     return null;
   }
 
-  protected IModel model;
-  protected Map<String, Object> attributes;
-  protected List<IModelObject> children;
+  protected IStorageClass storageClass;
   protected ModelListenerList modelListeners;
 }

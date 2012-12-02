@@ -1,113 +1,77 @@
 package org.xmodel.storage;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.PathListenerList;
 import org.xmodel.external.ICachingPolicy;
 
-/**
- * An IStorageClass that only stores attributes and children.
- */
-public final class DataAndCachingPolicyStorageClass implements IStorageClass
+public class CachingPolicyStorageClass implements IStorageClass
 {
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public DataAndCachingPolicyStorageClass( DataStorageClass storageClass)
+  public CachingPolicyStorageClass( IStorageClass storageClass)
   {
-    Statistics.decrement( storageClass);
     Statistics.increment( this);
-    
-    attributes = storageClass.attributes;
-    children = storageClass.children;
+    this.storageClass = storageClass;
   }
-  
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public DataAndCachingPolicyStorageClass( SmallDataCachingPolicyStorageClass storageClass)
-  {
-    Statistics.decrement( storageClass);
-    Statistics.increment( this);
-    
-    attributes = new HashMap<String, Object>();
-    attributes.put( storageClass.name1, storageClass.value1);
-    attributes.put( storageClass.name2, storageClass.value2);
-    attributes.put( storageClass.name3, storageClass.value3);
-    children = storageClass.children;
-    cachingPolicy = storageClass.cachingPolicy;
-    dirty = storageClass.dirty;
-  }
-  
-  /* (non-Javadoc)
-   * @see java.lang.Object#finalize()
-   */
-  @Override
-  protected void finalize() throws Throwable
-  {
-    super.finalize();
-    Statistics.decrement( this);
-  }
-
+ 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
     return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
    */
   @Override
   public IStorageClass getChildrenStorageClass()
   {
+    storageClass = storageClass.getChildrenStorageClass();
     return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
+    storageClass = storageClass.getAttributeStorageClass( name);
     return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
    */
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return new ModelListenerAndCachingPolicyStorageClass( this);
+    storageClass = storageClass.getModelListenersStorageClass();
+    return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
    */
   @Override
   public IStorageClass getPathListenersStorageClass()
   {
-    return new PathListenerAndCachingPolicyStorageClass( this);
+    storageClass = storageClass.getPathListenersStorageClass();
+    return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setModel(org.xmodel.IModel)
    */
   @Override
   public void setModel( IModel model)
   {
+    storageClass.setModel( model);
   }
 
   /* (non-Javadoc)
@@ -116,7 +80,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public IModel getModel()
   {
-    return null;
+    return storageClass.getModel();
   }
 
   /* (non-Javadoc)
@@ -161,8 +125,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    if ( children == null) children = new ArrayList<IModelObject>( 3);
-    return children;
+    return storageClass.getChildren();
   }
 
   /* (non-Javadoc)
@@ -171,8 +134,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
-    if ( attributes == null) attributes = new HashMap<String, Object>();
-    return attributes.put( name, value);
+    return storageClass.setAttribute( name, value);
   }
 
   /* (non-Javadoc)
@@ -181,8 +143,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String name)
   {
-    if ( attributes == null) return null;
-    return attributes.get( name);
+    return storageClass.getAttribute( name);
   }
 
   /* (non-Javadoc)
@@ -191,7 +152,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return attributes.keySet();
+    return storageClass.getAttributeNames();
   }
 
   /* (non-Javadoc)
@@ -200,7 +161,7 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public ModelListenerList getModelListeners()
   {
-    return null;
+    return storageClass.getModelListeners();
   }
 
   /* (non-Javadoc)
@@ -209,11 +170,10 @@ public final class DataAndCachingPolicyStorageClass implements IStorageClass
   @Override
   public PathListenerList getPathListeners()
   {
-    return null;
+    return storageClass.getPathListeners();
   }
 
-  protected Map<String, Object> attributes;
-  protected List<IModelObject> children;
+  protected IStorageClass storageClass;
   protected ICachingPolicy cachingPolicy;
   protected boolean dirty;
 }

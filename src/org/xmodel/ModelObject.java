@@ -162,7 +162,7 @@ public class ModelObject implements IModelObject
   {
     notifyAccessAttributes( attrName, true);
     
-    storageClass = storageClass.setAttributeStorageClass( attrName);
+    storageClass = storageClass.getAttributeStorageClass( attrName);
     
     Object oldValue = getAttribute( attrName);
     if ( oldValue != null && attrValue != null && oldValue.equals( attrValue)) return oldValue;
@@ -295,7 +295,7 @@ public class ModelObject implements IModelObject
    */
   protected Object setAttributeImpl( String attrName, Object attrValue)
   {
-    storageClass = storageClass.setAttributeStorageClass( attrName);
+    storageClass = storageClass.getAttributeStorageClass( attrName);
     return storageClass.setAttribute( attrName, attrValue);
   }
 

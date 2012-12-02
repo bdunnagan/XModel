@@ -22,7 +22,20 @@ public final class DataStorageClass implements IStorageClass
    */
   public DataStorageClass( SmallDataStorageClass storageClass)
   {
-    Statistics.decrement( storageClass);
+    Statistics.increment( this);
+    
+    attributes = new HashMap<String, Object>();
+    attributes.put( storageClass.name1, storageClass.value1);
+    attributes.put( storageClass.name2, storageClass.value2);
+    attributes.put( storageClass.name3, storageClass.value3);
+  }
+  
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public DataStorageClass( MediumDataStorageClass storageClass)
+  {
     Statistics.increment( this);
     
     attributes = new HashMap<String, Object>();
@@ -46,9 +59,9 @@ public final class DataStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
-  public IStorageClass setCachingPolicyStorageClass()
+  public IStorageClass getCachingPolicyStorageClass()
   {
-    return new DataAndCachingPolicyStorageClass( this);
+    return new CachingPolicyStorageClass( this);
   }
 
   /* (non-Javadoc)
@@ -64,7 +77,7 @@ public final class DataStorageClass implements IStorageClass
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
-  public IStorageClass setAttributeStorageClass( String name)
+  public IStorageClass getAttributeStorageClass( String name)
   {
     return this;
   }
@@ -146,6 +159,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
+    // children may be null coming from SmallDataStorageClass
     if ( children == null) children = new ArrayList<IModelObject>( 3);
     return children;
   }
@@ -156,6 +170,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
+    if ( value == null) return (attributes != null)? attributes.remove( name): null;
     if ( attributes == null) attributes = new HashMap<String, Object>();
     return attributes.put( name, value);
   }
