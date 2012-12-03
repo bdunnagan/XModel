@@ -48,6 +48,8 @@ public final class LogManager implements Runnable
     String path = System.getProperty( "org.xmodel.log.config");
     if ( path == null) path = "logging.xml";
     
+    SLog.infof( this, "LogManager created with configuration: %s", path);
+    
     config = new File( path);
     if ( !config.exists()) 
     {

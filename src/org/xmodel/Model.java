@@ -355,9 +355,7 @@ public class Model implements IModel
       Update current = updateStack.get( stackSize-1);
       if ( current.isReverted())
       {
-        Throwable t = new Throwable();
-        System.err.println( "Internal error: illegal update in reverted state: ");
-        t.printStackTrace( System.err);
+        SLog.severe( this, "Internal error: illegal update in reverted state!");
       }
     }
     

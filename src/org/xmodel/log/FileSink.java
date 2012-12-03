@@ -68,7 +68,7 @@ public final class FileSink implements ILogSink
   @Override
   public void configure( IModelObject config)
   {
-    logFolder = Xlate.get( config, "logFolder", Xlate.childGet( config, "logFolder", logFolder));
+    logFolder = new File( Xlate.get( config, "logFolder", Xlate.childGet( config, "logFolder", logFolder.toString())));
     filePrefix = Xlate.get( config, "filePrefix", Xlate.childGet( config, "filePrefix", filePrefix));
     maxFileCount = Xlate.get( config, "maxFileCount", Xlate.childGet( config, "maxFileCount", maxFileCount));
     maxFileSize = Xlate.get( config, "maxFileSize", Xlate.childGet( config, "maxFileSize", maxFileSize));

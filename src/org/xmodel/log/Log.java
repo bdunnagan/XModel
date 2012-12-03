@@ -538,10 +538,7 @@ public final class Log
   
   protected static PackageMap map = new PackageMap();
   private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
-  
-  @SuppressWarnings("unused")
-  private static LogManager logManager = new LogManager();
-  
+    
   private volatile int mask;
   private volatile ILogSink sink;
 }
