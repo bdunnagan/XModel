@@ -123,6 +123,8 @@ public class XioChannelHandler extends SimpleChannelHandler
         break;
       }
     }
+    
+    buffer.discardReadBytes();
   }
   
   /**
