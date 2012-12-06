@@ -135,5 +135,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private boolean readonly;
   private String query;
   private int timeout;
+  @SuppressWarnings("unused")
   private int netID;
 }
