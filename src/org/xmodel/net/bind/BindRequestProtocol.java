@@ -68,6 +68,13 @@ public class BindRequestProtocol
     channel.write( buffer);
     
     bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
+
+    if ( !readonly)
+    {
+      UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
+      listener.install( reference);
+      listeners.put( reference, listener);
+    }
   }
   
   /**
