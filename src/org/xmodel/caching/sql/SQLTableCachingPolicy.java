@@ -263,7 +263,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       String columnName = columnNames.get( i);
 
       Object value = result.getObject( i+1);
-      if ( primaryKey.equals( columnName) || otherKeys.contains( columnName))
+      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName))
       {
         object.setAttribute( columnName, value);
       }
