@@ -1,13 +1,14 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -42,7 +43,8 @@ public class SyncResponseProtocol
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
-    ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
+    List<byte[]> buffers = bundle.responseCompressor.compress( element);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.syncResponse, buffer2.readableBytes());
     buffer1.writeInt( correlation);
     
@@ -58,7 +60,7 @@ public class SyncResponseProtocol
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
-    IModelObject element = bundle.requestCompressor.decompress( buffer);
+    IModelObject element = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
     
     log.debugf( "SyncResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     

@@ -3,6 +3,7 @@ package org.xmodel.net.bind;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.List;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
@@ -44,7 +45,8 @@ public class UpdateProtocol
   {
     int parentNetID = protocol.responseCompressor.getLocalID( parent);
         
-    ChannelBuffer buffer2 = protocol.responseCompressor.compress( child);
+    List<byte[]> buffers = protocol.responseCompressor.compress( child);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 8, Type.addChild, buffer2.readableBytes());
     buffer1.writeInt( parentNetID);
     buffer1.writeInt( index);
@@ -159,7 +161,7 @@ public class UpdateProtocol
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
-    IModelObject child = protocol.requestCompressor.decompress( buffer);
+    IModelObject child = protocol.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
   
     IModelObject parent = protocol.requestCompressor.findRemote( parentNetID);
     if ( parent == null) throw new XioException( String.format( "Parent %X not found", parentNetID));

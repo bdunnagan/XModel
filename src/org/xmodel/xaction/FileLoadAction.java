@@ -19,12 +19,12 @@
  */
 package org.xmodel.xaction;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
@@ -103,7 +103,7 @@ public class FileLoadAction extends GuardedAction
       try
       {
         if ( compressor == null) compressor = new TabularCompressor();
-        element = compressor.decompress( ChannelBuffers.wrappedBuffer( content));
+        element = compressor.decompress( new ByteArrayInputStream( content));
       }
       catch( IOException e)
       {

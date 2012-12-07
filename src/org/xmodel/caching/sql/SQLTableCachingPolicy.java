@@ -19,6 +19,7 @@
  */
 package org.xmodel.caching.sql;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -33,13 +34,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferInputStream;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.MultiByteArrayInputStream;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.compress.ZipCompressor;
 import org.xmodel.external.CachingException;
@@ -301,7 +300,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
           try
           {
-            IModelObject superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
+            IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
             ModelAlgorithms.moveChildren( superroot, row.getFirstChild( column));
           }
           catch( Exception e)
@@ -351,8 +350,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         try
         {
-          ChannelBuffer buffer = compressor.compress( row.getFirstChild( column));
-          return new ChannelBufferInputStream( buffer);
+          List<byte[]> buffers = compressor.compress( row.getFirstChild( column));
+          return new MultiByteArrayInputStream( buffers);
         }
         catch( IOException e)
         {

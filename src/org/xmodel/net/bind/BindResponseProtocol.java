@@ -1,6 +1,7 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -44,7 +45,8 @@ public class BindResponseProtocol
     
     if ( element != null)
     {
-      ChannelBuffer buffer2 = bundle.responseCompressor.compress( element);
+      List<byte[]> buffers = bundle.responseCompressor.compress( element);
+      ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
       ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, buffer2.readableBytes());
       buffer1.writeInt( correlation);
       
@@ -125,7 +127,7 @@ public class BindResponseProtocol
   }
   
   private final static Log log = Log.getLog( BindResponseProtocol.class);
-
+  
   private BindProtocol bundle;
   private AtomicInteger counter;
   private Map<Integer, BindRecord> pending;
