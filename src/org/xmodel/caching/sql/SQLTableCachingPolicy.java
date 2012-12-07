@@ -286,39 +286,44 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       row.setAttribute( column, value);
     }
-    else if ( xmlColumns.contains( column) && value != null)
+    else if ( xmlColumns.contains( column))
     {
-      //
-      // XML columns can contain multiple root nodes, so parser must be tricked by wrapping the XML
-      // text with a dummy root node.
-      //
-      if ( value instanceof byte[])
+      row.getCreateChild( column);
+      
+      if ( value != null)
       {
-        if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
-        try
+        //
+        // XML columns can contain multiple root nodes, so parser must be tricked by wrapping the XML
+        // text with a dummy root node.
+        //
+        if ( value instanceof byte[])
         {
-          IModelObject superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
-          ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
-        }
-        catch( Exception e)
-        {
-          SLog.exception( this, e);
-        }
-      }
-      else
-      {
-        try
-        {
-          String xml = "<superroot>"+value.toString()+"</superroot>";
-          if ( xml.length() > 0)
+          if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
+          try
           {
-            IModelObject superroot = new XmlIO().read( xml);
-            ModelAlgorithms.moveChildren( superroot, row.getCreateChild( column));
+            IModelObject superroot = compressor.decompress( ChannelBuffers.wrappedBuffer( (byte[])value));
+            ModelAlgorithms.moveChildren( superroot, row.getFirstChild( column));
+          }
+          catch( Exception e)
+          {
+            SLog.exception( this, e);
           }
         }
-        catch( XmlException e)
+        else
         {
-          SLog.errorf( this, "Invalid xml in %s.%s", tableName, column, e);
+          try
+          {
+            String xml = "<superroot>"+value.toString()+"</superroot>";
+            if ( xml.length() > 0)
+            {
+              IModelObject superroot = new XmlIO().read( xml);
+              ModelAlgorithms.moveChildren( superroot, row.getFirstChild( column));
+            }
+          }
+          catch( XmlException e)
+          {
+            SLog.errorf( this, "Invalid xml in %s.%s", tableName, column, e);
+          }
         }
       }
     }
@@ -826,6 +831,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           }
           inserts.add( child);
         }
+        else if ( xmlColumns.contains( parent.getType()))
+        {
+          List<String> updates = rowUpdates.get( parent.getParent());
+          if ( updates == null)
+          {
+            updates = new ArrayList<String>();
+            rowUpdates.put( parent.getParent(), updates);
+          }
+          updates.add( parent.getType());
+        }
         else
         {
           throw new CachingException( String.format( 
@@ -859,6 +874,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           
           // remove any cached update records for removed row
           rowUpdates.remove( child);
+        }
+        else if ( xmlColumns.contains( parent.getType()))
+        {
+          List<String> updates = rowUpdates.get( parent.getParent());
+          if ( updates == null)
+          {
+            updates = new ArrayList<String>();
+            rowUpdates.put( parent.getParent(), updates);
+          }
+          updates.add( parent.getType());
         }
         else
         {

@@ -16,7 +16,7 @@ public final class SmallDataStorageClass implements IStorageClass
 {
   public SmallDataStorageClass()
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
   }
   
   /* (non-Javadoc)
@@ -26,7 +26,7 @@ public final class SmallDataStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /**
@@ -35,7 +35,7 @@ public final class SmallDataStorageClass implements IStorageClass
    */
   public SmallDataStorageClass( ValueStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     
     if ( storageClass.value != null)
     {

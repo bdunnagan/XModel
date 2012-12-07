@@ -12,7 +12,7 @@ public class CachingPolicyStorageClass implements IStorageClass
 {
   public CachingPolicyStorageClass( IStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     this.storageClass = storageClass;
   }
  

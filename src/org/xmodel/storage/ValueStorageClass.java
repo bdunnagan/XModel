@@ -16,7 +16,7 @@ public final class ValueStorageClass implements IStorageClass
 {
   public ValueStorageClass()
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
   }
   
   /* (non-Javadoc)
@@ -26,7 +26,7 @@ public final class ValueStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /* (non-Javadoc)

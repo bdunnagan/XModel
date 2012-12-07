@@ -22,7 +22,7 @@ public final class DataStorageClass implements IStorageClass
    */
   public DataStorageClass( SmallDataStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     
     attributes = new HashMap<String, Object>();
     attributes.put( storageClass.name1, storageClass.value1);
@@ -36,7 +36,7 @@ public final class DataStorageClass implements IStorageClass
    */
   public DataStorageClass( MediumDataStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     
     attributes = new HashMap<String, Object>();
     attributes.put( storageClass.name1, storageClass.value1);
@@ -52,7 +52,7 @@ public final class DataStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /* (non-Javadoc)

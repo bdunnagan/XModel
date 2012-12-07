@@ -15,7 +15,7 @@ public final class PathListenerStorageClass implements IStorageClass
 {
   public PathListenerStorageClass( IStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     this.storageClass = storageClass;
     modelListeners = new ModelListenerList();
     pathListeners = new PathListenerList();
@@ -23,7 +23,7 @@ public final class PathListenerStorageClass implements IStorageClass
   
   public PathListenerStorageClass( ModelListenerStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     this.storageClass = storageClass.storageClass;
     modelListeners = storageClass.modelListeners;
     pathListeners = new PathListenerList();
@@ -36,7 +36,7 @@ public final class PathListenerStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /* (non-Javadoc)
