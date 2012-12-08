@@ -19,6 +19,7 @@
  */
 package org.xmodel.path;
 
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.xpath.expression.IContext;
@@ -64,8 +65,10 @@ public class ChildAxisListener extends FanoutListener
   public void notifyAddChild( IModelObject parent, IModelObject child, int index)
   {
     IPath path = getListenerChain().getPath();
+    int pathIndex = getPathIndex();
+    
     IContext context = getListenerChain().getContext();
-    if ( fanoutElement.evaluate( context, path, child))
+    if ( fanoutElement.evaluate( context, path, pathIndex, child))
       getNextListener().incrementalInstall( child);
   }
 
@@ -76,8 +79,21 @@ public class ChildAxisListener extends FanoutListener
   public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
   {
     IPath path = getListenerChain().getPath();
+    int pathIndex = getPathIndex();
+
     IContext context = getListenerChain().getContext();
-    if ( fanoutElement.evaluate( context, path, child))
-      getNextListener().incrementalUninstall( child);
+    IModel model = context.getModel();
+    model.revert();
+    try
+    {
+      if ( !fanoutElement.evaluate( context, path, pathIndex, child))
+        child = null;
+    }
+    finally
+    {
+      model.restore();
+    }
+    
+    if ( child != null) getNextListener().incrementalUninstall( child);
   }
 }

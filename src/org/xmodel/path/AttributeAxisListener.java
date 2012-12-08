@@ -19,6 +19,7 @@
  */
 package org.xmodel.path;
 
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.xpath.AttributeHistoryNode;
@@ -69,19 +70,35 @@ public class AttributeAxisListener extends FanoutListener
     if ( oldValue == null)
     {
       IPath path = getListenerChain().getPath();
+      int pathIndex = getPathIndex();
+      
+      IModelObject node = null;
+      
       IContext context = getListenerChain().getContext();
-      if ( attrName.length() == 0)
+      IModel model = context.getModel();
+      model.revert();
+      try
       {
-        IModelObject node = object.getAttributeNode( "");
-        if ( fanoutElement.evaluate( context, path, node)) 
-          getNextListener().incrementalInstall( node);
+        if ( attrName.length() == 0)
+        {
+          // TODO: Is AttributeNode needed here?
+          node = object.getAttributeNode( "");
+          if ( !fanoutElement.evaluate( context, path, pathIndex, node)) 
+            node = null;
+        }
+        else
+        {
+          node = object.getAttributeNode( attrName);
+          if ( !fanoutElement.evaluate( context, path, pathIndex, node)) 
+            node = null;
+        }
       }
-      else
+      finally
       {
-        IModelObject node = object.getAttributeNode( attrName);
-        if ( fanoutElement.evaluate( context, path, node)) 
-          getNextListener().incrementalInstall( node);
+        model.restore();
       }
+      
+      if ( node != null) getNextListener().incrementalInstall( node);
     }
   }
 
@@ -95,19 +112,34 @@ public class AttributeAxisListener extends FanoutListener
     if ( oldValue != null)
     {
       IPath path = getListenerChain().getPath();
+      int pathIndex = getPathIndex();
+      
+      IModelObject node = null;
+      
       IContext context = getListenerChain().getContext();
-      if ( attrName.length() == 0)
+      IModel model = context.getModel();
+      model.revert();
+      try
       {
-        IModelObject node = new TextHistoryNode( oldValue);
-        if ( fanoutElement.evaluate( context, path, node))
-          getNextListener().incrementalUninstall( node);
+        if ( attrName.length() == 0)
+        {
+          node = new TextHistoryNode( oldValue);
+          if ( !fanoutElement.evaluate( context, path, pathIndex, node))
+            node = null;
+        }
+        else
+        {
+          node = new AttributeHistoryNode( attrName, oldValue);
+          if ( !fanoutElement.evaluate( context, path, pathIndex, node)) 
+            node = null;
+        }
       }
-      else
+      finally
       {
-        IModelObject node = new AttributeHistoryNode( attrName, oldValue);
-        if ( fanoutElement.evaluate( context, path, node)) 
-          getNextListener().incrementalUninstall( node);
+        model.restore();
       }
+      
+      if ( node != null) getNextListener().incrementalUninstall( node);
     }
   }
 }
