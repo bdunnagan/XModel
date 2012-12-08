@@ -31,14 +31,8 @@ import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.IPredicate;
 import org.xmodel.PrecedingIterator;
-import org.xmodel.log.Log;
 import org.xmodel.util.Fifo;
-import org.xmodel.xpath.expression.Context;
-import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.IExpression.ResultType;
-import org.xmodel.xpath.expression.SubContext;
 
 
 /**
@@ -174,7 +168,7 @@ public class PathElement implements IPathElement, IAxis
     if ( (axis & ATTRIBUTE) != 0) findMatchingAttributes( object, type, result);
     
     // apply predicate
-    filterNodeSet( parent, result, start);
+    if ( predicate != null) predicate.filter( parent, result.subList( start, result.size()));
     
     return result;
   }
@@ -196,14 +190,36 @@ public class PathElement implements IPathElement, IAxis
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IPathElement#evaluate(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IPath, org.xmodel.IModelObject)
+   * @see org.xmodel.IPathElement#filter(org.xmodel.xpath.expression.IContext, org.xmodel.IPath, int, java.util.List)
    */
-  public boolean evaluate( IContext context, IPath candidatePath, IModelObject candidate)
+  @Override
+  public void filter( IContext parent, IPath path, int step, List<IModelObject> nodes)
   {
-    if ( !performNodeTest( candidate, type)) return false;
-    if ( predicate != null && !predicate.evaluate( context, candidatePath, candidate)) return false;
-    return true;
+    // filter by node test
+    int rangeStart = -1;
+    int count = nodes.size();
+    for( int i=0; i<count; i++)
+    {
+      if ( performNodeTest( nodes.get( i), type))
+      {
+        if ( rangeStart >= 0)
+        {
+          nodes.subList( rangeStart, i).clear();
+          i = rangeStart;
+          rangeStart = -1;
+        }
+      }
+      else
+      {
+        rangeStart = i;
+      }
+    }
+    
+    if ( rangeStart >= 0)
+      nodes.subList( rangeStart, nodes.size()).clear();
+    
+    // filter by predicate
+    if ( predicate != null) predicate.filter( parent, path, step, nodes);
   }
   
   /* (non-Javadoc)
@@ -663,78 +679,6 @@ public class PathElement implements IPathElement, IAxis
     }
   }
   
-  /**
-   * Filter the specified node-set using this PathElement's predicate.
-   * @param parent The parent context or null.
-   * @param nodeSet The node-set to be filtered.
-   * @param start The first element to be filtered.
-   */
-  private final void filterNodeSet( IContext parent, List<IModelObject> nodeSet, int start)
-  {
-    if ( predicate == null) return;
-
-    // evaluate predicates
-    IExpression expression = (IExpression)predicate;
-    List<IExpression> arguments = expression.getArguments();
-    for ( IExpression argument: arguments)
-    {
-      // FIXME: need a method on IPredicate for filtering entire node-sets so that PredicateExpression
-      //        can contain this logic.
-      if ( argument.getType( parent) == ResultType.NUMBER)
-      {
-        try
-        {
-          int position = (int)argument.evaluateNumber( parent) - 1 + start;
-          if ( position < start) throw new ExpressionException( argument, "position values begin with 1");
-          if ( position < nodeSet.size())
-          {
-            IModelObject node = nodeSet.get( position);
-            nodeSet.clear(); nodeSet.add( node);
-          }
-          else
-          {
-            nodeSet.clear();
-          }
-        }
-        catch( ExpressionException e) 
-        {
-          log.exception( e);
-          nodeSet.clear();
-        }
-      }
-      else
-      {
-        int size = nodeSet.size();
-        for ( int i=start; i<size; i++)
-        {
-          try
-          {
-            IContext context = null;
-            if ( parent == null)
-              context = new Context( nodeSet.get( i), i+1, size);
-            else
-              context = new SubContext( parent, nodeSet.get( i), i+1, size);
-            if ( !argument.evaluateBoolean( context)) nodeSet.set( i, null);
-          }
-          catch( ExpressionException e)
-          {
-            log.exception( e);
-            nodeSet.set( i, null);
-          }
-        }
-        for ( int i=start; i<size; i++)
-        {
-          IModelObject resultNode = (IModelObject)nodeSet.get( i);
-          if ( resultNode == null)
-          {
-            nodeSet.remove( i--);
-            size--;
-          }
-        }
-      }
-    }
-  }
-    
   /* (non-Javadoc)
    * @see java.lang.Object#clone()
    */
@@ -903,6 +847,4 @@ public class PathElement implements IPathElement, IAxis
   int axis;
   String type;
   IPredicate predicate;
-  
-  private static Log log = Log.getLog( "org.xmodel.xml");
 }

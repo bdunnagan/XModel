@@ -54,6 +54,19 @@ public class SubContext implements IContext
     this.size = size;
   }
   
+  /**
+   * Reset this context.
+   * @param object The context node.
+   * @param position The position.
+   * @param size The size of the node-set.
+   */
+  public void reset( IModelObject object, int position, int size)
+  {
+    this.object = object;
+    this.position = position;
+    this.size = size;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getModel()
    */

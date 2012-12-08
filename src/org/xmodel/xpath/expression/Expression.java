@@ -369,6 +369,67 @@ public abstract class Expression implements IExpression
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IExpression#filter(org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public void filter( IContext parent, List<IModelObject> nodes) throws ExpressionException
+  {
+    switch( getType( parent))
+    {
+      case NUMBER:
+      {
+        int position = (int)evaluateNumber( parent, nodes) - 1;
+        
+        if ( position < 0 || position >= nodes.size()) 
+          throw new ExpressionException( this, String.format( 
+            "Position predicate out of range: 1 <= %d <= %d", position, nodes.size()));
+        
+        IModelObject node = nodes.get( position);
+        nodes.clear();
+        nodes.add( node);
+      }
+      break;
+      
+      default:
+      {
+        SubContext context = new SubContext( parent, null);
+        int count = nodes.size();
+        int rangeStart = -1;
+        for( int i=0; i<count; i++)
+        {
+          context.reset( nodes.get( i), i+1, count);
+          if ( evaluateBoolean( context))
+          {
+            if ( rangeStart >= 0)
+            {
+              nodes.subList( rangeStart, i).clear();
+              i = rangeStart;
+              rangeStart = -1;
+            }
+          }
+          else
+          {
+            rangeStart = i;
+          }
+        }
+        
+        if ( rangeStart >= 0)
+          nodes.subList( rangeStart, nodes.size()).clear();
+      }
+      break;
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IExpression#evaluateNumber(org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public double evaluateNumber( IContext context, List<IModelObject> nodes) throws ExpressionException
+  {
+    return evaluateNumber( context);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */

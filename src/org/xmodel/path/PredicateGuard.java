@@ -39,17 +39,11 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   public PredicateGuard( IListenerChainLink guardedLink)
   {
     this.guardedLink = guardedLink;
-    
-    // create a partial path (0, pathIndex) and remove the predicate of the last element
-    IPath path = getListenerChain().getPath();
-    int pathIndex = getPathIndex();
-    candidatePath = ModelAlgorithms.createCandidatePath( path, pathIndex-1);
   }
 
   protected PredicateGuard( PredicateGuard guard, IListenerChain chain)
   {
     this.guardedLink = guard.guardedLink.cloneOne( chain);
-    this.candidatePath = guard.candidatePath;
   }
   
   /* (non-Javadoc)
@@ -75,14 +69,12 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   {
     IListenerChain chain = getListenerChain();
     IContext parent = chain.getContext();
-    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list.size());
+    
     IPredicate predicate = getPredicate();
-    for ( int i=0; i<list.size(); i++)
-    {
-      IModelObject object = list.get( i);
-      predicate.bind( new SubContext( parent, object, i+1, list.size()));
-      if ( predicate.evaluate( parent, candidatePath, object)) nextLayer.add( object);
-    }
+    predicate.bind( parent, list);
+    
+    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list);
+    predicate.filter( parent, nextLayer);
     
     if ( nextLayer.size() > 0) guardedLink.install( nextLayer);
   }
@@ -93,15 +85,13 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   public void uninstall( List<IModelObject> list)
   {
     IContext parent = getListenerChain().getContext();
-    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list.size());
-    IPredicate predicate = getPredicate();
-    for ( int i=0; i<list.size(); i++)
-    {
-      IModelObject object = list.get( i);
-      predicate.unbind( new SubContext( parent, object, i+1, list.size()));
-      if ( predicate.evaluate( parent, candidatePath, object)) nextLayer.add( object);
-    }
     
+    IPredicate predicate = getPredicate();
+    predicate.unbind( parent, list);
+    
+    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list);
+    predicate.filter( parent, nextLayer);
+        
     if ( nextLayer.size() > 0) guardedLink.uninstall( nextLayer);
   }
 
@@ -126,31 +116,16 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
    */
   public void incrementalInstall( List<IModelObject> list)
   {
-    // find candidates
     IListenerChain chain = getListenerChain();
-    IContext bound = chain.getContext();
-    List<IModelObject> candidates = candidatePath.query( bound, null);
-
-    // find index of first object
-    int start = Collections.indexOfSubList( candidates, list);
-    int count = candidates.size();
-    
-    // add listeners
     IContext parent = chain.getContext();
-    IPredicate predicate = getPredicate();
-    for( int i=0; i<list.size(); i++)
-      predicate.bind( new SubContext( parent, list.get( i), i+start+1, count));
-
-    // evaluate predicate
-    List<IModelObject> filtered = new ArrayList<IModelObject>( list.size());
-    for( int i=0; i<list.size(); i++)
-    {
-      IModelObject object = list.get( i);
-      if ( predicate.evaluate( parent, candidatePath, object))
-        filtered.add( object);
-    }
     
-    if ( filtered.size() > 0) guardedLink.incrementalInstall( filtered);
+    IPredicate predicate = getPredicate();
+    predicate.bind( parent, chain.getPath(), getPathIndex(), list);
+    
+    List<IModelObject> nextLayer = new ArrayList<IModelObject>( list);
+    predicate.filter( parent, chain.getPath(), getPathIndex(), nextLayer);
+    
+    if ( nextLayer.size() > 0) guardedLink.incrementalInstall( nextLayer);
   }
 
   /* (non-Javadoc)
@@ -158,36 +133,29 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
    */
   public void incrementalUninstall( List<IModelObject> list)
   {
-    // find candidates
-    IListenerChain chain = getListenerChain();
-    IContext bound = chain.getContext();
-    IModel model = bound.getModel();
+    //
+    // Major retesting required for this change.
+    //
+    IModel model = getListenerChain().getContext().getModel();
     model.revert();
-    List<IModelObject> candidates = candidatePath.query( bound, null);
-    model.restore();
-
-    // find index of first object
-    int start = Collections.indexOfSubList( candidates, list);
-    int count = candidates.size();
     
-    // remove listeners
-    IContext parent = chain.getContext();
-    IPredicate predicate = getPredicate();
-    for( int i=0; i<list.size(); i++)
-      predicate.unbind( new SubContext( parent, list.get( i), i+start+1, count));
-
-    // evaluate predicate
-    model.revert();
-    List<IModelObject> filtered = new ArrayList<IModelObject>( list.size());
-    for( int i=0; i<list.size(); i++)
+    try
     {
-      IModelObject object = list.get( i);
-      if ( predicate.evaluate( parent, candidatePath, object))
-        filtered.add( object);
+      IListenerChain chain = getListenerChain();
+      IContext parent = chain.getContext();
+      
+      IPredicate predicate = getPredicate();
+      predicate.unbind( parent, chain.getPath(), getPathIndex(), list);
+      
+      List<IModelObject> nextLayer = new ArrayList<IModelObject>( list);
+      predicate.filter( parent, chain.getPath(), getPathIndex(), nextLayer);
+      
+      if ( nextLayer.size() > 0) guardedLink.incrementalUninstall( nextLayer);
     }
-    
-    model.restore();
-    if ( filtered.size() > 0) guardedLink.incrementalUninstall( filtered);
+    finally
+    {
+      model.restore();
+    }
   }
   
   /* (non-Javadoc)
@@ -284,5 +252,4 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
   }
   
   IListenerChainLink guardedLink;
-  IPath candidatePath;
 }

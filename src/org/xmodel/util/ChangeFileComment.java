@@ -38,7 +38,7 @@ public class ChangeFileComment
 {
   public static void main( String[] args) throws Exception
   {
-    File path = new File( "/Applications/eclipse342/svn/trunk/client/XModel");
+    File path = new File( "/Users/bdunnagan/git/XModel");
     String header = getHeader(); 
     
     ChangeFileComment cfc = new ChangeFileComment( path);

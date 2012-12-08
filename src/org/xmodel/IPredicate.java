@@ -38,15 +38,23 @@ public interface IPredicate
   public void setParentPath( IPath path);
   
   /**
-   * Returns true if the specified object meets the constraint criteria. The position and size
-   * of the node-set to which the object belong are assumed to be unknown. Therefore, this method
-   * may result in the path being partially reevaluated.
-   * @param parent The parent context or null.
-   * @param candidatePath The candidate path (see ModelAlgorithms).
-   * @param candidate The candidate object to be tested.
-   * @return Returns true if the object meets the constraint criteria.
+   * Filter the specified nodes using this predicate.
+   * @param parent The parent context.
+   * @param nodes The node-set to be filtered.
    */
-  public boolean evaluate( IContext parent, IPath candidatePath, IModelObject candidate);
+  public void filter( IContext parent, List<IModelObject> nodes);
+
+  /**
+   * Filter the specified nodes using this predicate.  The node-set passed to this method may not
+   * be the complete node-set being evaluated against the predicate.  In many cases, the complete
+   * node-set is not needed.  However, the candidatePath argument will return the complete node-set
+   * if required.
+   * @param parent The parent context.
+   * @param candidatePath A path that will return the complete context node-set, if required.
+   * @param pathLength The length of the candidatePath to evaluate.
+   * @param nodes The node-set to be filtered.
+   */
+  public void filter( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes);
 
   /**
    * Returns true if this predicate contains an expression which is absolute.
@@ -74,16 +82,42 @@ public interface IPredicate
   public List<IExpressionListener> getPredicateListeners();
   
   /**
-   * Bind the specified context to the predicate.
-   * @param context The context.
+   * Bind the specified nodes with this predicate. 
+   * @param parent The parent context.
+   * @param nodes The node-set to be bound.
    */
-  public void bind( IContext context);
+  public void bind( IContext parent, List<IModelObject> nodes);
   
   /**
-   * Unbind the specified context from the predicate.
-   * @param context The context.
+   * Bind the specified nodes with this predicate.  The node-set passed to this method may not
+   * be the complete node-set being evaluated against the predicate.  In many cases, the complete
+   * node-set is not needed.  However, the candidatePath argument will return the complete node-set
+   * if required.
+   * @param parent The parent context.
+   * @param candidatePath A path that will return the complete context node-set, if required.
+   * @param pathLength The length of the path to evaluate.
+   * @param nodes The node-set to be filtered.
    */
-  public void unbind( IContext context);
+  public void bind( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes);
+  
+  /**
+   * Unbind the specified nodes with this predicate. 
+   * @param parent The parent context.
+   * @param nodes The node-set to be bound.
+   */
+  public void unbind( IContext parent, List<IModelObject> nodes);
+  
+  /**
+   * Unbind the specified nodes with this predicate.  The node-set passed to this method may not
+   * be the complete node-set being evaluated against the predicate.  In many cases, the complete
+   * node-set is not needed.  However, the candidatePath argument will return the complete node-set
+   * if required.
+   * @param parent The parent context.
+   * @param candidatePath A path that will return the complete context node-set, if required.
+   * @param pathLength The length of the path to evaluate.
+   * @param nodes The node-set to be filtered.
+   */
+  public void unbind( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes);
   
   /**
    * Returns a clone of this predicate.

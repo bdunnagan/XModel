@@ -61,15 +61,20 @@ public interface IPathElement
    * @return Returns the predicate for this element or null if there is none.
    */
   public IPredicate predicate();
-  
+
   /**
-   * Returns true if the specified object corresponds to this path element.
-   * @param context The parent context or null.
-   * @param path The path being evaluated.
-   * @param candidate The object to be tested.
-   * @return Returns true if the specified object matches this path element.
+   * Filter the specified node-set, which must consists of nodes on the axis of this element.
+   * The node-set may not be the complete node-set that would have been returned by the path.
+   * The path, and the index of the path step, are provided so that the complete candidate
+   * node-set can be evaluated, if required.
+   * This method is provided so that FanoutListeners do not have to revert the model when
+   * it isn't necessary.
+   * @param parent The parent context.
+   * @param path The path to which this step belongs.
+   * @param step The index of this step.
+   * @param nodes The nodes to be filtered.
    */
-  public boolean evaluate( IContext context, IPath path, IModelObject candidate);
+  public void filter( IContext parent, IPath path, int step, List<IModelObject> nodes);
   
   /**
    * Returns the list of objects which are selected by this path element when the specified object

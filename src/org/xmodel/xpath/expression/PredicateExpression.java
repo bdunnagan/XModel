@@ -26,7 +26,6 @@ import org.xmodel.*;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.variable.IVariableSource;
 
-
 /**
  * An implementation of IExpression for X-Path 1.0 predicates.  This expression actually 
  * represents a predicate list.  It takes one or more arguments which are the expressions
@@ -53,22 +52,53 @@ public class PredicateExpression extends Expression implements IPredicate
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IPredicate#evaluate(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IPath, org.xmodel.IModelObject)
+   * @see org.xmodel.IPredicate#filter(org.xmodel.xpath.expression.IContext, org.xmodel.IPath, int, java.util.List)
    */
-  public boolean evaluate( IContext parent, IPath candidatePath, IModelObject candidate)
+  @Override
+  public void filter( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes)
   {
-    if ( requiresOrdinalContext())
-    {
-      List<IModelObject> nodes = candidatePath.query( parent, null);
-      // FIXME: if nodes contains object more than once then index may be wrong
-      int index = nodes.indexOf( candidate);
-      return evaluateBoolean( new SubContext( parent, candidate, index+1, nodes.size()), false);
-    }
-    else
-    {
-      return evaluateBoolean( new SubContext( parent, candidate, 0, 0), false);
-    }
+    // TODO Auto-generated method stub
+    
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.IPredicate#bind(org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public void bind( IContext parent, List<IModelObject> nodes)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IPredicate#bind(org.xmodel.xpath.expression.IContext, org.xmodel.IPath, int, java.util.List)
+   */
+  @Override
+  public void bind( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IPredicate#unbind(org.xmodel.xpath.expression.IContext, java.util.List)
+   */
+  @Override
+  public void unbind( IContext parent, List<IModelObject> nodes)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IPredicate#unbind(org.xmodel.xpath.expression.IContext, org.xmodel.IPath, int, java.util.List)
+   */
+  @Override
+  public void unbind( IContext parent, IPath candidatePath, int pathLength, List<IModelObject> nodes)
+  {
+    // TODO Auto-generated method stub
+    
   }
 
   /* (non-Javadoc)

@@ -1,4 +1,4 @@
-JAHM - Java Advanced Hierarchical Model 
+
 
 $FILE
 

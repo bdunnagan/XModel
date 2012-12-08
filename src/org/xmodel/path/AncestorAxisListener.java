@@ -21,6 +21,7 @@ package org.xmodel.path;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.xpath.expression.IContext;
@@ -76,6 +77,22 @@ public class AncestorAxisListener extends FanoutListener
   {
     return new AncestorAxisListener( chain, chainIndex);
   }
+
+  /**
+   * Returns the ancestors of the specified object and the object itself.
+   * @param object The object.
+   * @return Returns the ancestors of the specified object and the object itself.
+   */
+  private List<IModelObject> getAncestorsAndSelf( IModelObject object)
+  {
+    List<IModelObject> ancestors = new ArrayList<IModelObject>();
+    while( object != null)
+    {
+      ancestors.add( object);
+      object = object.getParent();
+    }
+    return ancestors;
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.path.ListenerChainLink#notifyParent(org.xmodel.IModelObject, 
@@ -90,27 +107,27 @@ public class AncestorAxisListener extends FanoutListener
       // uninstall my listeners
       uninstallListeners( oldParent);
 
-      // uninstall next link
-      List<IModelObject> list = new ArrayList<IModelObject>( 3);
-      IModelObject ancestor = oldParent;
-      while( ancestor != null)
+      // uninstall next link (revert the model in case the path is evaluated)
+      IModel model = context.getModel();
+      model.revert();
+      try
       {
-        if ( fanoutElement.evaluate( context, path, ancestor)) list.add( ancestor);
-        ancestor = ancestor.getParent();
+        // TODO: Why not just evaluate the path element?
+        List<IModelObject> list = getAncestorsAndSelf( oldParent);
+        fanoutElement.filter( context, path, chainIndex, list);
+        getNextListener().incrementalUninstall( list);
       }
-      getNextListener().incrementalUninstall( list);
+      finally
+      {
+        model.restore();
+      }
     }
     
     if ( newParent != null)
     {
       // install next link (* see above)
-      List<IModelObject> list = new ArrayList<IModelObject>( 3);
-      IModelObject ancestor = newParent;
-      while( ancestor != null)
-      {
-        if ( fanoutElement.evaluate( context, path, ancestor)) list.add( ancestor);
-        ancestor = ancestor.getParent();
-      }
+      List<IModelObject> list = getAncestorsAndSelf( newParent);
+      fanoutElement.filter( context, path, chainIndex, list);
       getNextListener().incrementalInstall( list);
 
       // install my listeners (* see above)

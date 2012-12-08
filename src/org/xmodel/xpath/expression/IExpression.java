@@ -222,6 +222,23 @@ public interface IExpression
    * @return Returns the boolean result of the expression.
    */
   public boolean evaluateBoolean( IContext context) throws ExpressionException;
+
+  /**
+   * Filter the nodes in the specified list using this expression as a predicate.
+   * @param context The context.
+   * @param nodes The nodes to be filtered.
+   */
+  public void filter( IContext context, List<IModelObject> nodes) throws ExpressionException;
+
+  /**
+   * Returns the numeric result of this expression when applied across all of the nodes in the specified list.
+   * Most implementations will not have to evaluate themselves separately in the context of each node.  For
+   * example, a variable expression's value is independent of the candidate node-set.
+   * @param context The parent context.
+   * @param nodes The nodes to be evaluated.
+   * @return Returns the numeric result of this expression.
+   */
+  public double evaluateNumber( IContext context, List<IModelObject> nodes) throws ExpressionException;
   
   /**
    * Returns the node-set result of this expression for the specified context. If an ExpressionException
@@ -231,7 +248,7 @@ public interface IExpression
    * @return Returns the node-set result of the expression.
    */
   public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult);
-
+  
   /**
    * Returns the string result of this expression for the specified context. If an ExpressionException
    * is caught then the default return value is returned.
