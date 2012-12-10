@@ -63,7 +63,7 @@ public class ZipCompressor implements ICompressor
     GZIPInputStream gzip = new GZIPInputStream( stream);
     try
     {
-      return decompress( gzip);
+      return compressor.decompress( gzip);
     }
     finally
     {
