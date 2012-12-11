@@ -23,10 +23,9 @@ package org.xmodel.dependency;
 /**
  * An implementation of IDependency which defines dependency relationships between classes.
  */
-@SuppressWarnings("unchecked")
 public class ClassDependency implements IDependency
 {
-  public ClassDependency( Class first, Class second)
+  public ClassDependency( Class<?> first, Class<?> second)
   {
     this.first = first;
     this.second = second;
@@ -40,6 +39,6 @@ public class ClassDependency implements IDependency
     return target.getClass().equals( second) && dependent.getClass().equals( first);
   }
   
-  Class first;
-  Class second;
+  Class<?> first;
+  Class<?> second;
 }

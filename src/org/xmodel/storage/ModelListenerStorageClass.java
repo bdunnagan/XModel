@@ -15,7 +15,7 @@ public final class ModelListenerStorageClass implements IStorageClass
 {
   public ModelListenerStorageClass( IStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     this.storageClass = storageClass;
     modelListeners = new ModelListenerList();
   }
@@ -27,7 +27,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /* (non-Javadoc)

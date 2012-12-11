@@ -20,7 +20,7 @@ public final class MediumDataStorageClass implements IStorageClass
    */
   public MediumDataStorageClass( ValueStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     
     if ( storageClass.value != null)
     {
@@ -37,7 +37,7 @@ public final class MediumDataStorageClass implements IStorageClass
    */
   public MediumDataStorageClass( SmallDataStorageClass storageClass)
   {
-    Statistics.increment( this);
+    // Statistics.increment( this);
     
     name1 = storageClass.name1;
     value1 = storageClass.value1;
@@ -56,7 +56,7 @@ public final class MediumDataStorageClass implements IStorageClass
   protected void finalize() throws Throwable
   {
     super.finalize();
-    Statistics.decrement( this);
+    // Statistics.decrement( this);
   }
 
   /* (non-Javadoc)

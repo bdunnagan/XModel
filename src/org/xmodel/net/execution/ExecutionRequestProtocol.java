@@ -2,9 +2,11 @@ package org.xmodel.net.execution;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -61,7 +63,8 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
+    List<byte[]> buffers = bundle.requestCompressor.compress( request);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
@@ -93,7 +96,8 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    ChannelBuffer buffer2 = bundle.requestCompressor.compress( request);
+    List<byte[]> buffers = bundle.requestCompressor.compress( request);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
@@ -116,7 +120,7 @@ public class ExecutionRequestProtocol
       return;
     }
     
-    IModelObject request = bundle.responseCompressor.decompress( buffer);
+    IModelObject request = bundle.responseCompressor.decompress( new ChannelBufferInputStream( buffer));
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
     bundle.context.getModel().dispatch( runnable);
   }

@@ -22,7 +22,7 @@ package org.xmodel.xaction;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import org.jboss.netty.buffer.ChannelBuffer;
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
@@ -86,8 +86,8 @@ public class FileSaveAction extends GuardedAction
       try
       {
         FileOutputStream stream = new FileOutputStream( file);
-        ChannelBuffer buffer = compressor.compress( element);
-        buffer.readBytes( stream, buffer.readableBytes());
+        List<byte[]> buffers = compressor.compress( element);
+        for( byte[] buffer: buffers) stream.write( buffer);
         stream.close();
       }
       catch( IOException e)

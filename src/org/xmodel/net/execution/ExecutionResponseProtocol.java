@@ -1,6 +1,7 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -8,6 +9,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -50,8 +52,8 @@ public class ExecutionResponseProtocol
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
-    ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
-    
+    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
@@ -70,8 +72,8 @@ public class ExecutionResponseProtocol
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
     IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
-    ChannelBuffer buffer2 = bundle.responseCompressor.compress( response);
-    
+    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
@@ -87,7 +89,7 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.requestCompressor.decompress( buffer);
+    IModelObject response = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
     
     SynchronousQueue<IModelObject> queue = queues.remove( correlation);
     if ( queue != null) queue.offer( response);

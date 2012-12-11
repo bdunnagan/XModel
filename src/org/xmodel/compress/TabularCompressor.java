@@ -24,17 +24,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferInputStream;
-import org.jboss.netty.buffer.ChannelBufferOutputStream;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -101,6 +96,38 @@ public class TabularCompressor extends AbstractCompressor
     table.clear();
     predefined = false;
   }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
+   */
+  @Override
+  public List<byte[]> compress( IModelObject element) throws IOException
+  {
+    // content
+    MultiByteArrayOutputStream content = new MultiByteArrayOutputStream();
+    writeElement( new DataOutputStream( content), element);
+    
+    // header (including table)
+    MultiByteArrayOutputStream header = new MultiByteArrayOutputStream();
+  
+    // write header flags
+    byte flags = 0;
+    if ( predefined) flags |= 0x20;
+    header.write( flags);
+    
+    // write table if necessary
+    if ( !predefined) writeTable( new DataOutputStream( header));    
+    
+    // log
+    log.debugf( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
+    
+    // progressive compression assumes a send/receive pair of compressors to remember table entries
+    if ( progressive) predefined = true;
+
+    List<byte[]> buffers = header.getBuffers();
+    buffers.addAll( content.getBuffers());
+    return buffers;
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject, java.io.OutputStream)
@@ -108,8 +135,8 @@ public class TabularCompressor extends AbstractCompressor
   @Override
   public void compress( IModelObject element, OutputStream stream) throws IOException
   {
-    ChannelBuffer buffer = compress( element);
-    buffer.readBytes( stream, buffer.readableBytes());
+    List<byte[]> buffers = compress( element);
+    for( byte[] buffer: buffers) stream.write( buffer);
   }
 
   /* (non-Javadoc)
@@ -132,45 +159,6 @@ public class TabularCompressor extends AbstractCompressor
     
     // content
     return readElement( input);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
-   */
-  @Override
-  public ChannelBuffer compress( IModelObject element) throws IOException
-  {
-    // content
-    ChannelBuffer content = ChannelBuffers.dynamicBuffer( ByteOrder.BIG_ENDIAN, initialContentBufferSize);
-    writeElement( new DataOutputStream( new ChannelBufferOutputStream( content)), element);
-  
-    // header (including table)
-    ChannelBuffer header = ChannelBuffers.dynamicBuffer( ByteOrder.BIG_ENDIAN, initialHeaderBufferSize);
-  
-    // write header flags
-    byte flags = 0;
-    if ( predefined) flags |= 0x20;
-    header.writeByte( flags);
-    
-    // write table if necessary
-    if ( !predefined) writeTable( new DataOutputStream( new ChannelBufferOutputStream( header)));    
-    
-    // log
-    log.debugf( "%x.compress( %s): predefined=%s, header=%d, content=%d", hashCode(), element.getType(), predefined, header.writerIndex(), content.writerIndex());
-    
-    // progressive compression assumes a send/receive pair of compressors to remember table entries
-    if ( progressive) predefined = true;
-
-    return ChannelBuffers.wrappedBuffer( header, content);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.compress.ICompressor#decompress(org.jboss.netty.buffer.ChannelBuffer)
-   */
-  @Override
-  public IModelObject decompress( ChannelBuffer input) throws IOException
-  {
-    return decompress( new ChannelBufferInputStream( input));
   }
 
   /**
@@ -498,9 +486,6 @@ public class TabularCompressor extends AbstractCompressor
   }
     
   private final static Log log = Log.getLog( TabularCompressor.class);
-  
-  private final static int initialContentBufferSize = 256;
-  private final static int initialHeaderBufferSize = 256;
   
   private List<String> table;
   private Map<String, Integer> map;

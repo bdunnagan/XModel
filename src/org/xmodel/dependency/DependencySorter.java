@@ -24,7 +24,6 @@ import java.util.*;
 /**
  * An implementation of IDependencySorter which uses Jeff Ortel's algorithm.
  */
-@SuppressWarnings("unchecked")
 public class DependencySorter implements IDependencySorter
 {
   public DependencySorter()
@@ -73,7 +72,7 @@ public class DependencySorter implements IDependencySorter
       {
         object = stack.peek();
         boolean found = false;
-        Iterator iter = sourceList.iterator();
+        Iterator<?> iter = sourceList.iterator();
         while ( iter.hasNext())
         {
           Object candidate = iter.next();

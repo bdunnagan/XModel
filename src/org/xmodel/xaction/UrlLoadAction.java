@@ -19,12 +19,12 @@
  */
 package org.xmodel.xaction;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.ICompressor;
@@ -109,7 +109,7 @@ public class UrlLoadAction extends GuardedAction
         try
         {
           if ( compressor == null) compressor = new TabularCompressor();
-          element = compressor.decompress( ChannelBuffers.wrappedBuffer( content));
+          element = compressor.decompress( new ByteArrayInputStream( content));
         }
         catch( CompressorException e)
         {

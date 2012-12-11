@@ -169,5 +169,6 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private int timeout;
   private int retryCount;
   private int[] retryDelays;
+  @SuppressWarnings("unused")
   private int netID;
 }

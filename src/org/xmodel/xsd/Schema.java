@@ -23,7 +23,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.xmodel.*;
+import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.IPath;
+import org.xmodel.ModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.caching.FileCachingPolicy;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
@@ -32,8 +36,12 @@ import org.xmodel.xpath.AttributeNode;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
-import org.xmodel.xsd.check.*;
+import org.xmodel.xsd.check.ElementCheck;
+import org.xmodel.xsd.check.ICheck;
+import org.xmodel.xsd.check.SchemaCheck;
+import org.xmodel.xsd.check.SchemaError;
 import org.xmodel.xsd.check.SchemaError.Type;
+import org.xmodel.xsd.check.ValueCheck;
 
 
 /**
@@ -133,7 +141,7 @@ public class Schema
     {
       List<SchemaError> errors = new ArrayList<SchemaError>();
       check.getErrors( errors);
-      if ( annotate && false) for( SchemaError error: errors) error.annotate();
+      //if ( annotate && false) for( SchemaError error: errors) error.annotate();
       return errors;
     }
     
@@ -348,7 +356,7 @@ public class Schema
     
     File xsdFile = new File( args[ 0]);
     IExternalReference xsd = new ExternalReference( "xsd");
-    xsd.setAttribute( "url", xsdFile.toURL());
+    xsd.setAttribute( "url", xsdFile.toURI().toURL());
     xsd.setCachingPolicy( new XsdCachingPolicy( new UnboundedCache()));
     xsd.setDirty( true);
 

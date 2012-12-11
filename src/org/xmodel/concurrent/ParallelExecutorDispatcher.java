@@ -5,6 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IDispatcher;
+import org.xmodel.log.Log;
 
 /**
  * An IDispatcher implementation that wraps an ExecutorService.  Locking must be used within
@@ -18,6 +19,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
    */
   public ParallelExecutorDispatcher()
   {
+    this.statistics = new Statistics();
   }
   
   /**
@@ -27,6 +29,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
   public ParallelExecutorDispatcher( int threadCount)
   {
     this.executor = createExecutor( threadCount);
+    this.statistics = new Statistics();
   }
     
   /**
@@ -36,6 +39,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
   public ParallelExecutorDispatcher( ExecutorService executor)
   {
     this.executor = executor;
+    this.statistics = new Statistics();
   }
   
   /**
@@ -60,7 +64,22 @@ public class ParallelExecutorDispatcher implements IDispatcher
   @Override
   public void execute( Runnable runnable)
   {
-    executor.execute( runnable);
+    if ( log.debug())
+    {
+      try
+      {
+        statistics.executionStarted();
+        executor.execute( runnable);
+      }
+      finally
+      {
+        statistics.executionFinished();
+      }
+    }
+    else
+    {
+      executor.execute( runnable);
+    }
   }
 
   /* (non-Javadoc)
@@ -71,6 +90,9 @@ public class ParallelExecutorDispatcher implements IDispatcher
   {
     if ( immediate) executor.shutdownNow(); else executor.shutdown();
   }
+  
+  private static Log log = Log.getLog( ParallelExecutorDispatcher.class);
 
   private ExecutorService executor;
+  private Statistics statistics;
 }

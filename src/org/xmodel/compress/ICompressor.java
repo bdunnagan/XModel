@@ -22,7 +22,7 @@ package org.xmodel.compress;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import org.jboss.netty.buffer.ChannelBuffer;
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
@@ -42,7 +42,14 @@ public interface ICompressor
    * @param serializer The serializer.
    */
   public void setSerializer( ISerializer serializer);
+  
+  /**
+   * Compress the specified element into the specified output buffer.
+   * @param element The element.
+   * @return Returns the channel buffer containing the compressed data.
+   */
 
+  public List<byte[]> compress( IModelObject element) throws IOException;
   /**
    * Compress the specified element to the specified stream.
    * @param element The element.
@@ -56,18 +63,4 @@ public interface ICompressor
    * @return Returns the element.
    */
   public IModelObject decompress( InputStream stream) throws IOException;
-  
-  /**
-   * Compress the specified element into the specified output buffer.
-   * @param element The element.
-   * @return Returns the channel buffer containing the compressed data.
-   */
-  public ChannelBuffer compress( IModelObject element) throws IOException;
-  
-  /**
-   * Decompress an element from the specified input buffer.
-   * @param input The input buffer.
-   * @return Returns the decompressed element.
-   */
-  public IModelObject decompress( ChannelBuffer input) throws IOException;
 }
