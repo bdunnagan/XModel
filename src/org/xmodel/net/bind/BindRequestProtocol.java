@@ -1,8 +1,12 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -21,6 +25,7 @@ public class BindRequestProtocol
   {
     this.bundle = bundle;
     this.listeners = new ConcurrentHashMap<IModelObject, UpdateListener>();
+    this.bindings = new ArrayList<IExternalReference>();
   }
   
   /**
@@ -29,6 +34,14 @@ public class BindRequestProtocol
    */
   public void reset()
   {
+    synchronized( bindings)
+    {
+      IExternalReference[] references = bindings.toArray( new IExternalReference[ 0]);
+      for( IExternalReference reference: references)
+        reference.setDirty( true);
+      bindings.clear();
+    }
+    
     for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
       entry.getValue().uninstall( entry.getKey());
     listeners.clear();
@@ -69,6 +82,11 @@ public class BindRequestProtocol
     
     bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
 
+    synchronized( bindings)
+    {
+      bindings.add( reference);
+    }
+    
     if ( !readonly)
     {
       UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
@@ -168,4 +186,5 @@ public class BindRequestProtocol
 
   private BindProtocol bundle;
   private Map<IModelObject, UpdateListener> listeners;
+  private List<IExternalReference> bindings;
 }

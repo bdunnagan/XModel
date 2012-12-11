@@ -702,7 +702,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected boolean isTable( IModelObject object)
   {
-    if ( !(object instanceof IExternalReference)) return false;
+    if ( object == null || !(object instanceof IExternalReference)) return false;
     
     IExternalReference reference = (IExternalReference)object;
     if ( reference.getCachingPolicy() instanceof SQLTableCachingPolicy)
@@ -712,6 +712,41 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
 
     return false;
+  }
+  
+  /**
+   * Returns true if the specified object is a column object.
+   * @param object The object.
+   * @return Returns true if the specified object is a column object.
+   */
+  protected boolean isColumn( IModelObject object)
+  {
+    if ( object.getParent() == null) return false;
+    return isTable( object.getParent().getParent());
+  }
+  
+  /**
+   * Returns the column element that is the ancestor, or self, of the specified object.
+   * @param object An object in an xml-column.
+   * @return Returns null or the column object.
+   */
+  protected IModelObject findColumnElement( IModelObject object)
+  {
+    IModelObject table = object;
+    int depth = 0;
+    while( table != null && !isTable( table))
+    {
+      depth++;
+      table = table.getParent();
+    }
+    
+    if ( table == null) return null;
+    
+    depth -= 2;
+    IModelObject column = object;
+    for( int i=0; i<depth; i++) column = column.getParent();
+    
+    return column;
   }
   
   /**
@@ -785,6 +820,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
+   * Mark the specified column as having been updated.
+   * @param row The row that was updated.
+   * @param column The column that was updated.
+   */
+  private void addRowUpdate( IModelObject row, String column)
+  {
+    List<String> updates = rowUpdates.get( row);
+    if ( updates == null)
+    {
+      updates = new ArrayList<String>();
+      rowUpdates.put( row, updates);
+    }
+    updates.add( column);
+  }
+  
+  /**
    * A listener that monitors changes to the table data-model.
    */
   private class SQLEntityListener extends NonSyncingListener
@@ -813,6 +864,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       
       if ( enabled)
       {
+        // handle row insert
         if ( isTable( parent))
         {
           SQLRowCachingPolicy cachingPolicy = (SQLRowCachingPolicy)((IExternalReference)child).getCachingPolicy();
@@ -828,9 +880,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else
         {
-          throw new CachingException( String.format( 
-              "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-              ModelAlgorithms.createIdentityPath( parent), child.getType()));
+          // handle xml column insert
+          IModelObject columnAncestor = findColumnElement( parent);
+          if ( columnAncestor != null)
+          {
+            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
+          }
+          else
+          {
+            throw new CachingException( String.format( 
+                "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+                ModelAlgorithms.createIdentityPath( parent), child.getType()));
+          }
         }
   
         if ( transaction == null) commit();
@@ -847,6 +908,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       
       if ( enabled)
       {
+        // handle row delete
         if ( isTable( parent))
         {
           List<IModelObject> deletes = rowDeletes.get( parent);
@@ -862,9 +924,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else
         {
-          throw new CachingException( String.format( 
-              "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-              ModelAlgorithms.createIdentityPath( parent), child.getType()));
+          // handle xml column delete
+          IModelObject columnAncestor = findColumnElement( parent);
+          if ( columnAncestor != null)
+          {
+            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
+          }
+          else
+          {
+            throw new CachingException( String.format( 
+                "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+                ModelAlgorithms.createIdentityPath( parent), child.getType()));
+          }
         }
         
         if ( transaction == null) commit();
@@ -881,33 +952,48 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       
       if ( enabled)
       {
+        // ignore changes to table attributes
         if ( isTable( object)) return;
-        
+
+        // handle indexed column update
         if ( isTable( object.getParent()))
         {
-          // row
-          List<String> updates = rowUpdates.get( object);
-          if ( updates == null)
+          if ( attrName.length() > 0)
           {
-            updates = new ArrayList<String>();
-            rowUpdates.put( object, updates);
+            // update to the value of a column
+            addRowUpdate( object, attrName);
           }
-          updates.add( attrName);
+          else
+          {
+            SLog.errorf( this, "Ignored update to value of table row in table, %s", object.getParent().getType());
+          }
         }
-        else if ( attrName.equals( ""))
+        
+        // handle non-indexed column update
+        else if ( isColumn( object))
         {
-          // field
-          List<String> updates = rowUpdates.get( object.getParent());
-          if ( updates == null)
+          if ( attrName.length() == 0)
           {
-            updates = new ArrayList<String>();
-            rowUpdates.put( object.getParent(), updates);
+            addRowUpdate( object.getParent(), object.getType());
           }
-          updates.add( object.getType());
+          else
+          {
+            SLog.errorf( this, "Ignored update to attribute of column, %s, in table, %s", object.getType(), object.getParent().getType());
+          }
         }
+
+        // handle xml column internal update
         else
         {
-          SLog.warnf( this, "Attribute, %s, of table row field, %s, was updated.", attrName, object.getType());
+          IModelObject columnAncestor = findColumnElement( object);
+          if ( columnAncestor != null)
+          {
+            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
+          }
+          else
+          {
+            SLog.errorf( this, "Ignored internal update to non-xml column - configuration error?"); 
+          }
         }
         
         if ( transaction == null) commit();

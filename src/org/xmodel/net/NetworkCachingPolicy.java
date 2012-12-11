@@ -1,5 +1,8 @@
 package org.xmodel.net;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -64,10 +67,39 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
     port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", defaultPort));
     timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30000));
+    retryCount = Xlate.get( annotation, "retryCount", Xlate.childGet(  annotation, "retryCount", 3));
+    retryDelays = parseRetryDelay( Xlate.get( annotation, "retryDelays", Xlate.childGet(  annotation, "retryDelays", "500, 1000, 3000, 5000")));
     
     readonly = Xlate.get( annotation, "readonly", Xlate.childGet( annotation, "readonly", false));
     query = Xlate.get( annotation, "query", Xlate.childGet( annotation, "query", "."));
     validate( query);
+  }
+  
+  /**
+   * Parse the retry delay spec.
+   * @param spec Comma-separated list of retry delays.
+   * @return Returns an array of the retry delays.
+   */
+  private int[] parseRetryDelay( String spec)
+  {
+    List<Integer> list = new ArrayList<Integer>( 5);
+    String[] items = spec.split(  "\\s*+,\\s*+");
+    for( int i=0; i<items.length; i++)
+    {
+      try
+      {
+        list.add( Integer.parseInt( items[ i]));
+      }
+      catch( NumberFormatException e)
+      {
+        SLog.errorf( this, "Problem parsing retry delay spec, %s", spec);
+      }
+    }
+    
+    int[] array = new int[ list.size()];
+    for( int i=0; i<array.length; i++)
+      array[ i] = list.get( i);
+    return array;
   }
 
   /**
@@ -117,7 +149,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
         StatefulContext context = new StatefulContext();
         context.getModel();
         client = new XioClient( context, context);
-        client.connect( host, port, 3, timeout / 3).await();
+        client.connect( host, port, retryCount, retryDelays).await();
       }
 
       client.bind( reference, readonly, query, timeout);
@@ -135,5 +167,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private boolean readonly;
   private String query;
   private int timeout;
+  private int retryCount;
+  private int[] retryDelays;
   private int netID;
 }
