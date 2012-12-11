@@ -11,6 +11,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
 import org.xmodel.Model;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 
 /**
@@ -62,6 +63,8 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     this.executor = executor;
     this.queue = queue;
     this.queueSize = new AtomicInteger( 0);
+    
+    this.statistics = new Statistics();
   }
   
   /**
@@ -107,6 +110,8 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   @Override
   public void run()
   {
+    if ( log.debug()) statistics.executionStarted();
+    
     try
     {
       model.setThread( Thread.currentThread());
@@ -124,12 +129,17 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
       
       if ( queueSize.decrementAndGet() > 0) 
         executor.execute( this);
+      
+      if ( log.debug()) statistics.executionFinished();
     }
   }
+  
+  private static Log log = Log.getLog( SerialExecutorDispatcher.class);
   
   private ExecutorService executor;
   protected IModel model;
   private BlockingQueue<Runnable> queue;
   private AtomicInteger queueSize;
   private GlobalSettings registry;
+  private Statistics statistics;
 }
