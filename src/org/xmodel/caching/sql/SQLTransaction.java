@@ -66,7 +66,8 @@ public class SQLTransaction implements ITransaction
     {
       try
       {
-        connection.setAutoCommit( false);
+        if ( state == State.locked) connection.rollback();
+        connection.setAutoCommit( true);
         state = State.ready;
       }
       catch( SQLException e)
