@@ -128,7 +128,11 @@ public class BreakAction extends GuardedAction implements IBreakHandler
         System.err.flush();
         
         // prompt
+        IModelObject locationLine = location.cloneObject();
+        locationLine.removeAttribute( "xaction");
+        locationLine.removeAttribute( "xm:compiled");
         System.out.println( ModelAlgorithms.createIdentityPath( location, true));
+        System.out.println( "  "+XmlIO.write( Style.printable, locationLine));
         System.out.printf( "-> ");
         
         // get input
