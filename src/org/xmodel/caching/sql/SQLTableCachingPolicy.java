@@ -439,9 +439,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private void fetchMetadata()
   {
+    Connection connection = provider.leaseConnection();
     try
     {
-      Connection connection = provider.leaseConnection();
       connection.setCatalog( catalog);
       
       DatabaseMetaData meta = connection.getMetaData();
@@ -494,12 +494,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         if ( columnName != null && !excluded.contains( columnName)) 
           otherKeys.add( columnName.toLowerCase());
       }
-      
-      provider.releaseConnection( connection);
     }
     catch( SQLException e)
     {
       throw new CachingException( "Unable to get column names for table: "+tableName, e);
+    }
+    finally
+    {
+      provider.releaseConnection( connection);
     }
   }
   

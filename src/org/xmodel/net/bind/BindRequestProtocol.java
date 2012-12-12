@@ -2,10 +2,9 @@ package org.xmodel.net.bind;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
@@ -24,7 +23,7 @@ public class BindRequestProtocol
   public BindRequestProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.listeners = new ConcurrentHashMap<IModelObject, UpdateListener>();
+    this.listeners = new HashMap<IModelObject, UpdateListener>();
     this.bindings = new ArrayList<IExternalReference>();
   }
   
@@ -32,19 +31,15 @@ public class BindRequestProtocol
    * Reset this instance by releasing internal resources.  This method should be called after 
    * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
    */
-  public void reset()
+  public synchronized void reset()
   {
-    synchronized( bindings)
-    {
-      IExternalReference[] references = bindings.toArray( new IExternalReference[ 0]);
-      for( IExternalReference reference: references)
-        reference.setDirty( true);
-      bindings.clear();
-    }
-    
     for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-      entry.getValue().uninstall( entry.getKey());
+      bundle.context.getModel().dispatch( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
     listeners.clear();
+    
+    for( IExternalReference binding: bindings)
+      bundle.context.getModel().dispatch( new SetDirtyRunnable( binding));
+    bindings.clear();
   }
   
   /**
@@ -52,7 +47,7 @@ public class BindRequestProtocol
    * @param element The element.
    * @return Returns null or the listener.
    */
-  public UpdateListener getListener( IModelObject element)
+  public synchronized UpdateListener getListener( IModelObject element)
   {
     return listeners.get( element);
   }
@@ -64,8 +59,9 @@ public class BindRequestProtocol
    * @param readonly True if binding should be readonly.
    * @param query The query to bind.
    * @param timeout The timeout in milliseconds.
+   * @return Returns false if a timeout occurs.
    */
-  public void send( IExternalReference reference, Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
+  public boolean send( IExternalReference reference, Channel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
     int correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
@@ -80,19 +76,31 @@ public class BindRequestProtocol
     // ignoring write buffer overflow for this type of messaging
     channel.write( buffer);
     
-    bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
+    // wait for reponse from server
+    IModelObject received = bundle.bindResponseProtocol.waitForResponse( correlation, timeout);
+    if ( received == null) return false;
 
-    synchronized( bindings)
-    {
-      bindings.add( reference);
-    }
-    
+    // TODO: Updating the reference requires changing the remote index in the compressor,
+    //       so just remove children and repopulate for now.
+    reference.removeChildren();
+    reference.getCachingPolicy().update( reference, received);
+
+    // optionally install listeners for bidirectional binding
+    UpdateListener listener = null;
     if ( !readonly)
     {
-      UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
+      listener = new UpdateListener( bundle.updateProtocol, channel, query);
       listener.install( reference);
-      listeners.put( reference, listener);
     }
+
+    // save stuff for cleanup when connection is closed
+    synchronized( this)
+    {
+      bindings.add( reference);
+      if ( listener != null) listeners.put( reference, listener);
+    }
+    
+    return true;
   }
   
   /**
@@ -142,7 +150,7 @@ public class BindRequestProtocol
       {
         UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
         listener.install( target);
-        listeners.put( target, listener);
+        synchronized( this) { listeners.put( target, listener);}
       }
     }
     catch( IOException e)
@@ -180,6 +188,47 @@ public class BindRequestProtocol
     private boolean readonly;
     private String query;
     private IExpression queryExpr;
+  }
+  
+  private static class SetDirtyRunnable implements Runnable
+  {
+    public SetDirtyRunnable( IExternalReference reference)
+    {
+      this.reference = reference;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run()
+    {
+      // TODO: locking is incorrect, so don't attempt to set dirty yet.
+      //reference.setDirty( true);
+    }
+
+    private IExternalReference reference;
+  }
+  
+  private static class UninstallListenerRunnable implements Runnable
+  {
+    public UninstallListenerRunnable( IModelObject element, UpdateListener listener)
+    {
+      this.element = element;
+      this.listener = listener;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Runnable#run()
+     */
+    @Override
+    public void run()
+    {
+      listener.uninstall( element);
+    }
+
+    private IModelObject element;
+    private UpdateListener listener;
   }
   
   private final static Log log = Log.getLog( BindRequestProtocol.class);

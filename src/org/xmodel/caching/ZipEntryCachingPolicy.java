@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.xmodel.IModelObject;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -55,6 +56,13 @@ public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
     if ( thisEntry == null) return;
     
     IExternalReference zipReference = getZipReference( reference);
+    if ( zipReference == null)
+    {
+      throw new CachingException( String.format(
+        "Unable to determine zip file from reference, %s",
+          ModelAlgorithms.createIdentityPath( reference)));
+    }
+    
     ZipFile zipFile = (ZipFile)zipReference.getAttribute( "zipFile");
     
     try

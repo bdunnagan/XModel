@@ -25,7 +25,7 @@ public class MultiByteArrayOutputStream extends OutputStream
   @Override
   public void write( byte[] b, int off, int len) throws IOException
   {
-    if ( buffer == null) newSegment( defaultLength);
+    if ( buffer == null || bufferIndex == buffer.length) newSegment( defaultLength);
     
     int space = buffer.length - bufferIndex;
     if ( len < space)
@@ -58,9 +58,8 @@ public class MultiByteArrayOutputStream extends OutputStream
   @Override
   public void write( int b) throws IOException
   {
-    if ( buffer == null) newSegment( defaultLength);
+    if ( buffer == null || bufferIndex == buffer.length) newSegment( defaultLength);
     buffer[ bufferIndex++] = (byte)b;
-    if ( bufferIndex == buffer.length) newSegment( defaultLength);
   }
 
   /**

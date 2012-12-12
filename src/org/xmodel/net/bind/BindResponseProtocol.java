@@ -30,6 +30,8 @@ public class BindResponseProtocol
    */
   public void reset()
   {
+    for( BindRecord record: pending.values())
+      record.semaphore.release();
     pending.clear();
   }
   
@@ -76,7 +78,7 @@ public class BindResponseProtocol
     BindRecord record = pending.remove( correlation);
     if ( record != null) 
     {
-      if ( length > 4) bundle.requestCompressor.decompress( buffer, record.reference);
+      if ( length > 4) record.received = bundle.requestCompressor.decompress( buffer, record.reference);
       record.semaphore.release();
     }
     
@@ -99,14 +101,15 @@ public class BindResponseProtocol
    * Wait for a response to the request with the specified correlation number.
    * @param correlation The correlation number.
    * @param timeout The timeout in milliseconds.
-   * @return Returns false if the timeout expires before the response is received.
+   * @return Returns the element that was received or null if timoeut occurs.
    */
-  protected boolean waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
   {
     try
     {
       BindRecord record = pending.get( (int)correlation);
-      return record.semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS);
+      if ( record != null) return record.semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS)? record.received: null;
+      return null;
     }
     finally
     {
@@ -123,6 +126,7 @@ public class BindResponseProtocol
     }
     
     public IExternalReference reference;
+    public IModelObject received;
     public Semaphore semaphore;
   }
   

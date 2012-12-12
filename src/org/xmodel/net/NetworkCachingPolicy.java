@@ -144,7 +144,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     
     try
     {
-      if ( client == null)
+      if ( client == null || !client.isConnected())
       {
         StatefulContext context = new StatefulContext();
         context.getModel();

@@ -185,8 +185,9 @@ public class BindCompressor extends TabularCompressor
    * Decompress the next element and update the specified reference.
    * @param input The input buffer.
    * @param reference The reference being remotely bound.
+   * @return Returns the element that was decompressed.
    */
-  public void decompress( ChannelBuffer input, IExternalReference reference) throws IOException
+  public IModelObject decompress( ChannelBuffer input, IExternalReference reference) throws IOException
   {
     DataInputStream stream = new DataInputStream( new ChannelBufferInputStream( input));
     
@@ -201,36 +202,24 @@ public class BindCompressor extends TabularCompressor
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
     // content
-    readElement( stream, reference);
+    return readElement( stream, reference);
   }
 
   /**
-   * Read an element from the input stream.  Note that this method performs the updating of the reference argument,
-   * instead of leaving that operation to the caching policy.  This method takes responsibility for adding the
-   * secondary caching stages.
+   * Read an element from the input stream.  Note that this method does NOT update the reference.
    * @param stream The input stream.
    * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
   protected IModelObject readElement( DataInputStream stream, IExternalReference binding) throws IOException, CompressorException
   {
-    // read network id
     Integer netID = stream.readInt();
-    
-    // read tag name
     String type = readHash( stream);
-    
-    // read flags
     byte flags = stream.readByte();
     
     // create element
     IModelObject element;
-    if ( binding != null)
-    {
-      element = binding;
-      ((NetworkCachingPolicy)binding.getCachingPolicy()).setRemoteNetID( netID);
-    }
-    else if ( (flags & 0x01) != 0)
+    if ( (flags & 0x01) != 0)
     {
       // read static attributes
       int count = readValue( stream);
@@ -254,9 +243,19 @@ public class BindCompressor extends TabularCompressor
       element = factory.createObject( null, type);
     }
     
-    // map element to network identifier
-    remoteMap.put( netID, element);
-    remoteKeys.put( element, netID);
+    if ( binding != null)
+    {
+      // map element to network identifier
+      remoteMap.put( netID, binding);
+      remoteKeys.put( binding, netID);
+      ((NetworkCachingPolicy)binding.getCachingPolicy()).setRemoteNetID( netID);
+    }
+    else
+    {
+      // map element to network identifier
+      remoteMap.put( netID, element);
+      remoteKeys.put( element, netID);
+    }
 
     readAttributes( stream, element);
     readChildren( stream, element);

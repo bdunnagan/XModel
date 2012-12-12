@@ -7,12 +7,6 @@ import org.xmodel.log.SLog;
  */
 public class Statistics
 {
-  public Statistics()
-  {
-    lastLog = System.nanoTime();
-    logInterval = 120 * 1000000000L;
-  }
-  
   /**
    * Notify that task execution has started.
    */
@@ -37,11 +31,7 @@ public class Statistics
     if ( elapsed > maxTime) maxTime = totalTime;
     count++;
     
-    if ( (finished - lastLog) > logInterval)
-    {
-      lastLog = finished;
-      SLog.info( this, this);
-    }
+    SLog.info( this, this);
   }
   
   /**
@@ -77,7 +67,7 @@ public class Statistics
   @Override
   public String toString()
   {
-    return String.format( "Start: %1$tb %1$td %1$tY %1$tT\n\tDuration: %2$s\n\tAverage: %3$s\n\tMax: %4$s\n\tCount: %5$d", 
+    return String.format( "Start: %1$tb %1$td %1$tY %1$tT, Duration: %2$s, Average: %3$s, Max: %4$s, Count: %5$d", 
         firstTime, 
         formatDuration( totalTime), 
         formatDuration( totalTime / count),
@@ -90,7 +80,5 @@ public class Statistics
   private long finished;
   private long totalTime;
   private long maxTime;
-  private long lastLog;
-  private long logInterval;
   private int count;
 }
