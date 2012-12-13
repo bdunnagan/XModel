@@ -786,7 +786,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.execute();
+      statement.executeBatch();
     }
     
     rowDeletes.clear();
@@ -794,7 +794,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
       PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.execute();
+      statement.executeBatch();
     }
     
     rowInserts.clear();
@@ -886,13 +886,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
-          List<String> updates = rowUpdates.get( parent.getParent());
-          if ( updates == null)
-          {
-            updates = new ArrayList<String>();
-            rowUpdates.put( parent.getParent(), updates);
-          }
-          updates.add( parent.getType());
+          addRowUpdate( parent.getParent(), parent.getType());
         }
         else
         {
@@ -936,17 +930,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           deletes.add( child);
           
           // remove any cached update records for removed row
-          rowUpdates.remove( child);
+          if ( rowUpdates != null) rowUpdates.remove( child);
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
-          List<String> updates = rowUpdates.get( parent.getParent());
-          if ( updates == null)
-          {
-            updates = new ArrayList<String>();
-            rowUpdates.put( parent.getParent(), updates);
-          }
-          updates.add( parent.getType());
+          addRowUpdate( parent.getParent(), parent.getType());
         }
         else
         {
