@@ -24,7 +24,8 @@ public class TransactionAction extends ScriptAction
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), false);
-    setExpr = Xlate.get( document.getRoot(), "set", (IExpression)null);
+    onExpr = Xlate.get( document.getRoot(), "on", (IExpression)null);
+    if ( onExpr == null) onExpr = Xlate.get( document.getRoot(), "set", (IExpression)null);
     timeoutExpr = document.getExpression( "timeout", true);
   }
 
@@ -34,7 +35,7 @@ public class TransactionAction extends ScriptAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> set = setExpr.evaluateNodes( context);
+    List<IModelObject> set = onExpr.evaluateNodes( context);
     if ( set.size() == 0) return null;
     
     GroupTransaction group = getTransaction( context);
@@ -74,7 +75,7 @@ public class TransactionAction extends ScriptAction
         else if ( !result)
         {
           throw new XActionException( String.format(
-            "Transaction commit failed for %s", setExpr
+            "Transaction commit failed for %s", onExpr
             ));
         }
       }
@@ -133,6 +134,6 @@ public class TransactionAction extends ScriptAction
   private final static String transactionVariable = "TransactionAction.GroupTransaction";
 
   private String var;
-  private IExpression setExpr;
+  private IExpression onExpr;
   private IExpression timeoutExpr;
 }

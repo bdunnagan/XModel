@@ -66,7 +66,7 @@ public class SQLTransaction implements ITransaction
     {
       try
       {
-        connection.setAutoCommit( false);
+        connection.setAutoCommit( true);
         state = State.ready;
       }
       catch( SQLException e)

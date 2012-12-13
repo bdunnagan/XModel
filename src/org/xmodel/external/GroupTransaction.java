@@ -32,7 +32,7 @@ public class GroupTransaction implements ITransaction
    */
   public void addTransaction( ITransaction transaction)
   {
-    transactions.add( transaction);
+    if ( !transactions.contains( transaction)) transactions.add( transaction);
   }
   
   /**
