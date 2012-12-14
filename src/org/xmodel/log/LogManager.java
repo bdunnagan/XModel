@@ -61,8 +61,6 @@ public final class LogManager implements Runnable
     
     if ( config != null)
     {
-      run();
-      
       scheduler = Executors.newScheduledThreadPool( 1, new ThreadFactory() {
         @Override public Thread newThread( Runnable runnable)
         {
@@ -72,7 +70,7 @@ public final class LogManager implements Runnable
         }
       });
       
-      future = scheduler.schedule( this, period, TimeUnit.SECONDS);
+      run();
     }
   }
   
@@ -114,7 +112,7 @@ public final class LogManager implements Runnable
     try
     {
       IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
-      period = Xlate.childGet( root, "reload", 5) * 1000;
+      period = Xlate.childGet( root, "reload", period);
 
       ILogSink[] defaultSinks = configure( root);
       if ( defaultSinks.length == 1)
@@ -171,7 +169,7 @@ public final class LogManager implements Runnable
     
     if ( period <= 0) period = 1;
     
-    if ( future != null && future.cancel( false))
+    if ( future == null || future.cancel( false))
       future = scheduler.schedule( this, period, TimeUnit.SECONDS);
   }
 
