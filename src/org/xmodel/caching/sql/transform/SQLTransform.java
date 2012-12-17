@@ -4,53 +4,47 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.xmodel.IModelObject;
-import org.xmodel.IModelObjectFactory;
-import org.xmodel.ModelObjectFactory;
 
 /**
- * Generalized transform between SQL and IModelObject instances.
+ * Generalized transform between SQL and IModelObject instances.  This class is designed to be reused
+ * for multiple queries, and adapts the size of its internal row storage.
  */
 public class SQLTransform
 {
   public SQLTransform()
   {
-    columnTransforms = new ArrayList<ISQLColumnTransform>();
+    rowMinCount = Integer.MAX_VALUE;
   }
 
   /**
-   * Set the row element factory.
-   * @param factory The new factory.
+   * Transform all the rows from the specified ResultSet.
+   * @param rowCursor The ResultSet positioned before the first row.
+   * @return Returns the transform row elements.
    */
-  public void setFactory( IModelObjectFactory factory)
+  public List<IModelObject> importRows( ISQLRowTransform transform, ResultSet rowCursor) throws SQLException
   {
-    this.factory = factory;
+    // estimate the number of rows as the median of the minimum and maximum row counts, and make sure it's not 0
+    List<IModelObject> rows = new ArrayList<IModelObject>( (rowMaxCount - rowMinCount) / 2 + 1);
+    
+    int count = 0;
+    while( rowCursor.next())
+    {
+      rows.add( transform.importRow( rowCursor));
+      count++;
+    }
+
+    // gradually forget minimum and maximum counts
+    rowMinCount += (count - rowMinCount) * 0.1f;
+    rowMaxCount += (count - rowMaxCount) * 0.1f;
+    
+    // track minimum and maximum row counts
+    if ( count < rowMinCount) rowMinCount = count;
+    if ( count > rowMaxCount) rowMaxCount = count;
+
+    return rows;
   }
   
-  /**
-   * Transform the next row in the specified ResultSet into an IModelObject instance.
-   * Only the columns for which there exists a column transform will be considered.
-   * @param rowCursor The cursor pointing before the row to be transformed.
-   * @param elementName The name of the row element.
-   * @return Returns the new row element or null if the cursor is at the end.
-   */
-  public IModelObject transform( ResultSet rowCursor, String elementName) throws SQLException
-  {
-    if ( !rowCursor.next()) return null;
-
-    if ( factory == null) factory = new ModelObjectFactory();
-    IModelObject rowElement = factory.createObject( null, elementName);
-    
-    for( int i=0; i<columnTransforms.size(); i++)
-    {
-      ISQLColumnTransform transform = columnTransforms.get( i);
-      transform.importColumn( rowCursor, rowElement, i);
-    }
-    
-    return rowElement;
-  }
-
-  private IModelObjectFactory factory;
-  private List<ISQLColumnTransform> columnTransforms;
+  private int rowMinCount;
+  private int rowMaxCount;
 }

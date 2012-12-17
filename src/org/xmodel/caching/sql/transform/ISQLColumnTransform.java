@@ -1,28 +1,35 @@
 package org.xmodel.caching.sql.transform;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import org.xmodel.IModelObject;
 
 /**
- * An interface that defines the transform of SQL table columns to and from IModelObject instances.
+ * An interface for transforming the value of row element values into SQL data-types.
  */
 public interface ISQLColumnTransform
 {
   /**
-   * Import one column from the specified ResultSet.
-   * @param rowCursor The ResultSet pointing at the current row.
-   * @param rowElement The element representing the current row.
-   * @param columnIndex The zero-based index of the column to be transformed.
+   * @return Returns the name of the table column.
    */
-  public void importColumn( ResultSet rowCursor, IModelObject rowElement, int columnIndex) throws SQLException;
+  public String getColumnName();
   
   /**
-   * Export one column from the specified row element and 
-   * @param sql The SQL update builder.
+   * Import a column from the database.
+   * @param cursor The cursor pointing to the current row.
    * @param rowElement The row element.
-   * @param columnName The name of the column to be transformed.
+   * @param columnIndex The one-based column index.
    */
-  public void exportColumn( SQLUpdate sql, IModelObject rowElement, String columnName) throws SQLException;
+  public void importColumn( ResultSet cursor, IModelObject rowElement, int columnIndex) throws SQLException;
+  
+  /**
+   * Export a column to the database.  The columnIndex argument is always relative to the statement, which will
+   * typically only be updating a subset of the columns of a table row.  Therefore, the columnIndex does not
+   * uniquely identify a table column, but only identifies the column being updated with a particular statement.
+   * @param rowElement The row element.
+   * @param columnIndex The one-based column index.
+   * @param cursor The cursor pointing to the current row.
+   */
+  public void exportColumn( PreparedStatement statement, IModelObject rowElement, int columnIndex) throws SQLException;
 }
