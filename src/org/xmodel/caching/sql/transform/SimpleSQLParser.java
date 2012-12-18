@@ -8,17 +8,40 @@ import java.util.regex.Pattern;
 /**
  * A partial SQL statement parser that can extract column names.
  */
-public class SQLColumnNameParser
+public class SimpleSQLParser
 {
+  public SimpleSQLParser( String sql)
+  {
+    parse( sql);
+  }
+  
+  /**
+   * @return Returns the name of the table.
+   */
+  public String getTableName()
+  {
+    return table;
+  }
+  
+  /**
+   * @return Returns the names of the columns.
+   */
+  public List<String> getColumnNames()
+  {
+    return columns;
+  }
+  
   /**
    * Parse the column names from the specified SQL statement.
    * @param sql The statement.
-   * @return Returns null or the column names.
+   * @return Returns true if the parse was successful.
    */
-  public List<String> parse( String sql)
+  private boolean parse( String sql)
   {
     Matcher matcher = columnsRegex.matcher( sql);
-    if ( !matcher.find()) return null;
+    if ( !matcher.find()) return false;
+    
+    table = matcher.group( 2);
     
     List<String> names = new ArrayList<String>();
     int parens = 0;
@@ -78,18 +101,22 @@ public class SQLColumnNameParser
       names.add( name);
     }
     
-    return names;
+    this.columns = names;
+    return true;
   }
   
-  private static Pattern columnsRegex = Pattern.compile( "^\\s*+select\\s++(.*)\\s++from");
+  private String table;
+  private List<String> columns;
+  
+  private static Pattern columnsRegex = Pattern.compile( "(?i)^\\s*+select\\s++(.*)\\s++from\\s++([^ ,;]++)");
   
   public static void main( String[] args) throws Exception
   {
-    SQLColumnNameParser parser = new SQLColumnNameParser();
-    List<String> names = parser.parse( "select count(*) count, first_name f, last_name l , format( from_ltime( created_on)) c   from user;");
-    for( String name: names)
+    SimpleSQLParser parser = new SimpleSQLParser( "SELECT count(*) count, first_name f, last_name l , format( from_ltime( created_on)) c   FROM user;");
+    System.out.printf( "Table: %s\n", parser.getTableName());
+    for( String name: parser.getColumnNames())
     {
-      System.out.println( "|"+name+"|");
+      System.out.printf( "  Column: %s\n", name);
     }
   }
 }

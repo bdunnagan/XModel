@@ -14,13 +14,21 @@ import org.xmodel.ModelObject;
 
 public class DefaultSQLRowTransform implements ISQLRowTransform
 {
-  public DefaultSQLRowTransform( String tableName, String primaryKey)
+  public DefaultSQLRowTransform( String tableName)
   {
     this.tableName = tableName;
     this.rowElementName = tableName;
-    this.primaryKey = primaryKey;
     this.transformMap = new HashMap<String, ISQLColumnTransform>();
     this.transformList = new ArrayList<ISQLColumnTransform>();
+  }
+
+  /**
+   * Set the primary key for the table - required for updating.
+   * @param primaryKey The primary key.
+   */
+  public void setPrimaryKey( String primaryKey)
+  {
+    this.primaryKey = primaryKey;
   }
   
   /**

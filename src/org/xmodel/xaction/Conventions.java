@@ -57,6 +57,18 @@ public class Conventions
   }
   
   /**
+   * Get the cached object addressed by the specified expression.
+   * @param context The context.
+   * @param expression The expression.
+   * @return Returns null or the cached object.
+   */
+  public static Object getCache( IContext context, IExpression expression)
+  {
+    IModelObject holder = expression.queryFirst( context);
+    return (holder != null)? holder.getValue(): null;
+  }
+  
+  /**
    * Returns the matcher defined for the specified locus. The first ancestor which defines a
    * matcher determines which matcher is created and returned.
    * @param doc The document.

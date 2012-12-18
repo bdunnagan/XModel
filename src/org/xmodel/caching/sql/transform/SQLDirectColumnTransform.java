@@ -15,20 +15,15 @@ public class SQLDirectColumnTransform implements ISQLColumnTransform
    * Create a transform between the attribute or child node with the specified name and the specified table column.
    * @param metadata The table metadata.
    * @param columnName The name of the table column.
-   * @param nodeName The name of an attribute or child node.  Attribute names are preceded by '@'.
+   * @param nodeName The name of an attribute or child node.
+   * @param attribute True if attribute node should be used.
    */
-  public SQLDirectColumnTransform( SQLColumnMetaData metadata, String columnName, String nodeName)
+  public SQLDirectColumnTransform( SQLColumnMetaData metadata, String columnName, String nodeName, boolean attribute)
   {
     this.metadata = metadata;
     this.columnName = columnName;
-    
-    if ( nodeName.charAt( 0) == '@')
-    {
-      nodeName = nodeName.substring( 1);
-      isAttribute = true;
-    }
-    
     this.nodeName = nodeName;
+    this.isAttribute = attribute;
   }
 
   /* (non-Javadoc)

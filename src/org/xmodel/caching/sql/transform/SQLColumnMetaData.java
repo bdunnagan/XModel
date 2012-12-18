@@ -1,5 +1,7 @@
 package org.xmodel.caching.sql.transform;
 
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,6 +15,16 @@ public class SQLColumnMetaData
   public SQLColumnMetaData()
   {
     types = new ConcurrentHashMap<String, Integer>();
+  }
+  
+  /**
+   * Set the column types from the specified source.
+   * @param source The meta-data source.
+   */
+  public void setColumnTypes( ResultSetMetaData source) throws SQLException
+  {
+    for( int i=1; i<=source.getColumnCount(); i++)
+      setColumnType( source.getColumnName( i), source.getColumnType( i));
   }
   
   /**
