@@ -1,0 +1,54 @@
+Direct Store
+
+The direct store aspires to be an efficient way to represent an element in secondary storage.
+
+Two Types:
+  
+  Compact Store (c-store) - Stores an element in the most compact way.
+  Fast Store (f-store) - Stores an element so that updates can be made as fast as possible.
+
+Compromise:
+
+  High frequency updates exceeding a threshold cause an element to be copied to the f-store.
+  
+  
+Lifetime:
+
+  Create:
+  New elements are always created in the f-store.
+  Background task moves old data to the c-store.
+  
+  Delete:
+  Deleted elements are marked, but not removed from either the f-store or c-store.
+  Background task reclaims space in the c-store.
+  
+  
+F-Store Growth
+
+  The f-store will naturally be larger and more fragmented than the the c-store.  The algorithm bounds 
+  the growth of the f-store by adapting the high-frequency threshold to move elements into the c-store.
+  
+  
+Moving Element from F-Store to C-Store
+
+  If a TabularCompressor is used, then the table does not need to be copied.  The table, which is assumed
+  to be updated at low-frequency, is stored in a separate file.  There is only one table for a given
+  f-store/c-store.
+  
+  
+Data Integrity
+  
+  It is possible for an element to end up in both the f-store and the c-store during a failed move operation.
+  How to handle?
+  
+
+
+Block Architecture
+
+
+Element --+-- Attribute
+          |
+          +-- Attribute
+          |
+          +-- Attribute
+             

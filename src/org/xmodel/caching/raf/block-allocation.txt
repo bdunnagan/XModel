@@ -1,0 +1,19 @@
+Fixed Block Allocation
+
+1. Start with a file that is divided into several regions that each allocate a fixed block size.
+
+  Region 1 (small)
+    32-byte blocks
+  
+  Region 2 (medium)
+    1K blocks
+  
+  Region 3 (large)
+    32K blocks 
+    
+  
+2. Regions are organized in order of increasing block size.
+
+3. When a region is exhausted, it allocates a new block from one of the regions with larger block sizes.
+
+
