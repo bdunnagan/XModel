@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import org.xmodel.IChangeRecord;
+
 import org.xmodel.IModelObject;
 
 /**
@@ -42,5 +42,5 @@ public interface ISQLRowTransform
    * @param record The list of changes made to the row element.
    * @param valueTransform The value transform.
    */
-  public void updateRow( Connection connection, IModelObject rowElement, List<IChangeRecord> records) throws SQLException;
+  public void updateRow( Connection connection, IModelObject rowElement, List<String> columnNames) throws SQLException;
 }

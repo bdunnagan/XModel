@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.caching.sql;
+package org.xmodel.caching.sql.legacy;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -34,9 +34,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
+import org.xmodel.caching.sql.ISQLProvider;
+import org.xmodel.caching.sql.MySQLProvider;
+import org.xmodel.caching.sql.SQLProviderFactory;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.MultiByteArrayInputStream;
 import org.xmodel.compress.TabularCompressor;

@@ -2,6 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" output="test-bin" path="test"/>
+	<classpathentry kind="src" path="legacy"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.18-bin.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/netty-3.5.3.Final.jar" sourcepath="netty-3.5.3.Final/src/main/java"/>

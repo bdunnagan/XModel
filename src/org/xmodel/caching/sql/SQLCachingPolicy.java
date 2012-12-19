@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -17,38 +18,64 @@ import org.xmodel.caching.sql.transform.SimpleSQLParser;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.external.ITransaction;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * An ICachingPolicy that uses an arbitrary SQL query statement to load data.  The caching policy also generates
- * statements for inserting, updating and deleting elements when the readonly flag is false.  Some flexibility is
- * supported as to how table columns are transformed into xml.  However, the following transformation rules are
- * always applied:
+ * An ICachingPolicy that uses an arbitrary SQL query statement to load data.  The caching policy can also generate
+ * statements for inserting, updating and deleting elements when the <i>update</i> flag is true.  By default the 
+ * following transformation rules apply:
  * <ul>
- * <li>Each table row is transformed into an IModelObject that becomes a child of the reference being sync'ed.</li>
- * <li>Data is either stored in an attribute of the row element or in the value of a child of the row element.</li>
+ * <li>Each table row is transformed into a child element of the table element.</li>
+ * <li>Table columns are stored in child elements of the row element with the following exceptions.</li>
+ * <li>Table columns listed in <i>indexes</i> are stored in static attributes of the row element.</li>
+ * <li>Table columns listed in <i>attributes</i> are stored in non-static attributes of the row element.</li>
+ * <li>The names of row element attributes and children are the same as the table column name or alias.</li>
  * </ul>
- * <p>
- * By default, the names of row element attributes or children are the same as the name of the corresponding 
- * table column.
- * <p>
- * When the <i>shallow</i> flag is true, and indexed columns are stored in static attributes of the row elements,
- * the rows may be searched by xpath expressions without their content being pulled from the database.
- * <p>
- * There are two ways to specify the names of columns that will be stored in row element attributes: any column
- * with an alias preceded by '@', and the columns specified in the 'attributes' element of the annotation.
- * <p>
- * Annotation elements:
+ * 
+ * <h3>Two-Layer Caching</h3>
+ * When the <i>shallow</i> flag evaluates true, the indexed columns of the table (columns appearing in the 
+ * <i>indexes</i> configuration element) are loaded into row elements
+ * that have a second layer of caching.  Row elements can be queried by the static attributes that store
+ * the indexed columns and individual rows can be selected by xpath without loading all the rows addressed
+ * by the SQL query.
+ *
+ * <h3>Database Updates</h3>
+ * When the <i>update</i> flag evaluates true, changes to the data-model will make corresponding changes to the
+ * database.  The following table summarizes the types of database updates:
  * <ul>
- * <li>provider - an optional expression that identifies the implementation of ISQLProvider</li>
- * <li>query - a string expression that gives the query to be executed</li>
- * <li>static - an optional string expression giving a comma-separated static attributes</li>
- * <li>attributes - an optional string expression giving a comma-separated list of column names to store in attributes</li>
- * <li>shallow - a boolean expression that specifies whether row content is loaded on demand (default: false())</li>
- * <li>update - a boolean expression that specifies whether the database is updated when the model is changed (default: false())</li>
+ * <li>Inserting a row element will cause a row to be added to the database table.</li>
+ * <li>Deleting a row element will cause a row to be deleted from the database table.</li>
+ * <li>Updating any column of a row element will cause that column to be updated in the database.</li>
+ * <li>Any changes to the data-model of an XML column will cause that column to be updated in the database.</li>
+ * <li>Caching policy transactions allow multiple updates to be committed together.</li>
+ * <li>Insert and delete statements appearing in caching policy transactions are optimized by batch updating.</li>
+ * </ul> 
+ * 
+ * <h3>Reference</h3>
+ * <ul>
+ * <li>provider - An optional expression that identifies the implementation of ISQLProvider.</li>
+ * <li>query - A string expression that gives the query to be executed.</li>
+ * <li>indexes - A string expression giving comma-separated list of indexed columns where the first index is primary key.</li>
+ * <li>attributes - An optional string expression giving a comma-separated list of column names to store in attributes.</li>
+ * <li>shallow - A boolean expression that specifies whether row content is loaded on demand (default: false()).</li>
+ * <li>update - A boolean expression that specifies whether the database is updated when the model is changed (default: false()).</li>
  * </ul>
+ * 
+ * <h3>Example:</h3>
+ * <pre>
+ * &lt;create var="table"&gt;
+ *   &lt;table&gt;
+ *     &lt;extern:cache class="org.xmodel.caching.sql.SQLCachingPolicy"&gt;
+ *       &lt;provider&gt;$provider&lt;/provider&gt;
+ *       &lt;query&gt;"SELECT id, name, age FROM employee"&lt;query&gt;
+ *       &lt;indexes&gt;"id"&lt;indexes&gt;
+ *     &lt;/extern:cache&gt;
+ *   &lt;/table&gt;
+ * &lt;create&gt;
+ * </pre>
  */
 public class SQLCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -60,6 +87,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
+    this.rowCachingPolicy = new SQLRowCachingPolicy( this, getCache());
+    this.updateListener = new UpdateListener();
     this.metadata = new SQLColumnMetaData();
     this.metadataReady = false;
     
@@ -129,7 +158,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     IModelObject prototype = new ModelObject( reference.getType());
-    
+
     try
     {
       Connection connection = provider.leaseConnection();
@@ -147,6 +176,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         IModelObject rowElement = transform.importRow( rowCursor);
         prototype.addChild( rowElement);
       }
+      
+      statement.close();
     }
     catch( SQLException e)
     {
@@ -155,6 +186,35 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     
     update( reference, prototype);
+    
+    if ( update) updateListener.install( reference);
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.external.AbstractCachingPolicy#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    if ( transaction != null) return transaction;
+    transaction = new SQLTransaction( this);
+    return transaction;
+  }
+
+  /**
+   * Called by SQLCachingPolicyTransaction when the transaction is complete.
+   */
+  protected void transactionComplete()
+  {
+    transaction = null;
+  }
+  
+  /**
+   * @return Returns the UpdateListener instance.
+   */
+  protected UpdateListener getUpdateListener()
+  {
+    return updateListener;
   }
   
   private ISQLProvider provider;
@@ -164,5 +224,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   private boolean shallow;
   private SQLColumnMetaData metadata;
   private boolean metadataReady;
+  private SQLRowCachingPolicy rowCachingPolicy;
   private DefaultSQLRowTransform transform;
+  private ITransaction transaction;
+  protected UpdateListener updateListener;
 }

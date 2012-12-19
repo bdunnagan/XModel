@@ -1,6 +1,11 @@
 package org.xmodel.caching.sql;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import org.xmodel.IModelObject;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
@@ -9,16 +14,17 @@ import org.xmodel.external.ITransaction;
 import org.xmodel.log.SLog;
 
 /**
- * An implementation of ICachingPolicy for loading table rows.
+ * An ICachingPolicy used for the second layer of caching when the SQLCachingPolicy is configured
+ * with <i>update</i> evaluating true.  
  */
-public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
+class SQLRowCachingPolicy extends ConfiguredCachingPolicy
 {
   public SQLRowCachingPolicy( ICache cache)
   {
     super( cache);
   }
   
-  public SQLRowCachingPolicy( SQLTableCachingPolicy parent, ICache cache)
+  public SQLRowCachingPolicy( SQLCachingPolicy parent, ICache cache)
   {
     super( cache);
     this.parent = parent;
@@ -40,8 +46,8 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
   {
     SLog.debugf( this, "sync row: %s", reference.getID());
 
-    SQLTableCachingPolicy parent = getParent( reference);
-    parent.setUpdateMonitorEnabled( false);
+    SQLCachingPolicy parent = getParent( reference);
+    parent.updateListener.setEnabled( false);
     try
     {
       IModelObject object = parent.createRowPrototype( reference);
@@ -49,7 +55,7 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
     }
     finally
     {
-      parent.setUpdateMonitorEnabled( true);
+      parent.updateListener.setEnabled( true);
     }
   }
   
@@ -57,13 +63,39 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
    * @param reference The row reference.
    * @return Returns the parent caching policy.
    */
-  private SQLTableCachingPolicy getParent( IExternalReference reference)
+  private SQLCachingPolicy getParent( IExternalReference reference)
   {
     if ( parent == null)
-      parent = (SQLTableCachingPolicy)((IExternalReference)reference.getParent()).getCachingPolicy();
+      parent = (SQLCachingPolicy)((IExternalReference)reference.getParent()).getCachingPolicy();
     return parent;
   }
 
+  /**
+   * Create the row element corresponding to the specified unsynced referenced.
+   * @param reference The reference which is in the process of being synced.
+   * @return Returns the prototype row element.
+   */
+  protected IModelObject createRowPrototype( IExternalReference reference) throws CachingException
+  {
+    try
+    {
+      IModelObject object = getFactory().createObject( reference.getParent(), reference.getType());
+      ModelAlgorithms.copyAttributes( reference, object);
+
+      PreparedStatement statement = createRowSelectStatement( reference);
+      ResultSet result = statement.executeQuery();
+      if ( result.next()) populateRowElement( result, object);
+      
+      statement.close();
+
+      return object;
+    }
+    catch( SQLException e)
+    {
+      throw new CachingException( "Unable to cache reference: "+reference, e);
+    }
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.AbstractCachingPolicy#transaction()
    */
@@ -73,5 +105,5 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
     return parent.transaction();
   }
   
-  protected SQLTableCachingPolicy parent;
+  protected SQLCachingPolicy parent;
 }

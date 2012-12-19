@@ -1,0 +1,9 @@
+<create var="scans">
+  <scans>
+    <extern:cache class="org.xmodel.caching.sql.SQLCachingPolicy">
+      <provider>$provider</provider>
+      <query>'SELECT id, account, first_name, last_name FROM user'</query>
+      <indexes>'id, account'</indexes>
+    </extern:cache>
+  </scans>
+</create>

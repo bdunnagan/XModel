@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.xmodel.IChangeRecord;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 
@@ -112,21 +112,15 @@ public class DefaultSQLRowTransform implements ISQLRowTransform
    * @see org.xmodel.caching.sql.transform.ISQLRowTransform#updateRow(java.sql.Connection, org.xmodel.IModelObject, java.util.List)
    */
   @Override
-  public void updateRow( Connection connection, IModelObject rowElement, List<IChangeRecord> records) throws SQLException
+  public void updateRow( Connection connection, IModelObject rowElement, List<String> columnNames) throws SQLException
   {
-    if ( records.size() == 0) return;
-    
-    String[] columnNames = new String[ records.size()];
-    for( int i=0; i<records.size(); i++)
-      columnNames[ i] = getColumnNameFromChangeRecord( records.get( i));
-      
     StringBuilder sb = new StringBuilder();
     sb.append( "UPDATE "); sb.append( tableName);
     sb.append( " SET ");
 
-    for( int i=0; i<records.size(); i++)
+    for( String columnName: columnNames)
     {
-      sb.append( columnNames[ i]);
+      sb.append( columnName);
       sb.append( "=?,");
     }
     sb.setLength( sb.length() - 1);
@@ -136,38 +130,17 @@ public class DefaultSQLRowTransform implements ISQLRowTransform
     sb.append( "=?");
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
-    for( int i=0; i<columnNames.length; )
+    for( int i=0; i<columnNames.size(); )
     {
-      String column = columnNames[ i];
+      String column = columnNames.get( i);
       ISQLColumnTransform transform = transformMap.get( column);
       transform.exportColumn( statement, rowElement, ++i);
     }
     
     ISQLColumnTransform transform = transformMap.get( primaryKey);
-    transform.exportColumn( statement, rowElement, columnNames.length + 1);
+    transform.exportColumn( statement, rowElement, columnNames.size() + 1);
   }
 
-  /**
-   * Find the name of the column that requires updating as a result of the specified change record.
-   * @param record The change record.
-   * @return Returns the name of the column.
-   */
-  protected String getColumnNameFromChangeRecord( IChangeRecord record)
-  {
-    switch( record.getType())
-    {
-      case IChangeRecord.ADD_CHILD:
-      case IChangeRecord.REMOVE_CHILD:
-        return record.getChild().getType();
-        
-      case IChangeRecord.CHANGE_ATTRIBUTE:
-      case IChangeRecord.CLEAR_ATTRIBUTE:
-        return record.getAttributeName();
-    }
-
-    throw new IllegalStateException();
-  }
-  
   private String tableName;
   private String rowElementName;
   private String primaryKey;
