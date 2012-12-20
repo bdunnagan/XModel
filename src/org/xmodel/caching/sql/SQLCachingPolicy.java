@@ -29,6 +29,7 @@ import org.xmodel.xpath.expression.IExpression;
  * following transformation rules apply:
  * <ul>
  * <li>Each table row is transformed into a child element of the table element.</li>
+ * <li>The name of each row element is the same as the name of the table element unless <i>name</i> is specified.</li>
  * <li>Table columns are stored in child elements of the row element with the following exceptions.</li>
  * <li>Table columns listed in <i>indexes</i> are stored in static attributes of the row element.</li>
  * <li>Table columns listed in <i>attributes</i> are stored in non-static attributes of the row element.</li>
@@ -36,12 +37,16 @@ import org.xmodel.xpath.expression.IExpression;
  * </ul>
  * 
  * <h3>Two-Layer Caching</h3>
- * When the <i>shallow</i> flag evaluates true, the indexed columns of the table (columns appearing in the 
- * <i>indexes</i> configuration element) are loaded into row elements
- * that have a second layer of caching.  Row elements can be queried by the static attributes that store
- * the indexed columns and individual rows can be selected by xpath without loading all the rows addressed
- * by the SQL query.
- *
+ * When the <i>shallow</i> flag evaluates true, only the indexed columns for each row element are loaded from the
+ * database, and a second caching policy is assigned to each row element.  When a non-static node of a row element
+ * is accessed, the row element is loaded from the database using a modified version of the SQL query.  The SQL
+ * is modified by discarding the WHERE clause, if present, and adding a WHERE clause that will uniquely select
+ * the row using the data in the static attributes.  This will only work for queries that have the following
+ * general regular expression form: <br/>
+ * <pre>
+ *   SELECT (.*) FROM (.*) WHERE (.*)
+ * </pre>
+ * 
  * <h3>Database Updates</h3>
  * When the <i>update</i> flag evaluates true, changes to the data-model will make corresponding changes to the
  * database.  The following table summarizes the types of database updates:
@@ -58,6 +63,7 @@ import org.xmodel.xpath.expression.IExpression;
  * <ul>
  * <li>provider - An optional expression that identifies the implementation of ISQLProvider.</li>
  * <li>query - A string expression that gives the query to be executed.</li>
+ * <li>name - The name to be used for the row elements instead of the table element name.</li>
  * <li>indexes - A string expression giving comma-separated list of indexed columns where the first index is primary key.</li>
  * <li>attributes - An optional string expression giving a comma-separated list of column names to store in attributes.</li>
  * <li>shallow - A boolean expression that specifies whether row content is loaded on demand (default: false()).</li>
@@ -87,7 +93,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
-    this.rowCachingPolicy = new SQLRowCachingPolicy( this, getCache());
     this.updateListener = new UpdateListener();
     this.metadata = new SQLColumnMetaData();
     this.metadataReady = false;
@@ -99,11 +104,15 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     query = queryExpr.evaluateString( context);
     parser = new SimpleSQLParser( query);
     
-    update = Xlate.childGet( annotation, "update", false);
-    shallow = Xlate.childGet( annotation, "shallow", true);
+    IExpression updateExpr = Xlate.childGet( annotation, "update", (IExpression)null);
+    update = (updateExpr != null)? updateExpr.evaluateBoolean( context): false;
     
     configureProvider( annotation);
     configureRowTransform( annotation);
+    
+    IExpression shallowExpr = Xlate.childGet( annotation, "shallow", (IExpression)null);
+    boolean shallow = (shallowExpr != null)? shallowExpr.evaluateBoolean( context): false;
+    if ( shallow) rowCachingPolicy = createRowCachingPolicy( parser.getQueryWithoutPredicate());
   }
 
   /**
@@ -131,9 +140,17 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     // create list of column names that will be attributes
     Set<String> attributes = new HashSet<String>();
     
-    // static attributes
-    for( String staticAttribute: getStaticAttributes())
-      attributes.add( staticAttribute);
+    // indexes
+    String indexes = Xlate.childGet( annotation, "indexes", (String)null);
+    if ( indexes != null)
+    {
+      String[] split = indexes.split( "\\s*,\\s*");
+      for( String index: split) 
+      {
+        addStaticAttribute( index);
+        attributes.add( index);
+      }
+    }
     
     // other attributes
     for( IModelObject element: annotation.getChildren( "attribute"))
@@ -141,9 +158,12 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
       Object attribute = element.getValue();
       if ( attribute != null) attributes.add( attribute.toString());
     }
+
+    // get row element name
+    String rowElementName = Xlate.childGet( annotation, "name", annotation.getParent().getType());
     
     // create row transform
-    transform = new DefaultSQLRowTransform( parser.getTableName());
+    transform = new DefaultSQLRowTransform( rowElementName);
     for( String column: parser.getColumnNames())
     {
       ISQLColumnTransform columnTransform = new SQLDirectColumnTransform( metadata, column, column, attributes.contains( column));
@@ -221,10 +241,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   private String query;
   private SimpleSQLParser parser;
   private boolean update;
-  private boolean shallow;
   private SQLColumnMetaData metadata;
   private boolean metadataReady;
-  private SQLRowCachingPolicy rowCachingPolicy;
+  private SQLCachingPolicy rowCachingPolicy;
   private DefaultSQLRowTransform transform;
   private ITransaction transaction;
   protected UpdateListener updateListener;

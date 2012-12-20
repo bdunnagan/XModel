@@ -16,11 +16,11 @@ public class SimpleSQLParser
   }
   
   /**
-   * @return Returns the name of the table.
+   * @return Returns the query without its predicate.
    */
-  public String getTableName()
+  public String getQueryWithoutPredicate()
   {
-    return table;
+    return querySansPredicate;
   }
   
   /**
@@ -41,7 +41,7 @@ public class SimpleSQLParser
     Matcher matcher = columnsRegex.matcher( sql);
     if ( !matcher.find()) return false;
     
-    table = matcher.group( 2);
+    querySansPredicate = matcher.group( 1);
     
     List<String> names = new ArrayList<String>();
     int parens = 0;
@@ -105,18 +105,23 @@ public class SimpleSQLParser
     return true;
   }
   
-  private String table;
+  private String querySansPredicate;
   private List<String> columns;
   
-  private static Pattern columnsRegex = Pattern.compile( "(?i)^\\s*+select\\s++(.*)\\s++from\\s++([^ ,;]++)");
+  private static Pattern columnsRegex = Pattern.compile( "(?i)^\\s*+(select\\s++(.*)\\s++from\\s++.*)\\s+(WHERE.*);");
   
   public static void main( String[] args) throws Exception
   {
-    SimpleSQLParser parser = new SimpleSQLParser( "SELECT count(*) count, first_name f, last_name l , format( from_ltime( created_on)) c   FROM user;");
-    System.out.printf( "Table: %s\n", parser.getTableName());
+    SimpleSQLParser parser = new SimpleSQLParser( "SELECT " +
+    		"count(*) count, first_name f, last_name l , format( from_ltime( created_on)) c   " +
+    		"FROM user u JOIN monitor m on m.user_id = u.id " +
+    		" WHERE id in (SELECT id FROM user);");
+    
+    System.out.println( parser.getQueryWithoutPredicate());
+    
     for( String name: parser.getColumnNames())
     {
-      System.out.printf( "  Column: %s\n", name);
+      System.out.printf( "%s\n", name);
     }
   }
 }
