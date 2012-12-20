@@ -52,13 +52,23 @@ public class SumFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    assertArgs( 1, 1);
-    assertType( context, ResultType.NODES);
-    
     double sum = 0;
-    for( IModelObject node: getArgument( 0).evaluateNodes( context))
+    
+    for( IExpression argument: getArguments())
     {
-      sum += NumberFunction.numericValue( node);
+      switch( argument.getType( context))
+      {
+        case NODES:
+          List<IModelObject> nodes = argument.evaluateNodes( context);
+          for( IModelObject node: nodes) sum += NumberFunction.numericValue( node);
+          break;
+          
+        case NUMBER:
+        case STRING:
+        case BOOLEAN:
+          sum += argument.evaluateNumber( context);
+          break;
+      }
     }
     
     return sum;

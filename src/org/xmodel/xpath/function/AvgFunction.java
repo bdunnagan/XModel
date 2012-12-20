@@ -53,17 +53,29 @@ public class AvgFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    assertArgs( 1, 1);
-    assertType( context, ResultType.NODES);
-    
     double sum = 0;
-    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
-    for( IModelObject node: nodes)
+    int count = 0;
+    
+    for( IExpression argument: getArguments())
     {
-      sum += NumberFunction.numericValue( node);
+      switch( argument.getType( context))
+      {
+        case NODES:
+          List<IModelObject> nodes = argument.evaluateNodes( context);
+          for( IModelObject node: nodes) sum += NumberFunction.numericValue( node);
+          count += nodes.size();
+          break;
+          
+        case NUMBER:
+        case STRING:
+        case BOOLEAN:
+          sum += argument.evaluateNumber( context);
+          count++;
+          break;
+      }
     }
     
-    return sum / nodes.size();
+    return sum / count;
   }
 
   /* (non-Javadoc)

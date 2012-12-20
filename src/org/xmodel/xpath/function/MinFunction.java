@@ -53,14 +53,27 @@ public class MinFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    assertArgs( 1, 1);
-    assertType( context, ResultType.NODES);
-    
     double min = Integer.MAX_VALUE;
-    for( IModelObject node: getArgument( 0).evaluateNodes( context))
+    
+    for( IExpression argument: getArguments())
     {
-      double value = NumberFunction.numericValue( node);
-      if ( value < min) min = value;
+      switch( argument.getType( context))
+      {
+        case NODES:
+          for( IModelObject node: argument.evaluateNodes( context))
+          {
+            double value = NumberFunction.numericValue( node);
+            if ( value < min) min = value;
+          }
+          break;
+          
+        case NUMBER:
+        case STRING:
+        case BOOLEAN:
+          double value = argument.evaluateNumber( context);
+          if ( value > min) min = value;
+          break;
+      }
     }
     
     return min;

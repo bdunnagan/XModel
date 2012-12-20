@@ -53,14 +53,27 @@ public class MaxFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    assertArgs( 1, 1);
-    assertType( context, ResultType.NODES);
-    
     double max = Integer.MIN_VALUE;
-    for( IModelObject node: getArgument( 0).evaluateNodes( context))
+    
+    for( IExpression argument: getArguments())
     {
-      double value = NumberFunction.numericValue( node);
-      if ( value > max) max = value;
+      switch( argument.getType( context))
+      {
+        case NODES:
+          for( IModelObject node: argument.evaluateNodes( context))
+          {
+            double value = NumberFunction.numericValue( node);
+            if ( value > max) max = value;
+          }
+          break;
+          
+        case NUMBER:
+        case STRING:
+        case BOOLEAN:
+          double value = argument.evaluateNumber( context);
+          if ( value > max) max = value;
+          break;
+      }
     }
     
     return max;
