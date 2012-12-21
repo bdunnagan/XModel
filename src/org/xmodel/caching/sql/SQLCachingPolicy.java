@@ -17,6 +17,7 @@ import org.xmodel.caching.sql.transform.SQLDirectColumnTransform;
 import org.xmodel.caching.sql.transform.SimpleSQLParser;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.xaction.Conventions;
@@ -102,17 +103,18 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     
     IExpression queryExpr = Xlate.childGet( annotation, "query", (IExpression)null);
     query = queryExpr.evaluateString( context);
-    parser = new SimpleSQLParser( query);
     
     IExpression updateExpr = Xlate.childGet( annotation, "update", (IExpression)null);
     update = (updateExpr != null)? updateExpr.evaluateBoolean( context): false;
     
-    configureProvider( annotation);
-    configureRowTransform( annotation);
-    
     IExpression shallowExpr = Xlate.childGet( annotation, "shallow", (IExpression)null);
     boolean shallow = (shallowExpr != null)? shallowExpr.evaluateBoolean( context): false;
-    if ( shallow) rowCachingPolicy = createRowCachingPolicy( parser.getQueryWithoutPredicate());
+    
+    parser = new SimpleSQLParser( query);
+    configureProvider( annotation);
+    configureRowTransform( annotation, shallow);
+    
+    if ( shallow) rowCachingPolicy = createRowCachingPolicy();
   }
 
   /**
@@ -134,8 +136,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   /**
    * Configure the ISQLRowTransform from the annotation.
    * @param annotation The caching policy annotation.
+   * @param shallow True if two-level caching is requested.
    */
-  private void configureRowTransform( IModelObject annotation) throws CachingException
+  private void configureRowTransform( IModelObject annotation, boolean shallow) throws CachingException
   {
     // create list of column names that will be attributes
     Set<String> attributes = new HashSet<String>();
@@ -150,6 +153,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         addStaticAttribute( index);
         attributes.add( index);
       }
+      
+      if ( split.length > 0) primaryKey = split[ 0];
     }
     
     // other attributes
@@ -166,9 +171,32 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     transform = new DefaultSQLRowTransform( rowElementName);
     for( String column: parser.getColumnNames())
     {
-      ISQLColumnTransform columnTransform = new SQLDirectColumnTransform( metadata, column, column, attributes.contains( column));
-      transform.defineColumn( column, columnTransform);
+      // two-layer caching means only static attributes are populated during first layer sync
+      if ( !shallow || isStaticAttribute( column))
+      {
+        ISQLColumnTransform columnTransform = new SQLDirectColumnTransform( metadata, column, column, attributes.contains( column));
+        transform.defineColumn( column, columnTransform);
+      }
     }
+  }
+  
+  /**
+   * Create the caching policy to use for second layer caching of row elements.
+   * @return Returns the caching policy;
+   */
+  private ICachingPolicy createRowCachingPolicy()
+  {
+    // set primary key on child cp statement
+    
+    SQLCachingPolicy cachingPolicy = new SQLCachingPolicy();
+    cachingPolicy.provider = provider;
+    cachingPolicy.query = String.format( "%s WHERE %s = $?", parser.getQueryWithoutPredicate(), primaryKey);
+    cachingPolicy.primaryKey = primaryKey;
+    cachingPolicy.parser = parser;
+    cachingPolicy.update = update;
+    cachingPolicy.transform = transform;
+    cachingPolicy.updateListener = updateListener;
+    return cachingPolicy;
   }
   
   /* (non-Javadoc)
@@ -176,6 +204,14 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
    */
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
+  {
+  }
+  
+  /**
+   * Synchronize a table reference.
+   * @param reference The reference.
+   */
+  protected void syncTable( IExternalReference reference) throws CachingException
   {
     IModelObject prototype = new ModelObject( reference.getType());
 
@@ -237,14 +273,15 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     return updateListener;
   }
   
-  private ISQLProvider provider;
-  private String query;
-  private SimpleSQLParser parser;
-  private boolean update;
-  private SQLColumnMetaData metadata;
-  private boolean metadataReady;
-  private SQLCachingPolicy rowCachingPolicy;
-  private DefaultSQLRowTransform transform;
-  private ITransaction transaction;
+  protected ISQLProvider provider;
+  protected String query;
+  protected String primaryKey;
+  protected SimpleSQLParser parser;
+  protected boolean update;
+  protected SQLColumnMetaData metadata;
+  protected boolean metadataReady;
+  protected ICachingPolicy rowCachingPolicy;
+  protected DefaultSQLRowTransform transform;
+  protected ITransaction transaction;
   protected UpdateListener updateListener;
 }
