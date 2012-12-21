@@ -2,6 +2,7 @@ package org.xmodel.caching.sql;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;

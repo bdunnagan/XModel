@@ -19,7 +19,6 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
-import org.xmodel.xaction.Conventions;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -95,9 +94,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     this.metadata = new SQLColumnMetaData();
     this.metadataReady = false;
     
-    IExpression providerExpr = Xlate.childGet( annotation, "provider", (IExpression)null);
-    provider = (providerExpr != null)? (ISQLProvider)Conventions.getCache( context, providerExpr): null;
-    
     IExpression queryExpr = Xlate.childGet( annotation, "query", (IExpression)null);
     query = queryExpr.evaluateString( context);
     
@@ -108,7 +104,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     boolean shallow = (shallowExpr != null)? shallowExpr.evaluateBoolean( context): false;
     
     parser = new SimpleSQLParser( query);
-    configureProvider( annotation);
+    configureProvider( context, annotation);
     configureRowTransform( annotation, shallow);
     
     if ( shallow) rowQuery = String.format( "%s WHERE %s = $?", parser.getQueryWithoutPredicate(), primaryKey);
@@ -116,13 +112,16 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
 
   /**
    * Configure the ISQLProvider instance from the annotation.
+   * @param context The context.
    * @param annotation The caching policy annotation.
    */
-  private void configureProvider( IModelObject annotation) throws CachingException
+  private void configureProvider( IContext context, IModelObject annotation) throws CachingException
   {
     try
     {
-      provider = SQLProviderFactory.getProvider( annotation);
+      IExpression providerExpr = Xlate.childGet( annotation, "provider", (IExpression)null);
+      IModelObject providerConfig = (providerExpr != null)? providerExpr.queryFirst( context): annotation;
+      provider = SQLProviderFactory.getProvider( providerConfig);
     }
     catch( Exception e)
     {

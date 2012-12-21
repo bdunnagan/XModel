@@ -49,7 +49,7 @@ public class MySQLProvider implements ISQLProvider
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
     
-    database = Xlate.childGet( annotation, "database", (String)null);
+    database = Xlate.childGet( annotation, "database", Xlate.childGet( annotation, "catalog", (String)null));
   }
 
   /* (non-Javadoc)
