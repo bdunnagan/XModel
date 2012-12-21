@@ -205,13 +205,22 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
+    try
+    {
+      updateListener.setEnabled( false);
+      syncQuery( reference);
+    }
+    finally
+    {
+      updateListener.setEnabled( true);
+    }
   }
   
   /**
    * Synchronize a table reference.
    * @param reference The reference.
    */
-  protected void syncTable( IExternalReference reference) throws CachingException
+  protected void syncQuery( IExternalReference reference) throws CachingException
   {
     IModelObject prototype = new ModelObject( reference.getType());
 
