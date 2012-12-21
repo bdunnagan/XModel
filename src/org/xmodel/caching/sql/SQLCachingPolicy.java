@@ -17,7 +17,6 @@ import org.xmodel.caching.sql.transform.SQLDirectColumnTransform;
 import org.xmodel.caching.sql.transform.SimpleSQLParser;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
-import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.xaction.Conventions;
@@ -68,7 +67,6 @@ import org.xmodel.xpath.expression.IExpression;
  * <li>indexes - A string expression giving comma-separated list of indexed columns where the first index is primary key.</li>
  * <li>attributes - An optional string expression giving a comma-separated list of column names to store in attributes.</li>
  * <li>shallow - A boolean expression that specifies whether row content is loaded on demand (default: false()).</li>
- * <li>update - A boolean expression that specifies whether the database is updated when the model is changed (default: false()).</li>
  * </ul>
  * 
  * <h3>Example:</h3>
@@ -94,7 +92,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
-    this.updateListener = new UpdateListener();
     this.metadata = new SQLColumnMetaData();
     this.metadataReady = false;
     
@@ -114,7 +111,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     configureProvider( annotation);
     configureRowTransform( annotation, shallow);
     
-    if ( shallow) rowCachingPolicy = createRowCachingPolicy();
+    if ( shallow) rowQuery = String.format( "%s WHERE %s = $?", parser.getQueryWithoutPredicate(), primaryKey);
   }
 
   /**
@@ -180,39 +177,25 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
   }
   
-  /**
-   * Create the caching policy to use for second layer caching of row elements.
-   * @return Returns the caching policy;
-   */
-  private ICachingPolicy createRowCachingPolicy()
-  {
-    // set primary key on child cp statement
-    
-    SQLCachingPolicy cachingPolicy = new SQLCachingPolicy();
-    cachingPolicy.provider = provider;
-    cachingPolicy.query = String.format( "%s WHERE %s = $?", parser.getQueryWithoutPredicate(), primaryKey);
-    cachingPolicy.primaryKey = primaryKey;
-    cachingPolicy.parser = parser;
-    cachingPolicy.update = update;
-    cachingPolicy.transform = transform;
-    cachingPolicy.updateListener = updateListener;
-    return cachingPolicy;
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    try
+    if ( tableReference == null) tableReference = reference;
+    
+    if ( reference == tableReference) 
     {
-      updateListener.setEnabled( false);
-      syncQuery( reference);
+      syncTable( reference); 
     }
-    finally
+    else if ( reference.getParent() == tableReference) 
+    { 
+      syncRow( reference);
+    }
+    else
     {
-      updateListener.setEnabled( true);
+      throw new IllegalStateException( "SQLCachingPolicy instance used by more than one element.");
     }
   }
   
@@ -220,7 +203,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
    * Synchronize a table reference.
    * @param reference The reference.
    */
-  protected void syncQuery( IExternalReference reference) throws CachingException
+  protected void syncTable( IExternalReference reference) throws CachingException
   {
     IModelObject prototype = new ModelObject( reference.getType());
 
@@ -251,8 +234,35 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     
     update( reference, prototype);
-    
-    if ( update) updateListener.install( reference);
+  }
+  
+  /**
+   * Synchronize a table reference.
+   * @param reference The reference.
+   */
+  protected void syncRow( IExternalReference reference) throws CachingException
+  {
+    try
+    {
+      Connection connection = provider.leaseConnection();
+      
+      PreparedStatement statement = connection.prepareStatement( rowQuery);
+      statement.setObject( 1, Xlate.get( reference, primaryKey, ""));
+      
+      ResultSet rowCursor = statement.executeQuery();
+      if ( rowCursor.next())
+      {
+        IModelObject rowElement = transform.importRow( rowCursor);
+        update( reference, rowElement);
+      }
+      
+      statement.close();
+    }
+    catch( SQLException e)
+    {
+      String message = String.format( "Unable to sync reference with query, '%s'", query);
+      throw new CachingException( message, e);
+    }
   }
   
   /* (non-Javadoc)
@@ -261,36 +271,17 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public ITransaction transaction()
   {
-    if ( transaction != null) return transaction;
-    transaction = new SQLTransaction( this);
-    return transaction;
+    return null;
   }
 
-  /**
-   * Called by SQLCachingPolicyTransaction when the transaction is complete.
-   */
-  protected void transactionComplete()
-  {
-    transaction = null;
-  }
-  
-  /**
-   * @return Returns the UpdateListener instance.
-   */
-  protected UpdateListener getUpdateListener()
-  {
-    return updateListener;
-  }
-  
   protected ISQLProvider provider;
   protected String query;
+  protected String rowQuery;
   protected String primaryKey;
   protected SimpleSQLParser parser;
   protected boolean update;
   protected SQLColumnMetaData metadata;
   protected boolean metadataReady;
-  protected ICachingPolicy rowCachingPolicy;
   protected DefaultSQLRowTransform transform;
-  protected ITransaction transaction;
-  protected UpdateListener updateListener;
+  protected IExternalReference tableReference;
 }
