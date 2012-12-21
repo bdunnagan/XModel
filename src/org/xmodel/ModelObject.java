@@ -25,11 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.xmodel.external.CachingException;
-import org.xmodel.external.ICachingPolicy;
-import org.xmodel.external.IExternalReference;
-import org.xmodel.external.ITransaction;
 import org.xmodel.log.Log;
 import org.xmodel.memento.AddChildMemento;
 import org.xmodel.memento.IMemento;
@@ -58,7 +53,7 @@ import org.xmodel.xpath.AttributeNode;
  * <b>Warning #1: The lists returned by this implementation are modifiable, but they should never be modified.
  * <b>Warning #2: Fragments containing this instance may only ever be accessed by a single thread.
  */
-public class ModelObject implements IModelObject, IExternalReference
+public class ModelObject implements IModelObject
 {
   /**
    * Create a ModelObject with the specified type.
@@ -149,7 +144,7 @@ public class ModelObject implements IModelObject, IExternalReference
    */
   public boolean isDirty()
   {
-    return storageClass.getDirty();
+    return false;
   }
 
   /* (non-Javadoc)
@@ -968,66 +963,6 @@ public class ModelObject implements IModelObject, IExternalReference
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#setDirty(boolean)
-   */
-  public void setDirty( boolean dirty)
-  {
-    storageClass = storageClass.getCachingPolicyStorageClass();
-    
-    boolean wasDirty = storageClass.getDirty();
-    storageClass.setDirty( dirty);
-    if ( wasDirty != dirty) 
-    {
-      ModelListenerList listeners = getModelListeners();
-      if ( listeners != null) 
-      {
-        listeners.notifyDirty( this, dirty);
-        
-        // resync immediately if reference has listeners
-        if ( dirty && listeners.count() > 0) getChildren();
-      }
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#setCachingPolicy(org.xmodel.external.ICachingPolicy)
-   */
-  public void setCachingPolicy( ICachingPolicy newCachingPolicy)
-  {
-    storageClass = storageClass.getCachingPolicyStorageClass();
-    storageClass.setCachingPolicy( newCachingPolicy);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.reference.IExternalObject#getCachingPolicy()
-   */
-  public ICachingPolicy getCachingPolicy()
-  {
-    return storageClass.getCachingPolicy();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#transaction()
-   */
-  @Override
-  public ITransaction transaction()
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy for this entity: "+this);
-    return cachingPolicy.transaction();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#clearCache()
-   */
-  public void clearCache() throws CachingException
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy to clear entity: "+this);
-    cachingPolicy.clear( this);
-  }
-  
   /**
    * Called just before a request that accesses the attributes of this object is fulfilled.
    * @param name The name of the attribute, or null if all attributes are being accessed.
@@ -1035,8 +970,6 @@ public class ModelObject implements IModelObject, IExternalReference
    */
   protected void notifyAccessAttributes( String name, boolean write)
   {
-    ICachingPolicy cachingPolicy = storageClass.getCachingPolicy();
-    if ( cachingPolicy != null) cachingPolicy.notifyAccessAttributes( this, name, write);
   }
   
   /**
@@ -1045,17 +978,58 @@ public class ModelObject implements IModelObject, IExternalReference
    */
   protected void notifyAccessChildren( boolean write)
   {
-    ICachingPolicy cachingPolicy = storageClass.getCachingPolicy();
-    if ( cachingPolicy != null) cachingPolicy.notifyAccessChildren( this, write);
   }
   
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
-  @Override
   public String toString()
   {
-    return toXml();
+    StringBuilder builder = new StringBuilder();
+    builder.append( '<');
+    builder.append( getType());
+
+    // value
+    Object text = storageClass.getAttribute( "");
+    if ( text == null) text = "";
+    
+    // attributes
+    for( String attrName: storageClass.getAttributeNames())
+    {
+      if ( attrName.length() == 0) continue;
+      builder.append( ' '); builder.append( attrName); builder.append( "='"); builder.append( storageClass.getAttribute( attrName));
+      builder.append( '\'');
+    }
+    
+    // children
+    List<IModelObject> children = storageClass.getChildren();
+    if ( children != null && children.size() > 0)
+    {
+      if ( text == null || text.equals( ""))
+      {
+        builder.append( ">...");
+      }
+      else
+      {
+        builder.append( '>');
+        builder.append( text.toString().trim());
+        builder.append( "...");
+      }
+    }
+    else if ( text == null || text.equals( ""))
+    {
+      builder.append( "/>");
+    }
+    else
+    {
+      builder.append( '>');
+      builder.append( text);
+      builder.append( "</");
+      builder.append( getType());
+      builder.append( '>');
+    }
+
+    return builder.toString();
   }
   
   /**
