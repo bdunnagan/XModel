@@ -22,6 +22,30 @@ public interface IRandomAccessStore
   public void write( byte[] bytes, int offset, int length);
   
   /**
+   * Read an integer from the current position in the store.
+   * @return Returns the integer.
+   */
+  public int readInt();
+  
+  /**
+   * Write an integer into the store at the current position.
+   * @param value The value.
+   */
+  public void writeInt( int value);
+  
+  /**
+   * Read an long from the current position in the store.
+   * @return Returns the long.
+   */
+  public long readLong();
+  
+  /**
+   * Write a long into the store at the current position.
+   * @param value The value.
+   */
+  public void writeLong( long value);
+  
+  /**
    * Set the position for read and write operations.
    * @param position The position.
    */

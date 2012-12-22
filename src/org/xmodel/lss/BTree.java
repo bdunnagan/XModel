@@ -32,49 +32,79 @@ public class BTree
    */
   public long delete( byte[] key)
   {
+    long pointer = delete( root, root.find( key), key);
+    if ( root.size() == 0) root = root.greaterThan( 0);
+    return pointer;
   }
   
   /**
    * Delete a key.
    * @param node The node containing the key.
    * @param offset The offset of the key, or -1 if the key was not found.
+   * @param key The key.
+   * @return Returns the pointer associated with the key.
    */
-  protected void delete( BTreeNode node, int offset)
+  protected long delete( BTreeNode node, int offset, byte[] key)
   {
     if ( node.isLeaf())
     {
-      // Case 1
-      node.delete( offset);
+      // Case 1: Key is in leaf node
+      return node.delete( offset);
     }
     else
     {
+      // Case 2: Key is in internal node
       if ( offset >= 0)
       {
-        BTreeNode lower = node.lessThan( offset);
-        if ( lower.size() >= degree)
+        BTreeNode lesserSubtree = node.lessThan( offset);
+        if ( lesserSubtree.size() >= degree)
         {
-          // Case 2a
-          node.replace( offset, lower, lower.size() - 1);
-          delete( lower, lower.size() - 1);
+          // Case 2a: Lower subtree can give up a key
+          node.replace( offset, lesserSubtree, lesserSubtree.size() - 1);
+          return delete( lesserSubtree, lesserSubtree.size() - 1, key);
         }
         else
         {
-          BTreeNode higher = node.greaterThan( offset);
-          if ( higher.size() >= degree)
+          BTreeNode greaterSubtree = node.greaterThan( offset);
+          if ( greaterSubtree.size() >= degree)
           {
-            // Case 2b
-            node.replace( offset, higher, 0);
-            delete( higher, 0);
+            // Case 2b: Higher subtree can give up a key
+            node.replace( offset, greaterSubtree, 0);
+            return delete( greaterSubtree, 0, key);
           }
           else
           {
-            // Case 2c
-            node.delete( offset);
+            // Case 2c: Neither subtree can give up a key
+            //   Merge lower and higher subtrees
+            //   Insert key into merged node
+            //   Recursively delete key from merged node
+            BTreeNode merged = node.merge( offset);
+            // TODO: calculate key offset during merge
+            return delete( merged, merged.find( key), key);
           }
         }
       }
       else
       {
+        // Case 3: Key not found in current node
+        BTreeNode shrinkable = node.findShrinkableChild();
+        offset = -offset - 1;
+        if ( shrinkable == null)
+        {
+          // Case 3b: No children can give up a key
+          BTreeNode merged = node.merge( offset);
+          // TODO: calculate key offset during merge
+          return delete( merged, merged.find( key), key);
+        }
+        else
+        {
+          // Case 3a: There is a child that can give up a key
+          BTreeNode next = node.greaterThan( offset);
+          node.pull( shrinkable, 0);
+          node.push( offset, next);
+          // TODO: calculate key offset during rotate
+          return delete( next, next.find( key), key);
+        }
       }
     }
   }
@@ -109,7 +139,7 @@ public class BTree
   }
  
   
-  private IRandomAccessStore store;
+  protected IRandomAccessStore store;
   private BTreeNode root;
   private int degree;
   private int limit;
