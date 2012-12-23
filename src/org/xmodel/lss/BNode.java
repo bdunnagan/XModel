@@ -28,6 +28,7 @@ public class BNode<K>
     this.count = count;
     this.entries = new ArrayList<Entry<K>>( count);
     this.children = new ArrayList<BNode<K>>( count);
+    this.dirty = true;
   }
   
   public BNode( BNode<K> parent, List<Entry<K>> entries, List<BNode<K>> children)
@@ -38,8 +39,10 @@ public class BNode<K>
     this.comparator = parent.comparator;
     this.entries = new ArrayList<Entry<K>>( entries);
     this.children = new ArrayList<BNode<K>>( children);
+    this.count = entries.size();
+    this.dirty = true;
   }
-    
+      
   public int count()
   {
     return count;
@@ -49,11 +52,10 @@ public class BNode<K>
   {
     if ( entries == null) load();
     
-    if ( count() < maxKeys) split();
-    
     int i = search( key);
     if ( i >= 0)
     {
+      dirty = true;
       Entry<K> entry = entries.get( i);
       long old = entry.value;
       entry.value = value;
@@ -61,10 +63,49 @@ public class BNode<K>
     }
     else
     {
-      Entry<K> entry = new Entry<K>( key, value);
-      entries.add( i, entry);
-      count++;
-      return 0;
+      if ( children.size() == 0)
+      {
+        if ( count < maxKeys)
+        {
+          dirty = true;
+          Entry<K> entry = new Entry<K>( key, value);
+          entries.add( i, entry);
+          count++;
+          return 0;
+        }
+        else
+        {
+          // Split root (*)
+          dirty = true;
+          split();
+          return insert( key, value);
+        }
+      }
+      else
+      {
+        int k = -1 + 1;
+        BNode<K> node = children.get( k);
+        if ( node.count() < maxKeys)
+        {
+          return node.insert( key, value);
+        }
+        else
+        {
+          // Split internal node (*)
+          dirty = true;
+          node.split();
+
+          // move median key and its branches into this node
+          entries.add( k, node.entries.get( 0));
+          children.add( k, node.children.get( 0));
+          children.add( k+1, node.children.get( 1));
+          
+          // discard unused node
+          node.markGarbage();
+          
+          return node.insert( key, value);
+        }
+      }
     }
   }
   
@@ -78,10 +119,13 @@ public class BNode<K>
   
   protected long delete( K key, int i)
   {
+    if ( entries == null) load();
+    
     if ( children.size() == 0)
     {
       // Case 1: Key is in leaf node
       if ( i < 0) return 0;
+      dirty = true;
       count--;
       return entries.remove( i).value;
     }
@@ -90,10 +134,12 @@ public class BNode<K>
       // Case 2: Key is in internal node
       if ( i >= 0)
       {
+        dirty = true;
         BNode<K> less = children.get( i);
         if ( less.count() > minKeys)
         {
           // Case 2a: Lesser subtree can give up a key
+          less.dirty = true;
           Entry<K> entry = entries.get( i);
           Entry<K> lessEntry = less.entries.get( less.entries.size());
           entries.set( i, lessEntry);
@@ -106,10 +152,11 @@ public class BNode<K>
           if ( more.count() > minKeys)
           {
             // Case 2b: Greater subtree can give up a key
+            more.dirty = true;
             Entry<K> entry = entries.get( i);
             Entry<K> moreEntry = more.entries.get( 0);
             entries.set( i, moreEntry);
-            less.delete( moreEntry.key, 0);
+            more.delete( moreEntry.key, 0);
             return entry.value;
           }
           else
@@ -118,6 +165,7 @@ public class BNode<K>
             //   Merge lesser and greater subtrees
             //   Insert key into merged node
             //   Recursively delete key from merged node
+            dirty = true;
             BNode<K> merged = merge( i);
             return merged.delete( key);
           }
@@ -125,23 +173,45 @@ public class BNode<K>
       }
       else
       {
-        int k = -i + 1;
-        
         // Case 3: Key not found in current node
-        int j = biggestChild();
-        BNode<K> node = children.get( j);
-        if ( node.count() == minKeys)
+        int k = -i + 1;
+        BNode<K> node = children.get( k);
+        if ( node.count() > minKeys)
         {
-          // Case 3b: No children can give up a key
-          BNode<K> merged = merge( k);
-          return merged.delete( key);
+          return node.delete( key);
         }
         else
         {
-          // Case 3a: There is a child that can give up a key
-          pull( node, (j <= k)? (node.entries.size() - 1): 0);
-          push( k, node);
-          return children.get( k).delete( key);
+          BNode<K> less = (k > 0)? children.get( k-1): null;
+          if ( less != null && less.count() > minKeys)
+          {
+            // Case 3a: There is a child that can give up a key
+            rightRotate( k);
+            return node.delete( key);
+          }
+          else
+          {
+            BNode<K> more = children.get( k+1);
+            if ( more.count() > minKeys)
+            {
+              // Case 3a: There is a child that can give up a key
+              leftRotate( k);
+              return node.delete( key);
+            }
+            else
+            {
+              // 
+              // Merging here is always performed by choosing the key in the parent that follows
+              // the child being deleted, which means that the child will be merged with its greater
+              // sibling - with the exception of the greatest key in this node.
+              //
+              if ( k == entries.size()) k--;
+              
+              // Case 3b: No children can give up a key
+              BNode<K> merged = merge( k);
+              return merged.delete( key);
+            }
+          }
         }
       }
     }
@@ -159,14 +229,27 @@ public class BNode<K>
   {
     int n = entries.size();
     int m = n / 2;
-    BNode<K> less = new BNode<K>( this, entries.subList( 0, m), children.subList( 0, m+1));
-    BNode<K> more = new BNode<K>( this, entries.subList( m+1, n), children.subList( m+1, n+1));
-    Entry<K> entry = entries.get( m);
+
+    BNode<K> less = null;
+    BNode<K> more = null;
+    
+    if ( children.size() == 0)
+    {
+      less = new BNode<K>( this, entries.subList( 0, m), Collections.<BNode<K>>emptyList());
+      more = new BNode<K>( this, entries.subList( m+1, n), Collections.<BNode<K>>emptyList());
+    }
+    else
+    {
+      less = new BNode<K>( this, entries.subList( 0, m), children.subList( 0, m+1));
+      more = new BNode<K>( this, entries.subList( m+1, n), children.subList( m+1, n+1));
+    }
+    
+    Entry<K> median = entries.get( m);
         
     entries.clear();
     children.clear();
     
-    entries.add( entry);
+    entries.add( median);
     children.add( less);
     children.add( more);
   }
@@ -177,8 +260,9 @@ public class BNode<K>
     
     BNode<K> less = children.get( i);
     BNode<K> more = children.remove( i+1);
+    more.markGarbage();
     
-    
+    less.dirty = true;
     BNode<K> merged = less;
     merged.entries.add( entry);
     merged.entries.addAll( more.entries);
@@ -189,13 +273,42 @@ public class BNode<K>
     return merged;
   }
   
-  protected void push( int i, BNode<K> node)
+  protected void leftRotate( int i)
   {
+    BNode<K> less = children.get( i);
+    BNode<K> more = children.get( i+1);
     
+    this.dirty = true;
+    less.dirty = true;
+    more.dirty = true;
+    
+    // move key in this node to end of lesser child
+    less.entries.add( entries.remove( i));
+    
+    // move least child of greater child to least child
+    less.children.add( more.children.remove( 0));
+    
+    // move least key of greater child to this node
+    entries.add( 0, more.entries.remove( 0));
   }
   
-  protected void pull( BNode<K> node, int i)
+  protected void rightRotate( int i)
   {
+    BNode<K> less = children.get( i);
+    BNode<K> more = children.get( i+1);
+    
+    this.dirty = true;
+    less.dirty = true;
+    more.dirty = true;
+    
+    // move key in this node to start of greater child
+    more.entries.add( 0, entries.remove( i));
+    
+    // move greater child of lesser child to greater child
+    more.children.add( 0, less.children.remove( less.count()));
+    
+    // move least key of greater child to this node
+    entries.add( less.entries.remove( less.count()));
   }
   
   protected int search( K key)
@@ -251,25 +364,41 @@ public class BNode<K>
     }
   }
   
-  protected void appendTo()
+  public void store()
   {
-    tree.store.seekEnd();
+    if ( !dirty) return;
+    
+    IRandomAccessStore<K> store = tree.store;
+    
+    store.seekEnd();
+    pointer = store.position();
 
-    tree.store.writeInt( count);
+    store.writeInt( count);
     
     for( int i=0; i<=count; i++)
     {
       BNode<K> child = children.get( i);
-      tree.store.writeLong( child.pointer);
-      tree.store.writeInt( child.count);
+      if ( child.dirty) child.store();
+      store.writeLong( child.pointer);
+      store.writeInt( child.count);
 
       if ( i < count)
       {
         Entry<K> entry = entries.get( i);
-        tree.store.writeKey( entry.key);
-        tree.store.writeLong( entry.value);
+        store.writeKey( entry.key);
+        store.writeLong( entry.value);
       }
     }
+  }
+  
+  protected void markGarbage()
+  {
+    if ( pointer == 0) throw new IllegalStateException();
+    
+    tree.store.seek( pointer);
+    tree.store.writeInt( 0);
+    
+    pointer = 0;
   }
   
   private BTree<K> tree;
@@ -278,6 +407,7 @@ public class BNode<K>
   private int maxKeys;
   private int count;
   private long pointer;
+  private boolean dirty;
   
   private List<Entry<K>> entries;
   private List<BNode<K>> children;
