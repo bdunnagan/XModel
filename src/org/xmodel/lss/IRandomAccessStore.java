@@ -3,7 +3,7 @@ package org.xmodel.lss;
 /**
  * Interface for random access storage.
  */
-public interface IRandomAccessStore
+public interface IRandomAccessStore<K>
 {
   /**
    * Read bytes at the current position.
@@ -21,6 +21,18 @@ public interface IRandomAccessStore
    */
   public void write( byte[] bytes, int offset, int length);
 
+  /**
+   * Read a key from the current position.
+   * @return Returns the key that was read.
+   */
+  public K readKey();
+  
+  /**
+   * Write a key into the store at the current position.
+   * @param key The key.
+   */
+  public void writeKey( K key);
+  
   /**
    * Read an integer from the current position in the store.
    * @return Returns the integer.

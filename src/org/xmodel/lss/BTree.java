@@ -3,9 +3,9 @@ package org.xmodel.lss;
 /**
  * An abstract implementation of the b-tree algorithm.
  */
-public class BTree<K, V>
+public class BTree<K>
 {
-  public BTree( IRandomAccessStore store, int degree)
+  public BTree( IRandomAccessStore<K> store, int degree)
   {
     this.store = store;
     this.degree = degree;
@@ -18,10 +18,10 @@ public class BTree<K, V>
    * @param pointer The pointer.
    * @return Returns 0 or the previous record associated with the key.
    */
-  public long insert( K key, V pointer)
+  public long insert( K key, long pointer)
   {
   }
  
-  protected IRandomAccessStore store;
-  private BNode<K, V> root;
+  protected IRandomAccessStore<K> store;
+  private BNode<K> root;
 }
