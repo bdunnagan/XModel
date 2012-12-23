@@ -20,7 +20,7 @@ public interface IRandomAccessStore
    * @param length The number of bytes to write.
    */
   public void write( byte[] bytes, int offset, int length);
-  
+
   /**
    * Read an integer from the current position in the store.
    * @return Returns the integer.
@@ -50,4 +50,14 @@ public interface IRandomAccessStore
    * @param position The position.
    */
   public void seek( long position);
+  
+  /**
+   * @return Returns the current position.
+   */
+  public long position();
+  
+  /**
+   * Seek to the end.
+   */
+  public void seekEnd();
 }
