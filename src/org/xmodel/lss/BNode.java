@@ -202,8 +202,8 @@ public class BNode<K>
           }
           else
           {
-            BNode<K> more = children.get( k);
-            if ( more.count() > minKeys)
+            BNode<K> more = (k < count)? children.get( k+1): null;
+            if ( more != null && more.count() > minKeys)
             {
               // Case 3a: There is a child that can give up a key
               leftRotate( k);
@@ -321,7 +321,7 @@ public class BNode<K>
       more.children.add( 0, less.children.remove( less.count()));
     
     // move least key of greater child to this node
-    addEntry( less.removeEntry( less.count() - 1));
+    addEntry( i, less.removeEntry( less.count() - 1));
   }
   
   protected int search( K key)

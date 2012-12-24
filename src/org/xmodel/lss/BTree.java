@@ -1,10 +1,6 @@
 package org.xmodel.lss;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -76,14 +72,7 @@ public class BTree<K>
       }
     });
 
-    // Pathological Inputs
-    //
-    // #1
-    // INSERT: ABCDEFGHIJKLMNOPQRSTVWXU
-    // DELETE: DA
-    
-    
-    String s = "ABCDEFGHIJKLMNOPQRSTVWXU";
+    String s = "AFSHZ3UOCY6RVLXDNQ74MEP5BL2G89BW1I";
 
     for( int i=0; i<s.length(); i++)
     {
@@ -94,21 +83,13 @@ public class BTree<K>
       System.out.println( "------------------------------------------------------------");
     }
     
-//    for( int i=0; i<s.length(); i++)
-//    {
-//      String key = ""+s.charAt( i);
-//      System.out.printf( "Delete %s\n", key);
-//      tree.delete( key);
-//      System.out.println( tree.root);
-//      System.out.println( "------------------------------------------------------------");
-//    }
-    
-    tree.delete( "D");
-    System.out.println( tree.root);
-    System.out.println( "------------------------------------------------------------");
-    
-    tree.delete( "A");
-    System.out.println( tree.root);
-    System.out.println( "------------------------------------------------------------");
+    for( int i=0; i<s.length(); i++)
+    {
+      String key = ""+s.charAt( i);
+      System.out.printf( "Delete %s\n", key);
+      tree.delete( key);
+      System.out.println( tree.root);
+      System.out.println( "------------------------------------------------------------");
+    }
   }
 }
