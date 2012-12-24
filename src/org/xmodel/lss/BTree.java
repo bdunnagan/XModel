@@ -1,6 +1,10 @@
 package org.xmodel.lss;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -45,7 +49,9 @@ public class BTree<K>
    */
   public long delete( K key)
   {
-    return root.delete( key);
+    long pointer = root.delete( key);
+    if ( root.count() == 0 && root.children().size() > 0) root = root.children().get( 0);
+    return pointer;
   }
   
   /**
@@ -60,4 +66,49 @@ public class BTree<K>
  
   protected IRandomAccessStore<K> store;
   private BNode<K> root;
+  
+  public static void main( String[] args) throws Exception
+  {
+    BTree<String> tree = new BTree<String>( 3, null, new Comparator<String>() {
+      public int compare( String lhs, String rhs)
+      {
+        return lhs.compareTo( rhs);
+      }
+    });
+
+    // Pathological Inputs
+    //
+    // #1
+    // INSERT: ABCDEFGHIJKLMNOPQRSTVWXU
+    // DELETE: DA
+    
+    
+    String s = "ABCDEFGHIJKLMNOPQRSTVWXU";
+
+    for( int i=0; i<s.length(); i++)
+    {
+      String key = ""+s.charAt( i);
+      System.out.printf( "Insert %s\n", key);
+      tree.insert( key, 0);
+      System.out.println( tree.root);
+      System.out.println( "------------------------------------------------------------");
+    }
+    
+//    for( int i=0; i<s.length(); i++)
+//    {
+//      String key = ""+s.charAt( i);
+//      System.out.printf( "Delete %s\n", key);
+//      tree.delete( key);
+//      System.out.println( tree.root);
+//      System.out.println( "------------------------------------------------------------");
+//    }
+    
+    tree.delete( "D");
+    System.out.println( tree.root);
+    System.out.println( "------------------------------------------------------------");
+    
+    tree.delete( "A");
+    System.out.println( tree.root);
+    System.out.println( "------------------------------------------------------------");
+  }
 }
