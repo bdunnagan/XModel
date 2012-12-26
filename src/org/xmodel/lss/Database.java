@@ -20,7 +20,7 @@ public class Database<K>
     long position = store.position();
     while( position < store.length())
     {
-      byte[] record = read();
+      byte[] record = readRecord();
       K key = parser.extract( record);
       insert( key, record);
     }
@@ -35,7 +35,7 @@ public class Database<K>
   {
     store.seek( store.length());
     long position = store.position();
-    write( record);
+    writeRecord( record);
     position = btree.insert( key, position);
     if ( position > 0) trash( position);
   }
@@ -61,7 +61,7 @@ public class Database<K>
     if ( position > 0) 
     {
       store.seek( position);
-      return read();
+      return readRecord();
     }
     return null;
   }
@@ -70,7 +70,7 @@ public class Database<K>
    * Write a record.
    * @param record The record.
    */
-  public void write( byte[] record)
+  public void writeRecord( byte[] record)
   {
     store.writeByte( (byte)0);
     store.writeLong( record.length);
@@ -81,8 +81,9 @@ public class Database<K>
    * Read the record.
    * @return Returns the record.
    */
-  public byte[] read()
+  public byte[] readRecord()
   {
+    @SuppressWarnings("unused")
     byte header = store.readByte();
     long length = store.readLong();
     byte[] data = new byte[ (int)length];
@@ -98,6 +99,14 @@ public class Database<K>
   {
     store.seek( position);
     store.writeByte( (byte)1);
+  }
+  
+  /**
+   * @return Returns the store.
+   */
+  public IRandomAccessStore<K> getStore()
+  {
+    return store;
   }
   
   private IRandomAccessStore<K> store;
