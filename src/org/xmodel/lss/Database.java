@@ -105,6 +105,32 @@ public class Database<K>
   }
   
   /**
+   * Compact a region of the database. The region must begin on a record boundary.
+   * @param parser The key parser.
+   * @param offset The offset of the region to compact.
+   * @param length The length of the region to compact.
+   */
+  public void compact( IKeyParser<K> parser, long offset, long length)
+  {
+    store.seek( offset);
+    while( length > 0)
+    {
+      byte recordHeader = store.readByte();
+      long recordLength = store.readLong();
+      if ( recordHeader == 0) 
+      {
+        store.seek( offset);
+        byte[] record = readRecord();
+        K key = parser.extract( record);
+        insert( key, record);
+      }
+      
+      offset += recordLength;
+      length -= recordLength;
+    }
+  }
+  
+  /**
    * @return Returns the store.
    */
   public IRandomAccessStore<K> getStore()
