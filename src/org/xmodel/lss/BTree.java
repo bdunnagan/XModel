@@ -7,6 +7,14 @@ import java.util.Comparator;
  */
 public class BTree<K>
 {
+  /**
+   * Create a b+tree with the specified degree, which places bounds on the number of entries in each node.  The minimum number
+   * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
+   * instance of IRandomAccessStore to store and retrieve nodes.
+   * @param degree The degree of the b+tree.
+   * @param store The store.
+   * @param comparator The key comparator.
+   */
   public BTree( int degree, IRandomAccessStore<K> store, Comparator<K> comparator)
   {
     int minKeys = degree - 1;

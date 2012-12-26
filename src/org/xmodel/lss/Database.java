@@ -2,6 +2,9 @@ package org.xmodel.lss;
 
 import java.util.Comparator;
 
+/**
+ * Experimental implementation of a log-structured database.
+ */
 public class Database<K>
 {
   public Database( IRandomAccessStore<K> store, IKeyParser<K> parser, Comparator<K> comparator)

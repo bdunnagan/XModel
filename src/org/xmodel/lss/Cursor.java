@@ -2,41 +2,55 @@ package org.xmodel.lss;
 
 import org.xmodel.lss.BNode.Entry;
 
-class Cursor<K>
+/**
+ * A BTree iterator that can move forward or backward through the ordered keys in the tree.
+ */
+public class Cursor<K>
 {
+  /**
+   * Create a cursor positioned at the specified entry.
+   * @param node The node.
+   * @param offset The offset of the entry.
+   */
   Cursor( BNode<K> node, int offset)
   {
-    this( null, node, offset, true);
+    this( null, node, offset);
   }
   
-  Cursor( BNode<K> node, int offset, boolean visit)
-  {
-    this( null, node, offset, visit);
-  }
-  
+  /**
+   * Create a cursor positioned at the specified entry with the specified parent.
+   * @param parent The cursor for the parent node.
+   * @param node The node.
+   * @param offset The offset of the entry.
+   */
   Cursor( Cursor<K> parent, BNode<K> node, int offset)
-  {
-    this( parent, node, offset, true);
-  }
-  
-  Cursor( Cursor<K> parent, BNode<K> node, int offset, boolean visit)
   {
     this.parent = parent;
     this.node = node;
     this.offset = offset;
-    this.visit = visit;
   }
   
+  /**
+   * @return Returns the current entry.
+   */
   public Entry<K> get()
   {
     return node.entries.get( offset);
   }
 
+  /**
+   * @return Returns true if there is a key that is less than the current key.
+   */
   public boolean hasPrevious()
   {
     return offset >= 0;
   }
   
+  /**
+   * Unlike the Iterator interface, cursors are created pointing at an entry.  Therefore, the
+   * current entry should be consumed before calling <code>previous()</code> or <code>next()</code>.
+   * @return Returns a cursor that is positioned on the previous entry.
+   */
   public Cursor<K> previous()
   {
     Cursor<K> leaf = previousLeaf();
@@ -52,6 +66,11 @@ class Cursor<K>
     return this;
   }
   
+  /**
+   * When the cursor points to the first entry in the node, a call to <code>previous()</code> will
+   * unwind the stack by visiting each parent node until it finds a parent that has a previous entry.
+   * @return Returns null or a cursor that is positioned on the previous parent.
+   */
   private Cursor<K> previousParent()
   {
     Cursor<K> cursor = parent;
@@ -61,6 +80,11 @@ class Cursor<K>
     return cursor;
   }
   
+  /**
+   * The <code>previous()</code> method is required to return a cursor that is positioned at a leaf
+   * node unless the stack has just been unwound and an entry of an internal node is the current entry.
+   * @return Returns null or a cursor that is positioned on the previous leaf.
+   */
   private Cursor<K> previousLeaf()
   {
     if ( node.children().size() == 0) return null;
@@ -78,11 +102,19 @@ class Cursor<K>
     return cursor;
   }
   
+  /**
+   * @return Returns true if there is a key that is greater than the current key.
+   */
   public boolean hasNext()
   {
     return offset < node.count();
   }
   
+  /**
+   * Unlike the Iterator interface, cursors are created pointing at an entry.  Therefore, the
+   * current entry should be consumed before calling <code>previous()</code> or <code>next()</code>.
+   * @return Returns a cursor that is positioned on the next entry.
+   */
   public Cursor<K> next()
   {
     offset++;
@@ -99,6 +131,11 @@ class Cursor<K>
     return this;
   }
   
+  /**
+   * When the cursor points to the last entry in the node, a call to <code>next()</code> will
+   * unwind the stack by visiting each parent node until it finds a parent that has a next entry.
+   * @return Returns null or a cursor that is positioned on the next parent.
+   */
   private Cursor<K> nextParent()
   {
     Cursor<K> cursor = parent;
@@ -107,6 +144,11 @@ class Cursor<K>
     return cursor;
   }
   
+  /**
+   * The <code>next()</code> method is required to return a cursor that is positioned at a leaf
+   * node unless the stack has just been unwound and an entry of an internal node is the current entry.
+   * @return Returns null or a cursor that is positioned on the next leaf.
+   */
   private Cursor<K> nextLeaf()
   {
     if ( node.children().size() == 0) return null;
@@ -126,5 +168,4 @@ class Cursor<K>
   public Cursor<K> parent;
   public BNode<K> node;
   public int offset;
-  public boolean visit;
 }

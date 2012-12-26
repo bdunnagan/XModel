@@ -8,6 +8,9 @@ import java.util.List;
 
 public class BNode<K>
 {
+  /**
+   * A BNode consists of an ordered list of Entry objects that associate a key with a pointer into the IRandomAccessStore.
+   */
   public static class Entry<K>
   {
     public Entry( K key, long value)
@@ -30,6 +33,15 @@ public class BNode<K>
     private long value;
   }
     
+  /**
+   * Create a BTree root node.
+   * @param tree The BTree.
+   * @param minKeys The minimum number of keys in a node.
+   * @param maxKeys The maximum number of keys in a node.
+   * @param pointer The location of the node in the IRandomAccessStore.
+   * @param count The number of entries in the node.
+   * @param comparator The key comparator.
+   */
   public BNode( BTree<K> tree, int minKeys, int maxKeys, long pointer, int count, Comparator<K> comparator)
   {
     this.tree = tree;
@@ -43,6 +55,12 @@ public class BNode<K>
     this.update = 0;
   }
   
+  /**
+   * Create an internal BTree node.
+   * @param parent The parent of the node.
+   * @param entries The entries.
+   * @param children The children.
+   */
   public BNode( BNode<K> parent, List<Entry<K>> entries, List<BNode<K>> children)
   {
     this.tree = parent.tree;
@@ -56,16 +74,28 @@ public class BNode<K>
     this.update = 0;
   }
    
+  /**
+   * @return Returns null or the parent of the node.
+   */
   public BNode<K> parent()
   {
     return parent;
   }
   
+  /**
+   * @return Returns the number of entries in the node.
+   */
   public int count()
   {
     return count;
   }
   
+  /**
+   * Create an entry for the specified value under the specified key.
+   * @param key The key.
+   * @param value The value.
+   * @return Returns 0 or the previous value associated with the key.
+   */
   public long insert( K key, long value)
   {
     if ( entries == null) load();
@@ -137,6 +167,11 @@ public class BNode<K>
     }
   }
   
+  /**
+   * Delete the entry under the specified key.
+   * @param key The key.
+   * @return Returns 0 or the value that was associated with the key.
+   */
   public long delete( K key)
   {
     if ( entries == null) load();
@@ -144,6 +179,12 @@ public class BNode<K>
     return delete( key, i);
   }
   
+  /**
+   * Delete the entry under the specified key.
+   * @param key The key.
+   * @param i The index of the key or the index where the key would be inserted.
+   * @return Returns 0 or the value that was associated with the key.
+   */
   protected long delete( K key, int i)
   {
     if ( entries == null) load();
@@ -243,6 +284,11 @@ public class BNode<K>
     }
   }
   
+  /**
+   * Get the value under the specified key.
+   * @param key The key.
+   * @return Returns 0 or the value under the specified key.
+   */
   public long get( K key)
   {
     if ( entries == null) load();
@@ -254,11 +300,22 @@ public class BNode<K>
     return children.get( -i - 1).get( key);
   }
   
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The starting key.
+   * @return Returns a cursor.
+   */
   public Cursor<K> getCursor( K key)
   {
     return getCursor( null, key);
   }
   
+  /**
+   * Get a nested cursor for navigating keys in order.
+   * @param cursor The parent node cursor.
+   * @param key The starting key.
+   * @return Returns a cursor.
+   */
   protected Cursor<K> getCursor( Cursor<K> parent, K key)
   {
     if ( entries == null) load();
@@ -270,6 +327,11 @@ public class BNode<K>
     return children.get( -i - 1).getCursor( new Cursor<K>( parent, this, -i - 1), key);
   }
   
+  /**
+   * Split this node such that all entries less than the median key and all entries greater than
+   * the median key become new nodes that are children of this node.  Only the median key remains
+   * in this node.
+   */
   protected void split()
   {
     int n = entries.size();
@@ -299,6 +361,11 @@ public class BNode<K>
     children.add( more);
   }
   
+  /**
+   * Merge the nodes on either side of the entry with the specified index.
+   * @param i The index of the entry.
+   * @return Returns the merge node.
+   */
   protected BNode<K> merge( int i)
   {
     Entry<K> entry = removeEntry( i);
@@ -318,6 +385,10 @@ public class BNode<K>
     return merged;
   }
   
+  /**
+   * Left rotate the tree at the entry with the specified index.
+   * @param i The index of the entry.
+   */
   protected void leftRotate( int i)
   {
     BNode<K> less = children.get( i);
@@ -338,6 +409,10 @@ public class BNode<K>
     addEntry( i, more.removeEntry( 0));
   }
   
+  /**
+   * Right rotate the tree at the entry with the specified index.
+   * @param i The index of the entry.
+   */
   protected void rightRotate( int i)
   {
     BNode<K> less = children.get( i);
@@ -358,42 +433,72 @@ public class BNode<K>
     addEntry( i, less.removeEntry( less.count() - 1));
   }
   
+  /**
+   * Perform a binary search of this node for the specified key.
+   * @param key The key.
+   * @return Returns the index of the key, or -insert - 1.
+   */
   protected int search( K key)
   {
     Entry<K> entry = new Entry<K>( key, 0);
     return Collections.binarySearch( entries, entry, entryComparator);
   }
   
+  /**
+   * Add an entry to the node.
+   * @param entry The entry.
+   */
   protected void addEntry( Entry<K> entry)
   {
     entries.add( entry);
     count++;
   }
   
+  /**
+   * Add an entry to the node at the specified index.
+   * @param i The node where the entry will be inserted.
+   * @param entry The entry.
+   */
   protected void addEntry( int i, Entry<K> entry)
   {
     count++;
     entries.add( i, entry);
   }
   
+  /**
+   * Add all of the specified entries to this node.
+   * @param entries The entries.
+   */
   protected void addAllEntries( Collection<Entry<K>> entries)
   {
     count += entries.size();
     this.entries.addAll( entries);
   }
   
+  /**
+   * Remove an entry from this node.
+   * @param i The index of the entry.
+   * @return Returns the entry that was removed.
+   */
   protected Entry<K> removeEntry( int i)
   {
     count--;
     return entries.remove( i);
   }
   
+  /**
+   * Clear the entries in this node.
+   */
   protected void clearEntries()
   {
     count = 0;
     entries.clear();
   }
   
+  /**
+   * Load this node from the IRandomAccessStore, if necessary, and return its entries.
+   * @return Returns the entries in this node.
+   */
   protected List<Entry<K>> getEntries()
   {
     if ( entries == null) load();
@@ -401,7 +506,9 @@ public class BNode<K>
   }
   
   /**
-   * @return Returns the list of children.
+   * Load this node from the IRandomAccessStore, if necessary, and return its children.
+   * There is always exactly one more child than there are entries.
+   * @return Returns the children in this node.
    */
   protected List<BNode<K>> children()
   {
@@ -456,6 +563,9 @@ public class BNode<K>
     return sb.toString();
   }    
 
+  /**
+   * Load this node from the IRandomAccessStore.
+   */
   protected void load()
   {
     tree.store.seek( pointer);
@@ -480,6 +590,9 @@ public class BNode<K>
     }
   }
   
+  /**
+   * Write this node to the IRandomAccessStore.
+   */
   public void store()
   {
     if ( storedUpdate == update) return;
@@ -510,6 +623,9 @@ public class BNode<K>
     storedUpdate = update;
   }
   
+  /**
+   * Mark this node as trash in the IRandomAccessStore.
+   */
   protected void markGarbage()
   {
     if ( pointer == 0) return;
