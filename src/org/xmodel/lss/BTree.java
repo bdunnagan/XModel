@@ -7,24 +7,31 @@ import java.util.Comparator;
  */
 public class BTree<K>
 {
-  public BTree( IRandomAccessStore<K> store, Comparator<K> comparator)
-  {
-    this.store = store;
-    store.seek( 0);
-    int degree = store.readInt();
-    int minKeys = degree - 1;
-    int maxKeys = 2 * degree - 1;
-    long pointer = store.readLong();
-    int count = store.readInt();
-    root = new BNode<K>( this, minKeys, maxKeys, pointer, count, comparator);
-  }
-  
   public BTree( int degree, IRandomAccessStore<K> store, Comparator<K> comparator)
   {
-    this.store = store;
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
-    root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
+    
+    this.store = store;
+    store.seek( 0);
+
+    int storeDegree = store.readInt();
+    if ( storeDegree == 0)
+    {
+      store.writeInt( degree);
+      store.writeLong( 0);
+      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
+    }
+    else if ( storeDegree == degree)
+    {
+      long position = store.readLong();
+      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
+      root.load();
+    }
+    else
+    {
+      throw new IllegalStateException();
+    }
   }
   
   /**
@@ -59,7 +66,7 @@ public class BTree<K>
   {
     return root.get( key);
   }
-  
+
   IRandomAccessStore<K> store;
   BNode<K> root;
   

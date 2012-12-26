@@ -34,6 +34,18 @@ public interface IRandomAccessStore<K>
   public void writeKey( K key);
   
   /**
+   * Read a byte from the current position in the store.
+   * @return Returns the byte.
+   */
+  public byte readByte();
+  
+  /**
+   * Write a byte into the store at the current position.
+   * @param b The byte.
+   */
+  public void writeByte( byte b);
+  
+  /**
    * Read an integer from the current position in the store.
    * @return Returns the integer.
    */
@@ -67,9 +79,9 @@ public interface IRandomAccessStore<K>
    * @return Returns the current position.
    */
   public long position();
-  
+
   /**
-   * Seek to the end.
+   * @return Returns the length of the store.
    */
-  public void seekEnd();
+  public long length();
 }

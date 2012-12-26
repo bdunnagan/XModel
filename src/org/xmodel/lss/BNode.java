@@ -486,7 +486,7 @@ public class BNode<K>
     
     IRandomAccessStore<K> store = tree.store;
     
-    store.seekEnd();
+    store.seek( store.length());
     pointer = store.position();
 
     store.writeInt( count);
