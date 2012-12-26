@@ -254,34 +254,22 @@ public class BNode<K>
     return children.get( -i - 1).get( key);
   }
   
-  public Cursor<K> ascendingIterator( K key)
+  public Cursor<K> getCursor( K key)
+  {
+    return getCursor( null, key);
+  }
+  
+  protected Cursor<K> getCursor( Cursor<K> parent, K key)
   {
     if ( entries == null) load();
     
     int i = search( key);
-    if ( i >= 0) return new Cursor<K>( this, i, true);
+    if ( i >= 0) return new Cursor<K>( parent, this, i);
     
-    Cursor<K> cursor = new Cursor<K>( this, -i - 1, true);
-    if ( children.size() == 0) return cursor;
-    cursor.child = children.get( -i - 1).ascendingIterator( key);
-    
-    return cursor;
+    if ( children.size() == 0) return null;
+    return children.get( -i - 1).getCursor( new Cursor<K>( parent, this, -i - 1), key);
   }
-      
-  public Cursor<K> descendingIterator( K key)
-  {
-    if ( entries == null) load();
-    
-    int i = search( key);
-    if ( i >= 0) return new Cursor<K>( this, i, false);
-    
-    Cursor<K> cursor = new Cursor<K>( this, -i - 2, false);
-    if ( children.size() == 0) return cursor;
-    cursor.child = children.get( -i - 1).descendingIterator( key);
-    
-    return cursor;
-  }
-      
+  
   protected void split()
   {
     int n = entries.size();
@@ -408,6 +396,7 @@ public class BNode<K>
   
   protected List<Entry<K>> getEntries()
   {
+    if ( entries == null) load();
     return entries;
   }
   
@@ -416,6 +405,7 @@ public class BNode<K>
    */
   protected List<BNode<K>> children()
   {
+    if ( entries == null) load();
     return children;
   }
   
@@ -530,7 +520,7 @@ public class BNode<K>
     pointer = 0;
   }
   
-  private BTree<K> tree;
+  protected BTree<K> tree;
   private BNode<K> parent;
   
   private int minKeys;

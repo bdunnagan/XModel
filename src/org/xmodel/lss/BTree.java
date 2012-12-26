@@ -1,8 +1,6 @@
 package org.xmodel.lss;
 
 import java.util.Comparator;
-import java.util.Iterator;
-import org.xmodel.lss.BNode.Entry;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -62,18 +60,8 @@ public class BTree<K>
     return root.get( key);
   }
   
-  public Iterator<Entry<K>> ascendingIterator( K key)
-  {
-    return root.ascendingIterator( key);
-  }
-  
-  public Iterator<Entry<K>> descendingIterator( K key)
-  {
-    return root.descendingIterator( key);
-  }
-  
-  protected IRandomAccessStore<K> store;
-  private BNode<K> root;
+  IRandomAccessStore<K> store;
+  BNode<K> root;
   
   public static void main( String[] args) throws Exception
   {
@@ -95,16 +83,11 @@ public class BTree<K>
       System.out.println( "------------------------------------------------------------");
     }
     
-    Iterator<Entry<String>> iterator = tree.ascendingIterator( "D");
-    for( int i=0; i<8; i++)
+    Cursor<String> cursor = tree.root.getCursor( "5");
+    while( cursor.hasPrevious())
     {
-      System.out.printf( "Traverse: %s\n", iterator.next().getKey());
-    }
-    
-    tree.insert( "O", 0);
-    while( iterator.hasNext())
-    {
-      System.out.printf( "Traverse: %s\n", iterator.next().getKey());
+      System.out.printf( "Traverse: %s\n", cursor.get().getKey());
+      cursor = cursor.previous();
     }
     
 //    for( int i=0; i<s.length(); i++)
