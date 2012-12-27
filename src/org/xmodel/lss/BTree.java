@@ -14,19 +14,35 @@ public class BTree<K>
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
    * @param store The store.
+   */
+  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore store) throws IOException
+  {
+    this( degree, keyFormat, store, null);
+  }
+  
+  /**
+   * Create a b+tree with the specified degree, which places bounds on the number of entries in each node.  The minimum number
+   * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
+   * instance of IRandomAccessStore to store and retrieve nodes.
+   * @param degree The degree of the b+tree.
+   * @param store The store.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore<K> store, Comparator<K> comparator) throws IOException
+  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore store, Comparator<K> comparator) throws IOException
   {
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
     
     this.keyFormat = keyFormat;
-    
     this.store = store;
-    store.seek( 0);
 
-    int storeDegree = store.readInt();
+    int storeDegree = 0;
+    if ( store.length() > 0)
+    {
+      store.seek( 0);
+      storeDegree = store.readInt();
+    }
+    
     if ( storeDegree == 0)
     {
       store.writeInt( degree);
@@ -37,7 +53,7 @@ public class BTree<K>
     {
       long position = store.readLong();
       root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
-      root.load();
+      if ( position > 0) root.load();
     }
     else
     {
@@ -77,8 +93,28 @@ public class BTree<K>
   {
     return root.get( key);
   }
+  
+  /**
+   * Update the index in the store.
+   */
+  public void store() throws IOException
+  {
+    root.store();
+    store.seek( 4);
+    store.writeLong( root.pointer);
+    store.flush();
+  }
 
-  IRandomAccessStore<K> store;
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return root.toString();
+  }
+
+  IRandomAccessStore store;
   IKeyFormat<K> keyFormat;
   BNode<K> root;
   

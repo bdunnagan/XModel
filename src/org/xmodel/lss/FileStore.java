@@ -4,7 +4,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class FileStore<K> extends AbstractStore<K>
+public class FileStore extends AbstractStore
 {
   public FileStore( String filename) throws IOException
   {

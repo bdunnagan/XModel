@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Interface for random access storage.
  */
-public interface IRandomAccessStore<K>
+public interface IRandomAccessStore
 {
   /**
    * Read bytes at the current position.

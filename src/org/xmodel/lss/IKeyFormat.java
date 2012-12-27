@@ -1,5 +1,7 @@
 package org.xmodel.lss;
 
+import java.io.IOException;
+
 /**
  * An interface for extracting keys from database records.
  */
@@ -10,14 +12,14 @@ public interface IKeyFormat<K>
    * @param store The store.
    * @return Returns the key.
    */
-  public K read( IRandomAccessStore<K> store);
+  public K read( IRandomAccessStore store) throws IOException;
   
   /**
    * Write a key to the store.
    * @param store The store.
    * @param key The key.
    */
-  public void write( IRandomAccessStore<K> store, K key);
+  public void write( IRandomAccessStore store, K key) throws IOException;
   
   /**
    * Extract the key from the specified database record.

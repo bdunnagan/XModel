@@ -12,7 +12,7 @@ public class BNode<K>
   /**
    * A BNode consists of an ordered list of Entry objects that associate a key with a pointer into the IRandomAccessStore.
    */
-  public static class Entry<K>
+  public static class Entry<K> implements Comparable<Entry<K>>
   {
     public Entry( K key, long value)
     {
@@ -28,6 +28,12 @@ public class BNode<K>
     public long getPointer()
     {
       return value;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public int compareTo( Entry<K> entry)
+    {
+      return ((Comparable<K>)key).compareTo( entry.key);
     }
     
     private K key;
@@ -54,6 +60,33 @@ public class BNode<K>
     this.entries = new ArrayList<Entry<K>>( count);
     this.children = new ArrayList<BNode<K>>( count);
     this.update = 0;
+    this.storedUpdate = -1;
+  }
+  
+  /**
+   * Create an internal BTree node that has not yet been loaded from the store.
+   * @param parent The parent node.
+   * @param minKeys The minimum number of keys in a node.
+   * @param maxKeys The maximum number of keys in a node.
+   * @param pointer The location of the node in the IRandomAccessStore.
+   * @param count The number of entries in the node.
+   * @param comparator The key comparator.
+   */
+  public BNode( BNode<K> parent, int minKeys, int maxKeys, long pointer, int count, Comparator<K> comparator)
+  {
+    this.tree = parent.tree;
+    this.parent = parent;
+    this.minKeys = minKeys;
+    this.maxKeys = maxKeys;
+    this.comparator = comparator;
+    this.pointer = pointer;
+    this.count = count;
+    this.children = new ArrayList<BNode<K>>( count);
+    this.update = 0;
+    this.storedUpdate = -1;
+    
+    // indicates node has not been loaded
+    this.entries = null; 
   }
   
   /**
@@ -73,6 +106,7 @@ public class BNode<K>
     this.children = new ArrayList<BNode<K>>( children);
     this.count = entries.size();
     this.update = 0;
+    this.storedUpdate = -1;
   }
    
   /**
@@ -148,7 +182,8 @@ public class BNode<K>
             node.markGarbage();
 
             // insert into appropriate subtree
-            int c = comparator.compare( key, median.key);
+            @SuppressWarnings("unchecked")
+            int c = (comparator != null)? comparator.compare( key, median.key): ((Comparable<K>)key).compareTo( median.key);
             if ( c < 0) return less.insert( key, value);
             if ( c > 0) return more.insert( key, value);
             
@@ -333,8 +368,10 @@ public class BNode<K>
    * the median key become new nodes that are children of this node.  Only the median key remains
    * in this node.
    */
-  protected void split()
+  protected void split() throws IOException
   {
+    if ( entries == null) load();
+    
     int n = entries.size();
     int m = n / 2;
 
@@ -442,7 +479,14 @@ public class BNode<K>
   protected int search( K key)
   {
     Entry<K> entry = new Entry<K>( key, 0);
-    return Collections.binarySearch( entries, entry, entryComparator);
+    if ( comparator == null)
+    {
+      return Collections.binarySearch( entries, entry);
+    }
+    else
+    {
+      return Collections.binarySearch( entries, entry, entryComparator);
+    }
   }
   
   /**
@@ -540,6 +584,8 @@ public class BNode<K>
    */
   public String toString( String indent)
   {
+    if ( entries == null) return "[not loaded]";
+    
     StringBuilder sb = new StringBuilder();
     for( int i=0; i<count; i++)
     {
@@ -569,24 +615,31 @@ public class BNode<K>
    */
   protected void load() throws IOException
   {
-    tree.store.seek( pointer);
+    IRandomAccessStore store = tree.store;
+    store.seek( pointer);
+
+    count = 0;
     
-    count = tree.store.readInt();
+    int count = store.readInt();
+    boolean hasChildren = store.readByte() == 1;
     
     entries = new ArrayList<Entry<K>>( count);
-    for( int i=0; i<=count; i++)
+    for( int i=0; i<count; i++)
     {
-      long pointer = tree.store.readLong();
-      int count = tree.store.readInt();
-      BNode<K> child = new BNode<K>( tree, minKeys, maxKeys, pointer, count, comparator);
-      children.add( child);
-     
-      if ( i < count)
+      K key = tree.keyFormat.read( store);
+      long pointer = store.readLong();
+      Entry<K> entry = new Entry<K>( key, pointer);
+      addEntry( entry);
+    }
+    
+    if ( hasChildren)
+    {
+      for( int i=0; i<=count; i++)
       {
-        K key = tree.keyFormat.read( tree.store);
-        pointer = tree.store.readLong();
-        Entry<K> entry = new Entry<K>( key, pointer);
-        addEntry( entry);
+        long childPointer = store.readLong();
+        int childCount = store.readInt();
+        BNode<K> child = new BNode<K>( this, minKeys, maxKeys, childPointer, childCount, comparator);
+        children.add( child);
       }
     }
   }
@@ -598,26 +651,34 @@ public class BNode<K>
   {
     if ( storedUpdate == update) return;
     
-    IRandomAccessStore<K> store = tree.store;
+    IRandomAccessStore store = tree.store;
+    
+    if ( children.size() > 0)
+    {
+      for( int i=0; i<=count; i++)
+        children.get( i).store();
+    }
     
     store.seek( store.length());
     pointer = store.position();
 
     store.writeInt( count);
+    store.writeByte( (byte)((children.size() > 0)? 1: 0));
     
-    for( int i=0; i<=count; i++)
+    for( int i=0; i<count; i++)
     {
-      BNode<K> child = children.get( i);
-      child.store();
-      
-      store.writeLong( child.pointer);
-      store.writeInt( child.count);
+      Entry<K> entry = entries.get( i);
+      tree.keyFormat.write( store, entry.key);
+      store.writeLong( entry.value);
+    }
 
-      if ( i < count)
+    if ( children.size() > 0)
+    {
+      for( int i=0; i<=count; i++)
       {
-        Entry<K> entry = entries.get( i);
-        tree.keyFormat.write( store, entry.key);
-        store.writeLong( entry.value);
+        BNode<K> child = children.get( i);
+        store.writeLong( child.pointer);
+        store.writeInt( child.count);
       }
     }
     
@@ -643,7 +704,7 @@ public class BNode<K>
   private int minKeys;
   private int maxKeys;
   private int count;
-  private long pointer;
+  protected long pointer;
   
   protected long update;
   private long storedUpdate;

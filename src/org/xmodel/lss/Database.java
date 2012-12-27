@@ -8,10 +8,22 @@ import java.util.Comparator;
  */
 public class Database<K>
 {
-  public Database( IRandomAccessStore<K> store, IKeyFormat<K> keyFormat, Comparator<K> comparator) throws IOException
+  public Database( IRandomAccessStore store, IKeyFormat<K> keyFormat) throws IOException
+  {
+    this( store, keyFormat, null);
+  }
+  
+  public Database( IRandomAccessStore store, IKeyFormat<K> keyFormat, Comparator<K> comparator) throws IOException
   {
     this.store = store;
     this.btree = new BTree<K>( 1000, keyFormat, store, comparator);
+    finishIndex( keyFormat);
+  }
+  
+  public Database( BTree<K> btree, IRandomAccessStore store, IKeyFormat<K> keyFormat) throws IOException
+  {
+    this.store = store;
+    this.btree = btree;
     finishIndex( keyFormat);
   }
   
@@ -21,12 +33,29 @@ public class Database<K>
    */
   protected void finishIndex( IKeyFormat<K> keyFormat) throws IOException
   {
-    long position = store.position();
-    while( position < store.length())
+    while( true)
     {
-      byte[] record = readRecord();
-      K key = keyFormat.extract( record);
-      insert( key, record);
+      long pointer = store.position();
+      if ( pointer >= store.length()) break;
+      
+      byte header = store.readByte();
+      if ( header == 0)
+      {
+        long length = store.readLong();
+        
+        // TODO: make key accessible without having to read the entire record?
+        byte[] record = new byte[ (int)length];
+        store.read( record, 0, record.length);
+
+        // insert may cause seek so store position
+        long position = store.position();
+        
+        K key = keyFormat.extract( record);
+        btree.insert( key, pointer);
+        
+        // restore position
+        store.seek( position);
+      }
     }
   }
   
@@ -134,11 +163,11 @@ public class Database<K>
   /**
    * @return Returns the store.
    */
-  public IRandomAccessStore<K> getStore()
+  public IRandomAccessStore getStore()
   {
     return store;
   }
   
-  private IRandomAccessStore<K> store;
+  private IRandomAccessStore store;
   private BTree<K> btree;
 }
