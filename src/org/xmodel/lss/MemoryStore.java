@@ -108,9 +108,9 @@ public class MemoryStore extends AbstractStore
         
       if ( ++n == bpl) 
       { 
-        sb.append( ' ');
         for( int j=0; j<bpl; j++)
         {
+          if ( (j % 4) == 0) sb.append( ' ');
           char c = (char)data[ i + 1 - bpl + j];
           if ( c < 32 || c > 127) c = '.';
           sb.append( c);

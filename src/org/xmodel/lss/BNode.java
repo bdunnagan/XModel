@@ -621,7 +621,8 @@ public class BNode<K>
     count = 0;
     
     int count = store.readInt();
-    boolean hasChildren = store.readByte() == 1;
+    byte flags = store.readByte();
+    boolean hasChildren = (flags & 0x0F) != 0;
     
     entries = new ArrayList<Entry<K>>( count);
     for( int i=0; i<count; i++)
@@ -692,8 +693,10 @@ public class BNode<K>
   {
     if ( pointer == 0) return;
     
-    tree.store.seek( pointer);
-    tree.store.writeInt( 0);
+    tree.store.seek( pointer + 4);
+    byte flags = tree.store.readByte();
+    tree.store.seek( pointer + 4);
+    tree.store.writeByte( (byte)(flags | 0x10));
     
     pointer = 0;
   }

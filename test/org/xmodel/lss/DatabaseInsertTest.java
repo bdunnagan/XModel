@@ -58,6 +58,8 @@ public class DatabaseInsertTest
       record[ 2] = '#';
       String key = String.format( "%c", i+65);
       db.insert( key, record);
+      System.out.println( store);
+      System.out.println();
     }
     
     //btree.store();
