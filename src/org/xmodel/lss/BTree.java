@@ -1,5 +1,6 @@
 package org.xmodel.lss;
 
+import java.io.IOException;
 import java.util.Comparator;
 
 /**
@@ -15,10 +16,12 @@ public class BTree<K>
    * @param store The store.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, IRandomAccessStore<K> store, Comparator<K> comparator)
+  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore<K> store, Comparator<K> comparator) throws IOException
   {
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
+    
+    this.keyFormat = keyFormat;
     
     this.store = store;
     store.seek( 0);
@@ -48,7 +51,7 @@ public class BTree<K>
    * @param pointer The pointer.
    * @return Returns 0 or the previous record associated with the key.
    */
-  public long insert( K key, long pointer)
+  public long insert( K key, long pointer) throws IOException
   {
     return root.insert( key, pointer);
   }
@@ -58,7 +61,7 @@ public class BTree<K>
    * @param key The key.
    * @return Returns 0 or the pointer associated with the key.
    */
-  public long delete( K key)
+  public long delete( K key) throws IOException
   {
     long pointer = root.delete( key);
     if ( root.count() == 0 && root.children().size() > 0) root = root.children().get( 0);
@@ -70,17 +73,18 @@ public class BTree<K>
    * @param key The key.
    * @return Returns 0 or the pointer associated with the specified key.
    */
-  public long get( K key)
+  public long get( K key) throws IOException
   {
     return root.get( key);
   }
 
   IRandomAccessStore<K> store;
+  IKeyFormat<K> keyFormat;
   BNode<K> root;
   
   public static void main( String[] args) throws Exception
   {
-    BTree<String> tree = new BTree<String>( 3, null, new Comparator<String>() {
+    BTree<String> tree = new BTree<String>( 3, null, null, new Comparator<String>() {
       public int compare( String lhs, String rhs)
       {
         return lhs.compareTo( rhs);

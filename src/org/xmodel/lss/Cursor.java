@@ -1,5 +1,6 @@
 package org.xmodel.lss;
 
+import java.io.IOException;
 import org.xmodel.lss.BNode.Entry;
 
 /**
@@ -51,7 +52,7 @@ public class Cursor<K>
    * current entry should be consumed before calling <code>previous()</code> or <code>next()</code>.
    * @return Returns a cursor that is positioned on the previous entry.
    */
-  public Cursor<K> previous()
+  public Cursor<K> previous() throws IOException
   {
     Cursor<K> leaf = previousLeaf();
     if ( leaf != null) return leaf;
@@ -85,7 +86,7 @@ public class Cursor<K>
    * node unless the stack has just been unwound and an entry of an internal node is the current entry.
    * @return Returns null or a cursor that is positioned on the previous leaf.
    */
-  private Cursor<K> previousLeaf()
+  private Cursor<K> previousLeaf() throws IOException
   {
     if ( node.children().size() == 0) return null;
     
@@ -115,7 +116,7 @@ public class Cursor<K>
    * current entry should be consumed before calling <code>previous()</code> or <code>next()</code>.
    * @return Returns a cursor that is positioned on the next entry.
    */
-  public Cursor<K> next()
+  public Cursor<K> next() throws IOException
   {
     offset++;
     
@@ -149,7 +150,7 @@ public class Cursor<K>
    * node unless the stack has just been unwound and an entry of an internal node is the current entry.
    * @return Returns null or a cursor that is positioned on the next leaf.
    */
-  private Cursor<K> nextLeaf()
+  private Cursor<K> nextLeaf() throws IOException
   {
     if ( node.children().size() == 0) return null;
     

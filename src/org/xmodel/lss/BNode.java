@@ -1,5 +1,6 @@
 package org.xmodel.lss;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,7 +97,7 @@ public class BNode<K>
    * @param value The value.
    * @return Returns 0 or the previous value associated with the key.
    */
-  public long insert( K key, long value)
+  public long insert( K key, long value) throws IOException
   {
     if ( entries == null) load();
     
@@ -172,7 +173,7 @@ public class BNode<K>
    * @param key The key.
    * @return Returns 0 or the value that was associated with the key.
    */
-  public long delete( K key)
+  public long delete( K key) throws IOException
   {
     if ( entries == null) load();
     int i = search( key);
@@ -185,7 +186,7 @@ public class BNode<K>
    * @param i The index of the key or the index where the key would be inserted.
    * @return Returns 0 or the value that was associated with the key.
    */
-  protected long delete( K key, int i)
+  protected long delete( K key, int i) throws IOException
   {
     if ( entries == null) load();
     
@@ -289,7 +290,7 @@ public class BNode<K>
    * @param key The key.
    * @return Returns 0 or the value under the specified key.
    */
-  public long get( K key)
+  public long get( K key) throws IOException
   {
     if ( entries == null) load();
     
@@ -305,7 +306,7 @@ public class BNode<K>
    * @param key The starting key.
    * @return Returns a cursor.
    */
-  public Cursor<K> getCursor( K key)
+  public Cursor<K> getCursor( K key) throws IOException
   {
     return getCursor( null, key);
   }
@@ -316,7 +317,7 @@ public class BNode<K>
    * @param key The starting key.
    * @return Returns a cursor.
    */
-  protected Cursor<K> getCursor( Cursor<K> parent, K key)
+  protected Cursor<K> getCursor( Cursor<K> parent, K key) throws IOException
   {
     if ( entries == null) load();
     
@@ -366,7 +367,7 @@ public class BNode<K>
    * @param i The index of the entry.
    * @return Returns the merge node.
    */
-  protected BNode<K> merge( int i)
+  protected BNode<K> merge( int i) throws IOException
   {
     Entry<K> entry = removeEntry( i);
     
@@ -499,7 +500,7 @@ public class BNode<K>
    * Load this node from the IRandomAccessStore, if necessary, and return its entries.
    * @return Returns the entries in this node.
    */
-  protected List<Entry<K>> getEntries()
+  protected List<Entry<K>> getEntries() throws IOException
   {
     if ( entries == null) load();
     return entries;
@@ -510,7 +511,7 @@ public class BNode<K>
    * There is always exactly one more child than there are entries.
    * @return Returns the children in this node.
    */
-  protected List<BNode<K>> children()
+  protected List<BNode<K>> children() throws IOException
   {
     if ( entries == null) load();
     return children;
@@ -566,7 +567,7 @@ public class BNode<K>
   /**
    * Load this node from the IRandomAccessStore.
    */
-  protected void load()
+  protected void load() throws IOException
   {
     tree.store.seek( pointer);
     
@@ -582,7 +583,7 @@ public class BNode<K>
      
       if ( i < count)
       {
-        K key = tree.store.readKey();
+        K key = tree.keyFormat.read( tree.store);
         pointer = tree.store.readLong();
         Entry<K> entry = new Entry<K>( key, pointer);
         addEntry( entry);
@@ -593,7 +594,7 @@ public class BNode<K>
   /**
    * Write this node to the IRandomAccessStore.
    */
-  public void store()
+  public void store() throws IOException
   {
     if ( storedUpdate == update) return;
     
@@ -615,7 +616,7 @@ public class BNode<K>
       if ( i < count)
       {
         Entry<K> entry = entries.get( i);
-        store.writeKey( entry.key);
+        tree.keyFormat.write( store, entry.key);
         store.writeLong( entry.value);
       }
     }
@@ -626,7 +627,7 @@ public class BNode<K>
   /**
    * Mark this node as trash in the IRandomAccessStore.
    */
-  protected void markGarbage()
+  protected void markGarbage() throws IOException
   {
     if ( pointer == 0) return;
     

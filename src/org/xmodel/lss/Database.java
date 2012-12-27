@@ -1,5 +1,6 @@
 package org.xmodel.lss;
 
+import java.io.IOException;
 import java.util.Comparator;
 
 /**
@@ -7,24 +8,24 @@ import java.util.Comparator;
  */
 public class Database<K>
 {
-  public Database( IRandomAccessStore<K> store, IKeyParser<K> parser, Comparator<K> comparator)
+  public Database( IRandomAccessStore<K> store, IKeyFormat<K> keyFormat, Comparator<K> comparator) throws IOException
   {
     this.store = store;
-    this.btree = new BTree<K>( 1000, store, comparator);
-    finishIndex( parser);
+    this.btree = new BTree<K>( 1000, keyFormat, store, comparator);
+    finishIndex( keyFormat);
   }
   
   /**
    * Read and index the records that follow the last b+tree root in the database.
-   * @param parser The key parser.
+   * @param keyFormat The key format.
    */
-  protected void finishIndex( IKeyParser<K> parser)
+  protected void finishIndex( IKeyFormat<K> keyFormat) throws IOException
   {
     long position = store.position();
     while( position < store.length())
     {
       byte[] record = readRecord();
-      K key = parser.extract( record);
+      K key = keyFormat.extract( record);
       insert( key, record);
     }
   }
@@ -34,7 +35,7 @@ public class Database<K>
    * @param key The key.
    * @param record The record.
    */
-  public void insert( K key, byte[] record)
+  public void insert( K key, byte[] record) throws IOException
   {
     store.seek( store.length());
     long position = store.position();
@@ -47,7 +48,7 @@ public class Database<K>
    * Delete a record from the database.
    * @param key The key.
    */
-  public void delete( K key)
+  public void delete( K key) throws IOException
   {
     long position = btree.delete( key);
     if ( position > 0) trash( position);
@@ -58,7 +59,7 @@ public class Database<K>
    * @param key The key.
    * @return Returns null or the record.
    */
-  public byte[] query( K key)
+  public byte[] query( K key) throws IOException
   {
     long position = btree.get( key);
     if ( position > 0) 
@@ -73,7 +74,7 @@ public class Database<K>
    * Write a record.
    * @param record The record.
    */
-  public void writeRecord( byte[] record)
+  public void writeRecord( byte[] record) throws IOException
   {
     store.writeByte( (byte)0);
     store.writeLong( record.length);
@@ -84,7 +85,7 @@ public class Database<K>
    * Read the record.
    * @return Returns the record.
    */
-  public byte[] readRecord()
+  public byte[] readRecord() throws IOException
   {
     @SuppressWarnings("unused")
     byte header = store.readByte();
@@ -98,7 +99,7 @@ public class Database<K>
    * Mark the specified record as garbage.
    * @param position The position of the record.
    */
-  public void trash( long position)
+  public void trash( long position) throws IOException
   {
     store.seek( position);
     store.writeByte( (byte)1);
@@ -106,11 +107,11 @@ public class Database<K>
   
   /**
    * Compact a region of the database. The region must begin on a record boundary.
-   * @param parser The key parser.
+   * @param keyFormat The key parser.
    * @param offset The offset of the region to compact.
    * @param length The length of the region to compact.
    */
-  public void compact( IKeyParser<K> parser, long offset, long length)
+  public void compact( IKeyFormat<K> keyFormat, long offset, long length) throws IOException
   {
     store.seek( offset);
     while( length > 0)
@@ -121,7 +122,7 @@ public class Database<K>
       {
         store.seek( offset);
         byte[] record = readRecord();
-        K key = parser.extract( record);
+        K key = keyFormat.extract( record);
         insert( key, record);
       }
       
