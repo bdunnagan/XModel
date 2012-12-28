@@ -627,7 +627,7 @@ public class BNode<K>
     entries = new ArrayList<Entry<K>>( count);
     for( int i=0; i<count; i++)
     {
-      K key = tree.keyFormat.read( store);
+      K key = tree.recordFormat.readKey( store);
       long pointer = store.readLong();
       Entry<K> entry = new Entry<K>( key, pointer);
       addEntry( entry);
@@ -669,7 +669,7 @@ public class BNode<K>
     for( int i=0; i<count; i++)
     {
       Entry<K> entry = entries.get( i);
-      tree.keyFormat.write( store, entry.key);
+      tree.recordFormat.writeKey( store, entry.key);
       store.writeLong( entry.value);
     }
 

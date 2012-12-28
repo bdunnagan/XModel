@@ -13,11 +13,12 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param recordFormat The record format.
    * @param store The store.
    */
-  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore store) throws IOException
+  public BTree( int degree, IRecordFormat<K> recordFormat, IRandomAccessStore store) throws IOException
   {
-    this( degree, keyFormat, store, null);
+    this( degree, recordFormat, store, null);
   }
   
   /**
@@ -25,15 +26,16 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param recordFormat The record format.
    * @param store The store.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, IKeyFormat<K> keyFormat, IRandomAccessStore store, Comparator<K> comparator) throws IOException
+  public BTree( int degree, IRecordFormat<K> recordFormat, IRandomAccessStore store, Comparator<K> comparator) throws IOException
   {
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
     
-    this.keyFormat = keyFormat;
+    this.recordFormat = recordFormat;
     this.store = store;
 
     int storeDegree = 0;
@@ -115,7 +117,7 @@ public class BTree<K>
   }
 
   IRandomAccessStore store;
-  IKeyFormat<K> keyFormat;
+  IRecordFormat<K> recordFormat;
   BNode<K> root;
   
   public static void main( String[] args) throws Exception

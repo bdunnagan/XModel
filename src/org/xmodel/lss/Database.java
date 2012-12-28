@@ -8,30 +8,32 @@ import java.util.Comparator;
  */
 public class Database<K>
 {
-  public Database( IRandomAccessStore store, IKeyFormat<K> keyFormat) throws IOException
+  public Database( IRandomAccessStore store, IRecordFormat<K> recordFormat) throws IOException
   {
-    this( store, keyFormat, null);
+    this( store, recordFormat, null);
   }
   
-  public Database( IRandomAccessStore store, IKeyFormat<K> keyFormat, Comparator<K> comparator) throws IOException
+  public Database( IRandomAccessStore store, IRecordFormat<K> recordFormat, Comparator<K> comparator) throws IOException
   {
     this.store = store;
-    this.btree = new BTree<K>( 1000, keyFormat, store, comparator);
-    finishIndex( keyFormat);
+    this.btree = new BTree<K>( 1000, recordFormat, store, comparator);
+    this.recordFormat = recordFormat;
+    finishIndex( recordFormat);
   }
   
-  public Database( BTree<K> btree, IRandomAccessStore store, IKeyFormat<K> keyFormat) throws IOException
+  public Database( BTree<K> btree, IRandomAccessStore store, IRecordFormat<K> recordFormat) throws IOException
   {
     this.store = store;
     this.btree = btree;
-    finishIndex( keyFormat);
+    this.recordFormat = recordFormat;
+    finishIndex( recordFormat);
   }
   
   /**
    * Read and index the records that follow the last b+tree root in the database.
-   * @param keyFormat The key format.
+   * @param recordFormat The record format.
    */
-  protected void finishIndex( IKeyFormat<K> keyFormat) throws IOException
+  protected void finishIndex( IRecordFormat<K> recordFormat) throws IOException
   {
     while( true)
     {
@@ -41,20 +43,14 @@ public class Database<K>
       byte header = store.readByte();
       if ( header == 0)
       {
-        long length = store.readLong();
-        
-        // TODO: make key accessible without having to read the entire record?
-        byte[] record = new byte[ (int)length];
-        store.read( record, 0, record.length);
-
-        // insert may cause seek so store position
-        long position = store.position();
-        
-        K key = keyFormat.extract( record);
-        btree.insert( key, pointer);
-        
-        // restore position
-        store.seek( position);
+        K key = recordFormat.extractKeyAndAdvance( store);
+        if ( key != null)
+        {
+          // insert record and restore seek position
+          long position = store.position();
+          btree.insert( key, pointer);
+          store.seek( position);
+        }
       }
     }
   }
@@ -68,9 +64,9 @@ public class Database<K>
   {
     store.seek( store.length());
     long position = store.position();
-    writeRecord( record);
+    writeRecord( key, record);
     position = btree.insert( key, position);
-    if ( position > 0) trash( position);
+    if ( position > 0) markGarbage( position);
   }
   
   /**
@@ -80,7 +76,7 @@ public class Database<K>
   public void delete( K key) throws IOException
   {
     long position = btree.delete( key);
-    if ( position > 0) trash( position);
+    if ( position > 0) markGarbage( position);
   }
   
   /**
@@ -94,53 +90,49 @@ public class Database<K>
     if ( position > 0) 
     {
       store.seek( position);
-      return readRecord();
+      Record<K> record = readRecord();
+      return record.getContent();
     }
     return null;
   }
   
   /**
    * Write a record.
-   * @param record The record.
+   * @param content The record content.
    */
-  public void writeRecord( byte[] record) throws IOException
+  public void writeRecord( K key, byte[] content) throws IOException
   {
-    store.writeByte( (byte)0);
-    store.writeLong( record.length);
-    store.write( record, 0, record.length);
+    Record<K> record = new Record<K>( recordFormat, key, content, false);
+    recordFormat.writeRecord( store, record);
   }
   
   /**
    * Read the record.
    * @return Returns the record.
    */
-  public byte[] readRecord() throws IOException
+  public Record<K> readRecord() throws IOException
   {
-    @SuppressWarnings("unused")
-    byte header = store.readByte();
-    long length = store.readLong();
-    byte[] data = new byte[ (int)length];
-    store.read( data, 0, data.length);
-    return data;
+    Record<K> record = new Record<K>( recordFormat);
+    recordFormat.readRecord( store, record);
+    return record;
   }
   
   /**
    * Mark the specified record as garbage.
    * @param position The position of the record.
    */
-  public void trash( long position) throws IOException
+  public void markGarbage( long position) throws IOException
   {
     store.seek( position);
-    store.writeByte( (byte)1);
+    recordFormat.markGarbage( store);
   }
   
   /**
    * Compact a region of the database. The region must begin on a record boundary.
-   * @param keyFormat The key parser.
    * @param offset The offset of the region to compact.
    * @param length The length of the region to compact.
    */
-  public void compact( IKeyFormat<K> keyFormat, long offset, long length) throws IOException
+  public void compact( long offset, long length) throws IOException
   {
     store.seek( offset);
     while( length > 0)
@@ -150,9 +142,8 @@ public class Database<K>
       if ( recordHeader == 0) 
       {
         store.seek( offset);
-        byte[] record = readRecord();
-        K key = keyFormat.extract( record);
-        insert( key, record);
+        Record<K> record = readRecord();
+        insert( record.getKey(), record.getContent());
       }
       
       offset += recordLength;
@@ -170,4 +161,5 @@ public class Database<K>
   
   private IRandomAccessStore store;
   private BTree<K> btree;
+  private IRecordFormat<K> recordFormat;
 }

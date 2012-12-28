@@ -12,19 +12,26 @@ public interface IKeyFormat<K>
    * @param store The store.
    * @return Returns the key.
    */
-  public K read( IRandomAccessStore store) throws IOException;
+  public K readKey( IRandomAccessStore store) throws IOException;
   
   /**
    * Write a key to the store.
    * @param store The store.
    * @param key The key.
    */
-  public void write( IRandomAccessStore store, K key) throws IOException;
+  public void writeKey( IRandomAccessStore store, K key) throws IOException;
+  
+  /**
+   * Extract the key from the database record at the current position in the specified store.
+   * @param store The store positioned at the beginning of the record.
+   * @return Returns the key.
+   */
+  public K extractKeyFromRecord( IRandomAccessStore store) throws IOException;
   
   /**
    * Extract the key from the specified database record.
-   * @param record The record.
+   * @param record The record content.
    * @return Returns the key.
    */
-  public K extract( byte[] record);
+  public K extractKeyFromRecord( byte[] content) throws IOException;
 }
