@@ -1,0 +1,14 @@
+TODO
+
+- BNode records need same header as other records.
+
+- BNode records marked as garbage cannot be collected unless new index was successfully written.
+  Currently, I'm marking BNode records as garbage differently from other records.  How do these
+  get collected?
+
+1. Support non-unique keys.
+2. Support multiple keys in the same index.
+3. Factor record structure into another class/interface.
+4. Circular FileStore.
+5. Time limited user transactions to prevent Phil's huge user transaction problem.
+6. Support streamed read/write of records.

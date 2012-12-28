@@ -1,0 +1,10 @@
+Compacting After Insert
+
+After the end pointer wraps around in a circular file store, there will be valid records after the end pointer.
+So when a new record is added, you will have to search for a gap big enough for the new record.  This is not
+a good time to compact, because you want the insert to be fast.  However, you can keep track of the fragmentation
+during this search, and compact afterward.
+
+Since fragmentation stats are calculated during insert, when the file pointer again reaches the end of the file,
+the algorithm can choose to extend the file based on the current fragmentation stats (e.g. extend the size of
+the file when it is 75% full).
