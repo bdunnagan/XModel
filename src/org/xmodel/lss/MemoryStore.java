@@ -98,6 +98,14 @@ public class MemoryStore extends AbstractStore
     {
       if ( n == 0)
       {
+        if ( pos >= i && pos < (i + bpl))
+        {
+          int cpos = 2 * (pos - i) + ((pos - i) / 4) + 1;
+          for( int k=0; k<cpos; k++) sb.append( '-');
+          sb.append( 'v');
+          sb.append( '\n');
+        }
+        
         for( int j=0; j<bpl && (i + j) < end; j+=4)
           sb.append( String.format( "|%-8X", i + j));
         sb.append( "\n");

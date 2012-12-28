@@ -40,17 +40,13 @@ public class Database<K>
       long pointer = store.position();
       if ( pointer >= store.length()) break;
       
-      byte header = store.readByte();
-      if ( header == 0)
+      K key = recordFormat.extractKeyAndAdvance( store);
+      if ( key != null)
       {
-        K key = recordFormat.extractKeyAndAdvance( store);
-        if ( key != null)
-        {
-          // insert record and restore seek position
-          long position = store.position();
-          btree.insert( key, pointer);
-          store.seek( position);
-        }
+        // insert record and restore seek position
+        long position = store.position();
+        btree.insert( key, pointer);
+        store.seek( position);
       }
     }
   }

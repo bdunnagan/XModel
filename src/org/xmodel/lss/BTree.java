@@ -1,7 +1,9 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -36,6 +38,7 @@ public class BTree<K>
     int maxKeys = 2 * degree - 1;
     
     this.recordFormat = recordFormat;
+    this.garbage = new ArrayList<BNode<K>>();
     this.store = store;
 
     int storeDegree = 0;
@@ -82,7 +85,7 @@ public class BTree<K>
   public long delete( K key) throws IOException
   {
     long pointer = root.delete( key);
-    if ( root.count() == 0 && root.children().size() > 0) root = root.children().get( 0);
+    if ( root.count() == 0 && root.getChildren().size() > 0) root = root.getChildren().get( 0);
     return pointer;
   }
   
@@ -101,10 +104,33 @@ public class BTree<K>
    */
   public void store() throws IOException
   {
+    // update index
     root.store();
+    
+    // update index pointer
     store.seek( 4);
     store.writeLong( root.pointer);
     store.flush();
+
+    // mark garbage - failure just before this point could result in leaked garbage
+    while( garbage.size() > 0)
+    {
+      BNode<K> node = garbage.remove( 0);
+      if ( node.pointer > 0)
+      {
+        store.seek( node.pointer);
+        recordFormat.markGarbage( store);
+      }
+    }
+  }
+  
+  /**
+   * Add the specified node to the garbage.
+   * @param node The node.
+   */
+  public void addGarbage( BNode<K> node)
+  {
+    garbage.add( node);
   }
 
   /* (non-Javadoc)
@@ -119,6 +145,7 @@ public class BTree<K>
   IRandomAccessStore store;
   IRecordFormat<K> recordFormat;
   BNode<K> root;
+  List<BNode<K>> garbage;
   
   public static void main( String[] args) throws Exception
   {

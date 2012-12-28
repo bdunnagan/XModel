@@ -88,12 +88,12 @@ public class Cursor<K>
    */
   private Cursor<K> previousLeaf() throws IOException
   {
-    if ( node.children().size() == 0) return null;
+    if ( node.getChildren().size() == 0) return null;
     
-    BNode<K> child = node.children().get( offset);
+    BNode<K> child = node.getChildren().get( offset);
     Cursor<K> cursor = new Cursor<K>( this, child, child.count());
     
-    while( child.children().size() > 0)
+    while( child.getChildren().size() > 0)
     {
       child = child.children.get( child.count());
       cursor = new Cursor<K>( cursor, child, child.count());
@@ -152,12 +152,12 @@ public class Cursor<K>
    */
   private Cursor<K> nextLeaf() throws IOException
   {
-    if ( node.children().size() == 0) return null;
+    if ( node.getChildren().size() == 0) return null;
     
-    BNode<K> child = node.children().get( offset);
+    BNode<K> child = node.getChildren().get( offset);
     Cursor<K> cursor = new Cursor<K>( this, child, 0);
     
-    while( child.children().size() > 0)
+    while( child.getChildren().size() > 0)
     {
       child = child.children.get( 0);
       cursor = new Cursor<K>( cursor, child, 0);

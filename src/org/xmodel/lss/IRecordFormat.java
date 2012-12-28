@@ -18,5 +18,9 @@ public interface IRecordFormat<K>
   
   public void writeRecord( IRandomAccessStore store, Record<K> record) throws IOException;
   
+  public void readNode( IRandomAccessStore store, BNode<K> node) throws IOException;
+  
+  public void writeNode( IRandomAccessStore store, BNode<K> node) throws IOException;
+  
   public void markGarbage( IRandomAccessStore store) throws IOException;
 }

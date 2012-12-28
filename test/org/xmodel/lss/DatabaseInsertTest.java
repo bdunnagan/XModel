@@ -67,14 +67,11 @@ public class DatabaseInsertTest
       record[ 2] = '#';
       String key = String.format( "%c", i+65);
       db.insert( key, record);
-      System.out.println( store);
-      System.out.println();
     }
     
     //btree.store();
 
     System.out.println( btree);
-    System.out.printf( "index: %d\n", btree.root.pointer);
     System.out.println( store);
     
     btree = new BTree<String>( 2, recordFormat, store);
@@ -88,6 +85,7 @@ public class DatabaseInsertTest
     System.out.println();
     
     System.out.println( btree);
+    System.out.println( store);
   }
   
   private IKeyFormat<String> keyFormat;

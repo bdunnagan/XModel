@@ -66,19 +66,16 @@ public class BNode<K>
   /**
    * Create an internal BTree node that has not yet been loaded from the store.
    * @param parent The parent node.
-   * @param minKeys The minimum number of keys in a node.
-   * @param maxKeys The maximum number of keys in a node.
    * @param pointer The location of the node in the IRandomAccessStore.
    * @param count The number of entries in the node.
-   * @param comparator The key comparator.
    */
-  public BNode( BNode<K> parent, int minKeys, int maxKeys, long pointer, int count, Comparator<K> comparator)
+  public BNode( BNode<K> parent, long pointer, int count)
   {
     this.tree = parent.tree;
     this.parent = parent;
-    this.minKeys = minKeys;
-    this.maxKeys = maxKeys;
-    this.comparator = comparator;
+    this.minKeys = parent.minKeys;
+    this.maxKeys = parent.maxKeys;
+    this.comparator = parent.comparator;
     this.pointer = pointer;
     this.count = count;
     this.children = new ArrayList<BNode<K>>( count);
@@ -179,7 +176,7 @@ public class BNode<K>
             children.add( k+1, more);
             
             // discard unused node
-            node.markGarbage();
+            tree.addGarbage( node);
 
             // insert into appropriate subtree
             @SuppressWarnings("unchecked")
@@ -410,7 +407,7 @@ public class BNode<K>
     
     BNode<K> less = children.get( i);
     BNode<K> more = children.remove( i+1);
-    more.markGarbage();
+    tree.addGarbage( more);
     
     less.update++;
     BNode<K> merged = less;
@@ -495,6 +492,7 @@ public class BNode<K>
    */
   protected void addEntry( Entry<K> entry)
   {
+    if ( entries == null) entries = new ArrayList<Entry<K>>();
     entries.add( entry);
     count++;
   }
@@ -537,7 +535,7 @@ public class BNode<K>
   protected void clearEntries()
   {
     count = 0;
-    entries.clear();
+    if ( entries != null) entries.clear();
   }
   
   /**
@@ -551,11 +549,20 @@ public class BNode<K>
   }
   
   /**
+   * Add a child to this node.
+   * @param node The child.
+   */
+  protected void addChild( BNode<K> node)
+  {
+    children.add( node);
+  }
+  
+  /**
    * Load this node from the IRandomAccessStore, if necessary, and return its children.
    * There is always exactly one more child than there are entries.
    * @return Returns the children in this node.
    */
-  protected List<BNode<K>> children() throws IOException
+  protected List<BNode<K>> getChildren() throws IOException
   {
     if ( entries == null) load();
     return children;
@@ -567,6 +574,23 @@ public class BNode<K>
       return comparator.compare( lhs.key, rhs.key);
     }
   };
+
+  /**
+   * Set the pointer to this node in the store.
+   * @param pointer The pointer.
+   */
+  public void setPointer( long pointer)
+  {
+    this.pointer = pointer;
+  }
+  
+  /**
+   * @return Returns 0 or the pointer to this node in the store.
+   */
+  public long getPointer()
+  {
+    return pointer;
+  }
   
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
@@ -615,34 +639,7 @@ public class BNode<K>
    */
   protected void load() throws IOException
   {
-    IRandomAccessStore store = tree.store;
-    store.seek( pointer);
-
-    count = 0;
-    
-    int count = store.readInt();
-    byte flags = store.readByte();
-    boolean hasChildren = (flags & 0x0F) != 0;
-    
-    entries = new ArrayList<Entry<K>>( count);
-    for( int i=0; i<count; i++)
-    {
-      K key = tree.recordFormat.readKey( store);
-      long pointer = store.readLong();
-      Entry<K> entry = new Entry<K>( key, pointer);
-      addEntry( entry);
-    }
-    
-    if ( hasChildren)
-    {
-      for( int i=0; i<=count; i++)
-      {
-        long childPointer = store.readLong();
-        int childCount = store.readInt();
-        BNode<K> child = new BNode<K>( this, minKeys, maxKeys, childPointer, childCount, comparator);
-        children.add( child);
-      }
-    }
+    tree.recordFormat.readNode( tree.store, this);
   }
   
   /**
@@ -653,54 +650,12 @@ public class BNode<K>
     if ( storedUpdate == update) return;
     
     IRandomAccessStore store = tree.store;
-    
-    if ( children.size() > 0)
-    {
-      for( int i=0; i<=count; i++)
-        children.get( i).store();
-    }
-    
-    store.seek( store.length());
-    pointer = store.position();
-
-    store.writeInt( count);
-    store.writeByte( (byte)((children.size() > 0)? 1: 0));
-    
-    for( int i=0; i<count; i++)
-    {
-      Entry<K> entry = entries.get( i);
-      tree.recordFormat.writeKey( store, entry.key);
-      store.writeLong( entry.value);
-    }
-
-    if ( children.size() > 0)
-    {
-      for( int i=0; i<=count; i++)
-      {
-        BNode<K> child = children.get( i);
-        store.writeLong( child.pointer);
-        store.writeInt( child.count);
-      }
-    }
+    IRecordFormat<K> format = tree.recordFormat;
+    format.writeNode( store, this);
     
     storedUpdate = update;
   }
-  
-  /**
-   * Mark this node as trash in the IRandomAccessStore.
-   */
-  protected void markGarbage() throws IOException
-  {
-    if ( pointer == 0) return;
     
-    tree.store.seek( pointer + 4);
-    byte flags = tree.store.readByte();
-    tree.store.seek( pointer + 4);
-    tree.store.writeByte( (byte)(flags | 0x10));
-    
-    pointer = 0;
-  }
-  
   protected BTree<K> tree;
   private BNode<K> parent;
   
