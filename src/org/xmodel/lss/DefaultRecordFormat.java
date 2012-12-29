@@ -166,6 +166,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     node.setPointer( store.position());
 
     store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
+    long lengthPos = store.position();
     store.writeLong( 0);
     store.writeInt( node.count());
     
@@ -185,6 +186,10 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
         store.writeInt( child.count());
       }
     }
+    
+    long position = store.position();
+    store.seek( lengthPos);
+    store.writeLong( position - lengthPos);
   }
 
   /* (non-Javadoc)

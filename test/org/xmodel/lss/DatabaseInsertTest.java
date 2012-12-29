@@ -36,7 +36,7 @@ public class DatabaseInsertTest
       public String extractKeyFromRecord( byte[] content) throws IOException
       {
         int length = content[ 0];
-        return new String( content, 0, length);
+        return new String( content, 1, length);
       }
     };
     
@@ -140,10 +140,6 @@ public class DatabaseInsertTest
       byte[] content = db.query( key);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
-    
-    Analysis<String> analysis = new Analysis<String>();
-    for( Long pointer: analysis.findGarbage( store, recordFormat))
-      System.out.printf( "%X\n", pointer);
   }
   
   @Test
@@ -178,6 +174,32 @@ public class DatabaseInsertTest
       byte[] content = db.query( key);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
+  }
+  
+  @Test
+  public void deleteAndCompact() throws IOException
+  {
+    MemoryStore store = new MemoryStore( 1000);
+    BTree<String> btree = new BTree<String>( 2, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    byte[] record = new byte[ 3];
+    for( int i=0; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      db.insert( key, record);
+    }
+
+    db.delete( "A");
+    assertTrue( "Record not deleted", db.query( "A") == null);
+
+    db.compact( 12, store.length() - 12);
+    System.out.println( store);
+    
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
     
     Analysis<String> analysis = new Analysis<String>();
     for( Long pointer: analysis.findGarbage( store, recordFormat))

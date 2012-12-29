@@ -130,20 +130,22 @@ public class Database<K>
    */
   public void compact( long offset, long length) throws IOException
   {
-    store.seek( offset);
-    while( length > 0)
+    long end = offset + length;
+    
+    while( offset < end)
     {
-      byte recordHeader = store.readByte();
-      long recordLength = store.readLong();
-      if ( recordHeader == 0) 
+      try
       {
+        Record<K> record = new Record<K>( recordFormat);
         store.seek( offset);
-        Record<K> record = readRecord();
-        insert( record.getKey(), record.getContent());
+        recordFormat.readRecord( store, record);
+        offset = store.position();
+        if ( !record.isGarbage()) 
+          insert( record.getKey(), record.getContent());
       }
-      
-      offset += recordLength;
-      length -= recordLength;
+      catch( IllegalStateException e)
+      {
+      }
     }
   }
   
