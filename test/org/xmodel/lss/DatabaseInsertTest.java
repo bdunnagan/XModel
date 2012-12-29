@@ -140,6 +140,10 @@ public class DatabaseInsertTest
       byte[] content = db.query( key);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
+    
+    Analysis<String> analysis = new Analysis<String>();
+    for( Long pointer: analysis.findGarbage( store, recordFormat))
+      System.out.printf( "%X\n", pointer);
   }
   
   @Test
@@ -174,6 +178,10 @@ public class DatabaseInsertTest
       byte[] content = db.query( key);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
+    
+    Analysis<String> analysis = new Analysis<String>();
+    for( Long pointer: analysis.findGarbage( store, recordFormat))
+      System.out.printf( "%X\n", pointer);
   }
   
   private IKeyFormat<String> keyFormat;

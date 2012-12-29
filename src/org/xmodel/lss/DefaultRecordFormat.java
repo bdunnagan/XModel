@@ -44,9 +44,9 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   @Override
   public K extractKeyAndAdvance( IRandomAccessStore store) throws IOException
   {
-    byte header = store.readByte();
+    byte flags = store.readByte();
     long length = store.readLong();
-    if ( (header & garbageFlag) != 0) return null;
+    if ( (flags & (nodeFlag | garbageFlag)) != 0) return null;
 
     // save position of record content
     long position = store.position();
@@ -70,17 +70,37 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.lss.IRecordFormat#advance(org.xmodel.lss.IRandomAccessStore)
+   */
+  @Override
+  public RecordType advance( IRandomAccessStore store) throws IOException
+  {
+    RecordType type = RecordType.record;
+    
+    byte flags = store.readByte();
+    if ( (flags & garbageFlag) != 0) type = RecordType.garbage;
+    else if ( (flags & nodeFlag) != 0) type = RecordType.index;
+    
+    long length = store.readLong();
+    store.seek( store.position() + length);
+    
+    return type;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.lss.IRecordFormat#readRecord(org.xmodel.lss.IRandomAccessStore, org.xmodel.lss.Record)
    */
   @Override
   public void readRecord( IRandomAccessStore store, Record<K> record) throws IOException
   {
-    byte header = store.readByte();
+    byte flags = store.readByte();
+    if ( (flags & nodeFlag) != 0) throw new IllegalStateException( "Record contains an index node.");
+    
     long length = store.readLong();
     byte[] data = new byte[ (int)length];
     store.read( data, 0, data.length);
     
-    record.garbage = (header & garbageFlag) != 0;
+    record.garbage = (flags & garbageFlag) != 0;
     record.content = data;
   }
 
@@ -107,6 +127,9 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     node.clearEntries();
     
     byte flags = store.readByte();
+    if ( (flags & nodeFlag) == 0) throw new IllegalStateException( "Record is not an index node.");
+    
+    store.readLong();
     int count = store.readInt();
     boolean leaf = (flags & leafFlag) != 0;
     
@@ -142,7 +165,8 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     store.seek( store.length());
     node.setPointer( store.position());
 
-    store.writeByte( (byte)((children.size() > 0)? 0: leafFlag));
+    store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
+    store.writeLong( 0);
     store.writeInt( node.count());
     
     for( int i=0; i<node.count(); i++)
@@ -183,6 +207,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
 
   private final static int garbageFlag = 0x01;
   private final static int leafFlag = 0x02;
+  private final static int nodeFlag = 0x04;
   
   private IKeyFormat<K> keyFormat;
 }

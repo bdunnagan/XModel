@@ -1,10 +1,7 @@
 TODO
 
-- BNode records need same header as other records.
-
-- BNode records marked as garbage cannot be collected unless new index was successfully written.
-  Currently, I'm marking BNode records as garbage differently from other records.  How do these
-  get collected?
+- IRecordFormat interface needs to always distinguish user records from index records.
+  See Analysis class.
 
 1. Support non-unique keys.
 2. Support multiple keys in the same index.

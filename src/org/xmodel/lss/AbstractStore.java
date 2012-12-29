@@ -16,11 +16,12 @@ public abstract class AbstractStore implements IRandomAccessStore
   public int readInt() throws IOException
   {
     read( buffer, 0, 4);
+    
     return 
-      (int)buffer[ 3] & 0xFF + 
-      (int)(buffer[ 2] << 8) & 0xFF + 
-      (int)(buffer[ 1] << 16) & 0xFF + 
-      (int)(buffer[ 0] << 24) & 0xFF;
+      (buffer[ 3] & 0xFF) +
+      ((buffer[ 2] & 0xFF) << 8) +
+      ((buffer[ 1] & 0xFF) << 16) +
+      ((buffer[ 0] & 0xFF) << 24);
   }
 
   /* (non-Javadoc)
@@ -44,14 +45,14 @@ public abstract class AbstractStore implements IRandomAccessStore
   {
     read( buffer, 0, 8);
     return 
-      (int)buffer[ 7] & 0xFF + 
-      (int)(buffer[ 6] << 8) & 0xFF + 
-      (int)(buffer[ 5] << 16) & 0xFF + 
-      (int)(buffer[ 4] << 24) & 0xFF +
-      (int)(buffer[ 3] << 32) & 0xFF +
-      (int)(buffer[ 2] << 40) & 0xFF +
-      (int)(buffer[ 1] << 48) & 0xFF +
-      (int)(buffer[ 0] << 56) & 0xFF;
+      (buffer[ 7] & 0xFF) + 
+      ((buffer[ 6] & 0xFF) << 8) + 
+      ((buffer[ 5] & 0xFF) << 16) + 
+      ((buffer[ 4] & 0xFF) << 24) +
+      ((buffer[ 3] & 0xFF) << 32) +
+      ((buffer[ 2] & 0xFF) << 40) +
+      ((buffer[ 1] & 0xFF) << 48) +
+      ((buffer[ 0] & 0xFF) << 56);
   }
 
   /* (non-Javadoc)

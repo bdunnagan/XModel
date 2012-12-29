@@ -7,6 +7,8 @@ import java.io.IOException;
  */
 public interface IRecordFormat<K>
 {
+  public enum RecordType { record, index, garbage};
+  
   /**
    * @return Returns the implementation of IKeyFormat<K>.
    */
@@ -25,7 +27,7 @@ public interface IRecordFormat<K>
    * @param key The key.
    */
   public void writeKey( IRandomAccessStore store, K key) throws IOException;
-
+  
   /**
    * Extract the key from the current record and advance to the next record.
    * @param store The store.
@@ -39,6 +41,13 @@ public interface IRecordFormat<K>
    * @return Returns the key.
    */
   public K extractKeyFromRecord( byte[] content) throws IOException;
+  
+  /**
+   * Advance to the record that follows the current record.
+   * @param store The store.
+   * @return Returns the record type.
+   */
+  public RecordType advance( IRandomAccessStore store) throws IOException;
 
   /**
    * Read a record at the current position.
