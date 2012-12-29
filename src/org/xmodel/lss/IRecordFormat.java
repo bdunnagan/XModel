@@ -23,4 +23,6 @@ public interface IRecordFormat<K>
   public void writeNode( IRandomAccessStore store, BNode<K> node) throws IOException;
   
   public void markGarbage( IRandomAccessStore store) throws IOException;
+  
+  public boolean isGarbage( IRandomAccessStore store) throws IOException;
 }

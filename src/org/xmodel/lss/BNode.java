@@ -318,6 +318,18 @@ public class BNode<K>
   }
   
   /**
+   * Delete the specified entry.
+   * @param key The key.
+   * @param pointer The pointer.
+   * @throws IOException
+   */
+  public void delete( K key, long pointer) throws IOException
+  {
+    // revisit after non-unique keys implemented
+    delete( key);
+  }
+  
+  /**
    * Get the value under the specified key.
    * @param key The key.
    * @return Returns 0 or the value under the specified key.
@@ -330,7 +342,20 @@ public class BNode<K>
     if ( i >= 0) return entries.get( i).value;
     
     if ( children.size() == 0) return 0;
-    return children.get( -i - 1).get( key);
+    
+    long pointer = children.get( -i - 1).get( key);
+    if ( pointer != 0)
+    {
+      // record may be garbage if index was not written after delete
+      tree.store.seek( pointer);
+      if ( tree.recordFormat.isGarbage( tree.store))
+      {
+        delete( key, pointer);
+        return 0;
+      }
+    }      
+    
+    return pointer;
   }
   
   /**
@@ -412,8 +437,8 @@ public class BNode<K>
     less.update++;
     BNode<K> merged = less;
     merged.addEntry( entry);
-    merged.addAllEntries( more.entries);
-    merged.children.addAll( more.children);
+    merged.addAllEntries( more.getEntries());
+    merged.children.addAll( more.getChildren());
     
     children.set( i, merged);
     
@@ -644,16 +669,27 @@ public class BNode<K>
   
   /**
    * Write this node to the IRandomAccessStore.
+   * @return Returns true if the node was dirty and required storing.
    */
-  public void store() throws IOException
+  public boolean store() throws IOException
   {
-    if ( storedUpdate == update) return;
+    boolean dirty = storedUpdate != update;
     
     IRandomAccessStore store = tree.store;
     IRecordFormat<K> format = tree.recordFormat;
-    format.writeNode( store, this);
     
-    storedUpdate = update;
+    if ( children.size() > 0)
+      for( int i=0; i<=count; i++)
+        if ( children.get( i).store())
+          dirty = true;
+    
+    if ( dirty)
+    {  
+      format.writeNode( store, this);
+      storedUpdate = update;
+    }
+    
+    return dirty;
   }
     
   protected BTree<K> tree;

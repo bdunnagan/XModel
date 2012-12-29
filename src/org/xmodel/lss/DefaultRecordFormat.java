@@ -139,12 +139,6 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     List<Entry<K>> entries = node.getEntries();
     List<BNode<K>> children = node.getChildren();
     
-    if ( children.size() > 0)
-    {
-      for( int i=0; i<=node.count(); i++)
-        children.get( i).store();
-    }
-    
     store.seek( store.length());
     node.setPointer( store.position());
 
@@ -176,6 +170,15 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   public void markGarbage( IRandomAccessStore store) throws IOException
   {
     store.writeByte( (byte)garbageFlag);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.lss.IRecordFormat#isGarbage(org.xmodel.lss.IRandomAccessStore)
+   */
+  @Override
+  public boolean isGarbage( IRandomAccessStore store) throws IOException
+  {
+    return (store.readByte() & garbageFlag) != 0;
   }
 
   private final static int garbageFlag = 0x01;

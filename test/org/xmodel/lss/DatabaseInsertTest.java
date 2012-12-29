@@ -1,9 +1,11 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
+import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class DatabaseInsertTest
 {
@@ -47,7 +49,7 @@ public class DatabaseInsertTest
   }
 
   @Test
-  public void insert() throws IOException
+  public void insertWriteFullIndex() throws IOException
   {
     MemoryStore store = new MemoryStore( 1000);
     BTree<String> btree = new BTree<String>( 2, recordFormat, store);
@@ -58,19 +60,62 @@ public class DatabaseInsertTest
     {
       if ( i == 5) 
       {
+        System.out.println( "Storing index ...");
         btree.store();
         System.out.println( btree);
         System.out.println( store);
       }
-      record[ 0] = 1;
-      record[ 1] = (byte)(i + 65);
-      record[ 2] = '#';
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
       db.insert( key, record);
     }
     
-    //btree.store();
+    System.out.println( "Storing index ...");
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    System.out.println( "Reloading index ...");
+    btree = new BTree<String>( 2, recordFormat, store);
+    System.out.println( btree);
+    
+    db = new Database<String>( btree, store, recordFormat);
 
+    System.out.println( "Querying ...");
+    for( int i=0; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      byte[] content = db.query( key);
+      assertTrue( "Invalid record", Arrays.equals( record, content));
+    }
+    
+    System.out.println( btree);
+    System.out.println( store);
+  }
+  
+  @Test
+  public void insertWritePartialIndex() throws IOException
+  {
+    MemoryStore store = new MemoryStore( 1000);
+    BTree<String> btree = new BTree<String>( 2, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    byte[] record = new byte[ 3];
+    for( int i=0; i<7; i++)
+    {
+      if ( i == 5) 
+      {
+        System.out.println( "Storing index ...");
+        btree.store();
+        System.out.println( btree);
+        System.out.println( store);
+      }
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      db.insert( key, record);
+    }
+    
     System.out.println( btree);
     System.out.println( store);
     
@@ -79,10 +124,99 @@ public class DatabaseInsertTest
     
     db = new Database<String>( btree, store, recordFormat);
     
-    byte[] arec = db.query( "A");
-    for( int i=0; i<arec.length; i++)
-      System.out.printf( "%02x ", arec[ i]);
-    System.out.println();
+    for( int i=0; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      byte[] content = db.query( key);
+      assertTrue( "Invalid record", Arrays.equals( record, content));
+    }
+    
+    System.out.println( btree);
+    System.out.println( store);
+  }
+  
+  @Test
+  public void deleteWriteFullIndex() throws IOException
+  {
+    MemoryStore store = new MemoryStore( 1000);
+    BTree<String> btree = new BTree<String>( 2, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    byte[] record = new byte[ 3];
+    for( int i=0; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      db.insert( key, record);
+    }
+
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    db.delete( "A");
+    System.out.println( btree);
+    System.out.println( store);
+    
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    btree = new BTree<String>( 2, recordFormat, store);
+    System.out.println( btree);
+    
+    db = new Database<String>( btree, store, recordFormat);
+    
+    for( int i=1; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      byte[] content = db.query( key);
+      assertTrue( "Invalid record", Arrays.equals( record, content));
+    }
+    
+    System.out.println( btree);
+    System.out.println( store);
+  }
+  
+  @Test
+  public void deleteWritPartialIndex() throws IOException
+  {
+    MemoryStore store = new MemoryStore( 1000);
+    BTree<String> btree = new BTree<String>( 2, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    byte[] record = new byte[ 3];
+    for( int i=0; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      db.insert( key, record);
+    }
+
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    db.delete( "A");
+    System.out.println( btree);
+    System.out.println( store);
+    
+    btree = new BTree<String>( 2, recordFormat, store);
+    System.out.println( btree);
+    
+    db = new Database<String>( btree, store, recordFormat);
+    
+    assertTrue( "Record not deleted", db.query( "A") == null);
+    
+    for( int i=1; i<7; i++)
+    {
+      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
+      String key = String.format( "%c", i+65);
+      byte[] content = db.query( key);
+      assertTrue( "Invalid record", Arrays.equals( record, content));
+    }
     
     System.out.println( btree);
     System.out.println( store);
