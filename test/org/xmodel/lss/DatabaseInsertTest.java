@@ -1,11 +1,12 @@
 package org.xmodel.lss;
 
+import static org.junit.Assert.assertTrue;
 import java.io.IOException;
+import java.util.Random;
 import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class DatabaseInsertTest
 {
@@ -201,9 +202,46 @@ public class DatabaseInsertTest
     System.out.println( btree);
     System.out.println( store);
     
-    Analysis<String> analysis = new Analysis<String>();
-    for( Long pointer: analysis.findGarbage( store, recordFormat))
-      System.out.printf( "%X\n", pointer);
+    Analysis<String> analysis = new Analysis<String>( recordFormat);
+    System.out.println( analysis.computeFragmentation( store));
+  }
+  
+  @Test
+  public void randomInsertDelete() throws IOException
+  {
+    MemoryStore store = new MemoryStore( 100000);
+    BTree<String> btree = new BTree<String>( 1000, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    Random random = new Random( 1);
+    byte[] record = new byte[ 3];
+    for( int i=0; i<1000; i++)
+    {
+      int j = random.nextInt( 26);
+      record[ 0] = 1; record[ 1] = (byte)(j + 65); record[ 2] = '#';
+      String key = String.format( "%c", 65 + j);
+      db.insert( key, record);
+      
+      j = random.nextInt( 26);
+      key = String.format( "%c", 65 + j);
+      db.delete( key);
+    }
+
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    Analysis<String> analysis = new Analysis<String>( recordFormat);
+    System.out.println( analysis.computeFragmentation( store));
+    
+    db.compact( 12, store.length() - 12);
+    System.out.println( store);
+    
+    btree.store();
+    System.out.println( btree);
+    System.out.println( store);
+    
+    System.out.println( analysis.computeFragmentation( store));
   }
   
   private IKeyFormat<String> keyFormat;

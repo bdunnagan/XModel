@@ -130,8 +130,8 @@ public class Database<K>
    */
   public void compact( long offset, long length) throws IOException
   {
+    long freeStart = offset;
     long end = offset + length;
-    
     while( offset < end)
     {
       try
@@ -147,6 +147,10 @@ public class Database<K>
       {
       }
     }
+    
+    long freeLength = offset - freeStart - 9;
+    store.seek( freeStart);
+    recordFormat.writeLength( store, freeLength);
   }
   
   /**

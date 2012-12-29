@@ -193,6 +193,16 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.lss.IRecordFormat#writeLength(org.xmodel.lss.IRandomAccessStore, long)
+   */
+  @Override
+  public void writeLength( IRandomAccessStore store, long length) throws IOException
+  {
+    store.seek( store.position() + 1);
+    store.writeLong( length);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.lss.IRecordFormat#markGarbage(org.xmodel.lss.IRandomAccessStore)
    */
   @Override

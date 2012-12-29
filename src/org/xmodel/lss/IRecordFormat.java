@@ -78,6 +78,13 @@ public interface IRecordFormat<K>
   public void writeNode( IRandomAccessStore store, BNode<K> node) throws IOException;
 
   /**
+   * Write the length field of the current record.
+   * @param store The store.
+   * @param length The length.
+   */
+  public void writeLength( IRandomAccessStore store, long length) throws IOException;
+  
+  /**
    * Mark the record at the current position as garbage.
    * @param store The store.
    */
