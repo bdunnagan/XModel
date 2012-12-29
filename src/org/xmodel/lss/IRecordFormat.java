@@ -7,7 +7,9 @@ import java.io.IOException;
  */
 public interface IRecordFormat<K>
 {
-  public enum RecordType { record, index, garbage};
+  public final static int garbageFlag = 0x01;
+  public final static int leafFlag = 0x02;
+  public final static int nodeFlag = 0x04;
   
   /**
    * @return Returns the implementation of IKeyFormat<K>.
@@ -33,35 +35,42 @@ public interface IRecordFormat<K>
    * @param store The store.
    * @return Returns the key, or null if the record was garbage.
    */
-  public K extractKeyAndAdvance( IRandomAccessStore store) throws IOException;
+  public K extractKey( IRandomAccessStore store) throws IOException;
   
   /**
    * Extract the key from the specified record.
    * @param content The record.
    * @return Returns the key.
    */
-  public K extractKeyFromRecord( byte[] content) throws IOException;
+  public K extractKey( byte[] content) throws IOException;
   
   /**
-   * Advance to the record that follows the current record.
+   * Read the record header.
    * @param store The store.
-   * @return Returns the record type.
+   * @param record Returns a record with the header fields set.
    */
-  public RecordType advance( IRandomAccessStore store) throws IOException;
+  public void readHeader( IRandomAccessStore store, Record record) throws IOException;
 
+  /**
+   * Write the record header.
+   * @param store The store.
+   * @param record A record with the header fields set
+   */
+  public void writeHeader( IRandomAccessStore store, Record record) throws IOException;
+  
   /**
    * Read a record at the current position.
    * @param store The store.
    * @param record Returns the record.
    */
-  public void readRecord( IRandomAccessStore store, Record<K> record) throws IOException;
+  public void readRecord( IRandomAccessStore store, Record record) throws IOException;
 
   /**
    * Write a record at the current position.
    * @param store The store.
-   * @param record The record.
+   * @param content The content of the record.
    */
-  public void writeRecord( IRandomAccessStore store, Record<K> record) throws IOException;
+  public void writeRecord( IRandomAccessStore store, byte[] content) throws IOException;
 
   /**
    * Read an index node at the current position.
@@ -77,13 +86,6 @@ public interface IRecordFormat<K>
    */
   public void writeNode( IRandomAccessStore store, BNode<K> node) throws IOException;
 
-  /**
-   * Write the length field of the current record.
-   * @param store The store.
-   * @param length The length.
-   */
-  public void writeLength( IRandomAccessStore store, long length) throws IOException;
-  
   /**
    * Mark the record at the current position as garbage.
    * @param store The store.

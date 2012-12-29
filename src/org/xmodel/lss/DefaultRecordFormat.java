@@ -39,78 +39,79 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.lss.IRecordFormat#extractKeyAndAdvance(org.xmodel.lss.IRandomAccessStore)
+   * @see org.xmodel.lss.IRecordFormat#extractKey(org.xmodel.lss.IRandomAccessStore)
    */
   @Override
-  public K extractKeyAndAdvance( IRandomAccessStore store) throws IOException
+  public K extractKey( IRandomAccessStore store) throws IOException
   {
     byte flags = store.readByte();
     long length = store.readLong();
     if ( (flags & (nodeFlag | garbageFlag)) != 0) return null;
 
-    // save position of record content
-    long position = store.position();
-    
     // extract key
-    K key = keyFormat.extractKeyFromRecord( store);
-    
-    // advance to next record
-    store.seek( position + length);
+    K key = keyFormat.extractKeyFromRecord( store, length);
     
     return key;
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.lss.IRecordFormat#extractKeyFromRecord(byte[])
+   * @see org.xmodel.lss.IRecordFormat#extractKey(byte[])
    */
   @Override
-  public K extractKeyFromRecord( byte[] content) throws IOException
+  public K extractKey( byte[] content) throws IOException
   {
     return keyFormat.extractKeyFromRecord( content);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.lss.IRecordFormat#advance(org.xmodel.lss.IRandomAccessStore)
+   * @see org.xmodel.lss.IRecordFormat#readHeader(org.xmodel.lss.IRandomAccessStore, org.xmodel.lss.Record)
    */
   @Override
-  public RecordType advance( IRandomAccessStore store) throws IOException
+  public void readHeader( IRandomAccessStore store, Record record) throws IOException
   {
-    RecordType type = RecordType.record;
-    
-    byte flags = store.readByte();
-    if ( (flags & garbageFlag) != 0) type = RecordType.garbage;
-    else if ( (flags & nodeFlag) != 0) type = RecordType.index;
-    
-    long length = store.readLong();
-    store.seek( store.position() + length);
-    
-    return type;
+    record.setFlags( store.readByte());
+    record.setLength( store.readLong());
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.lss.IRecordFormat#writeHeader(org.xmodel.lss.IRandomAccessStore, org.xmodel.lss.Record)
+   */
+  @Override
+  public void writeHeader( IRandomAccessStore store, Record record) throws IOException
+  {
+    store.writeByte( record.getFlags());
+    store.writeLong( record.getLength());
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.lss.IRecordFormat#readRecord(org.xmodel.lss.IRandomAccessStore, org.xmodel.lss.Record)
    */
   @Override
-  public void readRecord( IRandomAccessStore store, Record<K> record) throws IOException
+  public void readRecord( IRandomAccessStore store, Record record) throws IOException
   {
     byte flags = store.readByte();
-    if ( (flags & nodeFlag) != 0) throw new IllegalStateException( "Record contains an index node.");
-    
     long length = store.readLong();
-    byte[] data = new byte[ (int)length];
-    store.read( data, 0, data.length);
     
-    record.garbage = (flags & garbageFlag) != 0;
-    record.content = data;
+    record.setFlags( flags);
+    
+    if ( (flags & (nodeFlag | leafFlag)) == 0)
+    {
+      byte[] data = new byte[ (int)length];
+      store.read( data, 0, data.length);
+      record.setContent( data);
+    }
+    else
+    {
+      store.seek( store.position() + length);
+    }
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.lss.IRecordFormat#writeRecord(org.xmodel.lss.IRandomAccessStore, org.xmodel.lss.Record)
+   * @see org.xmodel.lss.IRecordFormat#writeRecord(org.xmodel.lss.IRandomAccessStore, byte[])
    */
   @Override
-  public void writeRecord( IRandomAccessStore store, Record<K> record) throws IOException
+  public void writeRecord( IRandomAccessStore store, byte[] content) throws IOException
   {
-    byte[] content = record.getContent();
     store.writeByte( (byte)0);
     store.writeLong( content.length);
     store.write( content, 0, content.length);
@@ -190,16 +191,6 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     long position = store.position();
     store.seek( lengthPos);
     store.writeLong( position - lengthPos);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRecordFormat#writeLength(org.xmodel.lss.IRandomAccessStore, long)
-   */
-  @Override
-  public void writeLength( IRandomAccessStore store, long length) throws IOException
-  {
-    store.seek( store.position() + 1);
-    store.writeLong( length);
   }
 
   /* (non-Javadoc)

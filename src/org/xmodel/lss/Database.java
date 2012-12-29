@@ -18,6 +18,8 @@ public class Database<K>
     this.store = store;
     this.btree = new BTree<K>( 1000, recordFormat, store, comparator);
     this.recordFormat = recordFormat;
+    this.record = new Record();
+    
     finishIndex( recordFormat);
   }
   
@@ -26,6 +28,8 @@ public class Database<K>
     this.store = store;
     this.btree = btree;
     this.recordFormat = recordFormat;
+    this.record = new Record();
+    
     finishIndex( recordFormat);
   }
   
@@ -40,27 +44,27 @@ public class Database<K>
       long pointer = store.position();
       if ( pointer >= store.length()) break;
       
-      K key = recordFormat.extractKeyAndAdvance( store);
-      if ( key != null)
-      {
-        // insert record and restore seek position
-        long position = store.position();
-        btree.insert( key, pointer);
-        store.seek( position);
-      }
+      recordFormat.readHeader( store, record);
+      long advance = store.position() + record.getLength();
+      
+      store.seek( pointer);
+      K key = recordFormat.extractKey( store);
+      if ( key != null) btree.insert( key, pointer);
+      
+      store.seek( advance);
     }
   }
   
   /**
    * Insert a record into the database.
    * @param key The key.
-   * @param record The record.
+   * @param data The data to associate with the key.
    */
-  public void insert( K key, byte[] record) throws IOException
+  public void insert( K key, byte[] data) throws IOException
   {
     store.seek( store.length());
     long position = store.position();
-    writeRecord( key, record);
+    recordFormat.writeRecord( store, data);
     position = btree.insert( key, position);
     if ( position > 0) markGarbage( position);
   }
@@ -86,31 +90,10 @@ public class Database<K>
     if ( position > 0) 
     {
       store.seek( position);
-      Record<K> record = readRecord();
+      recordFormat.readRecord( store, record);
       return record.getContent();
     }
     return null;
-  }
-  
-  /**
-   * Write a record.
-   * @param content The record content.
-   */
-  public void writeRecord( K key, byte[] content) throws IOException
-  {
-    Record<K> record = new Record<K>( recordFormat, key, content, false);
-    recordFormat.writeRecord( store, record);
-  }
-  
-  /**
-   * Read the record.
-   * @return Returns the record.
-   */
-  public Record<K> readRecord() throws IOException
-  {
-    Record<K> record = new Record<K>( recordFormat);
-    recordFormat.readRecord( store, record);
-    return record;
   }
   
   /**
@@ -136,12 +119,14 @@ public class Database<K>
     {
       try
       {
-        Record<K> record = new Record<K>( recordFormat);
         store.seek( offset);
         recordFormat.readRecord( store, record);
         offset = store.position();
         if ( !record.isGarbage()) 
-          insert( record.getKey(), record.getContent());
+        {
+          K key = recordFormat.extractKey( record.getContent());
+          insert( key, record.getContent());
+        }
       }
       catch( IllegalStateException e)
       {
@@ -150,7 +135,10 @@ public class Database<K>
     
     long freeLength = offset - freeStart - 9;
     store.seek( freeStart);
-    recordFormat.writeLength( store, freeLength);
+
+    record.setGarbage( true);
+    record.setLength( freeLength);
+    recordFormat.writeHeader( store, record);
   }
   
   /**
@@ -164,4 +152,5 @@ public class Database<K>
   private IRandomAccessStore store;
   private BTree<K> btree;
   private IRecordFormat<K> recordFormat;
+  private Record record;
 }

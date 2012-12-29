@@ -27,7 +27,7 @@ public class DatabaseInsertTest
         byte[] bytes = key.getBytes();
         store.write( bytes, 0, bytes.length);
       }
-      public String extractKeyFromRecord( IRandomAccessStore store) throws IOException
+      public String extractKeyFromRecord( IRandomAccessStore store, long recordLength) throws IOException
       {
         int length = store.readByte();
         byte[] key = new byte[ length];
@@ -234,7 +234,7 @@ public class DatabaseInsertTest
     Analysis<String> analysis = new Analysis<String>( recordFormat);
     System.out.println( analysis.computeFragmentation( store));
     
-    db.compact( 12, store.length() - 12);
+    db.compact( 12, 4000);
     System.out.println( store);
     
     btree.store();

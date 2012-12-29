@@ -1,46 +1,104 @@
 package org.xmodel.lss;
 
-import java.io.IOException;
-
-public class Record<K>
+public class Record
 {
-  public Record( IRecordFormat<K> format)
+  public Record()
   {
-    this.format = format;
   }
   
-  public Record( IRecordFormat<K> format, K key, byte[] content, boolean garbage)
+  /**
+   * @return Returns true if this is a data record.
+   */
+  public boolean isData()
   {
-    this.format = format;
-    this.key = key;
-    this.content = content;
-    this.garbage = garbage;
+    return flags == 0;
   }
-
+  
+  /**
+   * @return Returns true if this is an index node.
+   */
+  public boolean isIndex()
+  {
+    return (flags & (IRecordFormat.nodeFlag | IRecordFormat.leafFlag)) != 0;
+  }
+  
+  /**
+   * @return Returns true if this is an index leaf node.
+   */
+  public boolean isIndexLeaf()
+  {
+    return (flags & IRecordFormat.leafFlag) != 0;
+  }
+  
+  /**
+   * @return Returns true if this record is marked garbage.
+   */
   public boolean isGarbage()
   {
-    return garbage;
+    return (flags & IRecordFormat.garbageFlag) != 0;
   }
   
+  /**
+   * Set the garbage field.
+   * @param garbage True marks the record as garbage.
+   */
+  public void setGarbage( boolean garbage)
+  {
+    flags |= IRecordFormat.garbageFlag;
+  }
+  
+  /**
+   * @return Returns the header flags.
+   */
+  public byte getFlags()
+  {
+    return flags;
+  }
+  
+  /**
+   * Set the header flags.
+   * @param flags The flags.
+   */
+  public void setFlags( byte flags)
+  {
+    this.flags = flags;
+  }
+
+  /**
+   * @return Returns the length of the record.
+   */
   public long getLength()
   {
-    return content.length;
+    return length;
   }
   
-  public K getKey() throws IOException
+  /**
+   * Set the length field.
+   * @param length The length.
+   */
+  public void setLength( long length)
   {
-    if ( key == null && content != null)
-      key = format.extractKeyFromRecord( content);
-    return key;
+    this.length = length;
   }
   
+  /**
+   * @return Returns the content of the record.
+   */
   public byte[] getContent()
   {
     return content;
   }
   
-  protected IRecordFormat<K> format;
-  protected K key;
-  protected byte[] content;
-  protected boolean garbage;
+  /**
+   * Set the content of the record.
+   * @param content The content.
+   */
+  public void setContent( byte[] content)
+  {
+    this.content = content;
+  }
+
+  private byte flags;
+  private long length;
+  private byte[] content;
 }

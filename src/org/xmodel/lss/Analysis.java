@@ -3,7 +3,6 @@ package org.xmodel.lss;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.xmodel.lss.IRecordFormat.RecordType;
 
 public class Analysis<K>
 {
@@ -21,12 +20,14 @@ public class Analysis<K>
   {
     store.seek( 4 + 8);
     
+    Record record = new Record();
     List<Long> result = new ArrayList<Long>();
     while( store.position() < store.length())
     {
       long position = store.position();
-      RecordType type = recordFormat.advance( store);
-      if ( type == RecordType.garbage) result.add( position);
+      recordFormat.readHeader( store, record);
+      if ( record.isGarbage()) result.add( position);
+      store.seek( store.position() + record.getLength());
     }
     
     return result;
@@ -44,17 +45,19 @@ public class Analysis<K>
 
     double f = 0;
     double fm = 0;
+    Record record = new Record();
     while( store.position() < store.length())
     {
       long position = store.position();
       
-      RecordType type = recordFormat.advance( store);
-      if ( type == RecordType.garbage)
+      recordFormat.readHeader( store, record);
+      if ( record.isGarbage())
       {
-        long length = store.position() - position;
+        long length = store.position() - position + record.getLength();
         if ( length > fm) fm = length;
         f += length;
       }
+      store.seek( store.position() + record.getLength());
     }
     
     //System.out.printf( "f=%f, fm=%f\n", f, fm);
