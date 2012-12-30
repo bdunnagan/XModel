@@ -209,13 +209,14 @@ public class DatabaseInsertTest
   @Test
   public void randomInsertDelete() throws IOException
   {
-    MemoryStore store = new MemoryStore( 100000);
-    BTree<String> btree = new BTree<String>( 1000, recordFormat, store);
+    int degree = 1000;
+    MemoryStore store = new MemoryStore( 10000000);
+    BTree<String> btree = new BTree<String>( degree, recordFormat, store);
     Database<String> db = new Database<String>( btree, store, recordFormat);
 
     Random random = new Random( 1);
     byte[] record = new byte[ 3];
-    for( int i=0; i<1000; i++)
+    for( int i=0; i<100000; i++)
     {
       int j = random.nextInt( 26);
       record[ 0] = 1; record[ 1] = (byte)(j + 65); record[ 2] = '#';
@@ -225,21 +226,32 @@ public class DatabaseInsertTest
       j = random.nextInt( 26);
       key = String.format( "%c", 65 + j);
       db.delete( key);
+      
+      if ( (i % 10000) == 0)
+      {
+        long t0 = System.nanoTime();
+        btree = new BTree<String>( degree, recordFormat, store);
+        db = new Database<String>( btree, store, recordFormat);
+        
+        long t1 = System.nanoTime();
+        btree.store();
+        
+        long t2 = System.nanoTime();
+        System.out.printf( "index=%1.3fms, store=%1.3fms\n", (t1 - t0) / 1e6, (t2 - t1) / 1e6);
+      }
     }
-
-    btree.store();
-    System.out.println( btree);
-    System.out.println( store);
     
+//    btree.store();
+//    System.out.println( btree);
+//    System.out.println( store);
+//    
     Analysis<String> analysis = new Analysis<String>( recordFormat);
     System.out.println( analysis.computeFragmentation( store));
     
-    db.compact( 12, 4000);
-    System.out.println( store);
+    db.compact( 12, 1000000);
     
     btree.store();
     System.out.println( btree);
-    System.out.println( store);
     
     System.out.println( analysis.computeFragmentation( store));
   }

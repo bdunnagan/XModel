@@ -115,6 +115,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     store.writeByte( (byte)0);
     store.writeLong( content.length);
     store.write( content, 0, content.length);
+    
   }
 
   /* (non-Javadoc)
@@ -163,7 +164,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     List<Entry<K>> entries = node.getEntries();
     List<BNode<K>> children = node.getChildren();
     
-    store.seek( store.length());
+    store.seek( store.end());
     node.setPointer( store.position());
 
     store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
@@ -210,7 +211,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   {
     return (store.readByte() & garbageFlag) != 0;
   }
-
+  
   private final static int garbageFlag = 0x01;
   private final static int leafFlag = 0x02;
   private final static int nodeFlag = 0x04;

@@ -79,4 +79,16 @@ public interface IRandomAccessStore
    * @return Returns the length of the store.
    */
   public long length() throws IOException;
+
+  /**
+   * @return Returns the logical end of the store.
+   */
+  public long end() throws IOException;
+  
+  /**
+   * Set the logical end of the store.  Records are always appended to the end of the store.
+   * @param position The position.
+   * @throws IOException
+   */
+  public void end( long position) throws IOException;
 }

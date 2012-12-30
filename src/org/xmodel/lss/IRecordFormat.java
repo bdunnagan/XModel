@@ -8,8 +8,8 @@ import java.io.IOException;
 public interface IRecordFormat<K>
 {
   public final static int garbageFlag = 0x01;
-  public final static int leafFlag = 0x02;
-  public final static int nodeFlag = 0x04;
+  public final static int nodeFlag = 0x02;
+  public final static int leafFlag = 0x04;
   
   /**
    * @return Returns the implementation of IKeyFormat<K>.

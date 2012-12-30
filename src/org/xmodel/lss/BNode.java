@@ -61,6 +61,7 @@ public class BNode<K>
     this.children = new ArrayList<BNode<K>>( count);
     this.update = 0;
     this.storedUpdate = -1;
+    this.loaded = true;
   }
   
   /**
@@ -78,12 +79,11 @@ public class BNode<K>
     this.comparator = parent.comparator;
     this.pointer = pointer;
     this.count = count;
+    this.entries = new ArrayList<Entry<K>>( count);
     this.children = new ArrayList<BNode<K>>( count);
     this.update = 0;
     this.storedUpdate = -1;
-    
-    // indicates node has not been loaded
-    this.entries = null; 
+    this.loaded = false;
   }
   
   /**
@@ -104,6 +104,7 @@ public class BNode<K>
     this.count = entries.size();
     this.update = 0;
     this.storedUpdate = -1;
+    this.loaded = true;
   }
    
   /**
@@ -130,7 +131,7 @@ public class BNode<K>
    */
   public long insert( K key, long value) throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     
     int i = search( key);
     if ( i >= 0)
@@ -168,9 +169,9 @@ public class BNode<K>
             node.split();
 
             // move median key and its branches into this node
-            Entry<K> median = node.entries.get( 0);
-            BNode<K> less = node.children.get( 0);
-            BNode<K> more = node.children.get( 1);
+            Entry<K> median = node.getEntries().get( 0);
+            BNode<K> less = node.getChildren().get( 0);
+            BNode<K> more = node.getChildren().get( 1);
             addEntry( k, median);
             children.set( k, less);
             children.add( k+1, more);
@@ -207,7 +208,7 @@ public class BNode<K>
    */
   public long delete( K key) throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     int i = search( key);
     return delete( key, i);
   }
@@ -220,7 +221,7 @@ public class BNode<K>
    */
   protected long delete( K key, int i) throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     
     if ( children.size() == 0)
     {
@@ -241,7 +242,7 @@ public class BNode<K>
           // Case 2a: Lesser subtree can give up a key
           less.update++;
           Entry<K> entry = entries.get( i);
-          Entry<K> lessEntry = less.entries.get( less.count() - 1);
+          Entry<K> lessEntry = less.getEntries().get( less.count() - 1);
           entries.set( i, lessEntry);
           less.delete( lessEntry.key, less.count() - 1);
           return entry.value;
@@ -254,7 +255,7 @@ public class BNode<K>
             // Case 2b: Greater subtree can give up a key
             more.update++;
             Entry<K> entry = entries.get( i);
-            Entry<K> moreEntry = more.entries.get( 0);
+            Entry<K> moreEntry = more.getEntries().get( 0);
             entries.set( i, moreEntry);
             more.delete( moreEntry.key, 0);
             return entry.value;
@@ -336,7 +337,7 @@ public class BNode<K>
    */
   public long get( K key) throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     
     int i = search( key);
     if ( i >= 0) return entries.get( i).value;
@@ -376,7 +377,7 @@ public class BNode<K>
    */
   protected Cursor<K> getCursor( Cursor<K> parent, K key) throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     
     int i = search( key);
     if ( i >= 0) return new Cursor<K>( parent, this, i);
@@ -392,7 +393,7 @@ public class BNode<K>
    */
   protected void split() throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     
     int n = entries.size();
     int m = n / 2;
@@ -449,7 +450,7 @@ public class BNode<K>
    * Left rotate the tree at the entry with the specified index.
    * @param i The index of the entry.
    */
-  protected void leftRotate( int i)
+  protected void leftRotate( int i) throws IOException
   {
     BNode<K> less = children.get( i);
     BNode<K> more = children.get( i+1);
@@ -473,7 +474,7 @@ public class BNode<K>
    * Right rotate the tree at the entry with the specified index.
    * @param i The index of the entry.
    */
-  protected void rightRotate( int i)
+  protected void rightRotate( int i) throws IOException
   {
     BNode<K> less = children.get( i);
     BNode<K> more = children.get( i+1);
@@ -498,8 +499,9 @@ public class BNode<K>
    * @param key The key.
    * @return Returns the index of the key, or -insert - 1.
    */
-  protected int search( K key)
+  protected int search( K key) throws IOException
   {
+    if ( !loaded) load();
     Entry<K> entry = new Entry<K>( key, 0);
     if ( comparator == null)
     {
@@ -515,11 +517,11 @@ public class BNode<K>
    * Add an entry to the node.
    * @param entry The entry.
    */
-  protected void addEntry( Entry<K> entry)
+  protected void addEntry( Entry<K> entry) throws IOException
   {
-    if ( entries == null) entries = new ArrayList<Entry<K>>();
-    entries.add( entry);
+    if ( !loaded) load();
     count++;
+    entries.add( entry);
   }
   
   /**
@@ -527,8 +529,9 @@ public class BNode<K>
    * @param i The node where the entry will be inserted.
    * @param entry The entry.
    */
-  protected void addEntry( int i, Entry<K> entry)
+  protected void addEntry( int i, Entry<K> entry) throws IOException
   {
+    if ( !loaded) load();
     count++;
     entries.add( i, entry);
   }
@@ -537,8 +540,9 @@ public class BNode<K>
    * Add all of the specified entries to this node.
    * @param entries The entries.
    */
-  protected void addAllEntries( Collection<Entry<K>> entries)
+  protected void addAllEntries( Collection<Entry<K>> entries) throws IOException
   {
+    if ( !loaded) load();
     count += entries.size();
     this.entries.addAll( entries);
   }
@@ -548,8 +552,9 @@ public class BNode<K>
    * @param i The index of the entry.
    * @return Returns the entry that was removed.
    */
-  protected Entry<K> removeEntry( int i)
+  protected Entry<K> removeEntry( int i) throws IOException
   {
+    if ( !loaded) load();
     count--;
     return entries.remove( i);
   }
@@ -569,7 +574,7 @@ public class BNode<K>
    */
   protected List<Entry<K>> getEntries() throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     return entries;
   }
   
@@ -589,7 +594,7 @@ public class BNode<K>
    */
   protected List<BNode<K>> getChildren() throws IOException
   {
-    if ( entries == null) load();
+    if ( !loaded) load();
     return children;
   }
   
@@ -633,7 +638,7 @@ public class BNode<K>
    */
   public String toString( String indent)
   {
-    if ( entries == null) return "[not loaded]";
+    if ( !loaded) return "[not loaded]";
     
     StringBuilder sb = new StringBuilder();
     for( int i=0; i<count; i++)
@@ -664,6 +669,7 @@ public class BNode<K>
    */
   protected void load() throws IOException
   {
+    loaded = true;
     tree.recordFormat.readNode( tree.store, this);
   }
   
@@ -700,6 +706,7 @@ public class BNode<K>
   private int count;
   protected long pointer;
   
+  protected boolean loaded;
   protected long update;
   private long storedUpdate;
   

@@ -39,10 +39,12 @@ public class Database<K>
    */
   protected void finishIndex( IRecordFormat<K> recordFormat) throws IOException
   {
+    finishCount = 0;
+    
     while( true)
     {
       long pointer = store.position();
-      if ( pointer >= store.length()) break;
+      if ( pointer >= store.end()) break;
       
       recordFormat.readHeader( store, record);
       long advance = store.position() + record.getLength();
@@ -52,6 +54,7 @@ public class Database<K>
       if ( key != null) btree.insert( key, pointer);
       
       store.seek( advance);
+      finishCount++;
     }
   }
   
@@ -62,7 +65,7 @@ public class Database<K>
    */
   public void insert( K key, byte[] data) throws IOException
   {
-    store.seek( store.length());
+    store.seek( store.end());
     long position = store.position();
     recordFormat.writeRecord( store, data);
     position = btree.insert( key, position);
@@ -149,8 +152,26 @@ public class Database<K>
     return store;
   }
   
+  /**
+   * @return Returns the database index.
+   */
+  public BTree<K> getIndex()
+  {
+    return btree;
+  }
+  
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return String.format( "finishCount=%d\n%s", finishCount, btree);
+  }
+
   private IRandomAccessStore store;
   private BTree<K> btree;
   private IRecordFormat<K> recordFormat;
   private Record record;
+  private int finishCount;
 }
