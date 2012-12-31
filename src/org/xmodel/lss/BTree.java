@@ -112,7 +112,10 @@ public class BTree<K>
     store.writeLong( root.pointer);
     store.flush();
 
-    // mark garbage - failure just before this point could result in leaked garbage
+    //
+    // Mark index garbage. 
+    // Failure just before this point could result in leaked garbage.
+    //
     while( garbage.size() > 0)
     {
       BNode<K> node = garbage.remove( 0);
@@ -128,7 +131,7 @@ public class BTree<K>
    * Add the specified node to the garbage.
    * @param node The node.
    */
-  public void addGarbage( BNode<K> node)
+  protected void markGarbage( BNode<K> node)
   {
     garbage.add( node);
   }

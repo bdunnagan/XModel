@@ -44,7 +44,7 @@ public class Database<K>
     while( true)
     {
       long pointer = store.position();
-      if ( pointer >= store.end()) break;
+      if ( pointer >= store.length()) break;
       
       recordFormat.readHeader( store, record);
       long advance = store.position() + record.getLength();
@@ -65,7 +65,7 @@ public class Database<K>
    */
   public void insert( K key, byte[] data) throws IOException
   {
-    store.seek( store.end());
+    store.seek( store.length());
     long position = store.position();
     recordFormat.writeRecord( store, data);
     position = btree.insert( key, position);
@@ -107,41 +107,6 @@ public class Database<K>
   {
     store.seek( position);
     recordFormat.markGarbage( store);
-  }
-  
-  /**
-   * Compact a region of the database. The region must begin on a record boundary.
-   * @param offset The offset of the region to compact.
-   * @param length The length of the region to compact.
-   */
-  public void compact( long offset, long length) throws IOException
-  {
-    long freeStart = offset;
-    long end = offset + length;
-    while( offset < end)
-    {
-      try
-      {
-        store.seek( offset);
-        recordFormat.readRecord( store, record);
-        offset = store.position();
-        if ( !record.isGarbage()) 
-        {
-          K key = recordFormat.extractKey( record.getContent());
-          insert( key, record.getContent());
-        }
-      }
-      catch( IllegalStateException e)
-      {
-      }
-    }
-    
-    long freeLength = offset - freeStart - 9;
-    store.seek( freeStart);
-
-    record.setGarbage( true);
-    record.setLength( freeLength);
-    recordFormat.writeHeader( store, record);
   }
   
   /**

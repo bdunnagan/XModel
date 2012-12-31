@@ -164,7 +164,7 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
     List<Entry<K>> entries = node.getEntries();
     List<BNode<K>> children = node.getChildren();
     
-    store.seek( store.end());
+    store.seek( store.length());
     node.setPointer( store.position());
 
     store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
@@ -200,7 +200,10 @@ public class DefaultRecordFormat<K> implements IRecordFormat<K>
   @Override
   public void markGarbage( IRandomAccessStore store) throws IOException
   {
+    long position = store.position();
     store.writeByte( (byte)garbageFlag);
+    long length = store.readLong();
+    store.garbage( position, length + 9);
   }
 
   /* (non-Javadoc)

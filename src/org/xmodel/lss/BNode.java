@@ -177,7 +177,7 @@ public class BNode<K>
             children.add( k+1, more);
             
             // discard unused node
-            tree.addGarbage( node);
+            tree.markGarbage( node);
 
             // insert into appropriate subtree
             @SuppressWarnings("unchecked")
@@ -433,7 +433,7 @@ public class BNode<K>
     
     BNode<K> less = children.get( i);
     BNode<K> more = children.remove( i+1);
-    tree.addGarbage( more);
+    tree.markGarbage( more);
     
     less.update++;
     BNode<K> merged = less;
@@ -691,7 +691,10 @@ public class BNode<K>
     
     if ( dirty)
     {  
+      long oldPointer = pointer;
       format.writeNode( store, this);
+      store.seek( oldPointer);
+      format.markGarbage( store);
       storedUpdate = update;
     }
     

@@ -4,11 +4,10 @@ import java.io.IOException;
 
 public class MemoryStore extends AbstractStore
 {
-  public MemoryStore( int capacity)
+  public MemoryStore( int first, int capacity)
   {
-    data = new byte[ capacity];
-    end = capacity;
-    lend = 0;
+    this.first = first;
+    this.data = new byte[ capacity];
   }
   
   /* (non-Javadoc)
@@ -17,7 +16,7 @@ public class MemoryStore extends AbstractStore
   @Override
   public void read( byte[] bytes, int offset, int length) throws IOException
   {
-    if ( pos + length > lend) throw new IndexOutOfBoundsException();
+    if ( pos + length > end) throw new IndexOutOfBoundsException();
     System.arraycopy( data, pos, bytes, offset, length);
     pos += length;
   }
@@ -30,7 +29,7 @@ public class MemoryStore extends AbstractStore
   {
     System.arraycopy( bytes, offset, data, pos, length);
     pos += length;
-    if ( pos > lend) lend = pos;
+    if ( pos > end) end = pos;
   }
 
   /* (non-Javadoc)
@@ -49,7 +48,7 @@ public class MemoryStore extends AbstractStore
   public void writeByte( byte b) throws IOException
   {
     data[ pos++] = b;
-    if ( pos > lend) lend = pos;
+    if ( pos > end) end = pos;
   }
 
   /* (non-Javadoc)
@@ -70,6 +69,15 @@ public class MemoryStore extends AbstractStore
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.lss.IRandomAccessStore#first()
+   */
+  @Override
+  public long first() throws IOException
+  {
+    return first;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.lss.IRandomAccessStore#position()
    */
   @Override
@@ -85,24 +93,6 @@ public class MemoryStore extends AbstractStore
   public long length() throws IOException
   {
     return end;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#end()
-   */
-  @Override
-  public long end() throws IOException
-  {
-    return lend;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#end(long)
-   */
-  @Override
-  public void end( long position) throws IOException
-  {
-    lend = (int)position;
   }
 
   /* (non-Javadoc)
@@ -152,7 +142,7 @@ public class MemoryStore extends AbstractStore
   }
 
   private byte[] data;
+  private int first;
   private int pos;
   private int end;
-  private int lend;
 }

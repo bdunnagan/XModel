@@ -60,6 +60,20 @@ public interface IRandomAccessStore
   public void writeLong( long value) throws IOException;
   
   /**
+   * Mark the specified region as garbage for bookkeeping purposes.  This method, in conjunction
+   * with the <code>utility()</code> method, allows clients to track the amount of space in the
+   * store that is being utilized.
+   * @param position The start of the region.
+   * @param length The length of the region.
+   */
+  public void garbage( long position, long length) throws IOException;
+  
+  /**
+   * @return Returns the percentage utilization of the store.
+   */
+  public double utility() throws IOException;
+  
+  /**
    * Flush pending data to the storage device.
    */
   public void flush() throws IOException;
@@ -71,6 +85,13 @@ public interface IRandomAccessStore
   public void seek( long position) throws IOException;
   
   /**
+   * The first byte of a store is not necessarily at the zeroth position.  This is because a store
+   * may be one block of a larger store.  See CompositeStore for more information.
+   * @return Returns the position of the first byte in this store.
+   */
+  public long first() throws IOException;
+  
+  /**
    * @return Returns the current position.
    */
   public long position() throws IOException;
@@ -79,16 +100,4 @@ public interface IRandomAccessStore
    * @return Returns the length of the store.
    */
   public long length() throws IOException;
-
-  /**
-   * @return Returns the logical end of the store.
-   */
-  public long end() throws IOException;
-  
-  /**
-   * Set the logical end of the store.  Records are always appended to the end of the store.
-   * @param position The position.
-   * @throws IOException
-   */
-  public void end( long position) throws IOException;
 }
