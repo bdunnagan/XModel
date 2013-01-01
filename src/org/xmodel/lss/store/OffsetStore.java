@@ -1,28 +1,35 @@
-package org.xmodel.lss;
+package org.xmodel.lss.store;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 
-public class FileStore extends AbstractStore
+/**
+ * An IRandomAccessStore that delegates to another IRandomAccessStore, but interposes a constant
+ * offset to the pointer.  The position of the first byte in the store is addressed at the offset
+ * position, and the length of the store is the length of the delegate plus the offset.
+ */
+class OffsetStore extends AbstractStore
 {
-  public FileStore( String filename) throws IOException
+  public OffsetStore( IRandomAccessStore store, long offset)
   {
-    file = new RandomAccessFile( filename, "rw");
+    this.store = store;
+    this.first = offset;
   }
   
+  /**
+   * @return Returns the offset of this store.
+   */
+  public long getOffset()
+  {
+    return first;
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.lss.IRandomAccessStore#read(byte[], int, int)
    */
   @Override
   public void read( byte[] bytes, int offset, int length) throws IOException
   {
-    while( length > 0)
-    {
-      int nread = file.read( bytes, offset, length);
-      if ( nread < 0) throw new EOFException();
-      length -= nread;
-    }
+    store.read( bytes, offset, length);
   }
 
   /* (non-Javadoc)
@@ -31,7 +38,7 @@ public class FileStore extends AbstractStore
   @Override
   public void write( byte[] bytes, int offset, int length) throws IOException
   {
-    file.write( bytes, offset, length);
+    store.write( bytes, offset, length);
   }
 
   /* (non-Javadoc)
@@ -40,7 +47,7 @@ public class FileStore extends AbstractStore
   @Override
   public byte readByte() throws IOException
   {
-    return (byte)file.read();
+    return store.readByte();
   }
 
   /* (non-Javadoc)
@@ -49,7 +56,7 @@ public class FileStore extends AbstractStore
   @Override
   public void writeByte( byte b) throws IOException
   {
-    file.write( b);
+    store.writeByte( b);
   }
 
   /* (non-Javadoc)
@@ -58,6 +65,7 @@ public class FileStore extends AbstractStore
   @Override
   public void flush() throws IOException
   {
+    store.flush();
   }
 
   /* (non-Javadoc)
@@ -66,7 +74,7 @@ public class FileStore extends AbstractStore
   @Override
   public void seek( long position) throws IOException
   {
-    file.seek( position);
+    store.seek( position - first);
   }
 
   /* (non-Javadoc)
@@ -75,7 +83,7 @@ public class FileStore extends AbstractStore
   @Override
   public long position() throws IOException
   {
-    return file.getFilePointer();
+    return store.position() + first;
   }
 
   /* (non-Javadoc)
@@ -84,8 +92,9 @@ public class FileStore extends AbstractStore
   @Override
   public long length() throws IOException
   {
-    return file.length();
+    return store.length();
   }
-  
-  private RandomAccessFile file;
+
+  private IRandomAccessStore store;
+  private long first;
 }

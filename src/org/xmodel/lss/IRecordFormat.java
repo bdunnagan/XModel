@@ -1,6 +1,7 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
+import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * An interface that defines the structure of a record in the database.

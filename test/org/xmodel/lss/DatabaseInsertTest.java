@@ -7,6 +7,8 @@ import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.xmodel.lss.store.IRandomAccessStore;
+import org.xmodel.lss.store.MemoryStore;
 
 public class DatabaseInsertTest
 {

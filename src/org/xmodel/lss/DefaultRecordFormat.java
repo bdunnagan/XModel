@@ -3,6 +3,7 @@ package org.xmodel.lss;
 import java.io.IOException;
 import java.util.List;
 import org.xmodel.lss.BNode.Entry;
+import org.xmodel.lss.store.IRandomAccessStore;
 
 public class DefaultRecordFormat<K> implements IRecordFormat<K>
 {

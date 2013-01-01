@@ -2,6 +2,7 @@ package org.xmodel.lss;
 
 import java.io.IOException;
 import java.util.Comparator;
+import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * Experimental implementation of a log-structured database.
@@ -107,6 +108,29 @@ public class Database<K>
   {
     store.seek( position);
     recordFormat.markGarbage( store);
+  }
+  
+  /**
+   * Garbage collect a region of the specified store into this database.
+   * @param store The store to be compacted.
+   * @param offset The offset of the first record in the region.
+   * @param length The length of the region.
+   */
+  public void compact( IRandomAccessStore store, long offset, long length) throws IOException
+  {
+    Record record = new Record();
+    long end = offset + length;
+    while( offset < end)
+    {
+      store.seek( offset);
+      recordFormat.readRecord( store, record);
+      offset = store.position();
+      if ( !record.isGarbage()) 
+      {
+        K key = recordFormat.extractKey( record.getContent());
+        insert( key, record.getContent());
+      }
+    }
   }
   
   /**

@@ -1,22 +1,28 @@
-package org.xmodel.lss;
+package org.xmodel.lss.store;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 
-public class OffsetStore extends AbstractStore
+public class FileStore extends AbstractStore
 {
-  public OffsetStore( IRandomAccessStore store, long offset)
+  public FileStore( String filename) throws IOException
   {
-    this.store = store;
-    this.first = offset;
+    file = new RandomAccessFile( filename, "rw");
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.lss.IRandomAccessStore#read(byte[], int, int)
    */
   @Override
   public void read( byte[] bytes, int offset, int length) throws IOException
   {
-    store.read( bytes, offset, length);
+    while( length > 0)
+    {
+      int nread = file.read( bytes, offset, length);
+      if ( nread < 0) throw new EOFException();
+      length -= nread;
+    }
   }
 
   /* (non-Javadoc)
@@ -25,7 +31,7 @@ public class OffsetStore extends AbstractStore
   @Override
   public void write( byte[] bytes, int offset, int length) throws IOException
   {
-    store.write( bytes, offset, length);
+    file.write( bytes, offset, length);
   }
 
   /* (non-Javadoc)
@@ -34,7 +40,7 @@ public class OffsetStore extends AbstractStore
   @Override
   public byte readByte() throws IOException
   {
-    return store.readByte();
+    return (byte)file.read();
   }
 
   /* (non-Javadoc)
@@ -43,7 +49,7 @@ public class OffsetStore extends AbstractStore
   @Override
   public void writeByte( byte b) throws IOException
   {
-    store.writeByte( b);
+    file.write( b);
   }
 
   /* (non-Javadoc)
@@ -52,7 +58,6 @@ public class OffsetStore extends AbstractStore
   @Override
   public void flush() throws IOException
   {
-    store.flush();
   }
 
   /* (non-Javadoc)
@@ -61,7 +66,7 @@ public class OffsetStore extends AbstractStore
   @Override
   public void seek( long position) throws IOException
   {
-    store.seek( position - first);
+    file.seek( position);
   }
 
   /* (non-Javadoc)
@@ -70,7 +75,7 @@ public class OffsetStore extends AbstractStore
   @Override
   public long position() throws IOException
   {
-    return store.position() + first;
+    return file.getFilePointer();
   }
 
   /* (non-Javadoc)
@@ -79,9 +84,8 @@ public class OffsetStore extends AbstractStore
   @Override
   public long length() throws IOException
   {
-    return store.length() + first;
+    return file.length();
   }
-
-  private IRandomAccessStore store;
-  private long first;
+  
+  private RandomAccessFile file;
 }

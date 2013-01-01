@@ -1,4 +1,4 @@
-package org.xmodel.lss;
+package org.xmodel.lss.store;
 
 import java.io.IOException;
 

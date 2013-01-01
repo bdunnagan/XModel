@@ -1,4 +1,4 @@
-package org.xmodel.lss;
+package org.xmodel.lss.store;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import org.xmodel.lss.Database;
 
 /**
  * An IRandomAccessStore that delegates to a collection of IRandomAccessStore instances.  A CompositeStore
@@ -29,38 +30,24 @@ import java.util.TreeMap;
  * <ul>
  * <li>Pointers are unique across the collection.
  * <li>Only the last store in the collection may be extended in length.</li>
- * <li>Only comparisons between pointers in the same store are supported.</li>
+ * <li>Only comparisons between pointers in the same store have meaning.</li>
  * </ul>
  */
-public class CompositeStore extends AbstractStore
+public class CompositeStore<K> extends AbstractStore
 {
-  public CompositeStore( List<IRandomAccessStore> stores) throws IOException
+  public CompositeStore( Database<K> database, List<IRandomAccessStore> stores, IRandomAccessStoreFactory factory) throws IOException
   {
-    this.stores = new TreeMap<Long, IRandomAccessStore>();
+    this.database = database;
+    this.factory = factory;
+    this.storeMap = new TreeMap<Long, OffsetStore>();
     this.touched = new HashSet<IRandomAccessStore>();
     
     long start = 0;
     for( IRandomAccessStore store: stores)
     {
+      storeMap.put( start, new OffsetStore( store, start));
       start += (1 << 52);
-      this.stores.put( start, new OffsetStore( store, start));
     }
-  }
-  
-  /**
-   * Add a new store at the end of the list of stores.
-   * @param store The store.
-   */
-  public void addStore( IRandomAccessStore store)
-  {
-  }
-  
-  /**
-   * Remove a store from the collection.
-   * @param store The store.
-   */
-  public void removeStore( IRandomAccessStore store)
-  {
   }
   
   /* (non-Javadoc)
@@ -115,21 +102,12 @@ public class CompositeStore extends AbstractStore
    * @see org.xmodel.lss.IRandomAccessStore#seek(long)
    */
   @Override
-  public void seek( long vpointer) throws IOException
+  public void seek( long pointer) throws IOException
   {
-    Entry<Long, IRandomAccessStore> entry = stores.ceilingEntry( vpointer);
+    Entry<Long, OffsetStore> entry = storeMap.ceilingEntry( pointer);
     if ( entry == null) throw new IndexOutOfBoundsException();
     store = entry.getValue();
-    store.seek( vpointer);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#first()
-   */
-  @Override
-  public long first() throws IOException
-  {
-    return 0;
+    store.seek( pointer);
   }
 
   /* (non-Javadoc)
@@ -147,9 +125,51 @@ public class CompositeStore extends AbstractStore
   @Override
   public long length() throws IOException
   {
-    return stores.lastEntry().getValue().length();
+    OffsetStore lastStore = storeMap.lastEntry().getValue();
+    return lastStore.getOffset() + lastStore.length();
+  }
+  
+  /**
+   * Perform garbage collection if necessary.
+   */
+  private void collect() throws IOException
+  {
+    OffsetStore store = storeMap.lastEntry().getValue();
+    if ( store.length() > storeThreshold)
+    {
+      IRandomAccessStore leastUtility = getLeastUtility();
+      database.compact( store, store.getOffset(), store.length());
+    }
   }
 
+  /**
+   * Add a new store at the end of the list of stores.
+   * @param newStore The store.
+   */
+  private void addStore()
+  {
+    long start = 0;
+    for( Entry<Long, OffsetStore> entry: storeMap.entrySet())
+    {
+      if ( entry.getKey() > start)
+      {
+        storeMap.put( start, new OffsetStore( factory.createInstance(), start));
+        return;
+      }
+      start += (1 << 52);
+    }
+  }
+  
+  /**
+   * Remove a store from the collection.
+   * @param store The store.
+   */
+  private void removeStore( IRandomAccessStore store)
+  {
+    if ( !(store instanceof OffsetStore)) throw new IllegalArgumentException();
+    storeMap.remove( ((OffsetStore)store).getOffset());
+  }
+  
   /**
    * @return Returns the delegate store with the least utility.
    */
@@ -157,7 +177,7 @@ public class CompositeStore extends AbstractStore
   {
     double minUtility = Double.MAX_VALUE;
     IRandomAccessStore store = null;
-    for( Entry<Long, IRandomAccessStore> entry: stores.entrySet())
+    for( Entry<Long, OffsetStore> entry: storeMap.entrySet())
     {
       double utility = entry.getValue().utility();
       if ( utility < minUtility) 
@@ -169,7 +189,11 @@ public class CompositeStore extends AbstractStore
     return store;
   }
 
-  private TreeMap<Long, IRandomAccessStore> stores;
+  private final long storeThreshold = (long)200;
+  
+  private Database<K> database;
+  private IRandomAccessStoreFactory factory;
+  private TreeMap<Long, OffsetStore> storeMap;
   private Set<IRandomAccessStore> touched;
   private IRandomAccessStore store;
 }

@@ -1,6 +1,7 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
+import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * An interface for extracting keys from database records.
