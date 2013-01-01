@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -25,6 +24,13 @@ import java.util.TreeMap;
  * general contract of IRandomAccessStore that all pointer positions are comparable.
  * <p>
  * Delegate stores are ordered, which means that writes may span multiple stores.
+ * <p>
+ * The following constraints must hold at all times when using a CompositeStore:
+ * <ul>
+ * <li>Pointers are unique across the collection.
+ * <li>Only the last store in the collection may be extended in length.</li>
+ * <li>Only comparisons between pointers in the same store are supported.</li>
+ * </ul>
  */
 public class CompositeStore extends AbstractStore
 {
@@ -33,8 +39,28 @@ public class CompositeStore extends AbstractStore
     this.stores = new TreeMap<Long, IRandomAccessStore>();
     this.touched = new HashSet<IRandomAccessStore>();
     
+    long start = 0;
     for( IRandomAccessStore store: stores)
-      this.stores.put( store.first(), store);
+    {
+      start += (1 << 52);
+      this.stores.put( start, new OffsetStore( store, start));
+    }
+  }
+  
+  /**
+   * Add a new store at the end of the list of stores.
+   * @param store The store.
+   */
+  public void addStore( IRandomAccessStore store)
+  {
+  }
+  
+  /**
+   * Remove a store from the collection.
+   * @param store The store.
+   */
+  public void removeStore( IRandomAccessStore store)
+  {
   }
   
   /* (non-Javadoc)
@@ -71,7 +97,6 @@ public class CompositeStore extends AbstractStore
   public void writeByte( byte b) throws IOException
   {
     store.writeByte( b);
-    if ( store.position() == store.length()) length++;
     touched.add( store);
   }
 
@@ -99,6 +124,15 @@ public class CompositeStore extends AbstractStore
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.lss.IRandomAccessStore#first()
+   */
+  @Override
+  public long first() throws IOException
+  {
+    return 0;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.lss.IRandomAccessStore#position()
    */
   @Override
@@ -113,14 +147,26 @@ public class CompositeStore extends AbstractStore
   @Override
   public long length() throws IOException
   {
-    return store.length();
+    return stores.lastEntry().getValue().length();
   }
 
   /**
    * @return Returns the delegate store with the least utility.
    */
-  public IRandomAccessStore getLeastUtility()
+  public IRandomAccessStore getLeastUtility() throws IOException
   {
+    double minUtility = Double.MAX_VALUE;
+    IRandomAccessStore store = null;
+    for( Entry<Long, IRandomAccessStore> entry: stores.entrySet())
+    {
+      double utility = entry.getValue().utility();
+      if ( utility < minUtility) 
+      {
+        utility = minUtility;
+        store = entry.getValue();
+      }
+    }
+    return store;
   }
 
   private TreeMap<Long, IRandomAccessStore> stores;

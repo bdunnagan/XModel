@@ -4,9 +4,8 @@ import java.io.IOException;
 
 public class MemoryStore extends AbstractStore
 {
-  public MemoryStore( int first, int capacity)
+  public MemoryStore( int capacity)
   {
-    this.first = first;
     this.data = new byte[ capacity];
   }
   
@@ -66,15 +65,6 @@ public class MemoryStore extends AbstractStore
   public void seek( long position) throws IOException
   {
     pos = (int)position;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#first()
-   */
-  @Override
-  public long first() throws IOException
-  {
-    return first;
   }
 
   /* (non-Javadoc)
@@ -142,7 +132,6 @@ public class MemoryStore extends AbstractStore
   }
 
   private byte[] data;
-  private int first;
   private int pos;
   private int end;
 }

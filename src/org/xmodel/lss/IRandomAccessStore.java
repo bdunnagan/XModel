@@ -83,14 +83,7 @@ public interface IRandomAccessStore
    * @param position The position.
    */
   public void seek( long position) throws IOException;
-  
-  /**
-   * The first byte of a store is not necessarily at the zeroth position.  This is because a store
-   * may be one block of a larger store.  See CompositeStore for more information.
-   * @return Returns the position of the first byte in this store.
-   */
-  public long first() throws IOException;
-  
+    
   /**
    * @return Returns the current position.
    */
