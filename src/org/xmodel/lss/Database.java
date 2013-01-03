@@ -2,61 +2,33 @@ package org.xmodel.lss;
 
 import java.io.IOException;
 import java.util.Comparator;
-import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * Experimental implementation of a log-structured database.
  */
 public class Database<K>
 {
-  public Database( IRandomAccessStore store, IRecordFormat<K> recordFormat) throws IOException
+  public Database( StorageController<K> store) throws IOException
   {
-    this( store, recordFormat, null);
+    this( store, null);
   }
   
-  public Database( IRandomAccessStore store, IRecordFormat<K> recordFormat, Comparator<K> comparator) throws IOException
+  public Database( StorageController<K> store, Comparator<K> comparator) throws IOException
   {
     this.store = store;
-    this.btree = new BTree<K>( 1000, recordFormat, store, comparator);
-    this.recordFormat = recordFormat;
+    this.btree = new BTree<K>( 1000, store, comparator);
     this.record = new Record();
     
-    finishIndex( recordFormat);
+    store.finishIndex( btree);
   }
   
-  public Database( BTree<K> btree, IRandomAccessStore store, IRecordFormat<K> recordFormat) throws IOException
+  public Database( BTree<K> btree, StorageController<K> store) throws IOException
   {
     this.store = store;
     this.btree = btree;
-    this.recordFormat = recordFormat;
     this.record = new Record();
     
-    finishIndex( recordFormat);
-  }
-  
-  /**
-   * Read and index the records that follow the last b+tree root in the database.
-   * @param recordFormat The record format.
-   */
-  protected void finishIndex( IRecordFormat<K> recordFormat) throws IOException
-  {
-    finishCount = 0;
-    
-    while( true)
-    {
-      long pointer = store.position();
-      if ( pointer >= store.length()) break;
-      
-      recordFormat.readHeader( store, record);
-      long advance = store.position() + record.getLength();
-      
-      store.seek( pointer);
-      K key = recordFormat.extractKey( store);
-      if ( key != null) btree.insert( key, pointer);
-      
-      store.seek( advance);
-      finishCount++;
-    }
+    store.finishIndex( btree);
   }
   
   /**
@@ -66,11 +38,9 @@ public class Database<K>
    */
   public void insert( K key, byte[] data) throws IOException
   {
-    store.seek( store.length());
-    long position = store.position();
-    recordFormat.writeRecord( store, data);
+    long position = store.writeRecord( data);
     position = btree.insert( key, position);
-    if ( position > 0) markGarbage( position);
+    if ( position > 0) store.markGarbage( position);
   }
   
   /**
@@ -80,7 +50,7 @@ public class Database<K>
   public void delete( K key) throws IOException
   {
     long position = btree.delete( key);
-    if ( position > 0) markGarbage( position);
+    if ( position > 0) store.markGarbage( position);
   }
   
   /**
@@ -93,74 +63,13 @@ public class Database<K>
     long position = btree.get( key);
     if ( position > 0) 
     {
-      store.seek( position);
-      recordFormat.readRecord( store, record);
+      store.readRecord( position, record);
       return record.getContent();
     }
     return null;
   }
   
-  /**
-   * Mark the specified record as garbage.
-   * @param position The position of the record.
-   */
-  public void markGarbage( long position) throws IOException
-  {
-    store.seek( position);
-    recordFormat.markGarbage( store);
-  }
-  
-  /**
-   * Garbage collect a region of the specified store into this database.
-   * @param store The store to be compacted.
-   * @param offset The offset of the first record in the region.
-   * @param length The length of the region.
-   */
-  public void compact( IRandomAccessStore store, long offset, long length) throws IOException
-  {
-    Record record = new Record();
-    long end = offset + length;
-    while( offset < end)
-    {
-      store.seek( offset);
-      recordFormat.readRecord( store, record);
-      offset = store.position();
-      if ( !record.isGarbage()) 
-      {
-        K key = recordFormat.extractKey( record.getContent());
-        insert( key, record.getContent());
-      }
-    }
-  }
-  
-  /**
-   * @return Returns the store.
-   */
-  public IRandomAccessStore getStore()
-  {
-    return store;
-  }
-  
-  /**
-   * @return Returns the database index.
-   */
-  public BTree<K> getIndex()
-  {
-    return btree;
-  }
-  
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
-  @Override
-  public String toString()
-  {
-    return String.format( "finishCount=%d\n%s", finishCount, btree);
-  }
-
-  private IRandomAccessStore store;
+  private StorageController<K> store;
   private BTree<K> btree;
-  private IRecordFormat<K> recordFormat;
   private Record record;
-  private int finishCount;
 }

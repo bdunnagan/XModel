@@ -39,6 +39,18 @@ public interface IRandomAccessStore
    * Read an integer from the current position in the store.
    * @return Returns the integer.
    */
+  public short readShort() throws IOException;
+  
+  /**
+   * Write an integer into the store at the current position.
+   * @param value The value.
+   */
+  public void writeShort( short value) throws IOException;
+  
+  /**
+   * Read an integer from the current position in the store.
+   * @return Returns the integer.
+   */
   public int readInt() throws IOException;
   
   /**

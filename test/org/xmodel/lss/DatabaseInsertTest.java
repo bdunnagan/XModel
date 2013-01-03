@@ -2,12 +2,15 @@ package org.xmodel.lss;
 
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Random;
 import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.xmodel.lss.store.CompositeStore;
 import org.xmodel.lss.store.IRandomAccessStore;
+import org.xmodel.lss.store.IRandomAccessStoreFactory;
 import org.xmodel.lss.store.MemoryStore;
 
 public class DatabaseInsertTest
@@ -180,35 +183,6 @@ public class DatabaseInsertTest
   }
   
   @Test
-  public void deleteAndCompact() throws IOException
-  {
-    MemoryStore store = new MemoryStore( 1000);
-    BTree<String> btree = new BTree<String>( 2, recordFormat, store);
-    Database<String> db = new Database<String>( btree, store, recordFormat);
-
-    byte[] record = new byte[ 3];
-    for( int i=0; i<7; i++)
-    {
-      record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
-      String key = String.format( "%c", i+65);
-      db.insert( key, record);
-    }
-
-    db.delete( "A");
-    assertTrue( "Record not deleted", db.query( "A") == null);
-
-    db.compact( 12, store.length() - 12);
-    System.out.println( store);
-    
-    btree.store();
-    System.out.println( btree);
-    System.out.println( store);
-    
-    Analysis<String> analysis = new Analysis<String>( recordFormat);
-    System.out.println( analysis.computeFragmentation( store));
-  }
-  
-  @Test
   public void randomInsertDelete() throws IOException
   {
     int degree = 1000;
@@ -242,20 +216,49 @@ public class DatabaseInsertTest
         System.out.printf( "index=%1.3fms, store=%1.3fms\n", (t1 - t0) / 1e6, (t2 - t1) / 1e6);
       }
     }
+  }
+  
+  @Test
+  public void compositeStore() throws IOException
+  {
+    IRandomAccessStoreFactory factory = new IRandomAccessStoreFactory() {
+      public IRandomAccessStore createInstance() 
+      {
+        return new MemoryStore( 1000);
+      }
+    };
     
-//    btree.store();
-//    System.out.println( btree);
-//    System.out.println( store);
-//    
-    Analysis<String> analysis = new Analysis<String>( recordFormat);
-    System.out.println( analysis.computeFragmentation( store));
-    
-    db.compact( 12, 1000000);
-    
-    btree.store();
-    System.out.println( btree);
-    
-    System.out.println( analysis.computeFragmentation( store));
+    int degree = 3;
+    CompositeStore store = new CompositeStore( Collections.<IRandomAccessStore>emptyList(), factory);
+    BTree<String> btree = new BTree<String>( degree, recordFormat, store);
+    Database<String> db = new Database<String>( btree, store, recordFormat);
+
+    Random random = new Random( 1);
+    byte[] record = new byte[ 3];
+    for( int i=0; i<100000; i++)
+    {
+      int j = random.nextInt( 26);
+      record[ 0] = 1; record[ 1] = (byte)(j + 65); record[ 2] = '#';
+      String key = String.format( "%c", 65 + j);
+      db.insert( key, record);
+      
+      j = random.nextInt( 26);
+      key = String.format( "%c", 65 + j);
+      db.delete( key);
+      
+      if ( (i % 10000) == 0)
+      {
+        long t0 = System.nanoTime();
+        btree = new BTree<String>( degree, recordFormat, store);
+        db = new Database<String>( btree, store, recordFormat);
+        
+        long t1 = System.nanoTime();
+        btree.store();
+        
+        long t2 = System.nanoTime();
+        System.out.printf( "index=%1.3fms, store=%1.3fms\n", (t1 - t0) / 1e6, (t2 - t1) / 1e6);
+      }
+    }
   }
   
   private IKeyFormat<String> keyFormat;

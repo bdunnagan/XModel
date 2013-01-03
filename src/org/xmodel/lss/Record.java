@@ -19,7 +19,7 @@ public class Record
    */
   public boolean isIndex()
   {
-    return (flags & (IRecordFormat.nodeFlag | IRecordFormat.leafFlag)) != 0;
+    return (flags & (StorageController.nodeFlag | StorageController.leafFlag)) != 0;
   }
   
   /**
@@ -27,7 +27,7 @@ public class Record
    */
   public boolean isIndexLeaf()
   {
-    return (flags & IRecordFormat.leafFlag) != 0;
+    return (flags & StorageController.leafFlag) != 0;
   }
   
   /**
@@ -35,7 +35,7 @@ public class Record
    */
   public boolean isGarbage()
   {
-    return (flags & IRecordFormat.garbageFlag) != 0;
+    return (flags & StorageController.garbageFlag) != 0;
   }
   
   /**
@@ -44,7 +44,7 @@ public class Record
    */
   public void setGarbage( boolean garbage)
   {
-    flags |= IRecordFormat.garbageFlag;
+    flags |= StorageController.garbageFlag;
   }
   
   /**

@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import org.xmodel.lss.store.IRandomAccessStore;
 
 public class BNode<K>
 {
@@ -349,8 +348,7 @@ public class BNode<K>
     if ( pointer != 0)
     {
       // record may be garbage if index was not written after delete
-      tree.store.seek( pointer);
-      if ( tree.recordFormat.isGarbage( tree.store))
+      if ( tree.store.isGarbage( pointer))
       {
         delete( key, pointer);
         return 0;
@@ -671,7 +669,7 @@ public class BNode<K>
   protected void load() throws IOException
   {
     loaded = true;
-    tree.recordFormat.readNode( tree.store, this);
+    tree.store.readNode( this);
   }
   
   /**
@@ -682,9 +680,6 @@ public class BNode<K>
   {
     boolean dirty = storedUpdate != update;
     
-    IRandomAccessStore store = tree.store;
-    IRecordFormat<K> format = tree.recordFormat;
-    
     if ( children.size() > 0)
       for( int i=0; i<=count; i++)
         if ( children.get( i).store())
@@ -693,9 +688,9 @@ public class BNode<K>
     if ( dirty)
     {  
       long oldPointer = pointer;
-      format.writeNode( store, this);
-      store.seek( oldPointer);
-      format.markGarbage( store);
+      tree.store.writeNode( this);
+      if ( oldPointer != 0) 
+        tree.store.markGarbage( oldPointer);
       storedUpdate = update;
     }
     

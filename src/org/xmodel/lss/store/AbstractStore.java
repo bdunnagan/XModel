@@ -10,6 +10,27 @@ public abstract class AbstractStore implements IRandomAccessStore
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.lss.store.IRandomAccessStore#readShort()
+   */
+  @Override
+  public short readShort() throws IOException
+  {
+    read( buffer, 0, 4);
+    return (short)( (buffer[ 1] & 0xFF) + ((buffer[ 0] & 0xFF) << 8));
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.lss.store.IRandomAccessStore#writeShort(short)
+   */
+  @Override
+  public void writeShort( short value) throws IOException
+  {
+    buffer[ 1] = (byte)(value & 0xFF);
+    buffer[ 0] = (byte)((value >> 8) & 0xFF);
+    write( buffer, 0, 2);
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.lss.IRandomAccessStore#readInt()
    */
   @Override
