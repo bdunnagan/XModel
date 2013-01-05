@@ -1,6 +1,7 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -12,20 +13,34 @@ import org.xmodel.lss.store.IRandomAccessStoreFactory;
 
 public class StorageAllocator
 {
+  public final static int storeIdentifierOffset = StorageController.headerLength;
+  public final static int storeIdentifierLength = 4;
+  public final static int headerLength = StorageController.headerLength + storeIdentifierLength;
+  
   public StorageAllocator( List<IRandomAccessStore> stores, IRandomAccessStoreFactory factory) throws IOException
   {
     this.factory = factory;
+    this.stores = new ArrayList<IRandomAccessStore>( stores);
     this.storeMap = new TreeMap<Short, IRandomAccessStore>();
     this.touched = new HashSet<IRandomAccessStore>();
 
     for( IRandomAccessStore store: stores)
     {
-      store.seek( 0);
+      store.seek( storeIdentifierOffset);
       short offset = (short)store.readInt();
       storeMap.put( offset, store);
     }
     
-    if ( stores.size() == 0) addStore();
+    if ( stores.size() == 0) 
+    {
+      addStore();
+    }
+    else
+    {
+      Entry<Short, IRandomAccessStore> entry = storeMap.lastEntry();
+      activeID = entry.getKey();
+      active = entry.getValue();
+    }
   }
 
   /**
@@ -33,77 +48,92 @@ public class StorageAllocator
    */
   public IRandomAccessStore getActiveStore()
   {
+    return active;
+  }
+  
+  /**
+   * Converts the specified pointer into an absolute pointer for the specified store.
+   * @param store The store containing the pointer.
+   * @param pointer The pointer.
+   * @return Returns an absolute pointer.
+   */
+  public long getStorePointer( IRandomAccessStore store, long pointer)
+  {
+    if ( cachedStore != store)
+    {
+      cachedStore = store;
+      cachedStoreID = -1;
+      for( Entry<Short, IRandomAccessStore> entry: storeMap.entrySet())
+        if ( entry.getValue() == store)
+        {
+          cachedStoreID = entry.getKey();
+          break;
+        }
+    }
+    
+    if ( cachedStoreID == -1 || (pointer >> storeBits) != 0) throw new IllegalArgumentException();
+    return pointer | (cachedStoreID << storeBits);
   }
 
+  /**
+   * Converts the specified pointer into the active store to an absolute pointer.  An absolute
+   * pointer includes the store identifier.
+   * @param pointer The pointer.
+   * @return Returns an absolute pointer.
+   */
+  public long getActiveStorePointer( long pointer)
+  {
+    if ( (pointer >> storeBits) != 0) throw new IllegalArgumentException();
+    return pointer | (activeID << storeBits);
+  }
+
+  /**
+   * Returns true if the specified pointer is in the active store.
+   * @param pointer The pointer.
+   * @return Returns true if the specified pointer is in the active store.
+   */
+  public boolean isActiveStorePointer( long pointer)
+  {
+    short storeID = (short)(pointer >> storeBits);
+    return storeID == activeID;
+  }
+  
   /**
    * Returns the store that contains the specified pointer.
    * @param pointer The pointer.
    * @return Returns the store that contains the specified pointer.
    */
-  public IRandomAccessStore getStore( long pointer)
+  public IRandomAccessStore getStore( long pointer) throws IOException
   {
+    short storeID = (short)(pointer >> storeBits);
+    
+    Entry<Short, IRandomAccessStore> current = storeMap.ceilingEntry( storeID);
+    if ( current == null) throw new IndexOutOfBoundsException();
+    
+    return current.getValue();
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#flush()
+
+  /**
+   * Returns the store that contains the specified pointer and seeks to the pointer.
+   * @param pointer The pointer.
+   * @return Returns the store that contains the specified pointer.
    */
-  @Override
+  public IRandomAccessStore getStoreAndSeek( long pointer) throws IOException
+  {
+    IRandomAccessStore store = getStore( pointer);
+    store.seek( pointer & storeMask);
+    return store;
+  }
+
+  /**
+   * Flush changes made to all stores managed by this allocator.
+   */
   public void flush() throws IOException
   {
-    for( IRandomAccessStore store: touched)
-      store.flush();
+    for( IRandomAccessStore store: touched) store.flush();
     touched.clear();
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#seek(long)
-   */
-  @Override
-  public void seek( long pointer) throws IOException
-  {
-    short storeIndex = (short)(pointer >> storeBits);
-    Entry<Short, IRandomAccessStore> current = storeMap.ceilingEntry( storeIndex);
-    if ( current == null) throw new IndexOutOfBoundsException();
-    current.getValue().seek( pointer & storeMask);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#position()
-   */
-  @Override
-  public long position() throws IOException
-  {
-    return (((long)(current.getKey())) << storeBits) + current.getValue().position();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#length()
-   */
-  @Override
-  public long length() throws IOException
-  {
-    Entry<Short, IRandomAccessStore> lastEntry = storeMap.lastEntry();
-    return (((long)(lastEntry.getKey())) << storeBits) + lastEntry.getValue().length();
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.lss.store.AbstractStore#utility()
-   */
-  @Override
-  public double utility() throws IOException
-  {
-    double sum = 0;
-    
-    Collection<Entry<Short, IRandomAccessStore>> entries = storeMap.entrySet();
-    for( Entry<Short, IRandomAccessStore> entry: entries)
-    {
-      double utility = entry.getValue().utility();
-      sum += utility;
-    }
-    
-    return sum / entries.size();
-  }
-  
   /**
    * @return Returns the region with the lowest utility.
    */
@@ -133,23 +163,27 @@ public class StorageAllocator
   public void addStore() throws IOException
   {
     short start = 0;
-    Entry<Short, IRandomAccessStore> entry = storeMap.firstEntry();
     while( true)
     {
-      if ( entry == null || entry.getKey() > start)
+      IRandomAccessStore store = storeMap.get( start);
+      
+      if ( store == null)
       {
         IRandomAccessStore newStore = factory.createInstance();
-        newStore.seek( BTree.firstRecordOffset());
+        if ( active != null) initNewStoreFromActiveStore( newStore);
+        newStore.seek( storeIdentifierOffset);
         newStore.writeInt( start);
         newStore.flush();
-        
+
+        stores.add( newStore);
         storeMap.put( start, newStore);
+        active = newStore;
+        activeID = start;
         break;
       }
+      
       start++;
     }
-        
-    current = storeMap.ceilingEntry( start);
   }
   
   /**
@@ -158,25 +192,60 @@ public class StorageAllocator
    */
   public void removeStore( IRandomAccessStore store) throws IOException
   {
-    store.seek( BTree.firstRecordOffset());
+    store.seek( storeIdentifierOffset);
     short start = (short)store.readInt();
     storeMap.remove( start);
   }
   
   /**
-   * @return Returns the list of stores.
+   * Initialize a new store using the active store.
+   * @param store The store to be initialized.
    */
-  public Collection<IRandomAccessStore> getRegions()
+  private void initNewStoreFromActiveStore( IRandomAccessStore store) throws IOException
   {
-    return storeMap.values();
+    byte[] header = new byte[ StorageController.headerLength];
+    active.seek( 0);
+    active.read( header, 0, header.length);
+    store.write( header, 0, header.length);
   }
   
-  private final static long lengthThreshold = 200L;
+  /**
+   * @return Returns the list of stores.
+   */
+  public List<IRandomAccessStore> getStores()
+  {
+    return stores;
+  }
+  
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    for( Entry<Short, IRandomAccessStore> entry: storeMap.entrySet())
+    {
+      sb.append( String.format( "Store %d\n", entry.getKey()));
+      sb.append( entry.getValue().toString());
+      sb.append( "\n\n");
+    }
+    
+    sb.setLength( sb.length() - 1);
+    
+    return sb.toString();
+  }
+
   private final static long storeBits = 48;
   private final static long storeMask = (1L << storeBits) - 1;
   
   private IRandomAccessStoreFactory factory;
+  private List<IRandomAccessStore> stores;
   private TreeMap<Short, IRandomAccessStore> storeMap;
   private Set<IRandomAccessStore> touched;
-  private Entry<Short, IRandomAccessStore> current;
+  private IRandomAccessStore active;
+  private long activeID;
+  
+  private IRandomAccessStore cachedStore;
+  private long cachedStoreID;
 }

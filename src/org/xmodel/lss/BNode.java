@@ -348,7 +348,7 @@ public class BNode<K>
     if ( pointer != 0)
     {
       // record may be garbage if index was not written after delete
-      if ( tree.store.isGarbage( pointer))
+      if ( tree.storageController.isGarbage( pointer))
       {
         delete( key, pointer);
         return 0;
@@ -669,7 +669,7 @@ public class BNode<K>
   protected void load() throws IOException
   {
     loaded = true;
-    tree.store.readNode( this);
+    tree.storageController.readNode( this);
   }
   
   /**
@@ -678,7 +678,7 @@ public class BNode<K>
    */
   public boolean store() throws IOException
   {
-    boolean dirty = storedUpdate != update;
+    boolean dirty = storedUpdate != update || !tree.storageController.isActiveStorePointer( pointer);
     
     if ( children.size() > 0)
       for( int i=0; i<=count; i++)
@@ -688,9 +688,9 @@ public class BNode<K>
     if ( dirty)
     {  
       long oldPointer = pointer;
-      tree.store.writeNode( this);
+      tree.storageController.writeNode( this);
       if ( oldPointer != 0) 
-        tree.store.markGarbage( oldPointer);
+        tree.storageController.markGarbage( oldPointer);
       storedUpdate = update;
     }
     

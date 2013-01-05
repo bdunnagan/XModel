@@ -18,16 +18,23 @@ public class StorageController<K>
   public final static int garbageFlag = 0x01;
   public final static int nodeFlag = 0x02;
   public final static int leafFlag = 0x04;
+  
+  public final static int indexDegreeOffset = 0;
+  public final static int indexDegreeLength = 4;
+  public final static int indexPointerOffset = 4;
+  public final static int indexPointerLength = 8;
+  public final static int headerLength = indexDegreeLength + indexPointerLength;
 
-  public StorageController( IRandomAccessStoreFactory factory, IKeyFormat<K> keyFormat)
+  public StorageController( IRandomAccessStoreFactory factory, IKeyFormat<K> keyFormat, long newStoreThreshold) throws IOException
   {
-    this( factory, Collections.<IRandomAccessStore>emptyList(), keyFormat);
+    this( factory, Collections.<IRandomAccessStore>emptyList(), keyFormat, newStoreThreshold);
   }
   
-  public StorageController( IRandomAccessStoreFactory factory, List<IRandomAccessStore> stores, IKeyFormat<K> keyFormat)
+  public StorageController( IRandomAccessStoreFactory factory, List<IRandomAccessStore> stores, IKeyFormat<K> keyFormat, long newStoreThreshold) throws IOException
   {
     this.keyFormat = keyFormat;
-    
+    this.allocator = new StorageAllocator( stores, factory);
+    this.newStoreThreshold = newStoreThreshold;
   }
   
   /**
@@ -36,20 +43,44 @@ public class StorageController<K>
    */
   public void finishIndex( BTree<K> btree) throws IOException
   {
-    IRandomAccessStore store = allocator.getActiveStore();
-    long pointer = store.position();
+    List<IRandomAccessStore> stores = allocator.getStores();
+    IRandomAccessStore store = allocator.getStore( btree.root.getPointer());
     
-    while( pointer < store.length())
+    for( int i=stores.indexOf( store); i<stores.size(); i++)
     {
-      byte flags = store.readByte();
-      long length = store.readLong();
-      if ( (flags & garbageFlag) == 0)
+      store = stores.get( i);
+      long pointer = store.position();
+      
+      if ( pointer < StorageAllocator.headerLength)
+        pointer = StorageAllocator.headerLength;
+      
+      while( pointer < store.length())
       {
-        K key = keyFormat.extractKeyFromRecord( store, length);
-        if ( key != null) btree.insert( key, pointer);
+        store.seek( pointer);
+        
+        byte flags = store.readByte();
+        long length = store.readLong();
+        long start = store.position();
+        
+        if ( (flags & garbageFlag) == 0)
+        {
+          K key = keyFormat.extractKeyFromRecord( store, length);
+          if ( key != null) btree.insert( key, allocator.getStorePointer( store, pointer));
+        }
+        
+        pointer = start + length;
       }
-      store.seek( pointer + 9 + length);
     }
+  }
+  
+  /**
+   * Returns true if the specified pointer is in the active store.
+   * @param pointer The pointer.
+   * @return Returns true if the specified pointer is in the active store.
+   */
+  public boolean isActiveStorePointer( long pointer)
+  {
+    return allocator.isActiveStorePointer( pointer);
   }
   
   /**
@@ -58,7 +89,7 @@ public class StorageController<K>
   public int readIndexDegree() throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( 0);
+    store.seek( indexDegreeOffset);
     return store.readInt();
   }
   
@@ -69,7 +100,7 @@ public class StorageController<K>
   public void writeIndexDegree( int degree) throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( 0);
+    store.seek( indexDegreeOffset);
     store.writeInt( degree);
   }
   
@@ -79,18 +110,18 @@ public class StorageController<K>
   public long readIndexPointer() throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( 8);
+    store.seek( indexPointerOffset);
     return store.readLong();
   }
   
   /**
    * Writes the pointer to the most recently stored index.
-   * @param pointer The pointer.
+   * @param pointer The absolute pointer to the root node.
    */
   public void writeIndexPointer( long pointer) throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( 8);
+    store.seek( indexPointerOffset);
     store.writeLong( pointer);
   }
   
@@ -101,8 +132,7 @@ public class StorageController<K>
    */
   public void readHeader( long pointer, Record record) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
-    store.seek( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     readHeader( store, record);
   }
 
@@ -124,7 +154,7 @@ public class StorageController<K>
    */
   public void writeHeader( long pointer, Record record) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     store.writeByte( record.getFlags());
     store.writeLong( record.getLength());
   }
@@ -136,8 +166,7 @@ public class StorageController<K>
    */
   public void readRecord( long pointer, Record record) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
-    store.seek( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     readRecord( store, record);
   }
 
@@ -182,6 +211,11 @@ public class StorageController<K>
     store.writeLong( content.length);
     store.write( content, 0, content.length);
     
+    pointer = allocator.getActiveStorePointer( pointer);
+    
+    if ( store.position() >= newStoreThreshold)
+      allocator.addStore();
+
     return pointer;
   }
 
@@ -191,8 +225,7 @@ public class StorageController<K>
    */
   public void readNode( BNode<K> node) throws IOException
   {
-    IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( node.getPointer());
+    IRandomAccessStore store = allocator.getStoreAndSeek( node.getPointer());
 
     node.clearEntries();
     
@@ -238,7 +271,7 @@ public class StorageController<K>
     // new records are always written to the end of the active store
     long pointer = store.length();
     store.seek( pointer);
-    node.setPointer( pointer);
+    node.setPointer( allocator.getActiveStorePointer( pointer));
 
     store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
     long lengthPos = store.position();
@@ -265,8 +298,16 @@ public class StorageController<K>
     long position = store.position();
     store.seek( lengthPos);
     store.writeLong( position - lengthPos);
-    
+        
     return pointer;
+  }
+  
+  /**
+   * Flush changes made to stores controlled by this instance.
+   */
+  public void flush() throws IOException
+  {
+    allocator.flush();
   }
 
   /**
@@ -275,7 +316,7 @@ public class StorageController<K>
    */
   public void markGarbage( long pointer) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     long position = store.position();
     store.writeByte( (byte)garbageFlag);
     long length = store.readLong();
@@ -289,7 +330,7 @@ public class StorageController<K>
    */
   public boolean isGarbage( long pointer) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     return (store.readByte() & garbageFlag) != 0;
   }
   
@@ -325,7 +366,7 @@ public class StorageController<K>
    */
   protected K extractKey( long pointer) throws IOException
   {
-    IRandomAccessStore store = allocator.getStore( pointer);
+    IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     
     byte flags = store.readByte();
     long length = store.readLong();
@@ -337,6 +378,16 @@ public class StorageController<K>
     return key;
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return allocator.toString();
+  }
+
   private IKeyFormat<K> keyFormat;
   private StorageAllocator allocator;
+  private long newStoreThreshold;
 }

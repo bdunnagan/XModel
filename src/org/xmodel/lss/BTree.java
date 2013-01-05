@@ -15,11 +15,11 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
-   * @param store The storage controller for the database.
+   * @param storageController The storage controller for the database.
    */
-  public BTree( int degree, StorageController<K> store) throws IOException
+  public BTree( int degree, StorageController<K> storageController) throws IOException
   {
-    this( degree, store, null);
+    this( degree, storageController, null);
   }
   
   /**
@@ -28,26 +28,27 @@ public class BTree<K>
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
    * @param recordFormat The record format.
-   * @param store The store controller for the database.
+   * @param storageController The store controller for the database.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, StorageController<K> store, Comparator<K> comparator) throws IOException
+  public BTree( int degree, StorageController<K> storageController, Comparator<K> comparator) throws IOException
   {
+    this.degree = degree;
+    this.garbage = new ArrayList<BNode<K>>();
+    this.storageController = storageController;
+
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
-    
-    this.garbage = new ArrayList<BNode<K>>();
-    this.store = store;
 
-    int storeDegree = store.readIndexDegree();
+    int storeDegree = storageController.readIndexDegree();
     if ( storeDegree == 0)
     {
-      store.writeIndexDegree( degree);
+      initActiveStore();
       root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
     }
     else if ( storeDegree == degree)
     {
-      long position = store.readIndexPointer();
+      long position = storageController.readIndexPointer();
       root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
       if ( position > 0) root.load();
     }
@@ -58,11 +59,12 @@ public class BTree<K>
   }
   
   /**
-   * @return Returns the length of the index header in a store.
+   * Initialize the active store in the specified StorageController for use with this BTree.
+   * @param storageController The storage controller.
    */
-  public static long firstRecordOffset()
+  protected void initActiveStore() throws IOException
   {
-    return 4 + 8;
+    storageController.writeIndexDegree( degree);
   }
   
   /**
@@ -103,11 +105,14 @@ public class BTree<K>
    */
   public void store() throws IOException
   {
+    // begin with clean slate
+    storageController.flush();
+    
     // update index
     root.store();
     
     // update index pointer
-    store.writeIndexPointer( root.pointer);
+    storageController.writeIndexPointer( root.pointer);
 
     //
     // Mark index garbage. 
@@ -116,8 +121,11 @@ public class BTree<K>
     while( garbage.size() > 0)
     {
       BNode<K> node = garbage.remove( 0);
-      if ( node.pointer > 0) store.markGarbage( node.pointer);
+      if ( node.pointer > 0) storageController.markGarbage( node.pointer);
     }
+    
+    // flush changes
+    storageController.flush();
   }
   
   /**
@@ -138,9 +146,10 @@ public class BTree<K>
     return root.toString();
   }
 
-  StorageController<K> store;
-  BNode<K> root;
-  List<BNode<K>> garbage;
+  private int degree;
+  protected StorageController<K> storageController;
+  protected BNode<K> root;
+  private List<BNode<K>> garbage;
   
   public static void main( String[] args) throws Exception
   {

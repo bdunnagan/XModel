@@ -66,14 +66,14 @@ public abstract class AbstractStore implements IRandomAccessStore
   {
     read( buffer, 0, 8);
     return 
-      (buffer[ 7] & 0xFF) + 
-      ((buffer[ 6] & 0xFF) << 8) + 
-      ((buffer[ 5] & 0xFF) << 16) + 
-      ((buffer[ 4] & 0xFF) << 24) +
-      ((buffer[ 3] & 0xFF) << 32) +
-      ((buffer[ 2] & 0xFF) << 40) +
-      ((buffer[ 1] & 0xFF) << 48) +
-      ((buffer[ 0] & 0xFF) << 56);
+      (buffer[ 7] & 0xFFL) + 
+      ((buffer[ 6] & 0xFFL) << 8) + 
+      ((buffer[ 5] & 0xFFL) << 16) + 
+      ((buffer[ 4] & 0xFFL) << 24) +
+      ((buffer[ 3] & 0xFFL) << 32) +
+      ((buffer[ 2] & 0xFFL) << 40) +
+      ((buffer[ 1] & 0xFFL) << 48) +
+      ((buffer[ 0] & 0xFFL) << 56);
   }
 
   /* (non-Javadoc)
@@ -82,14 +82,14 @@ public abstract class AbstractStore implements IRandomAccessStore
   @Override
   public void writeLong( long value) throws IOException
   {
-    buffer[ 7] = (byte)(value & 0xFF);
-    buffer[ 6] = (byte)((value >> 8) & 0xFF);
-    buffer[ 5] = (byte)((value >> 16) & 0xFF);
-    buffer[ 4] = (byte)((value >> 24) & 0xFF);
-    buffer[ 3] = (byte)((value >> 32) & 0xFF);
-    buffer[ 2] = (byte)((value >> 40) & 0xFF);
-    buffer[ 1] = (byte)((value >> 48) & 0xFF);
-    buffer[ 0] = (byte)((value >> 56) & 0xFF);
+    buffer[ 7] = (byte)(value & 0xFFL);
+    buffer[ 6] = (byte)((value >> 8) & 0xFFL);
+    buffer[ 5] = (byte)((value >> 16) & 0xFFL);
+    buffer[ 4] = (byte)((value >> 24) & 0xFFL);
+    buffer[ 3] = (byte)((value >> 32) & 0xFFL);
+    buffer[ 2] = (byte)((value >> 40) & 0xFFL);
+    buffer[ 1] = (byte)((value >> 48) & 0xFFL);
+    buffer[ 0] = (byte)((value >> 56) & 0xFFL);
     write( buffer, 0, 8);
   }
 

@@ -1,6 +1,7 @@
 package org.xmodel.lss.store;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class MemoryStore extends AbstractStore
 {
@@ -26,6 +27,7 @@ public class MemoryStore extends AbstractStore
   @Override
   public void write( byte[] bytes, int offset, int length) throws IOException
   {
+    if ( pos + length > data.length) data = Arrays.copyOf( data, data.length * 2);
     System.arraycopy( bytes, offset, data, pos, length);
     pos += length;
     if ( pos > end) end = pos;
@@ -46,6 +48,7 @@ public class MemoryStore extends AbstractStore
   @Override
   public void writeByte( byte b) throws IOException
   {
+    if ( pos == data.length) data = Arrays.copyOf( data, data.length * 2);
     data[ pos++] = b;
     if ( pos > end) end = pos;
   }
