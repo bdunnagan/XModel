@@ -2,57 +2,51 @@ package org.xmodel.lss;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Experimental implementation of a log-structured database.
  */
 public class Database<K>
 {
-  public Database( StorageController<K> storageController) throws IOException
-  {
-    this( storageController, null);
-  }
-  
-  public Database( StorageController<K> storageController, Comparator<K> comparator) throws IOException
+  public Database( List<BTree<K>> indexes, StorageController<K> storageController) throws IOException
   {
     this.storageController = storageController;
-    this.btree = new BTree<K>( 1000, storageController, comparator);
+    this.indexes = indexes;
     this.record = new Record();
     
-    storageController.finishIndex( btree);
-  }
-  
-  public Database( BTree<K> btree, StorageController<K> storageController) throws IOException
-  {
-    this.storageController = storageController;
-    this.btree = btree;
-    this.record = new Record();
-    
-    storageController.finishIndex( btree);
+    storageController.finishIndex( indexes);
   }
   
   /**
    * Insert a record into the database.
-   * @param key The key.
+   * @param keys The keys for each index.
    * @param data The data to associate with the key.
    */
-  public void insert( K key, byte[] data) throws IOException
+  public void insert( K[] keys, byte[] data) throws IOException
   {
     long position = storageController.writeRecord( data);
-    position = btree.insert( key, position);
+    position = indexes.get( 0).insert( keys[ 0], position);
     if ( position != 0) storageController.markGarbage( position);
+    
     storageController.flush();
   }
   
   /**
    * Delete a record from the database.
-   * @param key The key.
+   * @param keys The keys.
    */
-  public void delete( K key) throws IOException
+  public void delete( K[] keys) throws IOException
   {
-    long position = btree.delete( key);
+    long position = indexes.get( 0).delete( keys[ 0]);
     if ( position != 0) storageController.markGarbage( position);
     storageController.flush();
+    
+    for( int i=1; i<keys.length; i++)
+    {
+      BTree<K> index = indexes.get( i);
+      index.delete( keys[ i]);
+    }
   }
   
   /**
@@ -72,14 +66,34 @@ public class Database<K>
   }
   
   /**
-   * Write the index to storage.
+   * Write the database indexes to the store.
    */
   public void storeIndex() throws IOException
   {
-    btree.store();
+    // begin with clean slate
+    storageController.flush();
+    
+    // update index
+    root.store();
+    
+    // update index pointer
+    storageController.writeIndexPointer( root.pointer);
+
+    //
+    // Mark index garbage. 
+    // Failure just before this point could result in leaked garbage.
+    //
+    while( garbage.size() > 0)
+    {
+      BNode<K> node = garbage.remove( 0);
+      if ( node.pointer > 0) storageController.markGarbage( node.pointer);
+    }
+    
+    // flush changes
+    storageController.flush();
   }
   
   private StorageController<K> storageController;
-  private BTree<K> btree;
+  private List<BTree<K>> indexes;
   private Record record;
 }

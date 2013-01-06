@@ -23,17 +23,17 @@ public interface IKeyFormat<K>
   public void writeKey( IRandomAccessStore store, K key) throws IOException;
   
   /**
-   * Extract the key from the database record at the current position in the specified store.
+   * Extract the keys from the database record at the current position in the specified store.
    * @param store The store positioned at the beginning of the record.
    * @param length The length of the record.
-   * @return Returns the key.
+   * @return Returns the keys.
    */
-  public K extractKeyFromRecord( IRandomAccessStore store, long length) throws IOException;
+  public K[] extractKeysFromRecord( IRandomAccessStore store, long length) throws IOException;
   
   /**
-   * Extract the key from the specified database record.
+   * Extract the keys from the specified database record.
    * @param record The record content.
-   * @return Returns the key.
+   * @return Returns the keys.
    */
-  public K extractKeyFromRecord( byte[] content) throws IOException;
+  public K[] extractKeysFromRecord( byte[] content) throws IOException;
 }

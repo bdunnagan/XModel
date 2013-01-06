@@ -43,12 +43,12 @@ public class StorageController<K>
   
   /**
    * Read any records between the last stored index and the end of the store.
-   * @param btree The BTree to be updated with the additional records.
+   * @param indexes The indexes to be updated.
    */
-  public void finishIndex( BTree<K> btree) throws IOException
+  public void finishIndex( List<BTree<K>> indexes) throws IOException
   {
     List<IRandomAccessStore> stores = allocator.getStores();
-    IRandomAccessStore store = allocator.getStore( btree.root.getPointer());
+    IRandomAccessStore store = allocator.getStore( indexes.get( 0).root.getPointer());
     int index = stores.indexOf( store);
     
     for( int i=index; i<stores.size(); i++)
@@ -72,8 +72,15 @@ public class StorageController<K>
         
         if ( (flags & garbageFlag) == 0)
         {
-          K key = keyFormat.extractKeyFromRecord( store, length);
-          if ( key != null) btree.insert( key, allocator.getStorePointer( store, pointer));
+          K[] keys = keyFormat.extractKeysFromRecord( store, length);
+          if ( keys != null) 
+          {
+            long storePointer = allocator.getStorePointer( store, pointer);
+            for( int j=0; j<keys.length; j++)
+            {
+              indexes.get( j).insert( keys[ j], storePointer);
+            }
+          }
         }
         
         pointer = start + length;
@@ -378,9 +385,8 @@ public class StorageController<K>
           else
           {
             readRecord( store, record);
-            K key = keyFormat.extractKeyFromRecord( record.getContent());
-            System.out.printf( "Found non-garbage: %s\n", key);
-            database.insert( key, record.getContent());
+            K[] keys = keyFormat.extractKeysFromRecord( record.getContent());
+            database.insert( keys, record.getContent());
           }
         }
         
@@ -394,11 +400,11 @@ public class StorageController<K>
   }
   
   /**
-   * Extract the key from the specified record.
+   * Extract the keys from the specified record.
    * @param pointer The pointer to the record.
-   * @return Returns the key.
+   * @return Returns the keys.
    */
-  protected K extractKey( long pointer) throws IOException
+  protected K[] extractKey( long pointer) throws IOException
   {
     IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     
@@ -407,9 +413,9 @@ public class StorageController<K>
     if ( (flags & (nodeFlag | garbageFlag)) != 0) return null;
 
     // extract key
-    K key = keyFormat.extractKeyFromRecord( store, length);
+    K[] keys = keyFormat.extractKeysFromRecord( store, length);
     
-    return key;
+    return keys;
   }
   
   /* (non-Javadoc)
@@ -418,7 +424,14 @@ public class StorageController<K>
   @Override
   public String toString()
   {
-    return allocator.toString();
+    try
+    {
+      return String.format( "%s\ntotal=%1.3fK", allocator.toString(), allocator.size() / 1000.0);
+    }
+    catch( IOException e)
+    {
+      return e.toString();
+    }
   }
 
   private IKeyFormat<K> keyFormat;

@@ -172,7 +172,7 @@ public class StorageAllocator
       
       if ( store == null)
       {
-        IRandomAccessStore newStore = factory.createInstance();
+        IRandomAccessStore newStore = factory.createInstance( start);
         if ( active != null) initNewStoreFromActiveStore( newStore);
         newStore.seek( storeIdentifierOffset);
         newStore.writeInt( start);
@@ -219,6 +219,17 @@ public class StorageAllocator
   public List<IRandomAccessStore> getStores()
   {
     return stores;
+  }
+  
+  /**
+   * @return Returns the sum of the sizes of all managed stores.
+   */
+  public long size() throws IOException
+  {
+    long sum = 0;
+    for( IRandomAccessStore store: stores)
+      sum += store.length();
+    return sum;
   }
   
   /* (non-Javadoc)

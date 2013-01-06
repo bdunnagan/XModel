@@ -7,9 +7,9 @@ import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.xmodel.lss.store.FileStore;
 import org.xmodel.lss.store.IRandomAccessStore;
 import org.xmodel.lss.store.IRandomAccessStoreFactory;
-import org.xmodel.lss.store.MemoryStore;
 
 public class BasicDatabaseTests
 {
@@ -45,9 +45,10 @@ public class BasicDatabaseTests
     };
 
     factory = new IRandomAccessStoreFactory() {
-      public IRandomAccessStore createInstance()
+      public IRandomAccessStore createInstance( int id) throws IOException
       {
-        return new MemoryStore( 1000);
+//        return new MemoryStore( 1000);
+        return new FileStore( "store-"+id+".dat");
       }
     };
   }
@@ -253,18 +254,15 @@ public class BasicDatabaseTests
       db.delete( key);
     }
     
-    System.out.println( "Garbage collecting ...");
     storageController.garbageCollect( db);
-    System.out.println( "Done.");
     
-    for( int i=15; i<26; i++)
+    for( int i=0; i<26; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      assertTrue( db.query( key) != null);
+      if ( i < 12) assertTrue( db.query( key) == null);
+      else assertTrue( db.query( key) != null);
     }
-    
-    System.out.println( btree);
   }
   
   private IKeyFormat<String> keyFormat;
