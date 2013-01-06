@@ -19,7 +19,12 @@ public class Record
    */
   public boolean isIndex()
   {
-    return (flags & (StorageController.nodeFlag | StorageController.leafFlag)) != 0;
+    return (flags & StorageController.nodeFlag) != 0;
+  }
+  
+  public boolean isIndexRoot()
+  {
+    return (flags & StorageController.rootFlag) != 0;
   }
   
   /**

@@ -72,18 +72,16 @@ public interface IRandomAccessStore
   public void writeLong( long value) throws IOException;
   
   /**
-   * Mark the specified region as garbage for bookkeeping purposes.  This method, in conjunction
-   * with the <code>utility()</code> method, allows clients to track the amount of space in the
-   * store that is being utilized.
+   * Mark the specified region as garbage for bookkeeping purposes.
    * @param position The start of the region.
    * @param length The length of the region.
    */
   public void garbage( long position, long length) throws IOException;
   
   /**
-   * @return Returns the percentage utilization of the store.
+   * @return Returns the total length of all garbage in the store.
    */
-  public double utility() throws IOException;
+  public long garbage() throws IOException;
   
   /**
    * Flush pending data to the storage device.

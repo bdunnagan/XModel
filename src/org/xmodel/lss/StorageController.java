@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import org.xmodel.lss.BNode.Entry;
+import org.xmodel.lss.StorageAllocator.LowestUtility;
 import org.xmodel.lss.store.IRandomAccessStore;
 import org.xmodel.lss.store.IRandomAccessStoreFactory;
 
@@ -18,12 +19,15 @@ public class StorageController<K>
   public final static int garbageFlag = 0x01;
   public final static int nodeFlag = 0x02;
   public final static int leafFlag = 0x04;
+  public final static int rootFlag = 0x08;
   
   public final static int indexDegreeOffset = 0;
   public final static int indexDegreeLength = 4;
   public final static int indexPointerOffset = 4;
   public final static int indexPointerLength = 8;
   public final static int headerLength = indexDegreeLength + indexPointerLength;
+  
+  public final static int recordHeaderLength = 9;
 
   public StorageController( IRandomAccessStoreFactory factory, IKeyFormat<K> keyFormat, long newStoreThreshold) throws IOException
   {
@@ -45,13 +49,14 @@ public class StorageController<K>
   {
     List<IRandomAccessStore> stores = allocator.getStores();
     IRandomAccessStore store = allocator.getStore( btree.root.getPointer());
+    int index = stores.indexOf( store);
     
-    for( int i=stores.indexOf( store); i<stores.size(); i++)
+    for( int i=index; i<stores.size(); i++)
     {
       store = stores.get( i);
       long pointer = store.position();
       
-      if ( pointer < StorageAllocator.headerLength)
+      if ( i > index || pointer < StorageAllocator.headerLength)
         pointer = StorageAllocator.headerLength;
       
       while( pointer < store.length())
@@ -61,6 +66,9 @@ public class StorageController<K>
         byte flags = store.readByte();
         long length = store.readLong();
         long start = store.position();
+        
+        if ( length != 3)
+          System.out.println();
         
         if ( (flags & garbageFlag) == 0)
         {
@@ -230,7 +238,8 @@ public class StorageController<K>
     node.clearEntries();
     
     byte flags = store.readByte();
-    if ( (flags & nodeFlag) == 0) throw new IllegalStateException( "Record is not an index node.");
+    if ( (flags & nodeFlag) == 0) 
+      throw new IllegalStateException( "Record is not an index node.");
     
     store.readLong();
     int count = store.readInt();
@@ -273,11 +282,14 @@ public class StorageController<K>
     store.seek( pointer);
     node.setPointer( allocator.getActiveStorePointer( pointer));
 
-    store.writeByte( (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag)));
-    long lengthPos = store.position();
-    store.writeLong( 0);
-    store.writeInt( node.count());
+    byte flags = (byte)((children.size() > 0)? nodeFlag: (nodeFlag | leafFlag));
+    if ( node.parent() == null) flags |= rootFlag;
     
+    store.writeByte( flags);
+    store.writeLong( 0);
+    long lengthPos = store.position();
+    
+    store.writeInt( node.count());
     for( int i=0; i<node.count(); i++)
     {
       Entry<K> entry = entries.get( i);
@@ -296,7 +308,7 @@ public class StorageController<K>
     }
     
     long position = store.position();
-    store.seek( lengthPos);
+    store.seek( lengthPos - 8);
     store.writeLong( position - lengthPos);
         
     return pointer;
@@ -337,26 +349,48 @@ public class StorageController<K>
   /**
    * Perform garbage collection and relocate records to the specified database.
    * @param database The database.
+   * @return Returns true if there was garbage to collect.
    */
-  public void garbageCollect( Database<K> database) throws IOException
+  public boolean garbageCollect( Database<K> database) throws IOException
   {
-    IRandomAccessStore store = allocator.getLowestUtilityRegion();
-    long position = 16;
+    LowestUtility result = allocator.getLowestUtilityStore();
+    IRandomAccessStore store = result.store;
+    if ( store == null || store == allocator.getActiveStore()) return false;
     
-    Record record = new Record();
-    while( store.position() < store.length())
+    if ( (StorageAllocator.headerLength + result.garbage) < store.length())
     {
-      store.seek( position);
-      readRecord( store, record);
-      if ( !record.isGarbage()) 
+      long position = StorageAllocator.headerLength;
+      
+      Record record = new Record();
+      while( position < store.length())
       {
-        K key = keyFormat.extractKeyFromRecord( record.getContent());
-        database.insert( key, record.getContent());
+        store.seek( position);
+  
+        readHeader( store, record);
+        if ( !record.isGarbage())
+        {
+          store.seek( position);
+          if ( record.isIndex())
+          {
+            if ( record.isIndexRoot())
+              database.storeIndex();
+          }
+          else
+          {
+            readRecord( store, record);
+            K key = keyFormat.extractKeyFromRecord( record.getContent());
+            System.out.printf( "Found non-garbage: %s\n", key);
+            database.insert( key, record.getContent());
+          }
+        }
+        
+        position += StorageController.recordHeaderLength + record.getLength();
       }
-      position += 9 + record.getLength();
     }
     
     allocator.removeStore( store);
+    
+    return true;
   }
   
   /**

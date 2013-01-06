@@ -103,13 +103,12 @@ public abstract class AbstractStore implements IRandomAccessStore
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.lss.IRandomAccessStore#utility()
+   * @see org.xmodel.lss.store.IRandomAccessStore#garbage()
    */
   @Override
-  public double utility() throws IOException
+  public long garbage() throws IOException
   {
-    long length = length();
-    return (length - garbage) / length;
+    return garbage;
   }
 
   private byte[] buffer;

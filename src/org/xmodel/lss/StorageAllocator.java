@@ -2,7 +2,6 @@ package org.xmodel.lss;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -135,25 +134,29 @@ public class StorageAllocator
   }
 
   /**
-   * @return Returns the region with the lowest utility.
+   * @return Returns the store with the lowest utility.
    */
-  public IRandomAccessStore getLowestUtilityRegion() throws IOException
+  public LowestUtility getLowestUtilityStore() throws IOException
   {
-    IRandomAccessStore lowestUtility = null;
-    double min = Double.MAX_VALUE;
+    IRandomAccessStore minStore = null;
+    long maxGarbage = 0;
     
-    Collection<Entry<Short, IRandomAccessStore>> entries = storeMap.entrySet();
-    for( Entry<Short, IRandomAccessStore> entry: entries)
+    for( IRandomAccessStore store: stores)
     {
-      double utility = entry.getValue().utility();
-      if ( utility < min) 
+      if ( store == active) continue;
+      
+      long garbage = store.garbage();
+      if ( garbage > maxGarbage)
       {
-        min = utility;
-        lowestUtility = entry.getValue();
+        maxGarbage = garbage;
+        minStore = store;
       }
     }
-    
-    return lowestUtility;
+
+    LowestUtility result = new LowestUtility();
+    result.garbage = maxGarbage;
+    result.store = minStore;
+    return result;
   }
 
   /**
@@ -195,6 +198,7 @@ public class StorageAllocator
     store.seek( storeIdentifierOffset);
     short start = (short)store.readInt();
     storeMap.remove( start);
+    stores.remove( store);
   }
   
   /**
@@ -234,6 +238,12 @@ public class StorageAllocator
     sb.setLength( sb.length() - 1);
     
     return sb.toString();
+  }
+  
+  public static class LowestUtility
+  {
+    public long garbage;
+    public IRandomAccessStore store;
   }
 
   private final static long storeBits = 48;

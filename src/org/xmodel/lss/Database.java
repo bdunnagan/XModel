@@ -71,6 +71,14 @@ public class Database<K>
     return null;
   }
   
+  /**
+   * Write the index to storage.
+   */
+  public void storeIndex() throws IOException
+  {
+    btree.store();
+  }
+  
   private StorageController<K> storageController;
   private BTree<K> btree;
   private Record record;
