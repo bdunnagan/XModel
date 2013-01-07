@@ -50,11 +50,11 @@ public class Database<K>
   }
   
   /**
-   * Query a record from the database.
+   * Query a record from the database with one or more keys.
    * @param key The key.
    * @return Returns null or the record.
    */
-  public byte[] query( K key) throws IOException
+  public byte[] query( K[] keys) throws IOException
   {
     long position = btree.get( key);
     if ( position != 0) 
@@ -73,8 +73,9 @@ public class Database<K>
     // begin with clean slate
     storageController.flush();
     
-    // update index
-    root.store();
+    // update indexes
+    for( BTree<K> index: indexes)
+      index.root.store();
     
     // update index pointer
     storageController.writeIndexPointer( root.pointer);

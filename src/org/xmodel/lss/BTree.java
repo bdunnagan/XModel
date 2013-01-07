@@ -101,34 +101,6 @@ public class BTree<K>
   }
   
   /**
-   * Update the index in the store.
-   */
-  public void store() throws IOException
-  {
-    // begin with clean slate
-    storageController.flush();
-    
-    // update index
-    root.store();
-    
-    // update index pointer
-    storageController.writeIndexPointer( root.pointer);
-
-    //
-    // Mark index garbage. 
-    // Failure just before this point could result in leaked garbage.
-    //
-    while( garbage.size() > 0)
-    {
-      BNode<K> node = garbage.remove( 0);
-      if ( node.pointer > 0) storageController.markGarbage( node.pointer);
-    }
-    
-    // flush changes
-    storageController.flush();
-  }
-  
-  /**
    * Add the specified node to the garbage.
    * @param node The node.
    */
