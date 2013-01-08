@@ -597,13 +597,6 @@ public class BNode<K>
     return children;
   }
   
-  private Comparator<Entry<K>> entryComparator = new Comparator<Entry<K>>() {
-    public int compare( Entry<K> lhs, Entry<K> rhs)
-    {
-      return comparator.compare( lhs.key, rhs.key);
-    }
-  };
-
   /**
    * Set the pointer to this node in the store.
    * @param pointer The pointer.
@@ -697,6 +690,13 @@ public class BNode<K>
     return dirty;
   }
     
+  private Comparator<Entry<K>> entryComparator = new Comparator<Entry<K>>() {
+    public int compare( Entry<K> lhs, Entry<K> rhs)
+    {
+      return comparator.compare( lhs.key, rhs.key);
+    }
+  };
+
   protected BTree<K> tree;
   private BNode<K> parent;
   
