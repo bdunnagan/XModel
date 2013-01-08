@@ -547,6 +547,13 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( orderby);
     }
     
+    // HACK: optional row limit optimization that only works for MySQL
+    if ( limit > 0 && provider instanceof MySQLProvider)
+    {
+      sb.append( " LIMIT ");
+      sb.append( limit);
+    }
+    
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
     
