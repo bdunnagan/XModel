@@ -68,13 +68,13 @@ public class BasicDatabaseTests
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
     {
-      if ( i == 5) btree.store();
+      if ( i == 5) db.storeIndex();
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
       db.insert( key, record);
     }
     
-    btree.store();
+    db.storeIndex();
     
     btree = new BTree<String>( 2, storageController);
     db = new Database<String>( btree, storageController);
@@ -98,7 +98,7 @@ public class BasicDatabaseTests
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
     {
-      if ( i == 5) btree.store();
+      if ( i == 5) db.storeIndex();
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
       db.insert( key, record);
@@ -131,12 +131,12 @@ public class BasicDatabaseTests
       db.insert( key, record);
     }
 
-    btree.store();
+    db.storeIndex();
     
     db.delete( "A");
     assertTrue( "Record not deleted", db.query( "A") == null);
     
-    btree.store();
+    db.storeIndex();
     
     btree = new BTree<String>( 2, storageController);
     db = new Database<String>( btree, storageController);
@@ -167,7 +167,7 @@ public class BasicDatabaseTests
       db.insert( key, record);
     }
 
-    btree.store();
+    db.storeIndex();
     
     db.delete( "A");
     assertTrue( "Record not deleted", db.query( "A") == null);
@@ -214,7 +214,7 @@ public class BasicDatabaseTests
         db = new Database<String>( btree, storageController);
         
         long t1 = System.nanoTime();
-        btree.store();
+        db.storeIndex();
         
         long t2 = System.nanoTime();
         System.out.printf( "index=%1.3fms, store=%1.3fms\n", (t1 - t0) / 1e6, (t2 - t1) / 1e6);

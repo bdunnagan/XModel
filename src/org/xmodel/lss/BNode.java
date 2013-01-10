@@ -133,7 +133,7 @@ public class BNode<K>
   {
     if ( !loaded) load();
     
-    int i = search( key);
+    int i = search( key, value);
     if ( i >= 0)
     {
       update++;
@@ -204,22 +204,24 @@ public class BNode<K>
   /**
    * Delete the entry under the specified key.
    * @param key The key.
+   * @param value The value (-1 for unique keys).
    * @return Returns 0 or the value that was associated with the key.
    */
-  public long delete( K key) throws IOException
+  public long delete( K key, long value) throws IOException
   {
     if ( !loaded) load();
-    int i = search( key);
-    return delete( key, i);
+    int i = search( key, value);
+    return delete( key, i, value);
   }
   
   /**
    * Delete the entry under the specified key.
    * @param key The key.
    * @param i The index of the key or the index where the key would be inserted.
+   * @param value The value (-1 for unique keys).
    * @return Returns 0 or the value that was associated with the key.
    */
-  protected long delete( K key, int i) throws IOException
+  protected long delete( K key, int i, long value) throws IOException
   {
     if ( !loaded) load();
     
@@ -268,7 +270,7 @@ public class BNode<K>
             //   Recursively delete key from merged node
             update++;
             BNode<K> merged = merge( i);
-            return merged.delete( key);
+            return merged.delete( key, value);
           }
         }
       }
@@ -279,7 +281,7 @@ public class BNode<K>
         BNode<K> node = children.get( k);
         if ( node.count() > minKeys)
         {
-          return node.delete( key);
+          return node.delete( key, value);
         }
         else
         {
@@ -288,7 +290,7 @@ public class BNode<K>
           {
             // Case 3a: There is a child that can give up a key
             rightRotate( k-1);
-            return node.delete( key);
+            return node.delete( key, value);
           }
           else
           {
@@ -297,7 +299,7 @@ public class BNode<K>
             {
               // Case 3a: There is a child that can give up a key
               leftRotate( k);
-              return node.delete( key);
+              return node.delete( key, value);
             }
             else
             {
@@ -310,7 +312,7 @@ public class BNode<K>
               
               // Case 3b: No children can give up a key
               BNode<K> merged = merge( k);
-              return merged.delete( key);
+              return merged.delete( key, value);
             }
           }
         }
@@ -319,27 +321,15 @@ public class BNode<K>
   }
   
   /**
-   * Delete the specified entry.
-   * @param key The key.
-   * @param pointer The pointer.
-   * @throws IOException
-   */
-  public void delete( K key, long pointer) throws IOException
-  {
-    // revisit after non-unique keys implemented
-    delete( key);
-  }
-  
-  /**
-   * Get the value under the specified key.
-   * @param key The key.
+   * Get the value under the specified unique key.
+   * @param key The unique key.
    * @return Returns 0 or the value under the specified key.
    */
   public long get( K key) throws IOException
   {
     if ( !loaded) load();
     
-    int i = search( key);
+    int i = search( key, -1);
     if ( i >= 0) return entries.get( i).value;
     
     if ( children.size() == 0) return 0;
@@ -360,29 +350,51 @@ public class BNode<K>
   
   /**
    * Get a cursor for navigating keys in order.
-   * @param key The starting key.
+   * @param key The unique starting key.
    * @return Returns a cursor.
    */
-  public Cursor<K> getCursor( K key) throws IOException
+  public Cursor<K> getCursorUnique( K key) throws IOException
   {
-    return getCursor( null, key);
+    return getCursor( null, key, -1);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The unique starting key.
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursorNonUnique( K key) throws IOException
+  {
+    return getCursor( null, key, 0);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The starting key.
+   * @param value The value (-1 for unique keys).
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursor( K key, long value) throws IOException
+  {
+    return getCursor( null, key, value);
   }
   
   /**
    * Get a nested cursor for navigating keys in order.
    * @param cursor The parent node cursor.
    * @param key The starting key.
+   * @param value The value (-1 for unique keys).
    * @return Returns a cursor.
    */
-  protected Cursor<K> getCursor( Cursor<K> parent, K key) throws IOException
+  protected Cursor<K> getCursor( Cursor<K> parent, K key, long value) throws IOException
   {
     if ( !loaded) load();
     
-    int i = search( key);
+    int i = search( key, value);
     if ( i >= 0) return new Cursor<K>( parent, this, i);
     
     if ( children.size() == 0) return null;
-    return children.get( -i - 1).getCursor( new Cursor<K>( parent, this, -i - 1), key);
+    return children.get( -i - 1).getCursor( new Cursor<K>( parent, this, -i - 1), key, value);
   }
   
   /**
@@ -496,19 +508,23 @@ public class BNode<K>
   /**
    * Perform a binary search of this node for the specified key.
    * @param key The key.
+   * @param value The value (-1 for unique keys).
    * @return Returns the index of the key, or -insert - 1.
    */
-  protected int search( K key) throws IOException
+  protected int search( K key, long value) throws IOException
   {
     if ( !loaded) load();
-    Entry<K> entry = new Entry<K>( key, 0);
-    if ( comparator == null)
+    
+    Entry<K> entry = new Entry<K>( key, value);
+    if ( value < 0)
     {
-      return Collections.binarySearch( entries, entry);
+      return (comparator == null)? 
+          Collections.binarySearch( entries, entry):
+          Collections.binarySearch( entries, entry, entryUniqueComparator);
     }
     else
     {
-      return Collections.binarySearch( entries, entry, entryComparator);
+      return Collections.binarySearch( entries, entry, entryNonUniqueComparator);
     }
   }
   
@@ -597,13 +613,6 @@ public class BNode<K>
     return children;
   }
   
-  private Comparator<Entry<K>> entryComparator = new Comparator<Entry<K>>() {
-    public int compare( Entry<K> lhs, Entry<K> rhs)
-    {
-      return comparator.compare( lhs.key, rhs.key);
-    }
-  };
-
   /**
    * Set the pointer to this node in the store.
    * @param pointer The pointer.
@@ -697,6 +706,26 @@ public class BNode<K>
     return dirty;
   }
     
+  private Comparator<Entry<K>> entryUniqueComparator = new Comparator<Entry<K>>() {
+    public int compare( Entry<K> lhs, Entry<K> rhs)
+    {
+      return comparator.compare( lhs.key, rhs.key);
+    }
+  };
+
+  @SuppressWarnings("unchecked")
+  private Comparator<Entry<K>> entryNonUniqueComparator = new Comparator<Entry<K>>() {
+    public int compare( Entry<K> lhs, Entry<K> rhs)
+    {
+      int result = (comparator != null)? comparator.compare( lhs.key, rhs.key): ((Comparable<K>)lhs.key).compareTo( rhs.key);
+      if ( result != 0) return result;
+      
+      if ( lhs.value < rhs.value) return -1;
+      if ( lhs.value > rhs.value) return 1;
+      return 0;
+    }
+  };
+
   protected BTree<K> tree;
   private BNode<K> parent;
   

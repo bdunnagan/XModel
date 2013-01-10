@@ -1,7 +1,6 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -50,12 +49,14 @@ public class Database<K>
   }
   
   /**
-   * Query a record from the database with one or more keys.
-   * @param key The key.
+   * Query a record from the database with one unique key.
+   * @param key The unique key.
+   * @param index The index of the index, of course.
    * @return Returns null or the record.
    */
-  public byte[] query( K[] keys) throws IOException
+  public byte[] query( K key, int index) throws IOException
   {
+    BTree<K> btree = indexes.get( index);
     long position = btree.get( key);
     if ( position != 0) 
     {
@@ -78,16 +79,19 @@ public class Database<K>
       index.root.store();
     
     // update index pointer
-    storageController.writeIndexPointer( root.pointer);
+    storageController.writeIndexPointer( indexes.get( 0).root.pointer);
 
     //
-    // Mark index garbage. 
+    // Mark garbage records from each index.
     // Failure just before this point could result in leaked garbage.
     //
-    while( garbage.size() > 0)
+    for( BTree<K> index: indexes)
     {
-      BNode<K> node = garbage.remove( 0);
-      if ( node.pointer > 0) storageController.markGarbage( node.pointer);
+      while( index.garbage.size() > 0)
+      {
+        BNode<K> node = index.garbage.remove( 0);
+        if ( node.pointer > 0) storageController.markGarbage( node.pointer);
+      }
     }
     
     // flush changes

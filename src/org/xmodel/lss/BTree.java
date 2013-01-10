@@ -79,25 +79,67 @@ public class BTree<K>
   }
   
   /**
-   * Delete a record.
+   * Delete a record with a unique key.
    * @param key The key.
    * @return Returns 0 or the pointer associated with the key.
    */
   public long delete( K key) throws IOException
   {
-    long pointer = root.delete( key);
+    return delete( key, -1);
+  }
+  
+  /**
+   * Delete a record.
+   * @param key The key.
+   * @param pointer The pointer (-1 for unique keys).
+   * @return Returns 0 or the pointer associated with the key.
+   */
+  public long delete( K key, long pointer) throws IOException
+  {
+    pointer = root.delete( key, pointer);
     if ( root.count() == 0 && root.getChildren().size() > 0) root = root.getChildren().get( 0);
     return pointer;
   }
   
   /**
-   * Returns the pointer associated with the specified key.
+   * Returns the pointer associated with the specified unique key.
    * @param key The key.
    * @return Returns 0 or the pointer associated with the specified key.
    */
   public long get( K key) throws IOException
   {
     return root.get( key);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The unique starting key.
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursorUnique( K key) throws IOException
+  {
+    return root.getCursorUnique( key);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The unique starting key.
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursorNonUnique( K key) throws IOException
+  {
+    return root.getCursorNonUnique( key);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The starting key.
+   * @param value The value (-1 for unique keys).
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursor( K key, long value) throws IOException
+  {
+    return root.getCursor( key, value);
   }
   
   /**
@@ -121,7 +163,7 @@ public class BTree<K>
   private int degree;
   protected StorageController<K> storageController;
   protected BNode<K> root;
-  private List<BNode<K>> garbage;
+  protected List<BNode<K>> garbage;
   
   public static void main( String[] args) throws Exception
   {
@@ -143,7 +185,7 @@ public class BTree<K>
       System.out.println( "------------------------------------------------------------");
     }
     
-    Cursor<String> cursor = tree.root.getCursor( "5");
+    Cursor<String> cursor = tree.root.getCursorUnique( "5");
     while( cursor.hasPrevious())
     {
       System.out.printf( "Traverse: %s\n", cursor.get().getKey());
