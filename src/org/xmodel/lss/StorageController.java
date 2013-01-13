@@ -139,9 +139,6 @@ public class StorageController<K>
         long length = store.readLong();
         long start = store.position();
         
-        if ( length != 3)
-          System.out.println();
-        
         if ( (flags & garbageFlag) == 0)
         {
           K[] keys = keyFormat.extractKeysFromRecord( store, length);

@@ -66,8 +66,9 @@ public class Database<K>
     long position = btree.get( key);
     if ( position != 0) 
     {
+      // keys may be null after restart because b+tree is missing deletes
       K[] keys = storageController.extractKeys( position);
-      delete( keys);
+      if ( keys != null) delete( keys);
     }
   }
   
@@ -84,6 +85,14 @@ public class Database<K>
     if ( position != 0) 
     {
       storageController.readRecord( position, record);
+      
+      // b+tree may not be up-to-date with deletes after restart
+      if ( record.isGarbage())
+      {
+        btree.delete( key);
+        return null;
+      }
+      
       return record.getContent();
     }
     return null;
