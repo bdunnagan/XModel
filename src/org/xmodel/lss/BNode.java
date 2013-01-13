@@ -508,7 +508,7 @@ public class BNode<K>
   /**
    * Perform a binary search of this node for the specified key.
    * @param key The key.
-   * @param value The value (-1 for unique keys).
+   * @param value The value.
    * @return Returns the index of the key, or -insert - 1.
    */
   protected int search( K key, long value) throws IOException
@@ -516,7 +516,7 @@ public class BNode<K>
     if ( !loaded) load();
     
     Entry<K> entry = new Entry<K>( key, value);
-    if ( value < 0)
+    if ( tree.unique)
     {
       return (comparator == null)? 
           Collections.binarySearch( entries, entry):

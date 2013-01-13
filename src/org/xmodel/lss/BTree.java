@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -16,11 +15,12 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param unique True if keys in the tree are unique.
    * @param storageController The storage controller for the database.
    */
-  public BTree( int degree, StorageController<K> storageController) throws IOException
+  public BTree( int degree, boolean unique, StorageController<K> storageController) throws IOException
   {
-    this( degree, storageController, (Comparator<K>)null);
+    this( degree, unique, storageController, (Comparator<K>)null);
   }
   
   /**
@@ -28,13 +28,15 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param unique True if keys in the tree are unique.
    * @param recordFormat The record format.
    * @param storageController The store controller for the database.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, StorageController<K> storageController, Comparator<K> comparator) throws IOException
+  public BTree( int degree, boolean unique, StorageController<K> storageController, Comparator<K> comparator) throws IOException
   {
     this.degree = degree;
+    this.unique = unique;
     this.garbage = new ArrayList<BNode<K>>();
     this.storageController = storageController;
 
@@ -128,11 +130,11 @@ public class BTree<K>
   }
   
   /**
-   * Load the root node of this b+tree from the current position in the specified store.
-   * @param store The store.
+   * Load the root node of this b+tree from the specified pointer into the storage controller.
    */
-  protected void loadFrom( IRandomAccessStore store) throws IOException
+  protected void loadFrom( long pointer) throws IOException
   {
+    root.pointer = pointer;
     root.load();
   }
   
@@ -161,7 +163,7 @@ public class BTree<K>
   
   public static void main( String[] args) throws Exception
   {
-    BTree<String> tree = new BTree<String>( 3, null, new Comparator<String>() {
+    BTree<String> tree = new BTree<String>( 3, true, null, new Comparator<String>() {
       public int compare( String lhs, String rhs)
       {
         return lhs.compareTo( rhs);

@@ -15,7 +15,7 @@ public abstract class AbstractStore implements IRandomAccessStore
   @Override
   public short readShort() throws IOException
   {
-    read( buffer, 0, 4);
+    read( buffer, 0, 2);
     return (short)( (buffer[ 1] & 0xFF) + ((buffer[ 0] & 0xFF) << 8));
   }
 

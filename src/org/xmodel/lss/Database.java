@@ -28,6 +28,12 @@ public class Database<K>
     position = indexes.get( 0).insert( keys[ 0], position);
     if ( position != 0) storageController.markGarbage( position);
     
+    for( int i=1; i<keys.length; i++)
+    {
+      BTree<K> index = indexes.get( i);
+      index.insert( keys[ i], position);
+    }
+    
     storageController.flush();
   }
   
@@ -39,19 +45,36 @@ public class Database<K>
   {
     long position = indexes.get( 0).delete( keys[ 0]);
     if ( position != 0) storageController.markGarbage( position);
-    storageController.flush();
     
     for( int i=1; i<keys.length; i++)
     {
       BTree<K> index = indexes.get( i);
       index.delete( keys[ i]);
     }
+    
+    storageController.flush();
+  }
+  
+  /**
+   * Delete a record from the database.
+   * @param key The key.
+   * @param index The index of the b+tree to which the key belongs.
+   */
+  public void delete( K key, int index) throws IOException
+  {
+    BTree<K> btree = indexes.get( index);
+    long position = btree.get( key);
+    if ( position != 0) 
+    {
+      K[] keys = storageController.extractKeys( position);
+      delete( keys);
+    }
   }
   
   /**
    * Query a record from the database with one unique key.
-   * @param key The unique key.
-   * @param index The index of the index, of course.
+   * @param key The key.
+   * @param index The index of the b+tree to which the key belongs.
    * @return Returns null or the record.
    */
   public byte[] query( K key, int index) throws IOException

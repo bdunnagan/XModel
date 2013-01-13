@@ -2,14 +2,15 @@ package org.xmodel.lss;
 
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Random;
 import org.apache.catalina.tribes.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.xmodel.lss.store.FileStore;
 import org.xmodel.lss.store.IRandomAccessStore;
 import org.xmodel.lss.store.IRandomAccessStoreFactory;
+import org.xmodel.lss.store.MemoryStore;
 
 public class BasicDatabaseTests
 {
@@ -47,8 +48,8 @@ public class BasicDatabaseTests
     factory = new IRandomAccessStoreFactory() {
       public IRandomAccessStore createInstance( int id) throws IOException
       {
-//        return new MemoryStore( 1000);
-        return new FileStore( "store-"+id+".dat");
+        return new MemoryStore( 1000);
+//        return new FileStore( "store-"+id+".dat");
       }
     };
   }
@@ -62,8 +63,8 @@ public class BasicDatabaseTests
   public void insertWriteFullIndex() throws IOException
   {
     storageController = new StorageController<String>( factory, keyFormat, 20);
-    BTree<String> btree = new BTree<String>( 2, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( 2, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
@@ -71,19 +72,19 @@ public class BasicDatabaseTests
       if ( i == 5) db.storeIndex();
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      db.insert( key, record);
+      db.insert( new String[] { key}, record);
     }
     
     db.storeIndex();
     
-    btree = new BTree<String>( 2, storageController);
-    db = new Database<String>( btree, storageController);
+    btree = new BTree<String>( 2, true, storageController);
+    db = new Database<String>( Collections.singletonList( btree), storageController);
 
     for( int i=0; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key);
+      byte[] content = db.query( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -92,8 +93,8 @@ public class BasicDatabaseTests
   public void insertWritePartialIndex() throws IOException
   {
     storageController = new StorageController<String>( factory, keyFormat, 20);
-    BTree<String> btree = new BTree<String>( 2, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( 2, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
@@ -101,17 +102,17 @@ public class BasicDatabaseTests
       if ( i == 5) db.storeIndex();
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      db.insert( key, record);
+      db.insert(  new String[] { key}, record);
     }
     
-    btree = new BTree<String>( 2, storageController);
-    db = new Database<String>( btree, storageController);
+    btree = new BTree<String>( 2, true, storageController);
+    db = new Database<String>( Collections.singletonList( btree), storageController);
     
     for( int i=0; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key);
+      byte[] content = db.query( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -120,34 +121,34 @@ public class BasicDatabaseTests
   public void deleteWriteFullIndex() throws IOException
   {
     storageController = new StorageController<String>( factory, keyFormat, 20);
-    BTree<String> btree = new BTree<String>( 2, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( 2, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      db.insert( key, record);
+      db.insert(  new String[] { key}, record);
     }
 
     db.storeIndex();
     
-    db.delete( "A");
-    assertTrue( "Record not deleted", db.query( "A") == null);
+    db.delete( "A", 0);
+    assertTrue( "Record not deleted", db.query( "A", 0) == null);
     
     db.storeIndex();
     
-    btree = new BTree<String>( 2, storageController);
-    db = new Database<String>( btree, storageController);
+    btree = new BTree<String>( 2, true, storageController);
+    db = new Database<String>( Collections.singletonList( btree), storageController);
     
-    assertTrue( "Record not deleted", db.query( "A") == null);
+    assertTrue( "Record not deleted", db.query( "A", 0) == null);
     
     for( int i=1; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key);
+      byte[] content = db.query( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -156,32 +157,32 @@ public class BasicDatabaseTests
   public void deleteWritePartialIndex() throws IOException
   {
     storageController = new StorageController<String>( factory, keyFormat, 20);
-    BTree<String> btree = new BTree<String>( 2, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( 2, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     byte[] record = new byte[ 3];
     for( int i=0; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      db.insert( key, record);
+      db.insert( new String[] { key}, record);
     }
 
     db.storeIndex();
     
-    db.delete( "A");
-    assertTrue( "Record not deleted", db.query( "A") == null);
+    db.delete( "A", 0);
+    assertTrue( "Record not deleted", db.query( "A", 0) == null);
 
-    btree = new BTree<String>( 2, storageController);
-    db = new Database<String>( btree, storageController);
+    btree = new BTree<String>( 2, true, storageController);
+    db = new Database<String>( Collections.singletonList( btree), storageController);
     
-    assertTrue( "Record not deleted", db.query( "A") == null);
+    assertTrue( "Record not deleted", db.query( "A", 0) == null);
     
     for( int i=1; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key);
+      byte[] content = db.query( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -191,8 +192,8 @@ public class BasicDatabaseTests
   {
     int degree = 100;
     storageController = new StorageController<String>( factory, keyFormat, 1000);
-    BTree<String> btree = new BTree<String>( degree, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( degree, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     Random random = new Random( 1);
     byte[] record = new byte[ 3];
@@ -201,17 +202,17 @@ public class BasicDatabaseTests
       int j = random.nextInt( 26);
       record[ 0] = 1; record[ 1] = (byte)(j + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + j);
-      db.insert( key, record);
+      db.insert( new String[] { key}, record);
       
       j = random.nextInt( 26);
       key = String.format( "%c", 65 + j);
-      db.delete( key);
+      db.delete( key, 0);
       
       if ( (i % 10000) == 0)
       {
         long t0 = System.nanoTime();
-        btree = new BTree<String>( degree, storageController);
-        db = new Database<String>( btree, storageController);
+        btree = new BTree<String>( degree, true, storageController);
+        db = new Database<String>( Collections.singletonList( btree), storageController);
         
         long t1 = System.nanoTime();
         db.storeIndex();
@@ -227,15 +228,15 @@ public class BasicDatabaseTests
   {
     int degree = 3;
     storageController = new StorageController<String>( factory, keyFormat, 300);
-    BTree<String> btree = new BTree<String>( degree, storageController);
-    Database<String> db = new Database<String>( btree, storageController);
+    BTree<String> btree = new BTree<String>( degree, true, storageController);
+    Database<String> db = new Database<String>( Collections.singletonList( btree), storageController);
 
     byte[] record = new byte[ 3];
     for( int i=0; i<15; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      db.insert( key, record);
+      db.insert( new String[] { key}, record);
     }
     
     db.storeIndex();
@@ -244,14 +245,14 @@ public class BasicDatabaseTests
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      db.insert( key, record);
+      db.insert( new String[] { key}, record);
     }
     
     for( int i=0; i<12; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      db.delete( key);
+      db.delete( key, 0);
     }
     
     storageController.garbageCollect( db);
@@ -260,8 +261,8 @@ public class BasicDatabaseTests
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      if ( i < 12) assertTrue( db.query( key) == null);
-      else assertTrue( db.query( key) != null);
+      if ( i < 12) assertTrue( db.query( key, 0) == null);
+      else assertTrue( db.query( key, 0) != null);
     }
   }
   

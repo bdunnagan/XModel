@@ -22,10 +22,12 @@ public class StorageController<K>
   public final static int rootFlag = 0x08;
   
   public final static int indexDegreeOffset = 0;
-  public final static int indexDegreeLength = 4;
+  public final static int indexDegreeLength = 2;
+  public final static int indexCountOffset = 2;
+  public final static int indexCountLength = 2;
   public final static int indexPointerOffset = 4;
   public final static int indexPointerLength = 8;
-  public final static int headerLength = indexDegreeLength + indexPointerLength;
+  public final static int headerLength = indexDegreeLength + indexCountLength + indexPointerLength;
   
   public final static int recordHeaderLength = 9;
 
@@ -49,7 +51,7 @@ public class StorageController<K>
   {
     // begin with clean slate
     flush();
-    
+        
     // update indexes
     for( BTree<K> index: indexes)
       index.root.store();
@@ -87,16 +89,23 @@ public class StorageController<K>
     int storeDegree = activeStore.readShort();
     if ( storeDegree == 0)
     {
+      activeStore.seek( indexDegreeOffset);
       activeStore.writeShort( (short)indexDegree);
+      writeIndexCount( indexes.size());
     }
     else if ( storeDegree == indexDegree)
     {
-      long pointer = readIndexPointer();
-      IRandomAccessStore indexStore = allocator.getStoreAndSeek( pointer);
-      int storeIndexCount = indexStore.readShort();
+      int storeIndexCount = readIndexCount();
       if ( storeIndexCount != indexes.size()) throw new IllegalStateException( "Incorrect number of indexes.");
-      for( int i=0; i<storeIndexCount; i++) indexes.get( i).loadFrom( indexStore);
-      finishIndex( indexes);
+
+      long pointer = readIndexPointer();
+      if ( pointer != 0)
+      {
+        for( int i=0; i<storeIndexCount; i++) 
+          indexes.get( i).loadFrom( pointer);
+        
+        finishIndex( indexes);
+      }
     }
     else
     {
@@ -162,24 +171,24 @@ public class StorageController<K>
   }
   
   /**
-   * @return Returns the degree of the index.
+   * @return Returns the number of b+tree indexes.
    */
-  public int readIndexDegree() throws IOException
+  public int readIndexCount() throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( indexDegreeOffset);
-    return store.readInt();
+    store.seek( indexCountOffset);
+    return store.readShort();
   }
   
   /**
-   * Write the degree of the index.
-   * @param degree The degree.
+   * Write the number of b+tree indexes.
+   * @param count The number of indexes.
    */
-  public void writeIndexDegree( int degree) throws IOException
+  public void writeIndexCount( int count) throws IOException
   {
     IRandomAccessStore store = allocator.getActiveStore();
-    store.seek( indexDegreeOffset);
-    store.writeInt( degree);
+    store.seek( indexCountOffset);
+    store.writeShort( (short)count);
   }
   
   /**
@@ -467,7 +476,7 @@ public class StorageController<K>
    * @param pointer The pointer to the record.
    * @return Returns the keys.
    */
-  protected K[] extractKey( long pointer) throws IOException
+  public K[] extractKeys( long pointer) throws IOException
   {
     IRandomAccessStore store = allocator.getStoreAndSeek( pointer);
     
