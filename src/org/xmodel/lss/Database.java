@@ -14,8 +14,7 @@ public class Database<K>
     this.indexes = indexes;
     this.record = new Record();
     
-    loadIndexes();
-    storageController.finishIndex( indexes);
+    storageController.loadIndex( indexes);
   }
   
   /**
@@ -68,58 +67,12 @@ public class Database<K>
   }
   
   /**
-   * Load the indexes for this database.
-   */
-  public void loadIndexes() throws IOException
-  {
-    int storeDegree = storageController.readIndexDegree();
-    if ( storeDegree == 0)
-    {
-      initActiveStore();
-      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
-    }
-    else if ( storeDegree == degree)
-    {
-      long position = storageController.readIndexPointer();
-      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
-      if ( position > 0) root.load();
-    }
-    else
-    {
-      throw new IllegalStateException();
-    }
-  }
-  
-  /**
-   * Write the database indexes to the store.
+   * Store the current state of the index.  Call this method more frequently to reduce the time it takes
+   * to initialize the database at startup at the expense of increased storage consumption.
    */
   public void storeIndex() throws IOException
   {
-    // begin with clean slate
-    storageController.flush();
-    
-    // update indexes
-    for( BTree<K> index: indexes)
-      index.root.store();
-    
-    // update index pointer
-    storageController.writeIndexPointer( indexes.get( 0).root.pointer);
-
-    //
-    // Mark garbage records from each index.
-    // Failure just before this point could result in leaked garbage.
-    //
-    for( BTree<K> index: indexes)
-    {
-      while( index.garbage.size() > 0)
-      {
-        BNode<K> node = index.garbage.remove( 0);
-        if ( node.pointer > 0) storageController.markGarbage( node.pointer);
-      }
-    }
-    
-    // flush changes
-    storageController.flush();
+    storageController.storeIndex( indexes);
   }
   
   private StorageController<K> storageController;

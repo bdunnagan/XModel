@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import org.xmodel.lss.store.IRandomAccessStore;
 
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
@@ -27,19 +28,6 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
-   * @param storageController The storage controller for the database.
-   * @param root The root node of the b+tree.
-   */
-  public BTree( int degree, StorageController<K> storageController, BNode<K> root) throws IOException
-  {
-    this( degree, storageController, null, root);
-  }
-  
-  /**
-   * Create a b+tree with the specified degree, which places bounds on the number of entries in each node.  The minimum number
-   * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
-   * instance of IRandomAccessStore to store and retrieve nodes.
-   * @param degree The degree of the b+tree.
    * @param recordFormat The record format.
    * @param storageController The store controller for the database.
    * @param comparator The key comparator.
@@ -53,24 +41,6 @@ public class BTree<K>
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
     root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
-  }
-  
-  /**
-   * Create a b+tree with the specified degree, which places bounds on the number of entries in each node.  The minimum number
-   * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
-   * instance of IRandomAccessStore to store and retrieve nodes.
-   * @param degree The degree of the b+tree.
-   * @param recordFormat The record format.
-   * @param storageController The store controller for the database.
-   * @param comparator The key comparator.
-   * @param root The root node of the b+tree.
-   */
-  public BTree( int degree, StorageController<K> storageController, Comparator<K> comparator, BNode<K> root)
-  {
-    this.degree = degree;
-    this.garbage = new ArrayList<BNode<K>>();
-    this.storageController = storageController;
-    this.root = root;
   }
   
   /**
@@ -155,6 +125,15 @@ public class BTree<K>
   protected void markGarbage( BNode<K> node)
   {
     garbage.add( node);
+  }
+  
+  /**
+   * Load the root node of this b+tree from the current position in the specified store.
+   * @param store The store.
+   */
+  protected void loadFrom( IRandomAccessStore store) throws IOException
+  {
+    root.load();
   }
   
   /**

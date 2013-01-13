@@ -42,26 +42,65 @@ public class StorageController<K>
   }
   
   /**
-   * Load the last saved indexes.
-   * @param degree The degree of the b+trees.
+   * Write the database indexes to the store.
+   * @param indexes The indexes.
    */
-  public List<BTree<K>> loadIndex( int degree) throws IOException
+  public void storeIndex( List<BTree<K>> indexes) throws IOException
   {
-    int storeDegree = readIndexDegree();
+    // begin with clean slate
+    flush();
+    
+    // update indexes
+    for( BTree<K> index: indexes)
+      index.root.store();
+    
+    // update index pointer
+    writeIndexPointer( indexes.get( 0).root.pointer);
+
+    //
+    // Mark garbage records from each index.
+    // Failure just before this point could result in leaked garbage.
+    //
+    for( BTree<K> index: indexes)
+    {
+      while( index.garbage.size() > 0)
+      {
+        BNode<K> node = index.garbage.remove( 0);
+        if ( node.pointer > 0) markGarbage( node.pointer);
+      }
+    }
+    
+    // flush changes
+    flush();
+  }
+  
+  /**
+   * Load the last saved indexes.
+   * @param indexes The indexes to be initialized.
+   */
+  public void loadIndex( List<BTree<K>> indexes) throws IOException
+  {
+    IRandomAccessStore activeStore = allocator.getActiveStore();
+    activeStore.seek( indexDegreeOffset);
+
+    int indexDegree = indexes.get( 0).getDegree();
+    int storeDegree = activeStore.readShort();
     if ( storeDegree == 0)
     {
-      writeIndexDegree( degree);
-      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
+      activeStore.writeShort( (short)indexDegree);
     }
-    else if ( storeDegree == degree)
+    else if ( storeDegree == indexDegree)
     {
-      long position = readIndexPointer();
-      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
-      if ( position > 0) root.load();
+      long pointer = readIndexPointer();
+      IRandomAccessStore indexStore = allocator.getStoreAndSeek( pointer);
+      int storeIndexCount = indexStore.readShort();
+      if ( storeIndexCount != indexes.size()) throw new IllegalStateException( "Incorrect number of indexes.");
+      for( int i=0; i<storeIndexCount; i++) indexes.get( i).loadFrom( indexStore);
+      finishIndex( indexes);
     }
     else
     {
-      throw new IllegalStateException();
+      throw new IllegalStateException( "Incorrect index degree.");
     }
   }
   
@@ -69,7 +108,7 @@ public class StorageController<K>
    * Read any records between the last stored index and the end of the store.
    * @param indexes The indexes to be updated.
    */
-  public void finishIndex( List<BTree<K>> indexes) throws IOException
+  private void finishIndex( List<BTree<K>> indexes) throws IOException
   {
     List<IRandomAccessStore> stores = allocator.getStores();
     IRandomAccessStore store = allocator.getStore( indexes.get( 0).root.getPointer());
