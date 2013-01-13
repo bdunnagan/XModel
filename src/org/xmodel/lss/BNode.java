@@ -134,7 +134,7 @@ public class BNode<K>
     if ( !loaded) load();
     
     int i = search( key, value);
-    if ( i >= 0)
+    if ( tree.unique && i >= 0)
     {
       update++;
       Entry<K> entry = entries.get( i);

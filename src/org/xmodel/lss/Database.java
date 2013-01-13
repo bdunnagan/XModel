@@ -14,6 +14,7 @@ public class Database<K>
     this.indexes = indexes;
     this.record = new Record();
     
+    loadIndexes();
     storageController.finishIndex( indexes);
   }
   
@@ -64,6 +65,29 @@ public class Database<K>
       return record.getContent();
     }
     return null;
+  }
+  
+  /**
+   * Load the indexes for this database.
+   */
+  public void loadIndexes() throws IOException
+  {
+    int storeDegree = storageController.readIndexDegree();
+    if ( storeDegree == 0)
+    {
+      initActiveStore();
+      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
+    }
+    else if ( storeDegree == degree)
+    {
+      long position = storageController.readIndexPointer();
+      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
+      if ( position > 0) root.load();
+    }
+    else
+    {
+      throw new IllegalStateException();
+    }
   }
   
   /**

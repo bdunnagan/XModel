@@ -42,6 +42,30 @@ public class StorageController<K>
   }
   
   /**
+   * Load the last saved indexes.
+   * @param degree The degree of the b+trees.
+   */
+  public List<BTree<K>> loadIndex( int degree) throws IOException
+  {
+    int storeDegree = readIndexDegree();
+    if ( storeDegree == 0)
+    {
+      writeIndexDegree( degree);
+      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
+    }
+    else if ( storeDegree == degree)
+    {
+      long position = readIndexPointer();
+      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
+      if ( position > 0) root.load();
+    }
+    else
+    {
+      throw new IllegalStateException();
+    }
+  }
+  
+  /**
    * Read any records between the last stored index and the end of the store.
    * @param indexes The indexes to be updated.
    */

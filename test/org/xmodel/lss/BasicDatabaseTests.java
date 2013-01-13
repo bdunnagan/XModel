@@ -30,17 +30,17 @@ public class BasicDatabaseTests
         byte[] bytes = key.getBytes();
         store.write( bytes, 0, bytes.length);
       }
-      public String extractKeyFromRecord( IRandomAccessStore store, long recordLength) throws IOException
+      public String[] extractKeysFromRecord( IRandomAccessStore store, long recordLength) throws IOException
       {
         int length = store.readByte();
         byte[] key = new byte[ length];
         store.read( key, 0, length);
-        return new String( key, 0, length);
+        return new String[] { new String( key, 0, length)};
       }
-      public String extractKeyFromRecord( byte[] content) throws IOException
+      public String[] extractKeysFromRecord( byte[] content) throws IOException
       {
         int length = content[ 0];
-        return new String( content, 1, length);
+        return new String[] { new String( content, 1, length)};
       }
     };
 
