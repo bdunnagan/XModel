@@ -24,6 +24,7 @@ import java.sql.DriverManager;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
+import org.xmodel.log.Log;
 
 /**
  * An implementation of ISQLProvider for the MySQL database.
@@ -48,6 +49,10 @@ public class MySQLProvider implements ISQLProvider
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
+    
+    int cpus = Runtime.getRuntime().availableProcessors();
+    int poolSize = Xlate.childGet( annotation, "connectionPoolSize", 3 * cpus);
+    pool = new ConnectionPool( this, poolSize);
   }
 
   /* (non-Javadoc)
@@ -71,7 +76,16 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public Connection leaseConnection()
   {
-    return newConnection();
+    long t0 = System.nanoTime();
+    try
+    {
+      return pool.lease();
+    }
+    finally
+    {
+      long t1 = System.nanoTime();
+      log.debugf( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
+    }
   }
 
   /* (non-Javadoc)
@@ -80,12 +94,14 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void releaseConnection( Connection connection)
   {
-    try { connection.close();} catch( Exception e) {}
+    pool.release( connection);
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
+  private final static Log log = Log.getLog( MySQLProvider.class);
   
   private String url;
   private String username;
   private String password;
+  private ConnectionPool pool;
 }

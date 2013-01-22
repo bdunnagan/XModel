@@ -27,7 +27,6 @@ public class ExecutionRequestProtocol
   public ExecutionRequestProtocol( ExecutionProtocol bundle)
   {
     this.bundle = bundle;
-    this.document = new XActionDocument();
   }
   
   /**
@@ -36,16 +35,6 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
-    document = new XActionDocument();
-  }
-  
-  /**
-   * Add a default package to the execution environment.
-   * @param packageName The name of the package.
-   */
-  public void addDefaultPackage( String packageName)
-  {
-    document.addPackage( packageName);
   }
   
   /**
@@ -71,7 +60,7 @@ public class ExecutionRequestProtocol
     // ignoring write buffer overflow for this type of messaging
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     
-    return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, timeout): null;
+    return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
   }
   
   /**
@@ -144,6 +133,7 @@ public class ExecutionRequestProtocol
    */
   private IXAction compile( IModelObject element) throws IOException
   {
+    XActionDocument document = new XActionDocument( element);
     document.setRoot( element);
     IXAction script = document.getAction( element);
     if ( script != null) return script;
@@ -233,6 +223,5 @@ public class ExecutionRequestProtocol
   private final static Log log = Log.getLog( ExecutionRequestProtocol.class);
 
   private ExecutionProtocol bundle;
-  private XActionDocument document;
   private ExecutionPrivilege privilege;
 }

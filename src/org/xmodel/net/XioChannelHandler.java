@@ -137,7 +137,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
     
-    if ( buffer.readableBytes() == 0) return false;
+    if ( buffer.readableBytes() < 9) return false;
     
     Type type = headerProtocol.readType( buffer);
     log.debugf( "Message Type: %s", type);

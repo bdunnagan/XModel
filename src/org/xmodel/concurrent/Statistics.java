@@ -7,6 +7,11 @@ import org.xmodel.log.SLog;
  */
 public class Statistics
 {
+  public Statistics()
+  {
+    bins = new int[ 5];
+  }
+  
   /**
    * Notify that task execution has started.
    */
@@ -26,10 +31,16 @@ public class Statistics
   public synchronized void executionFinished()
   {
     finished = System.nanoTime();
-    long elapsed = (finished - started);
+    long elapsed = finished - started;
     totalTime += elapsed;
-    if ( elapsed > maxTime) maxTime = totalTime;
     count++;
+    
+    elapsed /= 1e6;
+    if ( elapsed < 10) bins[ 0]++;
+    else if ( elapsed < 100) bins[ 1]++;
+    else if ( elapsed < 500) bins[ 2]++;
+    else if ( elapsed < 1000) bins[ 3]++;
+    else bins[ 4]++;
     
     SLog.info( this, this);
   }
@@ -54,11 +65,11 @@ public class Statistics
     mins -= hours * 60;
     hours -= days * 24;
     
-    if ( days > 0) return String.format( "%d days, %d hours, %d mins", days, hours, mins);
-    if ( hours > 0) return String.format( "%d hours, %d mins, %d secs", hours, mins, secs);
-    if ( mins > 0) return String.format( "%d mins, %d secs, %1.3f msecs", mins, secs, msecs);
-    if ( secs > 0) return String.format( "%d secs, %1.3f msecs", secs, msecs, usecs);
-    return String.format( "%1.3f msecs", msecs);
+    if ( days > 0) return String.format( "%dd, %dh, %dm", days, hours, mins);
+    if ( hours > 0) return String.format( "%dh, %dm, %ds", hours, mins, secs);
+    if ( mins > 0) return String.format( "%dm, %ds, %1.3fms", mins, secs, msecs);
+    if ( secs > 0) return String.format( "%ds, %1.3fms", secs, msecs, usecs);
+    return String.format( "%1.3fms", msecs);
   }
   
   /* (non-Javadoc)
@@ -67,18 +78,24 @@ public class Statistics
   @Override
   public String toString()
   {
-    return String.format( "Start: %1$tb %1$td %1$tY %1$tT, Duration: %2$s, Average: %3$s, Max: %4$s, Count: %5$d", 
-        firstTime, 
+    long now = System.currentTimeMillis();
+    return String.format( "%d, %1.1f%%, Last=%s, Sum=%s, Avg=%s, 0ms [%d] 10ms [%d] 100ms [%d] 500ms [%d] 1s [%d]", 
+        count,
+        totalTime / 1e4 / (now - firstTime),
+        formatDuration( finished - started), 
         formatDuration( totalTime), 
         formatDuration( totalTime / count),
-        formatDuration( maxTime),
-        count);
+        bins[ 0],
+        bins[ 1],
+        bins[ 2],
+        bins[ 3],
+        bins[ 4]);
   }
-
+  
   private long firstTime;
   private long started;
   private long finished;
   private long totalTime;
-  private long maxTime;
   private int count;
+  private int[] bins;
 }

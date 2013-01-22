@@ -182,12 +182,15 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = null;
     try
     {
-      // get row stubs
-      statement = createTableSelectStatement( reference);
-      log.debugf( "sync %s with %s", reference.getType(), statement);
+      log.debugf( "sync %s ...", reference.getType());
       
+      long t0 = System.nanoTime();
+      statement = createTableSelectStatement( reference);
       ResultSet result = statement.executeQuery();
-
+      
+      long t1 = System.nanoTime();
+      log.debugf( "query time: %1.3fs", ((t1 - t0) / 1e9));
+      
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
@@ -206,7 +209,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         parent.addChild( row);
       }
       
-      // update reference
       update( reference, parent);
     }
     catch( SQLException e)
@@ -557,6 +559,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
     
+    log.debugf( "table query: %s", sb);
+    
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     if ( limit > 0) statement.setMaxRows( limit);
     return statement;
@@ -575,6 +579,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
+    
+    log.debugf( "row query: %s", sb);
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     statement.setString( 1, reference.getID());
@@ -788,12 +794,21 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void commit( Connection connection) throws SQLException
   {
+    long t0 = System.nanoTime();
+    
     connection.setCatalog( catalog);
     
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.executeBatch();
+      try
+      {
+        statement.executeBatch();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowDeletes.clear();
@@ -801,7 +816,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
       PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.executeBatch();
+      try
+      {
+        statement.executeBatch();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowInserts.clear();
@@ -809,10 +831,20 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
     {
       PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.execute();
+      try
+      {
+        statement.execute();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowUpdates.clear();
+    
+    long t1 = System.nanoTime();
+    log.verbosef( "Commit time, %1.3fms", ((t1 - t0)/1e6));
   }
   
   /**

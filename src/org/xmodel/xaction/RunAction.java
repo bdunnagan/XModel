@@ -25,9 +25,8 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
@@ -36,7 +35,9 @@ import org.xmodel.NullObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
+import org.xmodel.net.IXioClientFactory;
 import org.xmodel.net.XioClient;
+import org.xmodel.net.XioClientPool;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -184,31 +185,34 @@ public class RunAction extends GuardedAction
     String[] varArray = vars.split( "\\s*,\\s*");
     IModelObject scriptNode = getScriptNode( context);
 
-    XioClient client = null;
     try
     {
       log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
       
-      client = new XioClient( context, context);
-      
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
+        XioClient client = null;
         try
         {
-          if ( !client.connect( host, port, connectionRetries).await( timeout)) throw new IOException( "Connection not established.");
+          client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
+          if ( !client.isConnected()) throw new IOException( "Connection not established.");
+          
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         finally
         {
-          if ( client != null) try { client.close();} catch( Exception e) {}
+          if ( client != null) clientSyncPool.release( context, client);
         }
       }
       else
       {
-        AsyncExecuter callback = new AsyncExecuter( client, context, varArray, scriptNode, timeout, onComplete, onSuccess, onError);
-        client.connect( host, port, connectionRetries).addListener( callback); 
+        XioClient client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
+        if ( !client.isConnected()) throw new IOException( "Connection not established.");
+        
+        AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
+        client.execute( context, varArray, scriptNode, callback, timeout);
       }
       
       log.debug( "Finished remote.");
@@ -322,51 +326,14 @@ public class RunAction extends GuardedAction
     private IXAction script;
   }
   
-  private final class AsyncExecuter implements IXioCallback, Runnable, ChannelFutureListener
+  private final class AsyncCallback implements IXioCallback
   {
-    public AsyncExecuter( XioClient client, IContext context, String[] vars, IModelObject element, int timeout, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public AsyncCallback( XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
       this.client = client;
-      this.context = context;
-      this.vars = vars;
-      this.element = element;
-      this.timeout = timeout;
       this.onComplete = onComplete;
       this.onSuccess = onSuccess;
       this.onError = onError;
-    }
-    
-    /* (non-Javadoc)
-     * @see org.jboss.netty.channel.ChannelFutureListener#operationComplete(org.jboss.netty.channel.ChannelFuture)
-     */
-    @Override
-    public void operationComplete( ChannelFuture future) throws Exception
-    {
-      this.future = future;
-      context.getModel().dispatch( this);
-    }
-    
-    /* (non-Javadoc)
-     * @see java.lang.Runnable#run()
-     */
-    @Override
-    public void run()
-    {
-      if ( !future.isSuccess())
-      {
-        handleException( future.getCause(), context, onComplete, onError);
-      }
-      else
-      {
-        try
-        {
-          client.execute( context, vars, element, this, timeout);
-        }
-        catch( Exception e)
-        {
-          handleException( e, context, onComplete, onError);
-        }
-      }
     }
     
     /* (non-Javadoc)
@@ -376,7 +343,7 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-      if ( client != null) try { client.close();} catch( Exception e) {}
+      clientSyncPool.release( context, client);
     }
 
     /* (non-Javadoc)
@@ -406,11 +373,6 @@ public class RunAction extends GuardedAction
     }
     
     private XioClient client;
-    private IContext context;
-    private String[] vars;
-    private IModelObject element;
-    private int timeout;
-    private ChannelFuture future;
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;
@@ -418,6 +380,18 @@ public class RunAction extends GuardedAction
   
   private final static Log log = Log.getLog( RunAction.class);
   private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
+  
+  private static XioClientPool clientSyncPool = new XioClientPool( new IXioClientFactory() {
+    public XioClient newInstance( InetSocketAddress address, boolean connect)
+    {
+      XioClient client = new XioClient();
+      if ( connect)
+      {
+        client.connect( address, connectionRetries).awaitUninterruptibly( 30000);
+      }
+      return client;
+    }
+  });
   
   private String var;
   private IExpression varsExpr;

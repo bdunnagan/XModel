@@ -98,7 +98,7 @@ public class ExecutionResponseProtocol
     if ( task != null && !task.isExpired()) 
     {
       task.setResponse( response);
-      bundle.context.getModel().dispatch( task);
+      task.context.getModel().dispatch( task);
     }
   }
   
@@ -128,10 +128,11 @@ public class ExecutionResponseProtocol
   /**
    * Wait for a response to the request with the specified correlation number.
    * @param correlation The correlation number.
+   * @param context The execution context.
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected Object[] waitForResponse( int correlation, int timeout) throws InterruptedException, XioExecutionException
+  protected Object[] waitForResponse( int correlation, IContext context, int timeout) throws InterruptedException, XioExecutionException
   {
     try
     {
@@ -141,7 +142,7 @@ public class ExecutionResponseProtocol
       Throwable throwable = ExecutionSerializer.readResponseException( response);
       if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
       
-      return ExecutionSerializer.readResponse( response, bundle.context);
+      return ExecutionSerializer.readResponse( response, context);
     }
     finally
     {

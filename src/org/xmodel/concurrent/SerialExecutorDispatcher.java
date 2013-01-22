@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
@@ -62,7 +61,6 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     
     this.executor = executor;
     this.queue = queue;
-    this.queueSize = new AtomicInteger( 0);
     
     this.statistics = new Statistics();
   }
@@ -84,6 +82,8 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   @Override
   public void execute( Runnable runnable)
   {
+    boolean wasEmpty = queue.isEmpty();
+    
     try
     {
       queue.put( runnable);
@@ -94,8 +94,7 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
       return;
     }
     
-    if ( queueSize.getAndIncrement() == 0)
-      executor.execute( this);
+    if ( wasEmpty) executor.execute( this);
   }
 
   /* (non-Javadoc)
@@ -107,10 +106,17 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     if ( immediate) executor.shutdownNow(); else executor.shutdown();
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Runnable#run()
+   */
   @Override
   public void run()
   {
-    if ( log.debug()) statistics.executionStarted();
+    if ( log.debug()) 
+    {
+      statistics.executionStarted();
+      log.debugf( "Queued: %d", queue.size());
+    }
     
     try
     {
@@ -119,16 +125,13 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
       registry.setModel( model);
       
       Runnable runnable = queue.poll();
-      if ( runnable == null) throw new IllegalStateException();
-      
-      runnable.run();
+      if ( runnable != null) runnable.run();
     }
     finally
     {
       registry.setModel( null);
       
-      if ( queueSize.decrementAndGet() > 0) 
-        executor.execute( this);
+      if ( !queue.isEmpty()) executor.execute( this);
       
       if ( log.debug()) statistics.executionFinished();
     }
@@ -139,7 +142,6 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   private ExecutorService executor;
   protected IModel model;
   private BlockingQueue<Runnable> queue;
-  private AtomicInteger queueSize;
   private GlobalSettings registry;
   private Statistics statistics;
 }
