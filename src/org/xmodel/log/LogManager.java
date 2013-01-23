@@ -11,9 +11,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.log.mbean.Logging;
 import org.xmodel.xml.XmlIO;
 
 /**
@@ -72,14 +74,16 @@ public final class LogManager implements Runnable
       
       run();
     }
+    
+    Logging.getInstance();
   }
   
   /**
-   * Create an array of ILogSink instances from the specified configuration.
+   * Create an ILogSink instance from the specified configuration.
    * @param config The configuration element.
-   * @return Returns the array of ILogSink instances.
+   * @return Returns the ILogSink instance.
    */
-  protected static ILogSink[] configure( IModelObject config)
+  protected static ILogSink configure( IModelObject config)
   {
     List<ILogSink> list = new ArrayList<ILogSink>( 3);
     for( IModelObject child: config.getChildren( "sink"))
@@ -101,7 +105,9 @@ public final class LogManager implements Runnable
       }
     }
     
-    return list.toArray( new ILogSink[ 0]);
+    if ( list.size() == 0) return null;
+    if ( list.size() == 1) return list.get( 0);
+    return new MultiSink( list.toArray( new ILogSink[ 0]));
   }
   
   /**
@@ -114,42 +120,44 @@ public final class LogManager implements Runnable
       IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
       period = Xlate.childGet( root, "reload", period);
 
-      ILogSink[] defaultSinks = configure( root);
-      if ( defaultSinks.length == 1)
-      {
-        Log.setDefaultSink( defaultSinks[ 0]);
-      }
-      else if ( defaultSinks.length > 1)
-      {
-        Log.setDefaultSink( new MultiSink( defaultSinks));
-      }
+      ILogSink globalSink = configure( root);
       
       for( IModelObject child: root.getChildren( "log"))
       {
-        String name = Xlate.get( child, "name", (String)null);
         String level = Xlate.get( child, "level", (String)null);
+        
+        ILogSink sink = configure( child);
+        if ( sink == null) sink = globalSink;
+        
+        String name = Xlate.get( child, "name", (String)null);
         if ( name != null)
         {
           Log log = Log.getLog( name);
-          
-          if ( level != null)
-            log.setLevel( Log.getLevelIndex( level));
-          
-          ILogSink[] sinks = configure( child);
-          if ( sinks.length == 1)
+          if ( sink != null) log.setSink( sink);
+          if ( level != null) log.setLevel( Log.getLevelIndex( level));
+        }
+        
+        String regex = Xlate.get( child, "regex", (String)null);
+        if ( regex != null)
+        {
+          try
           {
-            log.setSink( sinks[ 0]);
+            for( Log log: LogMap.getInstance().findLogs( Pattern.compile( regex)))
+            {
+              if ( sink != null) log.setSink( sink);
+              if ( level != null) log.setLevel( Log.getLevelIndex( level));
+            }
           }
-          else if ( sinks.length > 1)
+          catch( Exception e)
           {
-            log.setSink( new MultiSink( sinks));
+            SLog.warnf( this, "Unable to regex, %s", e.toString());
           }
         }
       }
     }
     catch( Exception e)
     {
-      SLog.warnf( this, "Unable to parse logging configuration - %s", e.getMessage());
+      SLog.warnf( this, "Unable to parse logging configuration, %s", e.toString());
     }
   }
   

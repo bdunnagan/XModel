@@ -1,5 +1,7 @@
 package org.xmodel.log;
 
+import java.util.regex.Pattern;
+
 /**
  * Yet another logging facility.
  */
@@ -74,9 +76,9 @@ public final class Log
    * @param name The name of the log.
    * @return Returns the log with the specified name.
    */
-  public synchronized static Log getLog( String name)
+  public static Log getLog( String name)
   {
-    return map.getCreateOne( name);
+    return map.getLog( name);
   }
   
   /**
@@ -107,52 +109,31 @@ public final class Log
   }
   
   /**
-   * Set the logging level for all logs whose names begin with the specified prefix. Calling
-   * this operation may globally impact performance of users of this logging framework.
-   * @param query The log query.
+   * Set the logging level for all logs whose names match the specified regular expression.
+   * @param regex The regular expression.
    * @param level The new logging level.
    */
-  public synchronized static void setLevel( String query, int level)
+  public static void setLevel( String regex, int level)
   {
-    // make sure log exists
-    map.getCreateOne( query);
-    
-    // iterate over matching logs
-    for( Log log: map.getAll( query))
+    for( Log log: map.findLogs( Pattern.compile( regex)))
       log.setLevel( level);
   }
   
   /**
-   * Set the sink to be used by all logs whose names begin with the specified prefix. Calling
-   * this operation may globally impact performance of users of this logging framework.
-   * @param prefix The prefix.
+   * Set the sink to be used by all logs whose names that match the specified regular expression.
+   * @param regex The regular expression.
    * @param sink The sink.
    */
-  public synchronized static void setSink( String prefix, ILogSink sink)
+  public static void setSink( String regex, ILogSink sink)
   {
-    for( Log log: map.getAll( prefix))
+    for( Log log: map.findLogs( Pattern.compile( regex)))
       log.setSink( sink);
-  }
-  
-  /**
-   * Set the default sink.
-   * @param sink The sink.
-   */
-  public synchronized static void setDefaultSink( ILogSink sink)
-  {
-    defaultSink = sink;
   }
   
   protected Log()
   {
     this.mask = problems | info;
     this.sink = defaultSink;
-  }
-  
-  protected Log( Log log)
-  {
-    this.mask = log.mask;
-    this.sink = log.sink;
   }
   
   /**
@@ -162,6 +143,14 @@ public final class Log
   public void setLevel( int level)
   {
     mask = level;
+  }
+  
+  /**
+   * @return Returns the log level.
+   */
+  public int getLevel()
+  {
+    return mask;
   }
   
   /**
@@ -536,7 +525,7 @@ public final class Log
     }
   }
   
-  protected static PackageMap map = new PackageMap();
+  protected static LogMap map = LogMap.getInstance();
   private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
     
   private volatile int mask;
