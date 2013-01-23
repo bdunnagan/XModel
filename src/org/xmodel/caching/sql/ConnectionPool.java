@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import org.xmodel.caching.sql.mbean.ConnectionPoolSummary;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 
@@ -35,6 +37,7 @@ public class ConnectionPool
       Item item = queue.take();
       if ( item.connection == null) 
       {
+        ConnectionPoolSummary.getInstance().incrementConnectionCount();
         item.connection = provider.newConnection();
         log.debugf( "Created JDBC connection, %d", item.id);
       }
@@ -56,6 +59,8 @@ public class ConnectionPool
   
       log.verbosef( "Leasing JDBC connection, %d", item.id);
       leased.put( item.connection, item);
+      
+      ConnectionPoolSummary.getInstance().incrementLeasedCount();
       return item.connection;
     }
     catch( InterruptedException e)
@@ -71,10 +76,14 @@ public class ConnectionPool
    */
   public void release( Connection connection)
   {
+    ConnectionPoolSummary.getInstance().decrementLeasedCount();
+    
     Item item = leased.get( connection);
     if ( item == null) throw new IllegalArgumentException();
+    
     log.verbosef( "Returning JDBC connection, %d", item.id);
     item.validated = System.currentTimeMillis();
+    
     queue.offer( item);
   }
   

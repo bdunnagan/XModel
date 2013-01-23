@@ -21,6 +21,7 @@ package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -50,9 +51,7 @@ public class MySQLProvider implements ISQLProvider
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
     
-    int cpus = Runtime.getRuntime().availableProcessors();
-    int poolSize = Xlate.childGet( annotation, "connectionPoolSize", 3 * cpus);
-    pool = new ConnectionPool( this, poolSize);
+    pool = new ConnectionPool( this, 20);
   }
 
   /* (non-Javadoc)

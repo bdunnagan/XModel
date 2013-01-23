@@ -58,7 +58,7 @@ public class XioClientPool
     public XioClient lease( IContext context, InetSocketAddress address)
     {
       XioClient client = getCreateClient( address);
-      log.debugf( "Leasing XioClient %X", client.hashCode());
+      log.debugf( "Leasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
       return client;
     }
     
@@ -69,21 +69,22 @@ public class XioClientPool
      */
     public void release( IContext context, XioClient client)
     {
-      log.debugf( "Freeing XioClient %X", client.hashCode());
+      log.debugf( "Freeing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
+      if ( !client.isConnected()) clients.remove( client.getRemoteAddress());
     }
     
     /**
-     * Creaete  a new XioClient instance.
+     * Create  a new XioClient instance.
      * @param key The key.
      * @return Returns the new instance.
      */
     private synchronized XioClient getCreateClient( InetSocketAddress address)
     {
       XioClient client = clients.get( address);
-      if ( client == null) 
+      if ( client == null || !client.isConnected()) 
       {
         client = factory.newInstance( address, true);
-        clients.put( address, client);
+        if ( client.isConnected()) clients.put( address, client);
       }
       return client;
     }
