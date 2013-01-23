@@ -178,7 +178,7 @@ public class BindCompressor extends TabularCompressor
         log.warnf( "%X - remote not found (memory leak): %s", hashCode(), element.getType());
     }
     
-    log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
+    //log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
   }
   
   /**

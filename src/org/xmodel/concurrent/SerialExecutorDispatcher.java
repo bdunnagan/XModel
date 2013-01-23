@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import org.xmodel.GlobalSettings;
+import java.util.concurrent.TimeUnit;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModel;
 import org.xmodel.Model;
@@ -120,16 +120,18 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
     
     try
     {
-      model.setThread( Thread.currentThread());
-      if ( registry == null) registry = GlobalSettings.getInstance();
-      registry.setModel( model);
+      model.writeLock( 5, TimeUnit.MINUTES);
       
       Runnable runnable = queue.poll();
       if ( runnable != null) runnable.run();
     }
+    catch( InterruptedException e)
+    {
+      log.exception( e);
+    }
     finally
     {
-      registry.setModel( null);
+      model.writeUnlock();
       
       if ( !queue.isEmpty()) executor.execute( this);
       
@@ -142,6 +144,5 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   private ExecutorService executor;
   protected IModel model;
   private BlockingQueue<Runnable> queue;
-  private GlobalSettings registry;
   private Statistics statistics;
 }
