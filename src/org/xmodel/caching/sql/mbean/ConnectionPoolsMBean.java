@@ -1,6 +1,6 @@
 package org.xmodel.caching.sql.mbean;
 
-public interface ConnectionPoolSummaryMBean
+public interface ConnectionPoolsMBean
 {
   /**
    * @return Returns the number JDBC connections in the pool.

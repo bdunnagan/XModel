@@ -8,9 +8,9 @@ import javax.management.ObjectName;
 
 import org.xmodel.log.SLog;
 
-public class ConnectionPoolSummary implements ConnectionPoolSummaryMBean
+public class ConnectionPools implements ConnectionPoolsMBean
 {
-  protected ConnectionPoolSummary()
+  protected ConnectionPools()
   {
     totalCount = new AtomicInteger( 0);
     leaseCount = new AtomicInteger( 0);
@@ -18,7 +18,7 @@ public class ConnectionPoolSummary implements ConnectionPoolSummaryMBean
     try
     {
       MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-      ObjectName name = new ObjectName( "org.xmodel.caching.sql.mbean:type=ConnectionPoolSummary");   
+      ObjectName name = new ObjectName( "org.xmodel.caching.sql:type=ConnectionPools");   
       mbs.registerMBean( this, name);
     }
     catch( Exception e)
@@ -30,7 +30,7 @@ public class ConnectionPoolSummary implements ConnectionPoolSummaryMBean
   /**
    * @return Returns the singleton instance.
    */
-  public static ConnectionPoolSummary getInstance()
+  public static ConnectionPools getInstance()
   {
     return instance;
   }
@@ -83,7 +83,7 @@ public class ConnectionPoolSummary implements ConnectionPoolSummaryMBean
     leaseCount.decrementAndGet();
   }
   
-  private static ConnectionPoolSummary instance = new ConnectionPoolSummary();
+  private static ConnectionPools instance = new ConnectionPools();
   
   private AtomicInteger totalCount;
   private AtomicInteger leaseCount;

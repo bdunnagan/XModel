@@ -1,11 +1,11 @@
 package org.xmodel.log.mbean;
 
 import java.lang.management.ManagementFactory;
-
+import java.util.regex.Pattern;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-
 import org.xmodel.log.Log;
+import org.xmodel.log.LogMap;
 import org.xmodel.log.SLog;
 
 public class Logging implements LoggingMBean
@@ -15,7 +15,7 @@ public class Logging implements LoggingMBean
     try
     {
       MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-      ObjectName name = new ObjectName( "org.xmodel.log.mbean:type=Logging");   
+      ObjectName name = new ObjectName( "org.xmodel.log:type=Logging");   
       mbs.registerMBean( this, name);
     }
     catch( Exception e)
@@ -45,9 +45,13 @@ public class Logging implements LoggingMBean
    * @see org.xmodel.log.mbean.LoggingMBean#setLevel(java.lang.String, java.lang.String)
    */
   @Override
-  public void setLevel( String log, String level)
+  public void setLevel( String query, String level) throws Exception
   {
-    Log.getLog( log).setLevel( Log.getLevelIndex( level));
+    int mask = Log.getLevelIndex( level);
+    for( Log log: LogMap.getInstance().findLogs( Pattern.compile( query)))
+    {
+      log.setLevel( mask);
+    }
   }
   
   private final static Logging instance = new Logging();

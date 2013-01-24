@@ -35,8 +35,23 @@ public final class Log
       case Log.error:     return "Error";
       case Log.severe:    return "Severe";
       case Log.fatal:     return "Fatal";
+      default:            break;
     }
-    return null;
+    
+    if ( level == 0) return "none";
+    if ( (level ^ all) == 0) return "all";
+    if ( (level ^ problems) == 0) return "problems";
+    
+    StringBuilder sb = new StringBuilder();
+    if ( (level & exception) != 0) sb.append( "exception, ");
+    if ( (level & debug) != 0) sb.append( "debug, ");
+    if ( (level & info) != 0) sb.append( "info, ");
+    if ( (level & warn) != 0) sb.append( "warn, ");
+    if ( (level & error) != 0) sb.append( "error, ");
+    if ( (level & severe) != 0) sb.append( "severe, ");
+    if ( (level & fatal) != 0) sb.append( "fatal, ");
+    if ( sb.length() > 0) sb.setLength( sb.length() - 2);
+    return sb.toString();
   }
 
   /**

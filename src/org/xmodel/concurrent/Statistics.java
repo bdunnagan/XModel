@@ -42,7 +42,7 @@ public class Statistics
     else if ( elapsed < 1000) bins[ 3]++;
     else bins[ 4]++;
     
-    SLog.info( this, this);
+    SLog.verbose( this, this);
   }
   
   /**
