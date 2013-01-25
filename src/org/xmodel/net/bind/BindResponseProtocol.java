@@ -75,7 +75,7 @@ public class BindResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    BindRecord record = pending.remove( correlation);
+    BindRecord record = pending.get( correlation);
     if ( record != null) 
     {
       if ( length > 4) record.received = bundle.requestCompressor.decompress( buffer, record.reference);
@@ -92,7 +92,7 @@ public class BindResponseProtocol
    */
   protected synchronized int nextCorrelation( IExternalReference reference)
   {
-    int correlation = counter.getAndIncrement();
+    int correlation = counter.incrementAndGet();
     pending.put( correlation, new BindRecord( reference));
     return correlation;
   }

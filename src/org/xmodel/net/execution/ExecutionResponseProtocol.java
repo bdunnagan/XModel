@@ -3,11 +3,13 @@ package org.xmodel.net.execution;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -26,7 +28,7 @@ public class ExecutionResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
     this.tasks = new ConcurrentHashMap<Integer, ResponseTask>();
   }
 
@@ -91,10 +93,12 @@ public class ExecutionResponseProtocol
     
     IModelObject response = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
     
-    SynchronousQueue<IModelObject> queue = queues.remove( correlation);
+    BlockingQueue<IModelObject> queue = queues.get( correlation);
+    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
     if ( queue != null) queue.offer( response);
     
     ResponseTask task = tasks.remove( correlation);
+    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
     if ( task != null && !task.isExpired()) 
     {
       task.setResponse( response);
@@ -108,8 +112,8 @@ public class ExecutionResponseProtocol
    */
   protected int nextCorrelation()
   {
-    int correlation = counter.getAndIncrement();
-    queues.put( correlation, new SynchronousQueue<IModelObject>());
+    int correlation = counter.incrementAndGet();
+    queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
   
@@ -120,7 +124,7 @@ public class ExecutionResponseProtocol
    */
   protected int nextCorrelation( ResponseTask runnable)
   {
-    int correlation = counter.getAndIncrement();
+    int correlation = counter.incrementAndGet();
     tasks.put( correlation, runnable);
     return correlation;
   }
@@ -136,7 +140,7 @@ public class ExecutionResponseProtocol
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( correlation);
+      BlockingQueue<IModelObject> queue = queues.get( correlation);
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
       
       Throwable throwable = ExecutionSerializer.readResponseException( response);
@@ -234,6 +238,6 @@ public class ExecutionResponseProtocol
 
   private ExecutionProtocol bundle;
   private AtomicInteger counter;
-  private Map<Integer, SynchronousQueue<IModelObject>> queues;
+  private Map<Integer, BlockingQueue<IModelObject>> queues;
   private Map<Integer, ResponseTask> tasks;
 }

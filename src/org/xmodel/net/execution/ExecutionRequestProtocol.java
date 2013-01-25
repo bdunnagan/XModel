@@ -141,7 +141,7 @@ public class ExecutionRequestProtocol
   }
 
   /**
-   * Execute the specifed script.
+   * Execute the specified script.
    * @param channel The channel.
    * @param correlation The correlation.
    * @param request The request.
