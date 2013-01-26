@@ -30,7 +30,7 @@ public class ThreadPoolDispatcherTest
   @Test
   public void sequencingTest() throws Exception
   {
-    dispatcher = new SerialExecutorDispatcher( new Model(), 16, 100, false);
+    dispatcher = new SerialExecutorDispatcher( "serial", new Model(), 16, 100, false);
     
     final Runnable runnable = new UpdateRunnable();
     final Random random = new Random();
@@ -65,7 +65,7 @@ public class ThreadPoolDispatcherTest
     Log.getLog( SerialExecutorDispatcher.class).setLevel( Log.all);
     
     Model model = new Model();
-    dispatcher = new SerialExecutorDispatcher( model, 16, 100, false);
+    dispatcher = new SerialExecutorDispatcher( "serial", model, 16, 100, false);
     model.writeLock();
     
     final Runnable runnable = new UpdateRunnable();

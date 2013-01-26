@@ -24,26 +24,28 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
 {
   /**
    * Convenience method for creating with a fixed thread count and unbounded queue.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param model The model.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    */
-  public SerialExecutorDispatcher( IModel model, int threadCount)
+  public SerialExecutorDispatcher( String name, IModel model, int threadCount)
   {
-    this( model, createExecutor( threadCount), new LinkedBlockingQueue<Runnable>());
+    this( model, createExecutor( name, threadCount), new LinkedBlockingQueue<Runnable>());
   }
   
   /**
    * Convenience method for creating with a fixed thread count, limited queue, and
    * optional fairness policy.  LinkedBlockingQueue is used unless a fairness policy is requested, in which
    * case ArrayBlockingQueue is used.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param model The model.
    * @param threadCount The number of threads in the thread pool.
    * @param queueSize The dispatch queue size.
    * @param fair True if a fairness policy should be used.
    */
-  public SerialExecutorDispatcher( IModel model, int threadCount, int queueSize, boolean fair)
+  public SerialExecutorDispatcher( String name, IModel model, int threadCount, int queueSize, boolean fair)
   {
-    this( new Model(), createExecutor( threadCount), 
+    this( new Model(), createExecutor( name, threadCount), 
       fair? new ArrayBlockingQueue<Runnable>( queueSize, true): 
             new LinkedBlockingQueue<Runnable>( queueSize));
   }
@@ -67,12 +69,13 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
   
   /**
    * Create the ExecutorServie.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    * @return Returns the new ExecutorService.
    */
-  private static ExecutorService createExecutor( int threadCount)
+  private static ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( "model-serial");
+    ThreadFactory factory = new ModelThreadFactory( name);
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
   }
   

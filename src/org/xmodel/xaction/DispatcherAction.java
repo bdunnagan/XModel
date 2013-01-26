@@ -23,6 +23,7 @@ public class DispatcherAction extends XAction
     super.configure( document);
     var = Conventions.getVarName( document.getRoot(), true);
     typeExpr = document.getExpression( "type", true);
+    nameExpr = document.getExpression( "name", true);
     threadsExpr = document.getExpression( "threads", true);
   }
 
@@ -34,7 +35,8 @@ public class DispatcherAction extends XAction
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     String type = (typeExpr != null)? typeExpr.evaluateString( context): "serial";
-    IDispatcher dispatcher = createDispatcher( type, threads);
+    String name = (nameExpr != null)? nameExpr.evaluateString( context): (type + "-");
+    IDispatcher dispatcher = createDispatcher( type, name, threads);
     
     IModelObject holder = new ModelObject( "dispatcher");
     holder.setValue( dispatcher);
@@ -46,18 +48,19 @@ public class DispatcherAction extends XAction
   /**
    * Create the dispatcher for the thread pool.
    * @param type The type of dispatcher.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param threads The number of threads.
    * @return Returns the new IDispatcher instance.
    */
-  private IDispatcher createDispatcher( String type, int threads)
+  private IDispatcher createDispatcher( String type, String name, int threads)
   {
     if ( type.equals( "serial"))
     {
-      return new SerialExecutorDispatcher( new Model(), threads);
+      return new SerialExecutorDispatcher( name, new Model(), threads);
     }
     else if ( type.equals( "parallel"))
     {
-      return new ParallelExecutorDispatcher( threads);
+      return new ParallelExecutorDispatcher( name, threads);
     }
     else
     {
@@ -67,5 +70,6 @@ public class DispatcherAction extends XAction
   
   private String var;
   private IExpression typeExpr;
+  private IExpression nameExpr;
   private IExpression threadsExpr;
 }

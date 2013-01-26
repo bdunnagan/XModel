@@ -70,7 +70,8 @@ public class XioClientPool
     public void release( IContext context, XioClient client)
     {
       log.debugf( "Freeing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
-      if ( !client.isConnected()) clients.remove( client.getRemoteAddress());
+      if ( !client.isConnected() && client.getRemoteAddress() != null) 
+        clients.remove( client.getRemoteAddress());
     }
     
     /**

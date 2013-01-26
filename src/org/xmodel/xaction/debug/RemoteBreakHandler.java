@@ -25,7 +25,7 @@ public class RemoteBreakHandler implements IBreakHandler
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
       
       IContext context = new StatefulContext();
-      context.getModel().setDispatcher( new SerialExecutorDispatcher( new Model(), 1));
+      context.getModel().setDispatcher( new SerialExecutorDispatcher( "debug", new Model(), 1));
       server = new XioServer( context, context);
       server.start( "localhost", port);
     }

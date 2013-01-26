@@ -24,11 +24,12 @@ public class ParallelExecutorDispatcher implements IDispatcher
   
   /**
    * Convenience method for creating with a fixed thread count.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    */
-  public ParallelExecutorDispatcher( int threadCount)
+  public ParallelExecutorDispatcher( String name, int threadCount)
   {
-    this.executor = createExecutor( threadCount);
+    this.executor = createExecutor( name, threadCount);
     this.statistics = new Statistics();
   }
     
@@ -44,12 +45,13 @@ public class ParallelExecutorDispatcher implements IDispatcher
   
   /**
    * Create the ExecutorService.
+   * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    * @return Returns the new ExecutorService.
    */
-  private ExecutorService createExecutor( int threadCount)
+  private ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( "model-parallel", new Runnable() {
+    ThreadFactory factory = new ModelThreadFactory( name, new Runnable() {
       public void run()
       {
         GlobalSettings.getInstance().getModel().setDispatcher( ParallelExecutorDispatcher.this);

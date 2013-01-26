@@ -12,7 +12,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.mbean.Logging;
@@ -46,21 +45,28 @@ public final class LogManager implements Runnable
   public LogManager()
   {
     period = 10;
-    
+    log = Log.getLog( this);
+
+    // get logging configuration
     String path = System.getProperty( "org.xmodel.log.config");
     if ( path == null) path = "logging.xml";
     
-    SLog.infof( this, "LogManager created with configuration: %s", path);
+    log.infof( "LogManager created with configuration: %s", path);
     
     config = new File( path);
     if ( !config.exists()) 
     {
-      SLog.warnf( this, "Logging configuration file not found, %s", new File( path).getAbsolutePath());
+      log.warnf( "Logging configuration file not found, %s", new File( path).getAbsolutePath());
       config = null;
     }
 
+    // log uncaught exceptions
     Thread.setDefaultUncaughtExceptionHandler( new UncaughtExceptionLogger());
     
+    // initialize logging mbean
+    Logging.getInstance();
+    
+    // start supervisor schedule
     if ( config != null)
     {
       scheduler = Executors.newScheduledThreadPool( 1, new ThreadFactory() {
@@ -74,8 +80,6 @@ public final class LogManager implements Runnable
       
       run();
     }
-    
-    Logging.getInstance();
   }
   
   /**
@@ -120,14 +124,15 @@ public final class LogManager implements Runnable
       IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
       period = Xlate.childGet( root, "reload", period);
 
-      ILogSink globalSink = configure( root);
+      ILogSink defaultSink = configure( root);
+      Log.setDefaultSink( defaultSink);
       
       for( IModelObject child: root.getChildren( "log"))
       {
         String level = Xlate.get( child, "level", (String)null);
         
         ILogSink sink = configure( child);
-        if ( sink == null) sink = globalSink;
+        if ( sink == null) sink = defaultSink;
         
         String name = Xlate.get( child, "name", (String)null);
         if ( name != null)
@@ -150,14 +155,14 @@ public final class LogManager implements Runnable
           }
           catch( Exception e)
           {
-            SLog.warnf( this, "Unable to regex, %s", e.toString());
+            log.warnf( "Unable to regex, %s", e.toString());
           }
         }
       }
     }
     catch( Exception e)
     {
-      SLog.warnf( this, "Unable to parse logging configuration, %s", e.toString());
+      log.warnf( "Unable to parse logging configuration, %s", e.toString());
     }
   }
   
@@ -168,9 +173,9 @@ public final class LogManager implements Runnable
   public void run()
   {
     long modified = config.lastModified();
-    if ( modified > timestamp)
+    if ( timestamp == 0 || modified > timestamp)
     {
-      if ( timestamp > 0) SLog.info( this, "Reloaded logging configuration.");
+      log.info( "Logging configuration updated.");
       timestamp = modified;
       updateConfig();
     }
@@ -181,6 +186,7 @@ public final class LogManager implements Runnable
       future = scheduler.schedule( this, period, TimeUnit.SECONDS);
   }
 
+  private Log log;
   private File config;
   private long timestamp;
   private int period;
