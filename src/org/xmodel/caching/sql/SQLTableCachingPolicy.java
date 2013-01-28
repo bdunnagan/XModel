@@ -186,10 +186,15 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       
       long t0 = System.nanoTime();
       statement = createTableSelectStatement( reference);
-      ResultSet result = statement.executeQuery();
       
       long t1 = System.nanoTime();
-      log.debugf( "query time: %1.3fs", ((t1 - t0) / 1e9));
+      log.debugf( "query prep: %1.3fs", ((t1 - t0) / 1e9));
+      
+      long t2 = System.nanoTime();
+      ResultSet result = statement.executeQuery();
+      
+      long t3 = System.nanoTime();
+      log.debugf( "query exec: %1.3fs", ((t3 - t2) / 1e9));
       
       IModelObject parent = reference.cloneObject();
       while( result.next())
