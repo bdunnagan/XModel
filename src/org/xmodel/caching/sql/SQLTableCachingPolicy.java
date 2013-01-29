@@ -560,8 +560,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     // HACK: optional row limit and offset optimization that only works for MySQL
     if ( limit > 0 && provider instanceof MySQLProvider)
     {
-      sb.append( " OFFSET "); sb.append( offset);
       sb.append( " LIMIT "); sb.append( limit);
+      sb.append( " OFFSET "); sb.append( offset);
     }
     
     Connection connection = provider.leaseConnection();
