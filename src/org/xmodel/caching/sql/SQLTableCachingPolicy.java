@@ -117,6 +117,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     IExpression orderbyExpr = Xlate.childGet( annotation, "orderby", (IExpression)null);
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
     
+    IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
+    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): 0;
+    
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
@@ -554,11 +557,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( orderby);
     }
     
-    // HACK: optional row limit optimization that only works for MySQL
+    // HACK: optional row limit and offset optimization that only works for MySQL
     if ( limit > 0 && provider instanceof MySQLProvider)
     {
-      sb.append( " LIMIT ");
-      sb.append( limit);
+      sb.append( " OFFSET "); sb.append( offset);
+      sb.append( " LIMIT "); sb.append( limit);
     }
     
     Connection connection = provider.leaseConnection();
@@ -1080,6 +1083,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private List<String> excluded;
   private String where;
   private String orderby;
+  private int offset;
   private int limit;
   private SQLRowCachingPolicy rowCachingPolicy;
   private String catalog;
