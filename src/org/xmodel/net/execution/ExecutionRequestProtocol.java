@@ -213,6 +213,7 @@ public class ExecutionRequestProtocol
     @Override
     public void run()
     {
+      log.debug( "Response timeout.");
       task.setError( "timeout");
       bundle.context.getModel().dispatch( task);
     }
