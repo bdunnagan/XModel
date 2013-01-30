@@ -57,7 +57,14 @@ public class XioClientPool
      */
     public XioClient lease( IContext context, InetSocketAddress address)
     {
-      XioClient client = getCreateClient( address);
+      //
+      // Major bug... XioClient cannot be reused by the same thread for multiple async executions.
+      // Need test case.
+      //
+      
+      
+      XioClient client = factory.newInstance( address, true);
+      //XioClient client = getCreateClient( address);
       log.debugf( "Leasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
       return client;
     }
@@ -70,8 +77,14 @@ public class XioClientPool
     public void release( IContext context, XioClient client)
     {
       log.debugf( "Freeing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
-      if ( !client.isConnected() && client.getRemoteAddress() != null) 
-        clients.remove( client.getRemoteAddress());
+
+      // Temporary hack until memory leak resolved
+      InetSocketAddress address = client.getRemoteAddress();
+      clients.remove( address);
+      client.close();
+      
+//      if ( !client.isConnected() && client.getRemoteAddress() != null) 
+//        clients.remove( client.getRemoteAddress());
     }
     
     /**

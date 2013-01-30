@@ -809,6 +809,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      log.verbosef( "%s", statement);
       try
       {
         statement.executeBatch();
@@ -824,6 +825,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
       PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      log.verbosef( "%s", statement);
       try
       {
         statement.executeBatch();
@@ -839,6 +841,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
     {
       PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      log.verbosef( "%s", statement);
       try
       {
         statement.execute();
