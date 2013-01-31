@@ -387,6 +387,8 @@ public class FilteredExpression extends Expression
   @Override
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
+    
     // unwind context
     if ( expression == getArgument( 1))
     {
@@ -398,10 +400,10 @@ public class FilteredExpression extends Expression
     // notify
     if ( expression.getType( contexts[ 0]) == ResultType.BOOLEAN)
     {
-      object.getModel().revert();
+      model.revert();
       for( IContext context: contexts) unbind( context);
       
-      object.getModel().restore();
+      model.restore();
       for( IContext context: contexts) bind( context);
   
       // reevaluate and notify listeners

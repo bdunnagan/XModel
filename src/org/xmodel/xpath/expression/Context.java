@@ -22,6 +22,8 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -59,6 +61,7 @@ public class Context implements IContext
    */
   public Context( IModelObject object, int position, int size)
   {
+    this.model = GlobalSettings.getInstance().getModel();
     this.object = object;
     this.position = position;
     this.size = size;
@@ -67,13 +70,15 @@ public class Context implements IContext
     
   /**
    * Create a context for the given context node.
+   * @param model The model.
    * @param scope The scope to associate with this context.
    * @param object The context node.
    * @param position The context position.
    * @param size The context size.
    */
-  protected Context( IVariableScope scope, IModelObject object, int position, int size)
+  protected Context( IModel model, IVariableScope scope, IModelObject object, int position, int size)
   {
+    this.model = model;
     this.object = object;
     this.position = position;
     this.size = size;
@@ -87,7 +92,7 @@ public class Context implements IContext
    */
   public Context( IContext scope, IModelObject object)
   {
-    this( (scope != null)? scope.getScope(): null, object, 1, 1);
+    this( scope.getModel(), (scope != null)? scope.getScope(): null, object, 1, 1);
   }
   
   /**
@@ -99,7 +104,7 @@ public class Context implements IContext
    */
   public Context( IContext scope, IModelObject object, int position, int size)
   {
-    this( (scope != null)? scope.getScope(): null, object, position, size);
+    this( scope.getModel(), (scope != null)? scope.getScope(): null, object, position, size);
   }
     
   /* (non-Javadoc)
@@ -123,7 +128,7 @@ public class Context implements IContext
    */
   public IModel getModel()
   {
-    return (object != null)? object.getModel(): null;
+    return model;
   }
 
   /* (non-Javadoc)
@@ -324,6 +329,7 @@ public class Context implements IContext
     return sb.toString();
   }
   
+  private IModel model;
   private IModelObject object;
   private int position;
   private int size;

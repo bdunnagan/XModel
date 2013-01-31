@@ -221,10 +221,4 @@ public interface IModel
    * @return Returns true if the sync lock is set.
    */
   public boolean getSyncLock();
-  
-  /**
-   * Handle an exception or error which is thrown during a listener callback.
-   * @param e The exception.
-   */
-  public void handleException( Exception e);
 }

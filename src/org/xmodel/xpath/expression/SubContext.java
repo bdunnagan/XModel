@@ -59,7 +59,7 @@ public class SubContext implements IContext
    */
   public IModel getModel()
   {
-    return (object != null)? object.getModel(): null;
+    return parent.getModel();
   }
 
   /* (non-Javadoc)

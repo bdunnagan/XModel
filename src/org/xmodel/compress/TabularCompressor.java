@@ -184,7 +184,6 @@ public class TabularCompressor extends AbstractCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
     
-    element.clearModel();
     return element;
   }
   

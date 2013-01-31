@@ -21,7 +21,9 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.DepthFirstIterator;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
@@ -137,7 +139,7 @@ public class CreateAction extends GuardedAction
     String collection = (collectionExpr != null)? collectionExpr.evaluateString( context): null;
     if ( collection != null && elements.size() > 0)
     {
-      IModel model = elements.get( 0).getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       for( IModelObject element: elements)
         model.addRoot( collection, element);
     }

@@ -260,9 +260,6 @@ public class BindCompressor extends TabularCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
 
-    // disassociate from model so it can be passed to a new thread
-    element.clearModel();
-    
     return element;
   }
   

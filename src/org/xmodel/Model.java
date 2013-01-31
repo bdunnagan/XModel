@@ -455,14 +455,6 @@ public class Model implements IModel
     return syncLock;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#handleException(java.lang.Exception)
-   */
-  public void handleException( Exception e)
-  {
-    log.exception( e);
-  }
-  
   private static Log log = Log.getLog( Model.class);
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;

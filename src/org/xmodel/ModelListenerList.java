@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.xmodel.log.SLog;
+
 /**
  * An implementation of IModelListener which contains IModelListener children and forwards listener
  * notifications to its children. Children can be added and removed during notification.
@@ -101,11 +103,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        child.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        child.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }
   }
@@ -125,11 +127,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        parent.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        parent.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }        
   }
@@ -149,11 +151,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        parent.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        parent.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }        
   }
@@ -173,11 +175,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        object.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        object.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }
   }
@@ -197,11 +199,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        object.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        object.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }        
   }
@@ -223,11 +225,11 @@ public class ModelListenerList implements IModelListener
       }
       catch( Exception e)
       {
-        object.getModel().handleException( e);
+        SLog.exception( this, e);
       }
       finally
       {
-        object.getModel().restore();
+        GlobalSettings.getInstance().getModel().restore();
       }
     }        
   }

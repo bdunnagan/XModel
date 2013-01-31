@@ -20,6 +20,7 @@
 package org.xmodel.concurrent;
 
 import org.xmodel.BlockingDispatcher;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
@@ -45,7 +46,7 @@ public class MasterSlaveListener extends NonSyncingListener
   {
     this.master = master;
     this.slave = slave;
-    this.dispatcher = slave.getModel().getDispatcher();
+    this.dispatcher = GlobalSettings.getInstance().getModel().getDispatcher();
     if ( dispatcher == null) throw new IllegalArgumentException( "Slave element does not have associated dispatcher.");
   }
   
@@ -145,7 +146,7 @@ public class MasterSlaveListener extends NonSyncingListener
         slave.setValue( 0);
         
         BlockingDispatcher dispatcher = new BlockingDispatcher();
-        slave.getModel().setDispatcher( dispatcher);
+        GlobalSettings.getInstance().getModel().setDispatcher( dispatcher);
         
         MasterSlaveListener listener = new MasterSlaveListener( master, slave);
         listener.install( master);

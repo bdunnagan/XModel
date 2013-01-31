@@ -344,13 +344,11 @@ public class ModelAlgorithms implements IAxis
         IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
         if ( childDup != null)
         {
-          childDup.clearModel();
           sourceDup.addChild( childDup);
           fifo.push( child);
           fifo.push( childDup);
         }
       }
-      sourceDup.clearModel();
     }
     return thisDup;
   }
@@ -389,7 +387,6 @@ public class ModelAlgorithms implements IAxis
           fifo.push( childDup);
         }
       }
-      sourceDup.clearModel();
     }
     return thisDup;
   }

@@ -22,6 +22,8 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
@@ -49,7 +51,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext context)
   {
-    this( new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
+    this( context.getModel(), new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
   }
   
   /**
@@ -58,7 +60,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IModelObject object)
   {
-    this( new ContextScope(), object, 1, 1);
+    this( GlobalSettings.getInstance().getModel(), new ContextScope(), object, 1, 1);
   }
   
   /**
@@ -69,7 +71,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IModelObject object, int position, int size)
   {
-    this( new ContextScope(), object, position, size);
+    this( GlobalSettings.getInstance().getModel(), new ContextScope(), object, position, size);
   }
     
   /**
@@ -80,18 +82,20 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IVariableScope scope, IModelObject object)
   {
-    this( scope, object, 1, 1);
+    this( GlobalSettings.getInstance().getModel(), scope, object, 1, 1);
   }
   
   /**
    * Create a context for the given context node and use the specified scope to store variables.
+   * @param model The model.
    * @param scope The scope to be associated with this context.
    * @param object The context node.
    * @param position The context position.
    * @param size The context size.
    */
-  protected StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
+  protected StatefulContext( IModel model, IVariableScope scope, IModelObject object, int position, int size)
   {
+    this.model = model;
     this.object = object;
     this.position = position;
     this.size = size;
@@ -107,7 +111,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext scope, IModelObject object)
   {
-    this( new ContextScope( scope.getScope()), object, 1, 1);
+    this( scope.getModel(), new ContextScope( scope.getScope()), object, 1, 1);
   }
   
   /**
@@ -120,7 +124,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext scope, IModelObject object, int position, int size)
   {
-    this( new ContextScope( scope.getScope()), object, position, size);
+    this( scope.getModel(), new ContextScope( scope.getScope()), object, position, size);
   }
 
   /* (non-Javadoc)
@@ -217,7 +221,7 @@ public class StatefulContext implements IContext
    */
   public IModel getModel()
   {
-    return (object != null)? object.getModel(): null;
+    return model;
   }
 
   /* (non-Javadoc)
@@ -340,7 +344,8 @@ public class StatefulContext implements IContext
     sb.append( ")");
     return sb.toString();
   }
-  
+ 
+  private IModel model;
   private IModelObject object;
   private int position;
   private int size;

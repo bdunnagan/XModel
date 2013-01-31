@@ -381,7 +381,7 @@ class ReturnContext extends Context
    */
   public ReturnContext( IContext context, String name, IModelObject node)
   {
-    super( new ReturnScope( context.getScope(), name, node), context.getObject(), context.getPosition(), context.getSize());
+    super( context.getModel(), new ReturnScope( context.getScope(), name, node), context.getObject(), context.getPosition(), context.getSize());
     parent = context;
   }
 
