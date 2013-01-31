@@ -2,17 +2,18 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.Model;
 import org.xmodel.ModelObject;
 import org.xmodel.concurrent.ParallelExecutorDispatcher;
 import org.xmodel.concurrent.SerialExecutorDispatcher;
