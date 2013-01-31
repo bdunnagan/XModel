@@ -2,21 +2,23 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
+import org.xmodel.Model;
 import org.xmodel.ModelObject;
+import org.xmodel.concurrent.ParallelExecutorDispatcher;
+import org.xmodel.concurrent.SerialExecutorDispatcher;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
+import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -35,14 +37,10 @@ public class ProtocolTest
   
   @Before public void start() throws IOException
   {
-    server = new XioServer( null, null);
+    serverContext = new StatefulContext();
+    serverContext.getModel();
+    server = new XioServer( serverContext, serverContext);
     server.start( address, port);
-    
-//    Log.getLog( TcpBase.class).setLevel( Log.all);
-//    Log.getLog( Connection.class).setLevel( Log.all);
-    //Log.getLog( Client.class).setLevel( Log.all);
-    //Log.getLog( Server.class).setLevel( Log.all);
-    //Log.getLog( Protocol.class).setLevel( Log.all);
   }
   
   @After public void shutdown() throws IOException
@@ -101,6 +99,54 @@ public class ProtocolTest
       }
     }
     assertTrue( "Client connect/disconnect tally is not correct", tally == clients.size() * passes);
+  }
+  
+  @Test public void asyncExecute() throws Exception
+  {
+    serverContext.getModel().setDispatcher( new ParallelExecutorDispatcher( "parallel", 10));
+    
+    createClients( 1);
+
+    final XioClient client = clients.get( 0);
+    client.connect( address, port).await();
+    
+    final IXioCallback cb = new IXioCallback() {
+      public void onComplete( IContext context)
+      {
+      }
+      public void onSuccess( IContext context, Object[] results)
+      {
+        System.out.printf( "%s\n", results[ 0].toString());
+      }
+      public void onError( IContext context, String error)
+      {
+      }
+    };
+
+    String xml = 
+      "<script>" +
+      "  <return>$value</return>" +
+      "</script>";
+
+    try
+    {
+      IModelObject script = new XmlIO().read( xml);
+      StatefulContext context = new StatefulContext();
+      SerialExecutorDispatcher dispatcher = new SerialExecutorDispatcher( "serial", context.getModel(), 1);
+      
+      for( int i=0; i<1000000; i++)
+      {
+        System.out.printf( "%d\n", i);
+        context.set( "value", i);
+        client.execute( context, new String[] { "value"}, script, cb, 600000);
+      }
+    }
+    catch( Exception e)
+    {
+      e.printStackTrace( System.err);
+    }
+    
+    Thread.sleep( 100000);
   }
   
   @Test public void largeExecutePayload() throws Exception
@@ -223,7 +269,8 @@ public class ProtocolTest
     public List<Object[]> results;
     public Exception e;
   }
-  
+
+  private StatefulContext serverContext;
   private XioServer server;
   private List<XioClient> clients;
 }

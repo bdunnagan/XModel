@@ -75,7 +75,7 @@ public class SerialExecutorDispatcher implements IDispatcher, Runnable
    */
   private static ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( name);
+    ThreadFactory factory = new SimpleThreadFactory( name);
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
   }
   

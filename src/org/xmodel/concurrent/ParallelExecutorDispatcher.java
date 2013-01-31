@@ -51,7 +51,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
    */
   private ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( name, new Runnable() {
+    ThreadFactory factory = new SimpleThreadFactory( name, new Runnable() {
       public void run()
       {
         GlobalSettings.getInstance().getModel().setDispatcher( ParallelExecutorDispatcher.this);

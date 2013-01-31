@@ -11,6 +11,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.xmodel.GlobalSettings;
+import org.xmodel.concurrent.SimpleThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -25,7 +26,9 @@ public class XioServer
    */
   public XioServer( IContext bindContext, IContext executeContext)
   {
-    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
+    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), 
+        Executors.newCachedThreadPool( new SimpleThreadFactory( "Server Boss")), 
+        Executors.newCachedThreadPool( new SimpleThreadFactory( "Server Work")));
   }
   
   /**
