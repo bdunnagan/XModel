@@ -85,6 +85,7 @@ public class FunctionFactory implements IFunctionFactory
       SubstringBeforeFunction.class,
       SubstringFunction.class,
       SumFunction.class,
+      SumMulFunction.class,
       TranslateFunction.class,
       TraceFunction.class,
       TrueFunction.class,

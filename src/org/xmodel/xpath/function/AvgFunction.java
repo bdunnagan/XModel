@@ -75,7 +75,7 @@ public class AvgFunction extends Function
       }
     }
     
-    return sum / count;
+    return (count > 0)? (sum / count): 0;
   }
 
   /* (non-Javadoc)
