@@ -2,7 +2,6 @@ package org.xmodel.storage;
 
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.PathListenerList;
@@ -85,24 +84,6 @@ public final class PathListenerStorageClass implements IStorageClass
   public IStorageClass getPathListenersStorageClass()
   {
     return this;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#setModel(org.xmodel.IModel)
-   */
-  @Override
-  public void setModel( IModel model)
-  {
-    storageClass.setModel( model);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#getModel(org.xmodel.IModelObject)
-   */
-  @Override
-  public IModel getModel()
-  {
-    return storageClass.getModel();
   }
 
   /* (non-Javadoc)
