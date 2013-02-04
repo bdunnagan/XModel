@@ -48,7 +48,8 @@ public class ForAction extends GuardedAction
     // node-set iteration
     IModelObject config = document.getRoot();
     var = Conventions.getVarName( config, false, "assign");    
-    sourceExpr = document.getExpression( "source", true);
+    inExpr = document.getExpression( "in", true);
+    if ( inExpr == null) inExpr = document.getExpression( "source", true);
 
     // OR numeric iteration
     fromExpr = document.getExpression( "from", true);
@@ -81,9 +82,9 @@ public class ForAction extends GuardedAction
     }
     
     // node-set iteration 
-    if ( sourceExpr != null)
+    if ( inExpr != null)
     {
-      List<IModelObject> nodes = sourceExpr.evaluateNodes( context);
+      List<IModelObject> nodes = inExpr.evaluateNodes( context);
       for( int i=0; i<nodes.size(); i++)
       {
         // store the current element in either a variable or the context
@@ -136,7 +137,7 @@ public class ForAction extends GuardedAction
   }
 
   private String var;
-  private IExpression sourceExpr;
+  private IExpression inExpr;
   private IExpression fromExpr;
   private IExpression toExpr;
   private IExpression byExpr;
