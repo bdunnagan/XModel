@@ -1,33 +1,23 @@
 package org.xmodel.concurrent;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import org.xmodel.GlobalSettings;
-import org.xmodel.IDispatcher;
 import org.xmodel.log.Log;
 
 /**
- * An IDispatcher implementation that wraps an ExecutorService.  Locking must be used within
- * the Runnables that are dispatched with this class.  Note that the order in which Runnables
- * are executed is not guaranteed.
+ * An implementation of Executor that delegates to another Executor and collects and logs statistics.
  */
-public class ParallelExecutorDispatcher implements IDispatcher
+public class LoggingExecutorWrapper implements Executor
 {
-  /**
-   * Default constructor, which must be followed with a call to <code>configure</code>.
-   */
-  public ParallelExecutorDispatcher()
-  {
-    this.statistics = new Statistics();
-  }
-  
   /**
    * Convenience method for creating with a fixed thread count.
    * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    */
-  public ParallelExecutorDispatcher( String name, int threadCount)
+  public LoggingExecutorWrapper( String name, int threadCount)
   {
     this.executor = createExecutor( name, threadCount);
     this.statistics = new Statistics();
@@ -37,7 +27,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
    * Create with the specified parameters.
    * @param executor The ExecutorService that will process dispatched Runnables.
    */
-  public ParallelExecutorDispatcher( ExecutorService executor)
+  public LoggingExecutorWrapper( Executor executor)
   {
     this.executor = executor;
     this.statistics = new Statistics();
@@ -54,7 +44,7 @@ public class ParallelExecutorDispatcher implements IDispatcher
     ThreadFactory factory = new SimpleThreadFactory( name, new Runnable() {
       public void run()
       {
-        GlobalSettings.getInstance().getModel().setDispatcher( ParallelExecutorDispatcher.this);
+        GlobalSettings.getInstance().getModel().setExecutor( LoggingExecutorWrapper.this);
       }
     });
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
@@ -83,18 +73,9 @@ public class ParallelExecutorDispatcher implements IDispatcher
       executor.execute( runnable);
     }
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IDispatcher#shutdown(boolean)
-   */
-  @Override
-  public void shutdown( boolean immediate)
-  {
-    if ( immediate) executor.shutdownNow(); else executor.shutdown();
-  }
   
-  private static Log log = Log.getLog( ParallelExecutorDispatcher.class);
+  private static Log log = Log.getLog( LoggingExecutorWrapper.class);
 
-  private ExecutorService executor;
+  private Executor executor;
   private Statistics statistics;
 }

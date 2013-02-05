@@ -75,7 +75,7 @@ public class EntityTrigger extends AbstractTrigger
 
   private void dispatch()
   {
-    context.getModel().getDispatcher().execute( dispatch1);
+    context.getModel().getExecutor().execute( dispatch1);
   }
   
   final IExpressionListener entityListener = new ExpressionListener() {
@@ -121,7 +121,7 @@ public class EntityTrigger extends AbstractTrigger
   private final Runnable dispatch1 = new Runnable() {
     public void run()
     {
-      context.getModel().getDispatcher().execute( dispatch2);
+      context.getModel().getExecutor().execute( dispatch2);
     }
   };
   

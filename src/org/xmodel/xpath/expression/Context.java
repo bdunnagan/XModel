@@ -22,7 +22,8 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -293,6 +294,17 @@ public class Context implements IContext
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getLock()
+   */
+  @Override
+  public synchronized ReadWriteLock getLock()
+  {
+    if ( lock != null) return lock;
+    lock = new ReentrantReadWriteLock();
+    return lock;
+  }
+
+  /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */
   public int hashCode()
@@ -335,4 +347,5 @@ public class Context implements IContext
   private int size;
   private Map<IExpression, Integer> updates;
   protected IVariableScope scope;
+  private ReadWriteLock lock;
 }

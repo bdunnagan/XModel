@@ -1,8 +1,8 @@
 package org.xmodel.xaction;
 
 import java.util.concurrent.TimeUnit;
-
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -19,6 +19,7 @@ public class ReadLockAction extends GuardedAction
   {
     super.configure( document);
     script = document.createScript();
+    timeoutExpr = document.getExpression( "timeout", true);
   }
 
   /* (non-Javadoc)
@@ -29,7 +30,15 @@ public class ReadLockAction extends GuardedAction
   {
     try
     {
-      context.getModel().readLock( 15, TimeUnit.MINUTES);
+      if ( timeoutExpr == null)
+      {
+        context.getLock().readLock().lock();
+      }
+      else
+      {
+        double timeout = timeoutExpr.evaluateNumber( context);
+        context.getLock().readLock().tryLock( (int)timeout, TimeUnit.MILLISECONDS);
+      }
     }
     catch( InterruptedException e)
     {
@@ -43,9 +52,10 @@ public class ReadLockAction extends GuardedAction
     }
     finally
     {
-      context.getModel().readUnlock();
+      context.getLock().readLock().unlock();
     }
   }
   
   private ScriptAction script;
+  private IExpression timeoutExpr;
 }

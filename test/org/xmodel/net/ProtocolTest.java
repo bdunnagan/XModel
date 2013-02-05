@@ -12,11 +12,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xmodel.IModelObject;
-import org.xmodel.Model;
 import org.xmodel.ModelObject;
-import org.xmodel.concurrent.SerialExecutorDispatcher;
+import org.xmodel.concurrent.LoggingExecutorWrapper;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
+import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -35,10 +35,7 @@ public class ProtocolTest
   
   @Before public void start() throws IOException
   {
-    Model model = new Model();
-    new SerialExecutorDispatcher( "Server", model, 1);
-    serverContext = new StatefulContext( model);
-    
+    serverContext = new StatefulContext();
     server = new XioServer( serverContext);
     server.start( address, port);
   }
@@ -101,53 +98,58 @@ public class ProtocolTest
     assertTrue( "Client connect/disconnect tally is not correct", tally == clients.size() * passes);
   }
   
-//  @Test public void asyncExecute() throws Exception
-//  {
-//    serverContext.getModel().setDispatcher( new ParallelExecutorDispatcher( "parallel", 10));
-//    
-//    createClients( 1);
-//
-//    final XioClient client = clients.get( 0);
-//    client.connect( address, port).await();
-//    
-//    final IXioCallback cb = new IXioCallback() {
-//      public void onComplete( IContext context)
-//      {
-//      }
-//      public void onSuccess( IContext context, Object[] results)
-//      {
-//        System.out.printf( "%s\n", results[ 0].toString());
-//      }
-//      public void onError( IContext context, String error)
-//      {
-//      }
-//    };
-//
-//    String xml = 
-//      "<script>" +
-//      "  <return>$value</return>" +
-//      "</script>";
-//
-//    try
-//    {
-//      IModelObject script = new XmlIO().read( xml);
-//      StatefulContext context = new StatefulContext();
-//      SerialExecutorDispatcher dispatcher = new SerialExecutorDispatcher( "serial", context.getModel(), 1);
-//      
-//      for( int i=0; i<1000000; i++)
-//      {
-//        System.out.printf( "%d\n", i);
-//        context.set( "value", i);
-//        client.execute( context, new String[] { "value"}, script, cb, 600000);
-//      }
-//    }
-//    catch( Exception e)
-//    {
-//      e.printStackTrace( System.err);
-//    }
-//    
-//    Thread.sleep( 100000);
-//  }
+  @Test public void asyncExecute() throws Exception
+  {
+    serverContext.getModel().setExecutor( new LoggingExecutorWrapper( "model", 10));
+    
+    createClients( 1);
+
+    final XioClient client = clients.get( 0);
+    client.connect( address, port).await();
+    
+    final IXioCallback cb = new IXioCallback() {
+      public void onComplete( IContext context)
+      {
+      }
+      public void onSuccess( IContext context, Object[] results)
+      {
+        try { Thread.sleep( 1000);} catch( Exception e) {}
+        int i = Integer.parseInt( results[ 0].toString());
+        if ( (i % 1000) == 0)
+        {
+          System.out.printf( "%d\n", i);
+        }
+      }
+      public void onError( IContext context, String error)
+      {
+      }
+    };
+
+    String xml = 
+      "<script>" +
+      "  <readLock>" +
+      "    <return>$value</return>" +
+      "  </readLock>" +
+      "</script>";
+
+    try
+    {
+      IModelObject script = new XmlIO().read( xml);
+      StatefulContext context = new StatefulContext();
+      
+      for( int i=0; i<100000; i++)
+      {
+        context.getLock().writeLock().lock();
+        context.set( "value", i);
+        context.getLock().writeLock().unlock();
+        client.execute( context, new String[] { "value"}, script, cb, 600000);
+      }
+    }
+    catch( Exception e)
+    {
+      e.printStackTrace( System.err);
+    }
+  }
   
   @Test public void largeExecutePayload() throws Exception
   {
@@ -227,15 +229,10 @@ public class ProtocolTest
   
   private void createClients( int count) throws IOException
   {
-    Model model = new Model();
-    new SerialExecutorDispatcher( "Client", model, 1);
-    
     clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      StatefulContext context = new StatefulContext( model);
-      
-      XioClient client = new XioClient( context);
+      XioClient client = new XioClient();
       clients.add( client);
     }
   }

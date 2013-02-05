@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -159,10 +158,9 @@ public class BindRequestProtocol
    */
   private void bind( Channel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
   {
+    bundle.context.getLock().writeLock().lock();
     try
     {
-      bundle.context.getModel().writeLockUninterruptibly();
-      
       IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
       bundle.bindResponseProtocol.send( channel, correlation, target);
       
@@ -179,7 +177,7 @@ public class BindRequestProtocol
     }
     finally
     {
-      bundle.context.getModel().writeUnlock();
+      bundle.context.getLock().writeLock().unlock();
     }
   }
   

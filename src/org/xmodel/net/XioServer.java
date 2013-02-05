@@ -10,6 +10,8 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.util.ThreadNameDeterminer;
+import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.SimpleThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -25,14 +27,7 @@ public class XioServer
    */
   public XioServer( IContext context)
   {
-    this( context, true, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), getDefaultExecutor());
-  }
-  
-  private static synchronized Executor getDefaultExecutor()
-  {
-    if ( defaultExecutor == null)
-      defaultExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "Server IO"));
-    return defaultExecutor;
+    this( context, true, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), getDefaultWorkExecutor());
   }
   
   /**
@@ -45,6 +40,8 @@ public class XioServer
    */
   public XioServer( final IContext context, final boolean dispatch, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
+    ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
+    
     bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
@@ -110,7 +107,22 @@ public class XioServer
     }
   }
   
-  private static Executor defaultExecutor = null;
+  private static synchronized Executor getDefaultBossExecutor()
+  {
+    if ( defaultBossExecutor == null)
+      defaultBossExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-boss"));
+    return defaultBossExecutor;
+  }
+  
+  private static synchronized Executor getDefaultWorkExecutor()
+  {
+    if ( defaultWorkExecutor == null)
+      defaultWorkExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-work"));
+    return defaultWorkExecutor;
+  }
+  
+  private static Executor defaultBossExecutor = null;
+  private static Executor defaultWorkExecutor = null;
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;

@@ -26,8 +26,7 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
-
-import org.xmodel.IDispatcher;
+import java.util.concurrent.Executor;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -77,7 +76,7 @@ public class RunAction extends GuardedAction
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
-    dispatcherExpr = document.getExpression( "dispatcher", true);
+    executorExpr = document.getExpression( "dispatcher", true);
   }
 
   /* (non-Javadoc)
@@ -90,7 +89,7 @@ public class RunAction extends GuardedAction
     {
       runRemote( context);
     }
-    else if ( dispatcherExpr != null)
+    else if ( executorExpr != null)
     {
       runLocalAsync( context);
     }
@@ -147,21 +146,21 @@ public class RunAction extends GuardedAction
    */
   private void runLocalAsync( IContext context)
   {
-    IModelObject dispatcherNode = dispatcherExpr.queryFirst( context);
-    if ( dispatcherNode == null)
+    IModelObject executorNode = executorExpr.queryFirst( context);
+    if ( executorNode == null)
     {
-      log.warnf( "Dispatcher not found, '%s'", dispatcherExpr);
+      log.warnf( "Executor not found, '%s'", executorExpr);
       return;
     }
     
-    IDispatcher dispatcher = (IDispatcher)dispatcherNode.getValue();
+    Executor executor = (Executor)executorNode.getValue();
     IXAction script = getScript( getScriptNode( context));
     
     //
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
     //
-    dispatcher.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
+    executor.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
   }
   
   /**
@@ -410,5 +409,5 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
-  private IExpression dispatcherExpr;
+  private IExpression executorExpr;
 }

@@ -75,10 +75,9 @@ public class UnbindRequestProtocol
    */
   private void unbind( Channel channel, long netID, IModelObject element)
   {
+    bundle.context.getLock().writeLock().lock();
     try
     {
-      bundle.context.getModel().writeLockUninterruptibly();
-      
       // release resources
       bundle.responseCompressor.freeLocal( element);
     
@@ -91,7 +90,7 @@ public class UnbindRequestProtocol
     }
     finally
     {
-      bundle.context.getModel().writeUnlock();
+      bundle.context.getLock().writeLock().unlock();
     }
   }
   

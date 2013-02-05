@@ -83,7 +83,7 @@ public class SyncRequestProtocol
   {
     try
     {
-      bundle.context.getModel().writeLockUninterruptibly();
+      bundle.context.getLock().writeLock().lock();
       
       // disable updates
       listener.setEnabled( false);
@@ -101,7 +101,7 @@ public class SyncRequestProtocol
     finally
     {
       listener.setEnabled( true);
-      bundle.context.getModel().writeUnlock();
+      bundle.context.getLock().writeLock().unlock();
     }
   }
   

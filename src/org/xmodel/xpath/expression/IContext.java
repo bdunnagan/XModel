@@ -20,6 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -177,4 +178,9 @@ public interface IContext
    * @return Returns the scope associated with this context.
    */
   public IVariableScope getScope();
+  
+  /**
+   * @return Returns the ReadWriteLock for this context.
+   */
+  public ReadWriteLock getLock();
 }

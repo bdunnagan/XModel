@@ -28,7 +28,7 @@ public class XioClient extends XioPeer
    */
   public XioClient()
   {
-    this( null, true, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), getDefaultExecutor());
+    this( null, true, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), getDefaultWorkExecutor());
   }
   
   /**
@@ -37,14 +37,7 @@ public class XioClient extends XioPeer
    */
   public XioClient( IContext context)
   {
-    this( context, false, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), context.getModel().getDispatcher());
-  }
-  
-  private static synchronized Executor getDefaultExecutor()
-  {
-    if ( defaultExecutor == null)
-      defaultExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "Client IO"));
-    return defaultExecutor;
+    this( context, false, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), context.getModel().getExecutor());
   }
   
   /**
@@ -214,7 +207,22 @@ public class XioClient extends XioPeer
     this.channel = channel;
   }
   
-  private static Executor defaultExecutor = null;
+  private static synchronized Executor getDefaultBossExecutor()
+  {
+    if ( defaultBossExecutor == null)
+      defaultBossExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-boss"));
+    return defaultBossExecutor;
+  }
+  
+  private static synchronized Executor getDefaultWorkExecutor()
+  {
+    if ( defaultWorkExecutor == null)
+      defaultWorkExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-work"));
+    return defaultWorkExecutor;
+  }
+  
+  private static Executor defaultBossExecutor = null;
+  private static Executor defaultWorkExecutor = null;
   
   private ClientBootstrap bootstrap;
   private ScheduledExecutorService scheduler;
