@@ -26,7 +26,7 @@ public class RemoteBreakHandler implements IBreakHandler
       
       IContext context = new StatefulContext();
       context.getModel().setDispatcher( new SerialExecutorDispatcher( "debug", new Model(), 1));
-      server = new XioServer( context, context);
+      server = new XioServer( context);
       server.start( "localhost", port);
     }
     catch( Exception e)

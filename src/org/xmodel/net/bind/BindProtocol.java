@@ -7,9 +7,10 @@ import org.xmodel.xpath.expression.IContext;
 
 public class BindProtocol
 {
-  public BindProtocol( HeaderProtocol headerProtocol, IContext context)
+  public BindProtocol( HeaderProtocol headerProtocol, IContext context, boolean dispatch)
   {
     this.context = context;
+    this.dispatch = dispatch;
     this.serializer = new DefaultSerializer();
     this.headerProtocol = headerProtocol;
     this.bindRequestProtocol = new BindRequestProtocol( this);
@@ -40,6 +41,7 @@ public class BindProtocol
   }
   
   public IContext context;
+  public boolean dispatch;
   public ISerializer serializer;
   public HeaderProtocol headerProtocol;
   public BindRequestProtocol bindRequestProtocol;

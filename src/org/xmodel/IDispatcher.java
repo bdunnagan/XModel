@@ -19,17 +19,13 @@
  */
 package org.xmodel;
 
+import java.util.concurrent.Executor;
+
 /**
  * An interface which the server uses to pass queries to the xmodel thread.
  */
-public interface IDispatcher
+public interface IDispatcher extends Executor
 {
-  /**
-   * Execute the specified runnable in the xmodel thread.
-   * @param runnable The runnable.
-   */
-  public void execute( Runnable runnable);
-  
   /**
    * Instruct the dispatcher to stop executing new tasks. If the immediate flag is false then any queued tasks 
    * will be executed before the dispatcher terminates. Otherwise, the dispatcher will terminate after the currently

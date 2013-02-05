@@ -35,7 +35,7 @@ public class ServerAction extends GuardedAction
     //
     context.getModel();
     
-    XioServer server = new XioServer( context, context);
+    XioServer server = new XioServer( context);
     server.start( address, port);
     
     return null;

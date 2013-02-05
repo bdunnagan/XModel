@@ -21,28 +21,30 @@ public class XioServer
 {
   /**
    * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
+   * @param context The context.
    */
-  public XioServer( IContext bindContext, IContext executeContext)
+  public XioServer( IContext context)
   {
-    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), 
-        Executors.newCachedThreadPool( new SimpleThreadFactory( "Server Boss")), 
-        Executors.newCachedThreadPool( new SimpleThreadFactory( "Server Work")));
+    this( context, true, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), getDefaultExecutor());
+  }
+  
+  private static synchronized Executor getDefaultExecutor()
+  {
+    if ( defaultExecutor == null)
+      defaultExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "Server IO"));
+    return defaultExecutor;
   }
   
   /**
    * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
+   * @param context The context.
+   * @param dispatch True if model events should be dispatched to the context model dispatcher.
    * @param scheduler The scheduler used for protocol timers.
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioServer( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( final IContext context, final boolean dispatch, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    handler = new XioChannelHandler( bindContext, executeContext, scheduler);
-    
     bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
@@ -57,9 +59,7 @@ public class XioServer
 //
 //        pipeline.addLast( "ssl", new SslHandler(engine));
         
-        XioChannelHandler handler = XioServer.this.handler;
-        pipeline.addLast( "xio", sharedHandler? handler: new XioChannelHandler( handler));
-        
+        pipeline.addLast( "xio", new XioChannelHandler( context, dispatch, scheduler));
         return pipeline;
       }
     });
@@ -86,7 +86,6 @@ public class XioServer
     if ( serverChannel != null) 
     {
       serverChannel.close().awaitUninterruptibly();
-      bootstrap.getFactory().releaseExternalResources();
     }
   }
   
@@ -105,18 +104,14 @@ public class XioServer
       Channel serverChannel = channel.getParent();
       if ( serverChannel == null) return null;
       
-      XioServer server = (XioServer)serverChannel.getAttachment();
-      XioChannelHandler handler = server.handler;
-      
-      peer = new XioPeer( sharedHandler? handler: new XioChannelHandler( handler));
+      peer = new XioPeer();
       channel.setAttachment( peer);
       return peer;
     }
   }
   
-  private final static boolean sharedHandler = false;
+  private static Executor defaultExecutor = null;
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
-  private XioChannelHandler handler;
 }

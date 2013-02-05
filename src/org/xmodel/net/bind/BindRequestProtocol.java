@@ -33,12 +33,25 @@ public class BindRequestProtocol
    */
   public synchronized void reset()
   {
-    for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-      bundle.context.getModel().dispatch( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
-    listeners.clear();
+    if ( bundle.dispatch)
+    {
+      for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
+        bundle.context.getModel().dispatch( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
+      listeners.clear();
+      
+      for( IExternalReference binding: bindings)
+        bundle.context.getModel().dispatch( new SetDirtyRunnable( binding));
+    }
+    else
+    {
+      for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
+        entry.getValue().uninstall( entry.getKey());
+      listeners.clear();
+      
+//      for( IExternalReference binding: bindings)
+//        binding.setDirty( true);   
+    }
     
-    for( IExternalReference binding: bindings)
-      bundle.context.getModel().dispatch( new SetDirtyRunnable( binding));
     bindings.clear();
   }
   
@@ -121,7 +134,14 @@ public class BindRequestProtocol
     try
     {
       IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
-      bundle.context.getModel().dispatch( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+      if ( bundle.dispatch)
+      {
+        bundle.context.getModel().dispatch( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+      }
+      else
+      {
+        bind( channel, correlation, readonly, query, queryExpr);
+      }
     }
     catch( PathSyntaxException e)
     {

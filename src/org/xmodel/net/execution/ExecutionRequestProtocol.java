@@ -111,7 +111,14 @@ public class ExecutionRequestProtocol
     
     IModelObject request = bundle.responseCompressor.decompress( new ChannelBufferInputStream( buffer));
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
-    bundle.context.getModel().dispatch( runnable);
+    if ( bundle.dispatch)
+    {
+      bundle.context.getModel().dispatch( runnable);
+    }
+    else
+    {
+      execute( channel, correlation, request);
+    }
   }
   
   /**
@@ -215,6 +222,10 @@ public class ExecutionRequestProtocol
     {
       log.debug( "Response timeout.");
       task.setError( "timeout");
+      
+      //
+      // If bundle.dispatch is false, then the I/O worker thread must be the model thread.
+      //
       bundle.context.getModel().dispatch( task);
     }
 

@@ -148,7 +148,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       {
         StatefulContext context = new StatefulContext();
         context.getModel();
-        client = new XioClient( context, context);
+        client = new XioClient( context);
         client.connect( host, port, retryCount, retryDelays).await();
       }
 

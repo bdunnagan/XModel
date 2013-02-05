@@ -28,39 +28,36 @@ public class XioClient extends XioPeer
    */
   public XioClient()
   {
-    this( null, null);
+    this( null, true, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), getDefaultExecutor());
   }
   
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
+   * @param context The context.
    */
-  public XioClient( IContext bindContext, IContext executeContext)
+  public XioClient( IContext context)
   {
-    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), 
-        Executors.newCachedThreadPool( new SimpleThreadFactory( "Client Boss")), 
-        Executors.newCachedThreadPool( new SimpleThreadFactory( "Client Work")));
+    this( context, false, GlobalSettings.getInstance().getScheduler(), getDefaultExecutor(), context.getModel().getDispatcher());
+  }
+  
+  private static synchronized Executor getDefaultExecutor()
+  {
+    if ( defaultExecutor == null)
+      defaultExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "Client IO"));
+    return defaultExecutor;
   }
   
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
+   * @param context The context.
+   * @param dispatch True if model events should be dispatched to the context model dispatcher.
    * @param scheduler The scheduler used for protocol timers.
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioClient( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioClient( final IContext context, final boolean dispatch, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    super( new XioChannelHandler( bindContext, executeContext, scheduler));
-    
-    //
-    // Make sure the context objects have a cached model.  Otherwise, they may lazily request a new
-    // model in an I/O thread.
-    //
-    if ( bindContext != null) bindContext.getModel();
-    if ( executeContext != null) executeContext.getModel();
+    this.scheduler = scheduler;
     
     bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);
@@ -69,7 +66,9 @@ public class XioClient extends XioPeer
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
       {
-        return Channels.pipeline( handler);
+        ChannelPipeline pipeline = Channels.pipeline();
+        pipeline.addLast( "xio", new XioChannelHandler( context, dispatch, scheduler));
+        return pipeline;
       }
     });
   }
@@ -169,7 +168,7 @@ public class XioClient extends XioPeer
    */
   public ConnectFuture connect( InetSocketAddress address, int retries, int[] delays)
   {
-    ConnectFuture future = new ConnectFuture( bootstrap, address, execute.scheduler, retries, delays);
+    ConnectFuture future = new ConnectFuture( bootstrap, address, scheduler, retries, delays);
     future.addListener( new ChannelFutureListener() {
       public void operationComplete( ChannelFuture future) throws Exception
       {
@@ -195,7 +194,6 @@ public class XioClient extends XioPeer
     if ( isConnected())
     {
       channel.close().awaitUninterruptibly();
-      reset();
     }
   }
   
@@ -216,21 +214,8 @@ public class XioClient extends XioPeer
     this.channel = channel;
   }
   
-  /**
-   * Release resources and prepare this client to make another connection.
-   */
-  protected void reset()
-  {
-    // release netty resources
-    bootstrap.getFactory().releaseExternalResources();
-    
-    // release protocol resources
-    bind.reset();
-    execute.reset();
-    
-    // prepare for another connection
-    handler = new XioChannelHandler( bind.context, execute.context, execute.scheduler);
-  }
+  private static Executor defaultExecutor = null;
   
   private ClientBootstrap bootstrap;
+  private ScheduledExecutorService scheduler;
 }

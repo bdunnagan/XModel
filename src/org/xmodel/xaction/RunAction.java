@@ -195,7 +195,7 @@ public class RunAction extends GuardedAction
         {
 //          client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
 //          if ( !client.isConnected()) throw new IOException( "Connection not established.");
-          client = new XioClient( context, context);
+          client = new XioClient( context);
           if ( !client.connect( host, port, connectionRetries).await( timeout)) 
             throw new IOException( "Connection not established.");
           
@@ -212,7 +212,7 @@ public class RunAction extends GuardedAction
       {
 //        XioClient client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
 //        if ( !client.isConnected()) throw new IOException( "Connection not established.");
-        XioClient client = new XioClient( context, context);
+        XioClient client = new XioClient( context);
         if ( !client.connect( host, port, connectionRetries).await( timeout)) 
           throw new IOException( "Connection not established.");
         

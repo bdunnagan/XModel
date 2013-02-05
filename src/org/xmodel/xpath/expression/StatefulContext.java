@@ -84,6 +84,15 @@ public class StatefulContext implements IContext
   {
     this( GlobalSettings.getInstance().getModel(), scope, object, 1, 1);
   }
+
+  /**
+   * Create a context with the specified model controller.
+   * @param model The model controller.
+   */
+  public StatefulContext( IModel model)
+  {
+    this( model, null, new NullObject(), 1, 1);
+  }
   
   /**
    * Create a context for the given context node and use the specified scope to store variables.

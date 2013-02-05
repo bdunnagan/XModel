@@ -4,8 +4,6 @@ import java.io.IOException;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.net.bind.BindProtocol;
-import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -14,17 +12,6 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioPeer
 {
-  /**
-   * Create a peer end-point with the specified configuration.
-   * @param handler The protocol handler.
-   */
-  XioPeer( XioChannelHandler handler)
-  {
-    this.handler = handler;
-    bind = handler.getBindProtocol();
-    execute = handler.getExecuteProtocol();
-  }
-  
   /**
    * Remotely bind the specified query.
    * @param reference The reference for which the bind is being performed.
@@ -35,7 +22,8 @@ public class XioPeer
   public void bind( IExternalReference reference, boolean readonly, String query, int timeout) throws InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    bind.bindRequestProtocol.send( reference, channel, readonly, query, timeout);
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getBindProtocol().bindRequestProtocol.send( reference, channel, readonly, query, timeout);
   }
   
   /**
@@ -45,7 +33,8 @@ public class XioPeer
   public void unbind( int netID) throws InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    bind.unbindRequestProtocol.send( channel, netID);
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getBindProtocol().unbindRequestProtocol.send( channel, netID);
   }
   
   /**
@@ -57,7 +46,8 @@ public class XioPeer
   public IModelObject sync( int netID, int timeout) throws InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return bind.syncRequestProtocol.send( channel, netID, timeout);
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    return handler.getBindProtocol().syncRequestProtocol.send( channel, netID, timeout);
   }
 
   
@@ -72,7 +62,8 @@ public class XioPeer
   public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return execute.requestProtocol.send( channel, context, vars, element, timeout);
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    return handler.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, timeout);
   }
   
   /**
@@ -86,11 +77,9 @@ public class XioPeer
   public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    execute.requestProtocol.send( channel, context, vars, element, callback, timeout);
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
   
   protected Channel channel;
-  protected XioChannelHandler handler;
-  protected BindProtocol bind;
-  protected ExecutionProtocol execute;
 }
