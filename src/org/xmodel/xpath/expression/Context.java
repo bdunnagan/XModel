@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.GlobalSettings;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
@@ -62,7 +61,6 @@ public class Context implements IContext
    */
   public Context( IModelObject object, int position, int size)
   {
-    this.model = GlobalSettings.getInstance().getModel();
     this.object = object;
     this.position = position;
     this.size = size;
@@ -71,15 +69,13 @@ public class Context implements IContext
     
   /**
    * Create a context for the given context node.
-   * @param model The model.
    * @param scope The scope to associate with this context.
    * @param object The context node.
    * @param position The context position.
    * @param size The context size.
    */
-  protected Context( IModel model, IVariableScope scope, IModelObject object, int position, int size)
+  protected Context( IVariableScope scope, IModelObject object, int position, int size)
   {
-    this.model = model;
     this.object = object;
     this.position = position;
     this.size = size;
@@ -93,7 +89,7 @@ public class Context implements IContext
    */
   public Context( IContext scope, IModelObject object)
   {
-    this( scope.getModel(), (scope != null)? scope.getScope(): null, object, 1, 1);
+    this( (scope != null)? scope.getScope(): null, object, 1, 1);
   }
   
   /**
@@ -105,7 +101,7 @@ public class Context implements IContext
    */
   public Context( IContext scope, IModelObject object, int position, int size)
   {
-    this( scope.getModel(), (scope != null)? scope.getScope(): null, object, position, size);
+    this( (scope != null)? scope.getScope(): null, object, position, size);
   }
     
   /* (non-Javadoc)
@@ -124,14 +120,14 @@ public class Context implements IContext
     return Precedences.contextScope;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return model;
-  }
-
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
+//
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()
    */
@@ -247,7 +243,7 @@ public class Context implements IContext
    */
   public void notifyUpdate( IExpression expression)
   {
-    updates.put( expression, getModel().getUpdateID());
+    updates.put( expression, GlobalSettings.getInstance().getModel().getUpdateID());
   }
 
   /* (non-Javadoc)
@@ -264,7 +260,7 @@ public class Context implements IContext
   public boolean shouldUpdate( IExpression expression)
   {
     Integer lastUpdate = updates.get( expression);
-    return lastUpdate == null || lastUpdate == 0 || lastUpdate != getModel().getUpdateID();
+    return lastUpdate == null || lastUpdate == 0 || lastUpdate != GlobalSettings.getInstance().getModel().getUpdateID();
   }
 
   /* (non-Javadoc)
@@ -341,7 +337,6 @@ public class Context implements IContext
     return sb.toString();
   }
   
-  private IModel model;
   private IModelObject object;
   private int position;
   private int size;

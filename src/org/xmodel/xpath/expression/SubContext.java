@@ -21,6 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -55,13 +56,14 @@ public class SubContext implements IContext
     this.size = size;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return parent.getModel();
-  }
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  @Override
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()

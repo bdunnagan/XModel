@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -225,7 +226,7 @@ public class ForExpression extends Expression
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
-      IModel model = context.getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       for( IModelObject node: nodes)
       {
         model.revert();
@@ -260,19 +261,20 @@ public class ForExpression extends Expression
   @Override
   public void notifyChange( IExpression expression, IContext context)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     
-    context.getModel().revert();
+    model.revert();
     Collection<IModelObject> oldNodes = arg0.evaluateNodes( context, null);
     if ( oldNodes.size() > 5) oldNodes = new HashSet<IModelObject>( oldNodes);
     
-    context.getModel().restore();
+    model.restore();
     Collection<IModelObject> newNodes = arg0.evaluateNodes( context, null);
     if ( newNodes.size() > 5) newNodes = new HashSet<IModelObject>( newNodes);
 
     // unbind removed nodes
-    context.getModel().revert();
+    model.revert();
     for( IModelObject node: oldNodes)
       if ( !newNodes.contains( node))
       {
@@ -281,7 +283,7 @@ public class ForExpression extends Expression
       }
     
     // bind added nodes
-    context.getModel().restore();
+    model.restore();
     for( IModelObject node: newNodes)
       if ( !oldNodes.contains( node))
       {
@@ -381,7 +383,7 @@ class ReturnContext extends Context
    */
   public ReturnContext( IContext context, String name, IModelObject node)
   {
-    super( context.getModel(), new ReturnScope( context.getScope(), name, node), context.getObject(), context.getPosition(), context.getSize());
+    super( new ReturnScope( context.getScope(), name, node), context.getObject(), context.getPosition(), context.getSize());
     parent = context;
   }
 

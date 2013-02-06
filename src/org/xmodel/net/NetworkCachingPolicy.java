@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -15,7 +14,6 @@ import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An ICachingPolicy that accesses data across a network.
@@ -146,9 +144,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( client == null || !client.isConnected())
       {
-        StatefulContext context = new StatefulContext();
-        context.getModel();
-        client = new XioClient( context);
+        client = new XioClient();
         client.connect( host, port, retryCount, retryDelays).await();
       }
 

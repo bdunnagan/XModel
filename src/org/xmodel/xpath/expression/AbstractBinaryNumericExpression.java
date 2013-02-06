@@ -20,6 +20,8 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 
 
@@ -98,17 +100,18 @@ public abstract class AbstractBinaryNumericExpression extends Expression
   {
     if ( parent == null) return;
 
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( !newValue);
         double oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, literal, rhs);
         
@@ -116,11 +119,11 @@ public abstract class AbstractBinaryNumericExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( !newValue);
         double oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, lhs, literal);
         
@@ -142,17 +145,18 @@ public abstract class AbstractBinaryNumericExpression extends Expression
   {
     if ( parent == null) return;
 
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         double oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, literal, rhs);
         
@@ -160,11 +164,11 @@ public abstract class AbstractBinaryNumericExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         double oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, lhs, literal);
         
@@ -186,17 +190,18 @@ public abstract class AbstractBinaryNumericExpression extends Expression
   {
     if ( parent == null) return;
 
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         double oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, literal, rhs);
         
@@ -204,11 +209,11 @@ public abstract class AbstractBinaryNumericExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         double oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         double newResult = evaluate( context, lhs, literal);
         

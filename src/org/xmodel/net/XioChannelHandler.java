@@ -36,17 +36,17 @@ public class XioChannelHandler extends SimpleChannelHandler
     changeDirty
   }
   
-  public XioChannelHandler( IContext context, boolean dispatch, ScheduledExecutorService scheduler)
+  public XioChannelHandler( IContext context, ScheduledExecutorService scheduler)
   {
     headerProtocol = new HeaderProtocol();
-    bindProtocol = new BindProtocol( headerProtocol, context, dispatch);
-    executionProtocol = new ExecutionProtocol( headerProtocol, context, dispatch, scheduler);
+    bindProtocol = new BindProtocol( headerProtocol, context);
+    executionProtocol = new ExecutionProtocol( headerProtocol, context, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
   }
   
   public XioChannelHandler( XioChannelHandler handler)
   {
-    this( handler.bindProtocol.context, handler.bindProtocol.dispatch, handler.executionProtocol.scheduler);
+    this( handler.bindProtocol.context, handler.executionProtocol.scheduler);
   }
   
   /**

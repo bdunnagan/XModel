@@ -22,33 +22,39 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioClient extends XioPeer
 {
+  public XioClient()
+  {
+    this( GlobalSettings.getInstance().getModel().getExecutor());
+  }
+  
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * Clients created with this constructor cannot handle incoming requests.
+   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioClient()
+  public XioClient( Executor workerExecutor)
   {
-    this( null, true, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), getDefaultWorkExecutor());
+    this( null, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), workerExecutor);
   }
   
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param context The context.
+   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioClient( IContext context)
+  public XioClient( IContext context, Executor workerExecutor)
   {
-    this( context, false, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), context.getModel().getExecutor());
+    this( context, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), workerExecutor);
   }
   
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param context The context.
-   * @param dispatch True if model events should be dispatched to the context model dispatcher.
    * @param scheduler The scheduler used for protocol timers.
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioClient( final IContext context, final boolean dispatch, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioClient( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
     this.scheduler = scheduler;
     
@@ -60,7 +66,7 @@ public class XioClient extends XioPeer
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast( "xio", new XioChannelHandler( context, dispatch, scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler));
         return pipeline;
       }
     });
@@ -214,15 +220,7 @@ public class XioClient extends XioPeer
     return defaultBossExecutor;
   }
   
-  private static synchronized Executor getDefaultWorkExecutor()
-  {
-    if ( defaultWorkExecutor == null)
-      defaultWorkExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-work"));
-    return defaultWorkExecutor;
-  }
-  
   private static Executor defaultBossExecutor = null;
-  private static Executor defaultWorkExecutor = null;
   
   private ClientBootstrap bootstrap;
   private ScheduledExecutorService scheduler;

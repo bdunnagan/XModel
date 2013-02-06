@@ -20,6 +20,8 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -68,10 +70,11 @@ public class LowercaseFunction extends Function
    */
   public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
   {
-    context.getModel().revert();
+    IModel model = GlobalSettings.getInstance().getModel();
+    model.revert();
     String oldResult = oldValue.toLowerCase();
     String newResult = newValue.toLowerCase();
-    context.getModel().restore();
+    model.restore();
     if ( !newResult.equals( oldResult)) getParent().notifyChange( this, context, newResult, oldResult);
   }
 

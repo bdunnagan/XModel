@@ -56,7 +56,7 @@ public class XioServer
 //
 //        pipeline.addLast( "ssl", new SslHandler(engine));
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, dispatch, scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler));
         return pipeline;
       }
     });

@@ -239,21 +239,22 @@ public class FilteredExpression extends Expression
   @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     if ( expression == arg0)
     {
-      context.getModel().revert();
+      model.revert();
       List<IModelObject> lhsNodes = arg0.evaluateNodes( context);
       
-      context.getModel().restore();
+      model.restore();
       int index = Collections.indexOfSubList( lhsNodes, nodes);
       int count = lhsNodes.size();
       
       // optimize handling of input node-set changes
       if ( arg1.getType( context) == ResultType.BOOLEAN)
       {
-        context.getModel().revert();
+        model.revert();
         List<IModelObject> result = new ArrayList<IModelObject>( nodes.size());
         for( IModelObject node: nodes)
         {
@@ -265,12 +266,12 @@ public class FilteredExpression extends Expression
         // note that the ordering of binding vs. parent notification doesn't matter
         // because this optimization only applies to boolean expressions which do not
         // produce initial notifications.
-        context.getModel().restore();
+        model.restore();
         if ( result.size() > 0) parent.notifyRemove( this, context, result);
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         List<IModelObject> filterNodes = new ArrayList<IModelObject>();
         for( IModelObject node: nodes)
         {
@@ -278,7 +279,7 @@ public class FilteredExpression extends Expression
           arg1.unbind( filterContext);
           filterNodes.addAll( arg1.evaluateNodes( filterContext));
         }
-        context.getModel().restore();
+        model.restore();
         if ( filterNodes.size() > 0) parent.notifyRemove( this, context, filterNodes);
       }
     }
@@ -314,7 +315,7 @@ public class FilteredExpression extends Expression
   @Override
   public void notifyChange( IExpression expression, IContext context)
   {
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     switch( expression.getType( context))
     {
       case NODES:

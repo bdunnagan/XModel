@@ -19,6 +19,8 @@
  */
 package org.xmodel.xpath.function;
 
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -80,23 +82,24 @@ public class SubstringAfterFunction extends Function
     IExpression parent = getParent();
     if ( parent == null) return;
     
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     try
     {
       if ( expression == arg0)
       {
-        context.getModel().revert();
+        model.revert();
         String oldResult = substringAfter( oldValue, arg1.evaluateString( context));
-        context.getModel().restore();
+        model.restore();
         String newResult = substringAfter( newValue, arg1.evaluateString( context));
         if ( !newResult.equals( oldResult)) parent.notifyChange( this, context, newResult, oldResult);
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         String oldResult = substringAfter( arg0.evaluateString( context), oldValue);
-        context.getModel().restore();
+        model.restore();
         String newResult = substringAfter( arg0.evaluateString( context), newValue);
         if ( !newResult.equals( oldResult)) parent.notifyChange( this, context, newResult, oldResult);
       }

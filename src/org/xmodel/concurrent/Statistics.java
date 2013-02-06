@@ -7,9 +7,10 @@ import org.xmodel.log.Log;
  */
 public class Statistics
 {
-  public Statistics()
+  public Statistics( Log log)
   {
-    bins = new int[ 7];
+    this.log = log;
+    this.bins = new int[ 7];
   }
   
   /**
@@ -92,9 +93,8 @@ public class Statistics
         formatDuration( totalTime / count),
         bins[ 0], bins[ 1], bins[ 2], bins[ 3], bins[ 4], bins[ 5], bins[ 6]);
   }
-  
-  private final static Log log = Log.getLog( Statistics.class);
-  
+
+  private Log log;
   private long firstTime;
   private long started;
   private long finished;

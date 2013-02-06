@@ -1,7 +1,6 @@
 package org.xmodel.xaction.debug;
 
 import java.util.concurrent.Semaphore;
-import org.xmodel.concurrent.LoggingExecutorWrapper;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioServer;
 import org.xmodel.xpath.expression.IContext;
@@ -23,7 +22,6 @@ public class RemoteBreakHandler implements IBreakHandler
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
       
       IContext context = new StatefulContext();
-      context.getModel().setExecutor( new LoggingExecutorWrapper( "debug", 1));
       server = new XioServer( context);
       server.start( "localhost", port);
     }

@@ -20,7 +20,7 @@ public class LoggingExecutorWrapper implements Executor
   public LoggingExecutorWrapper( String name, int threadCount)
   {
     this.executor = createExecutor( name, threadCount);
-    this.statistics = new Statistics();
+    this.statistics = new Statistics( log);
   }
     
   /**
@@ -30,7 +30,7 @@ public class LoggingExecutorWrapper implements Executor
   public LoggingExecutorWrapper( Executor executor)
   {
     this.executor = executor;
-    this.statistics = new Statistics();
+    this.statistics = new Statistics( log);
   }
   
   /**

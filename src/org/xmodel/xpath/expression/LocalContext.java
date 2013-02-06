@@ -19,7 +19,6 @@
  */
 package org.xmodel.xpath.expression;
 
-import org.xmodel.GlobalSettings;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -36,7 +35,7 @@ public class LocalContext extends StatefulContext
    */
   public LocalContext( IContext parent)
   {
-    super( GlobalSettings.getInstance().getModel(), createScope( parent), parent.getObject(), parent.getPosition(), parent.getSize());
+    super( createScope( parent), parent.getObject(), parent.getPosition(), parent.getSize());
     this.parent = parent;
   }
   

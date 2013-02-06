@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.SLog;

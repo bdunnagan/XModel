@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -53,7 +52,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext context)
   {
-    this( context.getModel(), new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
+    this( new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
   }
   
   /**
@@ -62,7 +61,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IModelObject object)
   {
-    this( GlobalSettings.getInstance().getModel(), new ContextScope(), object, 1, 1);
+    this( new ContextScope(), object, 1, 1);
   }
   
   /**
@@ -73,7 +72,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IModelObject object, int position, int size)
   {
-    this( GlobalSettings.getInstance().getModel(), new ContextScope(), object, position, size);
+    this( new ContextScope(), object, position, size);
   }
     
   /**
@@ -84,29 +83,18 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IVariableScope scope, IModelObject object)
   {
-    this( GlobalSettings.getInstance().getModel(), scope, object, 1, 1);
+    this( scope, object, 1, 1);
   }
 
   /**
-   * Create a context with the specified model controller.
-   * @param model The model controller.
-   */
-  public StatefulContext( IModel model)
-  {
-    this( model, null, new NullObject(), 1, 1);
-  }
-  
-  /**
    * Create a context for the given context node and use the specified scope to store variables.
-   * @param model The model.
    * @param scope The scope to be associated with this context.
    * @param object The context node.
    * @param position The context position.
    * @param size The context size.
    */
-  protected StatefulContext( IModel model, IVariableScope scope, IModelObject object, int position, int size)
+  protected StatefulContext( IVariableScope scope, IModelObject object, int position, int size)
   {
-    this.model = model;
     this.object = object;
     this.position = position;
     this.size = size;
@@ -122,7 +110,7 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext scope, IModelObject object)
   {
-    this( scope.getModel(), new ContextScope( scope.getScope()), object, 1, 1);
+    this( new ContextScope( scope.getScope()), object, 1, 1);
   }
   
   /**
@@ -135,8 +123,17 @@ public class StatefulContext implements IContext
    */
   public StatefulContext( IContext scope, IModelObject object, int position, int size)
   {
-    this( scope.getModel(), new ContextScope( scope.getScope()), object, position, size);
+    this( new ContextScope( scope.getScope()), object, position, size);
   }
+
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  @Override
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, java.lang.String)
@@ -228,14 +225,6 @@ public class StatefulContext implements IContext
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return model;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()
    */
   public IContext getParent()
@@ -296,7 +285,7 @@ public class StatefulContext implements IContext
    */
   public void notifyUpdate( IExpression expression)
   {
-    updates.put( expression, getModel().getUpdateID());
+    updates.put( expression, GlobalSettings.getInstance().getModel().getUpdateID());
   }
 
   /* (non-Javadoc)
@@ -313,7 +302,7 @@ public class StatefulContext implements IContext
   public boolean shouldUpdate( IExpression expression)
   {
     Integer lastUpdate = updates.get( expression);
-    return lastUpdate == null || lastUpdate == 0 || lastUpdate != getModel().getUpdateID();
+    return lastUpdate == null || lastUpdate == 0 || lastUpdate != GlobalSettings.getInstance().getModel().getUpdateID();
   }
 
   /* (non-Javadoc)
@@ -367,7 +356,6 @@ public class StatefulContext implements IContext
     return sb.toString();
   }
  
-  private IModel model;
   private IModelObject object;
   private int position;
   private int size;

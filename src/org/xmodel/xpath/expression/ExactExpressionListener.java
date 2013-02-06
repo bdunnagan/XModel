@@ -21,6 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.ListDiffer;
@@ -110,7 +111,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
   {
     try
     {
-      IModel model = context.getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       if ( expression.getType( context) == ResultType.NODES)
       {
         // revert and evaluate

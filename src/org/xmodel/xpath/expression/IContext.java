@@ -20,8 +20,8 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -40,11 +40,6 @@ import org.xmodel.xpath.variable.IVariableScope;
  */
 public interface IContext
 {
-  /**
-   * @return Returns the IModel associated with this context.
-   */
-  public IModel getModel();
-
   /**
    * Returns the parent of this context or null.
    * @return Returns the parent of this context or null.

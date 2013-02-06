@@ -19,6 +19,8 @@
  */
 package org.xmodel.xpath.function;
 
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -94,17 +96,18 @@ public class SubstringFunction extends Function
     IExpression parent = getParent();
     if ( parent == null) return;
     
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg1 = getArgument( 1);
     IExpression arg2 = getArgument( 2);
     int start, end;
     try
     {
-      context.getModel().revert();
+      model.revert();
       start = (int)arg1.evaluateNumber( context);
       end = (arg2 != null)? end = (int)arg2.evaluateNumber( context): -1;
       String oldResult = substring( oldValue, start, end);
 
-      context.getModel().restore();
+      model.restore();
       start = (int)arg1.evaluateNumber( context);
       end = (arg2 != null)? end = (int)arg2.evaluateNumber( context): -1;
       String newResult = substring( newValue, start, end);
@@ -126,6 +129,7 @@ public class SubstringFunction extends Function
     IExpression parent = getParent();
     if ( parent == null) return;
       
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     IExpression arg2 = getArgument( 2);
@@ -135,12 +139,12 @@ public class SubstringFunction extends Function
     {
       if ( expression == arg1)
       {
-        context.getModel().revert();
+        model.revert();
         string = arg0.evaluateString( context);
         end = (arg2 != null)? end = (int)arg2.evaluateNumber( context): -1;
         String oldResult = substring( string, (int)oldValue, end);
 
-        context.getModel().restore();
+        model.restore();
         string = arg0.evaluateString( context);
         end = (arg2 != null)? end = (int)arg2.evaluateNumber( context): -1;
         String newResult = substring( string, (int)newValue, end);
@@ -149,12 +153,12 @@ public class SubstringFunction extends Function
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         string = arg0.evaluateString( context);
         start = (int)arg1.evaluateNumber( context);
         String oldResult = substring( string, start, (int)oldValue);
         
-        context.getModel().restore();
+        model.restore();
         string = arg0.evaluateString( context);
         start = (int)arg1.evaluateNumber( context);
         String newResult = substring( string, start, (int)newValue);

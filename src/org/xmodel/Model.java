@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import org.xmodel.concurrent.LoggingExecutorWrapper;
 import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
@@ -42,7 +41,7 @@ public class Model implements IModel
     updateObjects = new ArrayList<Update>();
     frozen = new ArrayList<IModelObject>();
     collections = new HashMultiMap<String, IModelObject>();
-    executor = new LoggingExecutorWrapper( "model", 1);
+    executor = new CurrentThreadExecutor();
 
     // counter must start at one because 0 has meaning
     counter = 1;
