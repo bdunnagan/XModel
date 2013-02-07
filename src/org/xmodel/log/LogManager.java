@@ -147,11 +147,7 @@ public final class LogManager implements Runnable
         {
           try
           {
-            for( Log log: LogMap.getInstance().findLogs( Pattern.compile( regex)))
-            {
-              if ( sink != null) log.setSink( sink);
-              if ( level != null) log.setLevel( Log.getLevelIndex( level));
-            }
+            LogMap.getInstance().configure( Pattern.compile( regex), Log.getLevelIndex( level), sink);
           }
           catch( Exception e)
           {
