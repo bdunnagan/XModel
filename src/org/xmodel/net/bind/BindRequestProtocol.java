@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -32,14 +33,14 @@ public class BindRequestProtocol
    */
   public synchronized void reset()
   {
-    if ( bundle.dispatch)
+    if ( bundle.executor != null)
     {
       for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-        bundle.context.getModel().dispatch( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
+        bundle.executor.execute( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
       listeners.clear();
       
       for( IExternalReference binding: bindings)
-        bundle.context.getModel().dispatch( new SetDirtyRunnable( binding));
+        bundle.executor.execute( new SetDirtyRunnable( binding));
     }
     else
     {
@@ -133,9 +134,9 @@ public class BindRequestProtocol
     try
     {
       IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
-      if ( bundle.dispatch)
+      if ( bundle.executor != null)
       {
-        bundle.context.getModel().dispatch( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+        bundle.executor.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
       }
       else
       {

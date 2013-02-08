@@ -61,9 +61,9 @@ public class SyncRequestProtocol
     UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
     if ( listener == null) throw new XioException( String.format( "Listener not found on %X", netID));
     
-    if ( bundle.dispatch)
+    if ( bundle.executor != null)
     {
-      bundle.context.getModel().dispatch( new SyncRunnable( channel, correlation, netID, element, listener));
+      bundle.executor.execute( new SyncRunnable( channel, correlation, netID, element, listener));
     }
     else
     {

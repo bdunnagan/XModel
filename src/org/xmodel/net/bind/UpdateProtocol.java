@@ -168,9 +168,9 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
     
-    if ( protocol.dispatch)
+    if ( protocol.executor != null)
     {
-      protocol.context.getModel().dispatch( new AddChildEvent( parent, child, index));
+      protocol.executor.execute( new AddChildEvent( parent, child, index));
     }
     else
     {
@@ -193,9 +193,9 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
     
-    if ( protocol.dispatch)
+    if ( protocol.executor != null)
     {
-      protocol.context.getModel().dispatch( new RemoveChildEvent( parent, index));
+      protocol.executor.execute( new RemoveChildEvent( parent, index));
     }
     else
     {
@@ -223,9 +223,9 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    if ( protocol.dispatch)
+    if ( protocol.executor != null)
     {
-      protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
+      protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
     }
     else
     {
@@ -251,9 +251,9 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    if ( protocol.dispatch)
+    if ( protocol.executor != null)
     {
-      protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
+      protocol.executor.execute( new ClearAttributeEvent( element, attrName));
     }
     else
     {
@@ -277,9 +277,9 @@ public class UpdateProtocol
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new XioException( String.format( "Element %X is not a reference", netID));
     
-    if ( protocol.dispatch)
+    if ( protocol.executor != null)
     {
-      protocol.context.getModel().dispatch( new ChangeDirtyEvent( (IExternalReference)element, dirty));
+      protocol.executor.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
     }
     else
     {

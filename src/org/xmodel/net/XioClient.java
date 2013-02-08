@@ -53,8 +53,16 @@ public class XioClient extends XioPeer
    * @param scheduler The scheduler used for protocol timers.
    * @param bossExecutor The NioClientSocketChannelFactory boss executor.
    * @param workerExecutor The NioClientSocketChannelFactory worker executor.
+   * @param bindProtocolExecutor Optional executor for dispatching bind requests out of the I/O worker thread.
+   * @param executeProtocolExecutor Optional executor for dispatching remote execution requests out of the I/O worker thread.
    */
-  public XioClient( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioClient( 
+      final IContext context, 
+      final ScheduledExecutorService scheduler, 
+      final Executor bossExecutor, 
+      final Executor workerExecutor, 
+      final Executor bindProtocolExecutor,
+      final Executor executeProtocolExecutor)
   {
     this.scheduler = scheduler;
     
@@ -66,7 +74,7 @@ public class XioClient extends XioPeer
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler, bindProtocolExecutor, executeProtocolExecutor));
         return pipeline;
       }
     });

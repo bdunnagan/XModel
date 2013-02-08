@@ -102,7 +102,15 @@ public class ExecutionResponseProtocol
     if ( task != null && !task.isExpired()) 
     {
       task.setResponse( response);
-      task.context.getModel().dispatch( task);
+      if ( bundle.executor != null)
+      {
+        task.context.
+        bundle.executor.execute( task);
+      }
+      else
+      {
+        task.run();
+      }
     }
   }
   
