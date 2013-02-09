@@ -2,9 +2,7 @@ package org.xmodel.net.execution;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.compress.ICompressor;
-import org.xmodel.compress.TabularCompressor;
 import org.xmodel.net.HeaderProtocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -18,8 +16,14 @@ public class ExecutionProtocol
     this.requestProtocol = new ExecutionRequestProtocol( this);
     this.responseProtocol = new ExecutionResponseProtocol( this);
     this.scheduler = scheduler;
-    this.requestCompressor = new TabularCompressor( false);
-    this.responseCompressor = new TabularCompressor( false);
+    
+    //
+    // When the worker pool of both the client and the server only has one thread, these
+    // can be set to new TabularCompressor( true).  Otherwise, the compressors are used
+    // by multiple threads, and a progressive tag table cannot be maintained.
+    //
+    //this.requestCompressor = new TabularCompressor( false);
+    //this.responseCompressor = new TabularCompressor( false);
   }
   
   /**

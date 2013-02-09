@@ -22,6 +22,7 @@ package org.xmodel.xaction.trigger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -123,7 +124,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyAdd runnable = new NotifyAdd();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {
@@ -140,7 +141,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyRemove runnable = new NotifyRemove();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {
@@ -157,7 +158,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyBooleanChange runnable = new NotifyBooleanChange();
         runnable.context = context;
         runnable.newValue = newValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {
@@ -175,7 +176,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {
@@ -193,7 +194,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {
@@ -212,7 +213,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.node = object;
         runnable.newValue = (newValue != null)? newValue.toString(): "";
         runnable.oldValue = (oldValue != null)? oldValue.toString(): "";
-        if ( immediate) runnable.run(); else contexts[ 0].getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else GlobalSettings.getInstance().getModel().dispatch( runnable);
       }
       finally
       {

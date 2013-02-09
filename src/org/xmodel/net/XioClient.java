@@ -22,48 +22,54 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioClient extends XioPeer
 {
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
+   */
   public XioClient()
   {
-    this( GlobalSettings.getInstance().getModel().getExecutor());
+    this( null, null, null, null, GlobalSettings.getInstance().getModel().getExecutor(), GlobalSettings.getInstance().getModel().getExecutor());
   }
   
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * Clients created with this constructor cannot handle incoming requests.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
-   */
-  public XioClient( Executor workerExecutor)
-  {
-    this( null, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), workerExecutor);
-  }
-  
-  /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param context The context.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
    */
-  public XioClient( IContext context, Executor workerExecutor)
+  public XioClient( IContext context)
   {
-    this( context, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), workerExecutor);
+    this( context, null, null, null, GlobalSettings.getInstance().getModel().getExecutor(), GlobalSettings.getInstance().getModel().getExecutor());
   }
   
   /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param context The context.
-   * @param scheduler The scheduler used for protocol timers.
-   * @param bossExecutor The NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
+   * for optional arguments. The following table shows defaults used for each optional argument:
+   * <ul>
+   *   <li>context - Required for remote execution from the server</li>
+   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
+   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>bindProtocolExecutor - Null executor means immediate processing in worker thread</li>
+   *   <li>executionProtocolExecutor - Null executor means immediate processing in worker thread</li>
+   * </ul>
+   * @param context Optional context.
+   * @param scheduler Optional scheduler used for protocol timers.
+   * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
+   * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
    * @param bindProtocolExecutor Optional executor for dispatching bind requests out of the I/O worker thread.
    * @param executeProtocolExecutor Optional executor for dispatching remote execution requests out of the I/O worker thread.
    */
   public XioClient( 
       final IContext context, 
       final ScheduledExecutorService scheduler, 
-      final Executor bossExecutor, 
-      final Executor workerExecutor, 
+      Executor bossExecutor, 
+      Executor workerExecutor, 
       final Executor bindProtocolExecutor,
       final Executor executeProtocolExecutor)
   {
+    if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
+    if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
+    
     this.scheduler = scheduler;
     
     bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
@@ -186,33 +192,6 @@ public class XioClient extends XioPeer
   }
   
   /**
-   * @return Returns true if the connection to the server is established.
-   */
-  public synchronized boolean isConnected()
-  {
-    return (channel != null)? channel.isConnected(): false;
-  }
-  
-  /**
-   * Close the connection.
-   */
-  public void close()
-  {
-    if ( isConnected())
-    {
-      channel.close().awaitUninterruptibly();
-    }
-  }
-  
-  /**
-   * @return Returns the remote address to which this client is connected.
-   */
-  public synchronized InetSocketAddress getRemoteAddress()
-  {
-    return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
-  }
-  
-  /**
    * Set the channel.
    * @param channel The channel.
    */
@@ -228,7 +207,15 @@ public class XioClient extends XioPeer
     return defaultBossExecutor;
   }
   
+  private static synchronized Executor getDefaultWorkerExecutor()
+  {
+    if ( defaultWorkerExecutor == null)
+      defaultWorkerExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-worker"));
+    return defaultWorkerExecutor;
+  }
+  
   private static Executor defaultBossExecutor = null;
+  private static Executor defaultWorkerExecutor = null;
   
   private ClientBootstrap bootstrap;
   private ScheduledExecutorService scheduler;

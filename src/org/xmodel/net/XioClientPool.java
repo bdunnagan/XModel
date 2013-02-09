@@ -53,7 +53,7 @@ public class XioClientPool
     XioClient client = queue.poll();
     if ( client == null || !client.isConnected())
     {
-      client = factory.newInstance( address, true);
+      client = factory.newInstance( address);
     }
     else
     {

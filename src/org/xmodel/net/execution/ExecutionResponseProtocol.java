@@ -15,6 +15,8 @@ import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
+import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.XioChannelHandler.Type;
@@ -53,8 +55,14 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
-    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    List<byte[]> buffers = compressor.compress( response);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
@@ -73,8 +81,14 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    
     IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
-    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    List<byte[]> buffers = compressor.compress( response);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
@@ -91,7 +105,12 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
     
     BlockingQueue<IModelObject> queue = queues.get( correlation);
     log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
@@ -104,7 +123,6 @@ public class ExecutionResponseProtocol
       task.setResponse( response);
       if ( bundle.executor != null)
       {
-        task.context.
         bundle.executor.execute( task);
       }
       else

@@ -25,6 +25,7 @@
 package org.xmodel.xaction;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.Executor;
 import org.xmodel.IModelObject;
@@ -34,7 +35,9 @@ import org.xmodel.NullObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
+import org.xmodel.net.IXioClientFactory;
 import org.xmodel.net.XioClient;
+import org.xmodel.net.XioClientPool;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -76,7 +79,7 @@ public class RunAction extends GuardedAction
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
-    executorExpr = document.getExpression( "dispatcher", true);
+    executorExpr = document.getExpression( "executor", true);
   }
 
   /* (non-Javadoc)
@@ -185,36 +188,30 @@ public class RunAction extends GuardedAction
     try
     {
       log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
+
+      InetSocketAddress address = new InetSocketAddress( host, port);
+      XioClient client = clientPool.lease( context, address);
+      if ( !client.isConnected())
+      {
+        if ( !client.connect( address, connectionRetries).await( timeout))
+          throw new IOException( "Connection not established.");
+      }
       
       // execute synchronously unless one of the async callback scripts exists
       if ( onComplete == null && onSuccess == null && onError == null)
       {
-        XioClient client = null;
         try
         {
-//          client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
-//          if ( !client.isConnected()) throw new IOException( "Connection not established.");
-          client = new XioClient( context);
-          if ( !client.connect( host, port, connectionRetries).await( timeout)) 
-            throw new IOException( "Connection not established.");
-          
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         finally
         {
-//          if ( client != null) clientSyncPool.release( context, client);
-          if ( client != null) client.close();
+          if ( client != null) clientPool.release( context, client);
         }
       }
       else
       {
-//        XioClient client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
-//        if ( !client.isConnected()) throw new IOException( "Connection not established.");
-        XioClient client = new XioClient( context);
-        if ( !client.connect( host, port, connectionRetries).await( timeout)) 
-          throw new IOException( "Connection not established.");
-        
         AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
         client.execute( context, varArray, scriptNode, callback, timeout);
       }
@@ -347,8 +344,7 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-//      clientSyncPool.release( context, client);
-      client.close();
+      clientPool.release( context, client);
     }
 
     /* (non-Javadoc)
@@ -386,17 +382,12 @@ public class RunAction extends GuardedAction
   private final static Log log = Log.getLog( RunAction.class);
   private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
   
-//  private static XioClientPool clientSyncPool = new XioClientPool( new IXioClientFactory() {
-//    public XioClient newInstance( InetSocketAddress address, boolean connect)
-//    {
-//      XioClient client = new XioClient();
-//      if ( connect)
-//      {
-//        client.connect( address, connectionRetries).awaitUninterruptibly( 30000);
-//      }
-//      return client;
-//    }
-//  });
+  private static XioClientPool clientPool = new XioClientPool( new IXioClientFactory() {
+    public XioClient newInstance( InetSocketAddress address)
+    {
+      return new XioClient();
+    }
+  });
   
   private String var;
   private IExpression varsExpr;

@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.xmodel.GlobalSettings;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.SLog;
@@ -77,7 +76,7 @@ public class EntityTrigger extends AbstractTrigger
 
   private void dispatch()
   {
-    context.getModel().getExecutor().execute( dispatch1);
+    GlobalSettings.getInstance().getModel().getExecutor().execute( dispatch);
   }
   
   final IExpressionListener entityListener = new ExpressionListener() {
@@ -120,14 +119,7 @@ public class EntityTrigger extends AbstractTrigger
     }
   };
   
-  private final Runnable dispatch1 = new Runnable() {
-    public void run()
-    {
-      context.getModel().getExecutor().execute( dispatch2);
-    }
-  };
-  
-  private final Runnable dispatch2 = new Runnable() {
+  private final Runnable dispatch = new Runnable() {
     public void run()
     {
       SLog.debugf( EntityTrigger.this, "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());

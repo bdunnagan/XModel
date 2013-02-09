@@ -1,7 +1,10 @@
 package org.xmodel.net;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.SucceededChannelFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.expression.IContext;
@@ -79,6 +82,30 @@ public class XioPeer
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
     handler.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, callback, timeout);
+  }
+  
+  /**
+   * @return Returns the remote address to which this client is connected.
+   */
+  public synchronized InetSocketAddress getRemoteAddress()
+  {
+    return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
+  }
+  
+  /**
+   * @return Returns true if the connection to the server is established.
+   */
+  public synchronized boolean isConnected()
+  {
+    return (channel != null)? channel.isConnected(): false;
+  }
+  
+  /**
+   * Close the connection.
+   */
+  public ChannelFuture close()
+  {
+    return isConnected()? channel.close(): new SucceededChannelFuture( channel);
   }
   
   protected Channel channel;

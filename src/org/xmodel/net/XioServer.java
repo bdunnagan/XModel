@@ -22,25 +22,45 @@ import org.xmodel.xpath.expression.IContext;
 public class XioServer
 {
   /**
-   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param context The context.
    */
   public XioServer( IContext context)
   {
-    this( context, true, GlobalSettings.getInstance().getScheduler(), getDefaultBossExecutor(), getDefaultWorkExecutor());
+    this( context, null, null, null, GlobalSettings.getInstance().getModel().getExecutor(), GlobalSettings.getInstance().getModel().getExecutor());
   }
   
   /**
-   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param context The context.
-   * @param dispatch True if model events should be dispatched to the context model dispatcher.
-   * @param scheduler The scheduler used for protocol timers.
-   * @param bossExecutor The NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
+   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
+   * for optional arguments. The following table shows defaults used for each optional argument:
+   * <ul>
+   *   <li>context - Required for remote execution from the server</li>
+   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
+   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>bindProtocolExecutor - Null executor means immediate processing in worker thread</li>
+   *   <li>executionProtocolExecutor - Null executor means immediate processing in worker thread</li>
+   * </ul>
+   * @param context Optional context.
+   * @param scheduler Optional scheduler used for protocol timers.
+   * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
+   * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
+   * @param bindProtocolExecutor Optional executor for dispatching bind requests out of the I/O worker thread.
+   * @param executeProtocolExecutor Optional executor for dispatching remote execution requests out of the I/O worker thread.
    */
-  public XioServer( final IContext context, final boolean dispatch, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( 
+      final IContext context, 
+      final ScheduledExecutorService scheduler, 
+      Executor bossExecutor, 
+      Executor workerExecutor, 
+      final Executor bindProtocolExecutor,
+      final Executor executeProtocolExecutor)
   {
     ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
+    
+    if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
+    if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
     
     bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);
@@ -56,7 +76,7 @@ public class XioServer
 //
 //        pipeline.addLast( "ssl", new SslHandler(engine));
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler, bindProtocolExecutor, executeProtocolExecutor));
         return pipeline;
       }
     });
@@ -114,15 +134,15 @@ public class XioServer
     return defaultBossExecutor;
   }
   
-  private static synchronized Executor getDefaultWorkExecutor()
+  private static synchronized Executor getDefaultWorkerExecutor()
   {
-    if ( defaultWorkExecutor == null)
-      defaultWorkExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-work"));
-    return defaultWorkExecutor;
+    if ( defaultWorkerExecutor == null)
+      defaultWorkerExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-work"));
+    return defaultWorkerExecutor;
   }
   
   private static Executor defaultBossExecutor = null;
-  private static Executor defaultWorkExecutor = null;
+  private static Executor defaultWorkerExecutor = null;
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;

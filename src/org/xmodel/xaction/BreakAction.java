@@ -133,7 +133,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
         locationLine.removeAttribute( "xm:compiled");
         System.out.println( ModelAlgorithms.createIdentityPath( location, true));
         System.out.println( "  "+XmlIO.write( Style.printable, locationLine));
-        System.out.printf( "-> ");
+        System.out.printf( "[%s]> ", Thread.currentThread().getName());
         
         // get input
         StringBuilder builder = new StringBuilder();

@@ -33,6 +33,7 @@ import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.external.UnboundedCache;
+import org.xmodel.log.Log;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
@@ -107,6 +108,7 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
 
     // sync
     File path = new File( Xlate.get( reference, "path", ""));
+    log.debugf( "sync: %s", path);
 
     if ( path.isDirectory())
     {
@@ -203,6 +205,8 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     return new File( basePath, element.getType());
   }
     
+  private final static Log log = Log.getLog( FileSystemCachingPolicy.class);
+  
   private final static IFileAssociation csvAssociation = new CsvAssociation();
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();

@@ -11,6 +11,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
@@ -40,6 +41,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   public XioChannelHandler( IContext context, ScheduledExecutorService scheduler, Executor bindProtocolExecutor, Executor executeProtocolExecutor)
   {
+    if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     headerProtocol = new HeaderProtocol();
     bindProtocol = new BindProtocol( headerProtocol, context, bindProtocolExecutor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, scheduler, executeProtocolExecutor);
@@ -48,7 +50,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   public XioChannelHandler( XioChannelHandler handler)
   {
-    this( handler.bindProtocol.context, handler.executionProtocol.scheduler);
+    this( handler.bindProtocol.context, handler.executionProtocol.scheduler, handler.bindProtocol.executor, handler.executionProtocol.executor);
   }
   
   /**

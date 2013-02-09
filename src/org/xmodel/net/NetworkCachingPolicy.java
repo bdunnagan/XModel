@@ -50,8 +50,11 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
    */
   public void close()
   {
-    if ( client != null && client.isConnected())
+    if ( client != null)
+    {
       client.close();
+      client = null;
+    }
   }
   
   /* (non-Javadoc)
