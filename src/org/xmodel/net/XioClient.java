@@ -70,7 +70,7 @@ public class XioClient extends XioPeer
     if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
     if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
     
-    this.scheduler = scheduler;
+    this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
     
     bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
     bootstrap.setOption( "tcpNoDelay", true);
