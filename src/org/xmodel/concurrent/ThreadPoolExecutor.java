@@ -10,14 +10,14 @@ import org.xmodel.log.Log;
 /**
  * An implementation of Executor that delegates to another Executor and collects and logs statistics.
  */
-public class LoggingExecutorWrapper implements Executor
+public class ThreadPoolExecutor implements Executor
 {
   /**
    * Convenience method for creating with a fixed thread count.
    * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
    */
-  public LoggingExecutorWrapper( String name, int threadCount)
+  public ThreadPoolExecutor( String name, int threadCount)
   {
     this.executor = createExecutor( name, threadCount);
     this.statistics = new Statistics( log);
@@ -27,7 +27,7 @@ public class LoggingExecutorWrapper implements Executor
    * Create with the specified parameters.
    * @param executor The ExecutorService that will process dispatched Runnables.
    */
-  public LoggingExecutorWrapper( Executor executor)
+  public ThreadPoolExecutor( Executor executor)
   {
     this.executor = executor;
     this.statistics = new Statistics( log);
@@ -41,10 +41,10 @@ public class LoggingExecutorWrapper implements Executor
    */
   private ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new SimpleThreadFactory( name, new Runnable() {
+    ThreadFactory factory = new ModelThreadFactory( name, new Runnable() {
       public void run()
       {
-        GlobalSettings.getInstance().getModel().setExecutor( LoggingExecutorWrapper.this);
+        GlobalSettings.getInstance().getModel().setExecutor( ThreadPoolExecutor.this);
       }
     });
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
@@ -74,7 +74,7 @@ public class LoggingExecutorWrapper implements Executor
     }
   }
   
-  private static Log log = Log.getLog( LoggingExecutorWrapper.class);
+  private static Log log = Log.getLog( ThreadPoolExecutor.class);
 
   private Executor executor;
   private Statistics statistics;

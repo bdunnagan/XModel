@@ -6,14 +6,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Implementation of ThreadFactory that adds a nice prefix and count to the thread names.
  */
-public class SimpleThreadFactory implements ThreadFactory
+public class ModelThreadFactory implements ThreadFactory
 {
-  public SimpleThreadFactory( String prefix)
+  public ModelThreadFactory( String prefix)
   {
     this( prefix, null);
   }
 
-  public SimpleThreadFactory( String prefix, Runnable setup)
+  public ModelThreadFactory( String prefix, Runnable setup)
   {
     this.threadCounter = new AtomicInteger( 0);
     this.prefix = prefix;

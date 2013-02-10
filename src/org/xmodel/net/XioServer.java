@@ -13,7 +13,7 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.GlobalSettings;
-import org.xmodel.concurrent.SimpleThreadFactory;
+import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -130,14 +130,14 @@ public class XioServer
   private static synchronized Executor getDefaultBossExecutor()
   {
     if ( defaultBossExecutor == null)
-      defaultBossExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-boss"));
+      defaultBossExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-boss"));
     return defaultBossExecutor;
   }
   
   private static synchronized Executor getDefaultWorkerExecutor()
   {
     if ( defaultWorkerExecutor == null)
-      defaultWorkerExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-server-work"));
+      defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work"));
     return defaultWorkerExecutor;
   }
   

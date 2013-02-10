@@ -24,6 +24,7 @@ import java.util.List;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
+import org.xmodel.Update;
 import org.xmodel.diff.ListDiffer;
 import org.xmodel.diff.ListDiffer.Change;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -74,8 +75,9 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    // lastUpdateID == 0 means performing initial notification
-    if ( context.getLastUpdate( expression) == 0)
+    // allow final notification to be performed if update has already completed
+    Update update = context.getLastUpdate( expression);
+    if ( !update.isActive())
     {
       notifyInsert( expression, context, nodes, 0, nodes.size());
     }
@@ -92,8 +94,9 @@ public abstract class ExactExpressionListener extends ExpressionListener
    */
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    // lastUpdateID == 0 means performing final notification
-    if ( context.getLastUpdate( expression) == 0)
+    // allow final notification to be performed if update has already completed
+    Update update = context.getLastUpdate( expression);
+    if ( !update.isActive())
     {
       notifyRemove( expression, context, nodes, 0, nodes.size());
     }

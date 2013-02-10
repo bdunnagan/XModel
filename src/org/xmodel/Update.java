@@ -37,6 +37,7 @@ public final class Update
 {
   public Update()
   {
+    active = false;
     mementos = new ArrayList<IMemento>( 3);
     setAttributeMemento = new SetAttributeMemento();
     removeAttributeMemento = new RemoveAttributeMemento();
@@ -47,6 +48,23 @@ public final class Update
     reverted = false;
   }
 
+  /**
+   * Set the active state of the update. An update is active until all of its listeners have been notified.
+   * @param active The active state.
+   */
+  public void setActive( boolean active)
+  {
+    this.active = active;
+  }
+  
+  /**
+   * @return Returns the active state.
+   */
+  public boolean isActive()
+  {
+    return active;
+  }
+  
   /**
    * Clear the list of mementos.
    */
@@ -175,24 +193,6 @@ public final class Update
   {
     return mementos.size();
   }
-  
-  /**
-   * Set the id of this update.
-   * @param id The id.
-   */
-  public void setId( int id)
-  {
-    this.id = id;
-  }
-  
-  /**
-   * Returns the id for this update.
-   * @return Returns the id for this update.
-   */
-  public int getId()
-  {
-    return id;
-  }
 
   /**
    * Revert this update.
@@ -248,7 +248,7 @@ public final class Update
   {
     return reverted;
   }
-  
+
   /**
    * Returns an IChangeSet which will store changes to an object which cannot be processed
    * until after the current update to the object is completed.  The changes in the deferred
@@ -281,8 +281,8 @@ public final class Update
     "  notification. The prior state of the model could not be restored and some\n" +
     "  listeners may not have triggered appropriately. This problem is an indication\n" +
     "  of a design problem and can always be avoided.";
-  
-  private int id;
+
+  private boolean active;
   private List<IMemento> mementos;
   private SetAttributeMemento setAttributeMemento;
   private RemoveAttributeMemento removeAttributeMemento;

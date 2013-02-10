@@ -3,7 +3,7 @@ package org.xmodel.xaction;
 import java.util.concurrent.Executor;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.concurrent.LoggingExecutorWrapper;
+import org.xmodel.concurrent.ThreadPoolExecutor;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -32,7 +32,7 @@ public class ExecutorAction extends XAction
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     String name = (nameExpr != null)? nameExpr.evaluateString( context): "model";
-    Executor executor = new LoggingExecutorWrapper( name, threads);
+    Executor executor = new ThreadPoolExecutor( name, threads);
     
     IModelObject holder = new ModelObject( "executor");
     holder.setValue( executor);

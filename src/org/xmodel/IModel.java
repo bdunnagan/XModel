@@ -138,12 +138,6 @@ public interface IModel
   public Update getCurrentUpdate();
 
   /**
-   * Returns the <i>id</i> of the current update.
-   * @return Returns the <i>id</i> of the current update.
-   */
-  public int getUpdateID();
-  
-  /**
    * Set the instance of Executor used for processing updates to this model.
    * @param executor The executor.
    */

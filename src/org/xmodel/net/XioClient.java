@@ -13,7 +13,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.xmodel.GlobalSettings;
-import org.xmodel.concurrent.SimpleThreadFactory;
+import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -203,14 +203,14 @@ public class XioClient extends XioPeer
   private static synchronized Executor getDefaultBossExecutor()
   {
     if ( defaultBossExecutor == null)
-      defaultBossExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-boss"));
+      defaultBossExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-boss"));
     return defaultBossExecutor;
   }
   
   private static synchronized Executor getDefaultWorkerExecutor()
   {
     if ( defaultWorkerExecutor == null)
-      defaultWorkerExecutor = Executors.newCachedThreadPool( new SimpleThreadFactory( "xio-client-worker"));
+      defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-worker"));
     return defaultWorkerExecutor;
   }
   

@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.GlobalSettings;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
 
@@ -98,7 +98,7 @@ public class StatefulContext implements IContext
     this.object = object;
     this.position = position;
     this.size = size;
-    this.updates = new HashMap<IExpression, Integer>( 1);
+    this.updates = new HashMap<IExpression, Update>( 1);
     this.scope = (scope != null)? scope: new ContextScope();
   }
 
@@ -285,7 +285,7 @@ public class StatefulContext implements IContext
    */
   public void notifyUpdate( IExpression expression)
   {
-    updates.put( expression, GlobalSettings.getInstance().getModel().getUpdateID());
+    updates.put( expression, GlobalSettings.getInstance().getModel().getCurrentUpdate());
   }
 
   /* (non-Javadoc)
@@ -301,18 +301,16 @@ public class StatefulContext implements IContext
    */
   public boolean shouldUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    return lastUpdate == null || lastUpdate == 0 || lastUpdate != GlobalSettings.getInstance().getModel().getUpdateID();
+    Update lastUpdate = updates.get( expression);
+    return lastUpdate == null || !lastUpdate.isActive() || lastUpdate != GlobalSettings.getInstance().getModel().getCurrentUpdate();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getLastUpdate(org.xmodel.xpath.expression.IExpression)
    */
-  public int getLastUpdate( IExpression expression)
+  public Update getLastUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    if ( lastUpdate == null) return 0;
-    return lastUpdate;
+    return updates.get( expression);
   }
 
   /* (non-Javadoc)
@@ -359,7 +357,7 @@ public class StatefulContext implements IContext
   private IModelObject object;
   private int position;
   private int size;
-  private Map<IExpression, Integer> updates;
+  private Map<IExpression, Update> updates;
   private IVariableScope scope;
   private ReadWriteLock lock;
 }

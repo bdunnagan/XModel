@@ -43,9 +43,6 @@ public class Model implements IModel
     collections = new HashMultiMap<String, IModelObject>();
     executor = new CurrentThreadExecutor();
 
-    // counter must start at one because 0 has meaning
-    counter = 1;
-    
     // thread-access debugging
     if ( debugMap != null) debugMap.put( this, Thread.currentThread());
   }
@@ -212,8 +209,8 @@ public class Model implements IModel
     
     // allocate update object
     Update update = updateObjects.get( index);
+    update.setActive( true);
     update.clear();
-    update.setId( counter++);
     updateStack.add( update);
     
     return update;
@@ -236,7 +233,7 @@ public class Model implements IModel
     if ( index < 0) throw new IllegalStateException( "Update stack is empty.");
     Update update = updateStack.remove( index);
     update.clear();
-    update.setId( 0);
+    update.setActive( false);
     update.processDeferred();
   }
   
@@ -247,17 +244,6 @@ public class Model implements IModel
   {
     if ( updateStack.size() == 0) return null;
     return updateStack.get( updateStack.size() - 1);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#getUpdateID()
-   */
-  public int getUpdateID()
-  {
-    // return the current update id or the id of the last update
-    Update update = getCurrentUpdate();
-    if ( update != null) return update.getId();
-    return counter-1;
   }
 
   /* (non-Javadoc)
@@ -331,7 +317,6 @@ public class Model implements IModel
   private List<Update> updateStack;
   private List<Update> updateObjects;
   private List<IModelObject> frozen;
-  private int counter;
   private Executor executor;
   private boolean syncLock;
   private boolean isReverted;

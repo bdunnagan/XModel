@@ -20,9 +20,9 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.xmodel.IModelObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -162,11 +162,11 @@ public interface IContext
   public boolean shouldUpdate( IExpression expression);
   
   /**
-   * Returns the id of the last update for which the specified expression notified with this context.
+   * Returns the last update for which the specified expression notified with this context.
    * @param expression The expression.
-   * @return Returns the last update id.
+   * @return Returns the last update.
    */
-  public int getLastUpdate( IExpression expression);
+  public Update getLastUpdate( IExpression expression);
   
   /**
    * Returns the scope associated with this context.

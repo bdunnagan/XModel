@@ -82,7 +82,7 @@ public class XioClientPool
    */
   public void release( IContext context, XioClient client)
   {
-    log.debugf( "Freeing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
+    log.debugf( "Releasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
 
     InetSocketAddress address = client.getRemoteAddress();
     if ( client.isConnected()) 
@@ -104,6 +104,7 @@ public class XioClientPool
       Queue<XioClient> queue = clients.get( address);
       if ( queue == null)
       {
+        log.debugf( "Creating new queue for address, %s", address);
         queue = new ConcurrentLinkedQueue<XioClient>();
         clients.put( address, queue);
       }
@@ -117,6 +118,8 @@ public class XioClientPool
    */
   private void removeClient( XioClient client)
   {
+    log.debugf( "Deleting XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
+    
     InetSocketAddress address = client.getRemoteAddress();
     
     Queue<XioClient> queue = getClients( client.getRemoteAddress());

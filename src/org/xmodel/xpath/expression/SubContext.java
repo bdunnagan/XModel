@@ -21,9 +21,8 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
-import org.xmodel.GlobalSettings;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -211,7 +210,7 @@ public class SubContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getLastUpdate(org.xmodel.xpath.expression.IExpression)
    */
-  public int getLastUpdate( IExpression expression)
+  public Update getLastUpdate( IExpression expression)
   {
     return getParent().getLastUpdate( expression);
   }
