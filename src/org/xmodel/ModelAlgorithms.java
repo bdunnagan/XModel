@@ -30,6 +30,7 @@ import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.SLog;
 import org.xmodel.util.Fifo;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
@@ -353,6 +354,22 @@ public class ModelAlgorithms implements IAxis
     return thisDup;
   }
 
+//  /**
+//   * Create a clone of the specified object. If the object has a caching policy, then the caching policy
+//   * is cloned and the new element will be left in the dirty state.
+//   * @param object The root of the subtree.
+//   * @param factory Null or the factory to use for elements that are not IExternalReference instances.
+//   * @return Returns the clone.
+//   */
+//  public static IModelObject cloneExternalObject( IModelObject object, IModelObjectFactory factory)
+//  {
+//    ReferenceFactory referenceFactory = new ReferenceFactory();
+//    referenceFactory.delegate = factory;
+//    IExternalReference clone = (IExternalReference)referenceFactory.createClone( object);
+//    clone.setDirty( true);
+//    return clone;
+//  }
+  
   /**
    * Create a deep copy of the specified subtree. External references present in the tree are cloned
    * as ExternalReferences and their caching policies and dirty state are preserved.
@@ -1028,8 +1045,23 @@ public class ModelAlgorithms implements IAxis
         {
           ModelAlgorithms.copyAttributes( reference, clone);
         }
-        clone.setCachingPolicy( reference.getCachingPolicy());
-        clone.setDirty( reference.isDirty());
+        
+        try
+        {
+          ICachingPolicy cachingPolicy = reference.getCachingPolicy();
+          if ( cachingPolicy != null)
+          {
+            clone.setCachingPolicy( (ICachingPolicy)cachingPolicy.clone());
+            clone.setDirty( reference.isDirty());
+          }
+        }
+        catch( CloneNotSupportedException e)
+        {
+          SLog.errorf( this, "%s of element, %s, is not cloneable!", 
+              reference.getCachingPolicy().getClass().getSimpleName(),
+              reference.getType());
+        }
+        
         return clone;
       }
       

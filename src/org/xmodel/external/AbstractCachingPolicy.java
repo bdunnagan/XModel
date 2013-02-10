@@ -22,7 +22,6 @@ package org.xmodel.external;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
@@ -86,6 +85,15 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   public IModelObjectFactory getFactory()
   {
     return factory;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException
+  {
+    return super.clone();
   }
 
   /**

@@ -20,7 +20,6 @@
 package org.xmodel.caching;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -165,7 +164,7 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
         clone.setAttribute( "separator", separator);
         update( reference, clone);
       }
-      catch( IOException e)
+      catch( Exception e)
       {
         throw new CachingException( "Unable to load zip file: "+file, e);
       }

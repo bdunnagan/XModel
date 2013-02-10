@@ -49,7 +49,7 @@ import org.xmodel.xpath.XPath;
  * <p>
  * NOTE: This caching policy must be unique for each root external reference.
  */
-public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
+public class FileSystemCachingPolicy extends ConfiguredCachingPolicy implements Cloneable
 {
   public FileSystemCachingPolicy()
   {
@@ -96,13 +96,6 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    // save root
-    if ( fileSystemRoot == null) 
-    {
-      fileSystemRoot = reference;
-      replaceTilde( fileSystemRoot);
-    }
-   
     // just in case
     reference.removeChildren();
 
@@ -180,20 +173,17 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  /**
-   * Replace the tilde at the beginning of the path of the specified element.
-   * @param element The element.
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
    */
-  private static void replaceTilde( IModelObject element)
+  @Override
+  public Object clone() throws CloneNotSupportedException
   {
-    String path = Xlate.get( element, "path", "");
-    if ( path.length() > 0 && path.charAt( 0) == '~')
-    {
-      String userDir = System.getProperty( "user.dir");
-      Xlate.set( element, "path", userDir + path.substring( 1));
-    }
+    FileSystemCachingPolicy clone = new FileSystemCachingPolicy();
+    clone.associations = associations;
+    return clone;
   }
-  
+
   /**
    * Build the path for the specified file system element.
    * @param element The file system element.
@@ -213,7 +203,6 @@ public class FileSystemCachingPolicy extends ConfiguredCachingPolicy
   private final static IFileAssociation xmlAssociation = new XmlAssociation();
   private final static IFileAssociation zipAssociation = new ZipAssociation();
 
-  private IExternalReference fileSystemRoot;
   private Map<String, IFileAssociation> associations;
   private ITransaction transaction;
 }
