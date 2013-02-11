@@ -29,10 +29,10 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
-import org.xmodel.NullObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
@@ -164,7 +164,9 @@ public class RunAction extends GuardedAction
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
     //
-    executor.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
+    StatefulContext runContext = new StatefulContext( context);
+    runContext.setExecutor( executor);
+    executor.execute( new ScriptRunnable( runContext, script));
   }
   
   /**
