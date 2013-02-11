@@ -12,7 +12,6 @@ import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
-import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
@@ -28,7 +27,7 @@ public class XioServer
    */
   public XioServer( IContext context)
   {
-    this( context, null, null, null, GlobalSettings.getInstance().getModel().getExecutor(), GlobalSettings.getInstance().getModel().getExecutor());
+    this( context, null, null, null);
   }
   
   /**
@@ -39,23 +38,13 @@ public class XioServer
    *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
    *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
    *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
-   *   <li>bindProtocolExecutor - Null executor means immediate processing in worker thread</li>
-   *   <li>executionProtocolExecutor - Null executor means immediate processing in worker thread</li>
    * </ul>
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
    * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
    * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
-   * @param bindProtocolExecutor Optional executor for dispatching bind requests out of the I/O worker thread.
-   * @param executeProtocolExecutor Optional executor for dispatching remote execution requests out of the I/O worker thread.
    */
-  public XioServer( 
-      final IContext context, 
-      final ScheduledExecutorService scheduler, 
-      Executor bossExecutor, 
-      Executor workerExecutor, 
-      final Executor bindProtocolExecutor,
-      final Executor executeProtocolExecutor)
+  public XioServer( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
     ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
     
@@ -76,7 +65,7 @@ public class XioServer
 //
 //        pipeline.addLast( "ssl", new SslHandler(engine));
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, scheduler, bindProtocolExecutor, executeProtocolExecutor));
+        pipeline.addLast( "xio", new XioChannelHandler( context, context.getExecutor(), scheduler));
         return pipeline;
       }
     });

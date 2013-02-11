@@ -20,7 +20,6 @@
 package org.xmodel.xaction.trigger;
 
 import java.util.List;
-import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -110,7 +109,7 @@ public class WhenTrigger extends AbstractTrigger
           runnable.correlation = correlation;
           runnable.context = context;
           runnable.newValue = newValue;
-          GlobalSettings.getInstance().getModel().dispatch( runnable);
+          context.getExecutor().execute( runnable);
         }
         finally
         {

@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
@@ -41,7 +40,6 @@ public class Model implements IModel
     updateObjects = new ArrayList<Update>();
     frozen = new ArrayList<IModelObject>();
     collections = new HashMultiMap<String, IModelObject>();
-    executor = new CurrentThreadExecutor();
 
     // thread-access debugging
     if ( debugMap != null) debugMap.put( this, Thread.currentThread());
@@ -247,33 +245,6 @@ public class Model implements IModel
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModel#setDispatcher(java.util.concurrent.Executor)
-   */
-  @Override
-  public void setExecutor( Executor executor)
-  {
-    this.executor = executor;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#getDispatcher()
-   */
-  @Override
-  public Executor getExecutor()
-  {
-    return executor;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#dispatch(java.lang.Runnable)
-   */
-  public void dispatch( Runnable runnable)
-  {
-    Executor executor = getExecutor();
-    executor.execute( runnable);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModel#setSyncLock(boolean)
    */
   public void setSyncLock( boolean syncLock)
@@ -317,7 +288,6 @@ public class Model implements IModel
   private List<Update> updateStack;
   private List<Update> updateObjects;
   private List<IModelObject> frozen;
-  private Executor executor;
   private boolean syncLock;
   private boolean isReverted;
 }

@@ -20,6 +20,7 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.xmodel.IModelObject;
 import org.xmodel.Update;
@@ -125,7 +126,26 @@ public interface IContext
    */
   public List<IModelObject> set( String name, IModelObject value);
 
+  /**
+   * Returns the value of the specified variable.
+   * @param name The name of the variable.
+   * @return Returns null or the value.
+   */
   public Object get( String name);
+
+  /**
+   * Associate an executor with this context.
+   * @param executor The executor.
+   */
+  public void setExecutor( Executor executor);
+  
+  /**
+   * Returns the executor associated with this context, or if no executor is associated, that of the parent.
+   * If no executor is associated in the ancestry of this context, then the default executor defined in
+   * GlobalSettings is used.
+   * @return Returns the first executor defined in the ancestry of this context.
+   */
+  public Executor getExecutor();
   
   /**
    * Called by the specified expression when the context is bound.

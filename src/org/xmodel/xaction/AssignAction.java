@@ -149,13 +149,13 @@ public class AssignAction extends GuardedAction
           else if ( mode.equals( "master"))
           {
             List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) clones.add( ModelAlgorithms.createMasterClone( source));
+            for( IModelObject source: sources) clones.add( ModelAlgorithms.createMasterClone( source, context.getExecutor()));
             setVariable( scope, clones);
           }
           else if ( mode.equals( "slave"))
           {
             List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) clones.add( ModelAlgorithms.createSlaveClone( source));
+            for( IModelObject source: sources) clones.add( ModelAlgorithms.createSlaveClone( source, context.getExecutor()));
             setVariable( scope, clones);
           }
         }

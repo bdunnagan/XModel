@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -121,14 +122,8 @@ public class ExecutionResponseProtocol
     if ( task != null && !task.isExpired()) 
     {
       task.setResponse( response);
-      if ( bundle.executor != null)
-      {
-        bundle.executor.execute( task);
-      }
-      else
-      {
-        task.run();
-      }
+      Executor executor = task.context.getExecutor();
+      executor.execute( task);
     }
   }
   

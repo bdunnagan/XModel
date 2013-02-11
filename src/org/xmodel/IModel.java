@@ -21,7 +21,6 @@ package org.xmodel;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executor;
 
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
@@ -137,24 +136,6 @@ public interface IModel
    */
   public Update getCurrentUpdate();
 
-  /**
-   * Set the instance of Executor used for processing updates to this model.
-   * @param executor The executor.
-   */
-  public void setExecutor( Executor executor);
-  
-  /**
-   * Returns the executor.
-   * @return Returns the executor.
-   */
-  public Executor getExecutor();
-  
-  /**
-   * Dispatch the specified runnable using the IDispatcher associated with this model.
-   * @param runnable The runnable to be executed in the thread associated with this model.
-   */
-  public void dispatch( Runnable runnable);
-  
   /**
    * Setting the sync lock temporarily prevents any external references from being synchronized.
    * @param lock True if the lock should be set.

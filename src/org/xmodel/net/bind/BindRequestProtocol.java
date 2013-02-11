@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.concurrent.Executor;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -33,24 +33,12 @@ public class BindRequestProtocol
    */
   public synchronized void reset()
   {
-    if ( bundle.executor != null)
-    {
-      for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-        bundle.executor.execute( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
-      listeners.clear();
-      
-      for( IExternalReference binding: bindings)
-        bundle.executor.execute( new SetDirtyRunnable( binding));
-    }
-    else
-    {
-      for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-        entry.getValue().uninstall( entry.getKey());
-      listeners.clear();
-      
-//      for( IExternalReference binding: bindings)
-//        binding.setDirty( true);   
-    }
+    for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
+      bundle.executor.execute( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
+    listeners.clear();
+    
+    for( IExternalReference binding: bindings)
+      bundle.executor.execute( new SetDirtyRunnable( binding));
     
     bindings.clear();
   }
@@ -134,14 +122,8 @@ public class BindRequestProtocol
     try
     {
       IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
-      if ( bundle.executor != null)
-      {
-        bundle.executor.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
-      }
-      else
-      {
-        bind( channel, correlation, readonly, query, queryExpr);
-      }
+      Executor executor = bundle.context.getExecutor();
+      executor.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
     }
     catch( PathSyntaxException e)
     {

@@ -22,6 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.GlobalSettings;
@@ -209,6 +210,25 @@ public class StatefulContext implements IContext
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    this.executor = executor;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    if ( executor != null) return executor;
+    return GlobalSettings.getInstance().getDefaultExecutor();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#getName()
    */
   public String getName()
@@ -359,5 +379,6 @@ public class StatefulContext implements IContext
   private int size;
   private Map<IExpression, Update> updates;
   private IVariableScope scope;
+  private Executor executor;
   private ReadWriteLock lock;
 }

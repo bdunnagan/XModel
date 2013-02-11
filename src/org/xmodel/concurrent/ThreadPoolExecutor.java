@@ -3,8 +3,6 @@ package org.xmodel.concurrent;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 
 /**
@@ -41,12 +39,7 @@ public class ThreadPoolExecutor implements Executor
    */
   private ExecutorService createExecutor( String name, int threadCount)
   {
-    ThreadFactory factory = new ModelThreadFactory( name, new Runnable() {
-      public void run()
-      {
-        GlobalSettings.getInstance().getModel().setExecutor( ThreadPoolExecutor.this);
-      }
-    });
+    ModelThreadFactory factory = new ModelThreadFactory( name);
     return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
   }
   

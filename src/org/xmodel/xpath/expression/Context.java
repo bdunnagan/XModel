@@ -22,6 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.GlobalSettings;
@@ -221,6 +222,24 @@ public class Context implements IContext
   {
     if ( scope != null) return scope.get( name);
     return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    return GlobalSettings.getInstance().getDefaultExecutor();
   }
 
   /* (non-Javadoc)

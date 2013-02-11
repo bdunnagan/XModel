@@ -19,6 +19,7 @@
  */
 package org.xmodel;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -32,6 +33,11 @@ import java.util.concurrent.ThreadFactory;
  */
 public class GlobalSettings
 {
+  public GlobalSettings()
+  {
+    executor = new CurrentThreadExecutor();
+  }
+  
   /**
    * @return Returns the IModel instance for the current thread.
    */
@@ -74,6 +80,23 @@ public class GlobalSettings
     });
     return scheduler;
   }
+
+  /**
+   * Set the default executor (see org.xodel.xpath.expression.IContext).
+   * @param executor The executor.
+   */
+  public synchronized void setDefaultExecutor( Executor executor)
+  {
+    this.executor = executor;
+  }
+  
+  /**
+   * @return Returns the default executor.
+   */
+  public synchronized Executor getDefaultExecutor()
+  {
+    return executor;
+  }
   
   /**
    * Returns the singleton.
@@ -88,4 +111,5 @@ public class GlobalSettings
   
   private ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
   private ScheduledExecutorService scheduler;
+  private Executor executor;
 }

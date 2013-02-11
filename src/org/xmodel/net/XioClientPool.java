@@ -11,7 +11,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
-import org.xmodel.xpath.expression.IContext;
 
 public class XioClientPool
 {
@@ -26,7 +25,7 @@ public class XioClientPool
   {
     this.factory = factory;
     this.scheduler = scheduler;
-    this.clients = new HashMap<InetSocketAddress, Queue<XioClient>>();
+    this.clients = new HashMap<String, Queue<XioClient>>();
     this.timers = new ConcurrentHashMap<XioClient, ScheduledFuture<?>>();
     this.idleTimeout = defaultIdleTimeout;
   }
@@ -42,11 +41,10 @@ public class XioClientPool
 
   /**
    * Lease a client connection to the specified address for the specified context.
-   * @param context The context.
    * @param address The host address.
    * @return Returns a connected client.
    */
-  public XioClient lease( IContext context, InetSocketAddress address)
+  public XioClient lease( InetSocketAddress address)
   {
     Queue<XioClient> queue = getClients( address);
     
@@ -62,7 +60,7 @@ public class XioClientPool
       // A null future means that the timer has expired and TimeoutTask has removed the future from the map.
       //
       ScheduledFuture<?> future = timers.remove( client);
-      if ( future == null || !future.cancel( false)) return lease( context, address);
+      if ( future == null || !future.cancel( false)) return lease( address);
     }
     
     //
@@ -77,10 +75,9 @@ public class XioClientPool
   
   /**
    * Return a client connection to the pool.
-   * @param context The context.
    * @param client The XIO client connection.
    */
-  public void release( IContext context, XioClient client)
+  public void release( XioClient client)
   {
     log.debugf( "Releasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
 
@@ -101,12 +98,12 @@ public class XioClientPool
   {
     synchronized( clients)
     {
-      Queue<XioClient> queue = clients.get( address);
+      Queue<XioClient> queue = clients.get( address.toString());
       if ( queue == null)
       {
         log.debugf( "Creating new queue for address, %s", address);
         queue = new ConcurrentLinkedQueue<XioClient>();
-        clients.put( address, queue);
+        clients.put( address.toString(), queue);
       }
       return queue;
     }
@@ -126,7 +123,7 @@ public class XioClientPool
     synchronized( clients)
     {
       queue.remove( client);
-      if ( queue.isEmpty()) clients.remove( address);
+      if ( queue.isEmpty()) clients.remove( address.toString());
     }
     
     timers.remove( client);
@@ -156,7 +153,7 @@ public class XioClientPool
 
   private IXioClientFactory factory;
   private ScheduledExecutorService scheduler;
-  private Map<InetSocketAddress, Queue<XioClient>> clients;
+  private Map<String, Queue<XioClient>> clients;
   private Map<XioClient, ScheduledFuture<?>> timers;
   private int idleTimeout;
 }

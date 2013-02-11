@@ -20,7 +20,6 @@
 package org.xmodel.concurrent;
 
 import java.util.concurrent.Executor;
-import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeRecord;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -38,12 +37,11 @@ import org.xmodel.record.RemoveChildRecord;
  */
 public class MasterSlaveListener extends NonSyncingListener
 {
-  public MasterSlaveListener( IModelObject master, IModelObject slave)
+  public MasterSlaveListener( IModelObject master, IModelObject slave, Executor executor)
   {
     this.master = master;
     this.slave = slave;
-    this.executor = GlobalSettings.getInstance().getModel().getExecutor();
-    if ( executor == null) throw new IllegalArgumentException( "Slave element does not have associated dispatcher.");
+    this.executor = executor;
   }
   
   /* (non-Javadoc)

@@ -130,14 +130,7 @@ public class ExecutionRequestProtocol
     
     IModelObject request = compressor.decompress( new ChannelBufferInputStream( buffer));
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
-    if ( bundle.executor != null)
-    {
-      bundle.executor.execute( runnable);
-    }
-    else
-    {
-      execute( channel, correlation, request);
-    }
+    bundle.executor.execute( runnable);
   }
   
   /**
@@ -242,14 +235,7 @@ public class ExecutionRequestProtocol
       log.debug( "Response timeout.");
       task.setError( "timeout");
       
-      if ( bundle.executor != null)
-      {
-        bundle.executor.execute( task);
-      }
-      else
-      {
-        task.run();
-      }
+      bundle.executor.execute( task);
     }
 
     private ResponseTask task;

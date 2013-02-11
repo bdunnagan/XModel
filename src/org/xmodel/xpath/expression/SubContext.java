@@ -20,7 +20,9 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReadWriteLock;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
@@ -165,6 +167,25 @@ public class SubContext implements IContext
   public Object get( String name)
   {
     return getParent().get( name);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    if ( parent != null) return parent.getExecutor();
+    return GlobalSettings.getInstance().getDefaultExecutor();
   }
 
   /* (non-Javadoc)

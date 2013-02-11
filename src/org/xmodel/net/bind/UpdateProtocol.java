@@ -168,14 +168,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
     
-    if ( protocol.executor != null)
-    {
-      protocol.executor.execute( new AddChildEvent( parent, child, index));
-    }
-    else
-    {
-      parent.addChild( child, index);
-    }
+    protocol.executor.execute( new AddChildEvent( parent, child, index));
   }
 
   /**
@@ -193,14 +186,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
     
-    if ( protocol.executor != null)
-    {
-      protocol.executor.execute( new RemoveChildEvent( parent, index));
-    }
-    else
-    {
-      protocol.requestCompressor.freeRemote( parent.removeChild( index));
-    }
+    protocol.executor.execute( new RemoveChildEvent( parent, index));
   }
 
   /**
@@ -223,14 +209,7 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    if ( protocol.executor != null)
-    {
-      protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
-    }
-    else
-    {
-      element.setAttribute( attrName, newValue);
-    }
+    protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
   }
 
   /**
@@ -251,14 +230,7 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    if ( protocol.executor != null)
-    {
-      protocol.executor.execute( new ClearAttributeEvent( element, attrName));
-    }
-    else
-    {
-      element.removeAttribute( attrName);
-    }
+    protocol.executor.execute( new ClearAttributeEvent( element, attrName));
   }
 
   /**
@@ -277,14 +249,7 @@ public class UpdateProtocol
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new XioException( String.format( "Element %X is not a reference", netID));
     
-    if ( protocol.executor != null)
-    {
-      protocol.executor.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
-    }
-    else
-    {
-      ((IExternalReference)element).setDirty( dirty);
-    }
+    protocol.executor.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }
   
   private final class AddChildEvent implements Runnable

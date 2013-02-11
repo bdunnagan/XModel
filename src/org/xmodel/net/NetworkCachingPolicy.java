@@ -65,6 +65,9 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   {
     super.configure( context, annotation);
     
+    // save context to access executor
+    this.context = context;
+    
     host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
     port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", defaultPort));
     timeout = Xlate.get( annotation, "timeout", Xlate.childGet(  annotation, "timeout", 30000));
@@ -147,7 +150,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( client == null || !client.isConnected())
       {
-        client = new XioClient();
+        // context shouldn't be passed here
+        client = new XioClient( context);
         client.connect( host, port, retryCount, retryDelays).await();
       }
 
@@ -163,6 +167,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private XioClient client;
   private String host;
   private int port;
+  private IContext context;
   private boolean readonly;
   private String query;
   private int timeout;

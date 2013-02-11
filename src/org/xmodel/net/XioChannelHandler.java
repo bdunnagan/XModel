@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -39,18 +38,18 @@ public class XioChannelHandler extends SimpleChannelHandler
     changeDirty
   }
   
-  public XioChannelHandler( IContext context, ScheduledExecutorService scheduler, Executor bindProtocolExecutor, Executor executeProtocolExecutor)
+  public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler)
   {
     if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     headerProtocol = new HeaderProtocol();
-    bindProtocol = new BindProtocol( headerProtocol, context, bindProtocolExecutor);
-    executionProtocol = new ExecutionProtocol( headerProtocol, context, scheduler, executeProtocolExecutor);
+    bindProtocol = new BindProtocol( headerProtocol, context, executor);
+    executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
   }
   
   public XioChannelHandler( XioChannelHandler handler)
   {
-    this( handler.bindProtocol.context, handler.executionProtocol.scheduler, handler.bindProtocol.executor, handler.executionProtocol.executor);
+    this( handler.bindProtocol.context, handler.executionProtocol.executor, handler.executionProtocol.scheduler);
   }
   
   /**

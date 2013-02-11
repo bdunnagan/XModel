@@ -27,6 +27,7 @@ package org.xmodel.xaction;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
@@ -190,7 +191,8 @@ public class RunAction extends GuardedAction
       log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
 
       InetSocketAddress address = new InetSocketAddress( host, port);
-      XioClient client = clientPool.lease( context, address);
+      XioClientPool clientPool = getClientPool( context);
+      XioClient client = clientPool.lease( address);
       if ( !client.isConnected())
       {
         if ( !client.connect( address, connectionRetries).await( timeout))
@@ -207,12 +209,12 @@ public class RunAction extends GuardedAction
         }
         finally
         {
-          if ( client != null) clientPool.release( context, client);
+          if ( client != null) clientPool.release( client);
         }
       }
       else
       {
-        AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
+        AsyncCallback callback = new AsyncCallback( clientPool, client, onComplete, onSuccess, onError);
         client.execute( context, varArray, scriptNode, callback, timeout);
       }
       
@@ -224,6 +226,28 @@ public class RunAction extends GuardedAction
     }
     
     return null;
+  }
+  
+  /**
+   * Returns the XioClientPool associated with the specified context.
+   * @param context The context.
+   * @return Returns the XioClientPool associated with the specified context.
+   */
+  private XioClientPool getClientPool( final IContext context)
+  {
+    XioClientPool clientPool = clientPools.get( context.getExecutor());
+    if ( clientPool == null)
+    {
+      clientPool = new XioClientPool( new IXioClientFactory() {
+        public XioClient newInstance( InetSocketAddress address)
+        {
+          return new XioClient( context.getExecutor());
+        }
+      });
+      // TODO: potential memory leak!!
+      clientPools.put( context.getExecutor(), clientPool);
+    }
+    return clientPool;
   }
   
   /**
@@ -329,8 +353,9 @@ public class RunAction extends GuardedAction
   
   private final class AsyncCallback implements IXioCallback
   {
-    public AsyncCallback( XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public AsyncCallback( XioClientPool clientPool, XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
+      this.clientPool = clientPool;
       this.client = client;
       this.onComplete = onComplete;
       this.onSuccess = onSuccess;
@@ -344,7 +369,7 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-      clientPool.release( context, client);
+      clientPool.release( client);
     }
 
     /* (non-Javadoc)
@@ -373,6 +398,7 @@ public class RunAction extends GuardedAction
       }
     }
     
+    private XioClientPool clientPool;
     private XioClient client;
     private IXAction onComplete;
     private IXAction onSuccess;
@@ -380,14 +406,8 @@ public class RunAction extends GuardedAction
   }
   
   private final static Log log = Log.getLog( RunAction.class);
-  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
-  
-  private static XioClientPool clientPool = new XioClientPool( new IXioClientFactory() {
-    public XioClient newInstance( InetSocketAddress address)
-    {
-      return new XioClient();
-    }
-  });
+  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};  
+  private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
   
   private String var;
   private IExpression varsExpr;

@@ -1,7 +1,6 @@
 package org.xmodel.net.bind;
 
 import java.util.concurrent.Executor;
-
 import org.xmodel.compress.DefaultSerializer;
 import org.xmodel.compress.ISerializer;
 import org.xmodel.net.HeaderProtocol;

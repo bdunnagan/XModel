@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.zip.CRC32;
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
@@ -989,14 +990,15 @@ public class ModelAlgorithms implements IAxis
    * and the slave will be kept synchronized via its thread dispatcher.
    * @see org.xmodel.concurrent.MasterSlaveListener
    * @param slave The slave.
+   * @param executor The executor for handling updates in the correct thread.
    * @return Returns the master clone, or null if the argument is null.
    */
-  public static IModelObject createMasterClone( IModelObject slave)
+  public static IModelObject createMasterClone( IModelObject slave, Executor executor)
   {
     if ( slave == null) return null;
     
     IModelObject master = slave.cloneTree();
-    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave, executor);
     masterListener.install( master);
     return master;
   }
@@ -1006,14 +1008,15 @@ public class ModelAlgorithms implements IAxis
    * and it will be kept synchronized with the master via its thread dispatcher.
    * @see org.xmodel.concurrent.MasterSlaveListener
    * @param master The master.
+   * @param executor The executor for handling updates in the correct thread.
    * @return Returns the slave clone, or null if the argument is null.
    */
-  public static IModelObject createSlaveClone( IModelObject master)
+  public static IModelObject createSlaveClone( IModelObject master, Executor executor)
   {
     if ( master == null) return null;
     
     IModelObject slave = master.cloneTree();
-    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave, executor);
     masterListener.install( master);
     return slave;
   }

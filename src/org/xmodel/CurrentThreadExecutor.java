@@ -23,6 +23,11 @@ public class CurrentThreadExecutor implements Executor
   @Override
   public void execute( Runnable runnable)
   {
+    long now = System.nanoTime();
+    long latency = now - lastProcessTime;
+    if ( latency > maxLatencyWarning)
+      log.warnf( "CurrentThreadExecutor.process() not called for %dms", latency / (long)1e9);
+    
     queue.offer( runnable);
   }
   
@@ -31,6 +36,8 @@ public class CurrentThreadExecutor implements Executor
    */
   public void process() throws InterruptedException
   {
+    lastProcessTime = System.nanoTime();
+    
     Runnable runnable = queue.take();
     if ( log.debug())
     {
@@ -49,9 +56,11 @@ public class CurrentThreadExecutor implements Executor
       runnable.run();
     }
   }
-
-  private static Log log = Log.getLog( CurrentThreadExecutor.class);
+  
+  private final static Log log = Log.getLog( CurrentThreadExecutor.class);
+  private final static long maxLatencyWarning = (long)30e6;
   
   private BlockingQueue<Runnable> queue;
+  private long lastProcessTime;
   private Statistics statistics;
 }
