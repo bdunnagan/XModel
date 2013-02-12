@@ -198,21 +198,24 @@ public class RunAction extends GuardedAction
       final XioClient client = clientPool.lease( address);
       if ( !client.isConnected())
       {
-        ChannelFuture future = client.connect( address, connectionRetries);
-        future.addListener( new ChannelFutureListener() {
-          public void operationComplete( ChannelFuture future) throws Exception
-          {
-            if ( future.isSuccess())
-            {
-              remoteExecute( clientPool, client, context, scriptNode, varArray, onComplete, onSuccess, onError, timeout);
-            }
-            else
-            {
-              context.set( "error", "Connection not established!");
-              onError.run( context);
-            }
-          }
-        });
+        client.connect( address, connectionRetries).await( timeout);
+        remoteExecute( clientPool, client, context, scriptNode, varArray, onComplete, onSuccess, onError, timeout);
+        
+//      ChannelFuture future = client.connect( address, connectionRetries);
+//        future.addListener( new ChannelFutureListener() {
+//          public void operationComplete( ChannelFuture future) throws Exception
+//          {
+//            if ( future.isSuccess())
+//            {
+//              remoteExecute( clientPool, client, context, scriptNode, varArray, onComplete, onSuccess, onError, timeout);
+//            }
+//            else
+//            {
+//              context.set( "error", "Connection not established!");
+//              onError.run( context);
+//            }
+//          }
+//        });
       }
       else
       {
