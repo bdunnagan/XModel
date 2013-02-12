@@ -26,7 +26,8 @@ package org.xmodel.xaction;
 
 import java.io.IOException;
 import java.util.List;
-
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
@@ -169,19 +170,19 @@ public class RunAction extends GuardedAction
    * @param context The context.
    * @return Returns the execution result.
    */
-  private Object[] runRemote( IContext context)
+  private Object[] runRemote( final IContext context)
   {
-    String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
-    int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): -1;
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    final String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
+    final int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): -1;
+    final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
 
-    IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
-    IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
-    IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
+    final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
+    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
-    String[] varArray = vars.split( "\\s*,\\s*");
-    IModelObject scriptNode = getScriptNode( context);
+    final String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
+    final String[] varArray = vars.split( "\\s*,\\s*");
+    final IModelObject scriptNode = getScriptNode( context);
 
     try
     {
@@ -193,8 +194,6 @@ public class RunAction extends GuardedAction
         XioClient client = null;
         try
         {
-//          client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
-//          if ( !client.isConnected()) throw new IOException( "Connection not established.");
           client = new XioClient( context, context);
           if ( !client.connect( host, port, connectionRetries).await( timeout)) 
             throw new IOException( "Connection not established.");
@@ -204,20 +203,62 @@ public class RunAction extends GuardedAction
         }
         finally
         {
-//          if ( client != null) clientSyncPool.release( context, client);
           if ( client != null) client.close();
         }
       }
       else
       {
-//        XioClient client = clientSyncPool.lease( context, new InetSocketAddress( host, port));
-//        if ( !client.isConnected()) throw new IOException( "Connection not established.");
-        XioClient client = new XioClient( context, context);
-        if ( !client.connect( host, port, connectionRetries).await( timeout)) 
-          throw new IOException( "Connection not established.");
-        
-        AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
-        client.execute( context, varArray, scriptNode, callback, timeout);
+        final XioClient client = new XioClient( context, context);
+        ChannelFuture future = client.connect( host, port, connectionRetries);
+        future.addListener( new ChannelFutureListener() {
+          public void operationComplete( ChannelFuture future) throws Exception
+          {
+            if ( future.isSuccess())
+            {
+              context.getModel().dispatch( new Runnable() {
+                public void run()
+                {
+                  try
+                  {
+                    AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
+                    client.execute( context, varArray, scriptNode, callback, timeout);
+                  }
+                  catch( Exception e)
+                  {
+                    if ( onError != null) 
+                    {
+                      context.set( "error", "Execution failed!");
+                      onError.run( context);
+                    }
+                    
+                    if ( onComplete != null)
+                    {
+                      onComplete.run( context);
+                    }
+                  }
+                }
+              });
+            }
+            else
+            {
+              context.getModel().dispatch( new Runnable() {
+                public void run()
+                {
+                  if ( onError != null) 
+                  {
+                    context.set( "error", "Connection not established!");
+                    onError.run( context);
+                  }
+                  
+                  if ( onComplete != null)
+                  {
+                    onComplete.run( context);
+                  }
+                }
+              });
+            }
+          }
+        });
       }
       
       log.debug( "Finished remote.");
