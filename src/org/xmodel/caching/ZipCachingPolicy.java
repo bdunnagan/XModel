@@ -43,7 +43,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 /**
  * A caching policy for zip files. This caching policy loads the contents of the zip file in stages.
  */
-public class ZipCachingPolicy extends ConfiguredCachingPolicy
+public class ZipCachingPolicy extends ConfiguredCachingPolicy implements Cloneable
 {
   public ZipCachingPolicy()
   {
@@ -188,6 +188,17 @@ public class ZipCachingPolicy extends ConfiguredCachingPolicy
     return null;
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException
+  {
+    ZipCachingPolicy clone = new ZipCachingPolicy();
+    clone.associations = associations;
+    return clone;
+  }
+
   private final static IFileAssociation txtAssociation = new TxtAssociation();
   private final static IFileAssociation xipAssociation = new XipAssociation();
   private final static IFileAssociation xmlAssociation = new XmlAssociation();

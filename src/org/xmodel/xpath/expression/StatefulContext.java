@@ -54,6 +54,7 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext context)
   {
     this( new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
+    setExecutor( context.getExecutor());
   }
   
   /**
@@ -104,7 +105,7 @@ public class StatefulContext implements IContext
   }
 
   /**
-   * Create a context with the specified parent. This method is useful for 
+   * Create a context with the specified parent scope. This method is useful for 
    * creating a nested context with its own local context variable scope.
    * @param scope A context whose scope will be shared.
    * @param object The context node.
@@ -112,10 +113,11 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext scope, IModelObject object)
   {
     this( new ContextScope( scope.getScope()), object, 1, 1);
+    setExecutor( scope.getExecutor());
   }
   
   /**
-   * Create a context with the specified parent. This method is useful for 
+   * Create a context with the specified parent scope. This method is useful for 
    * creating a nested context with its own local context variable scope.
    * @param scope A context whose scope will be shared.
    * @param object The context node.
@@ -125,6 +127,7 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext scope, IModelObject object, int position, int size)
   {
     this( new ContextScope( scope.getScope()), object, position, size);
+    setExecutor( scope.getExecutor());
   }
 
 //  /* (non-Javadoc)

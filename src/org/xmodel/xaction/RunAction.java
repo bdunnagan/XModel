@@ -29,7 +29,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -202,22 +201,22 @@ public class RunAction extends GuardedAction
       }
       
       // execute synchronously unless one of the async callback scripts exists
-      if ( onComplete == null && onSuccess == null && onError == null)
+      try
       {
-        try
+        if ( onComplete == null && onSuccess == null && onError == null)
         {
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
-        finally
+        else
         {
-          if ( client != null) clientPool.release( client);
+          AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+          client.execute( context, varArray, scriptNode, callback, timeout);
         }
       }
-      else
+      finally
       {
-        AsyncCallback callback = new AsyncCallback( clientPool, client, onComplete, onSuccess, onError);
-        client.execute( context, varArray, scriptNode, callback, timeout);
+        if ( client != null) clientPool.release( client);
       }
       
       log.debug( "Finished remote.");
@@ -355,10 +354,8 @@ public class RunAction extends GuardedAction
   
   private final class AsyncCallback implements IXioCallback
   {
-    public AsyncCallback( XioClientPool clientPool, XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public AsyncCallback( IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
-      this.clientPool = clientPool;
-      this.client = client;
       this.onComplete = onComplete;
       this.onSuccess = onSuccess;
       this.onError = onError;
@@ -371,7 +368,6 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-      clientPool.release( client);
     }
 
     /* (non-Javadoc)
@@ -400,8 +396,6 @@ public class RunAction extends GuardedAction
       }
     }
     
-    private XioClientPool clientPool;
-    private XioClient client;
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;

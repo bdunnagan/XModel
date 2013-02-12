@@ -33,7 +33,7 @@ import org.xmodel.external.UnboundedCache;
 /**
  * A caching policy for loading a zip file entry.
  */
-public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
+public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy implements Cloneable
 {
   public ZipEntryCachingPolicy()
   {
@@ -105,5 +105,14 @@ public class ZipEntryCachingPolicy extends ConfiguredCachingPolicy
       ancestor = ancestor.getParent();
     }
     return null;
+  }
+  
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException
+  {
+    return new ZipEntryCachingPolicy();
   }
 }
