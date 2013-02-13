@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 
@@ -28,6 +29,7 @@ public class XioClientPool
     this.clients = new HashMap<String, Queue<XioClient>>();
     this.timers = new ConcurrentHashMap<XioClient, ScheduledFuture<?>>();
     this.idleTimeout = defaultIdleTimeout;
+    this.count = new AtomicInteger( 0);
   }
   
   /**
@@ -156,4 +158,5 @@ public class XioClientPool
   private Map<String, Queue<XioClient>> clients;
   private Map<XioClient, ScheduledFuture<?>> timers;
   private int idleTimeout;
+  private AtomicInteger count;
 }
