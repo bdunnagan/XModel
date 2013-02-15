@@ -25,8 +25,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.zip.CRC32;
+
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ICachingPolicy;
@@ -318,7 +320,7 @@ public class ModelAlgorithms implements IAxis
    */
   public static IModelObject cloneTree( IModelObject object)
   {
-    return cloneTree( object, null);
+    return cloneTree( object, null, null);
   }
   
   /**
@@ -326,10 +328,10 @@ public class ModelAlgorithms implements IAxis
    * the factory is null then a default factory is used.
    * @param object The root of the subtree to clone.
    * @param factory The factory to use when creating objects in the tree.
+   * @param exclude Null or a list of descendants of the object to be excluded.
    * @return Returns a complete clone of the subtree.
-   * TODO: Optimize cloning with backdoor for fast object creation without involving IModel
    */
-  public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory)
+  public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory, Set<IModelObject> exclude)
   {
     IModelObject thisDup = (factory == null)? object.cloneObject(): factory.createClone( object);
     Fifo<IModelObject> fifo = new Fifo<IModelObject>();
@@ -343,18 +345,21 @@ public class ModelAlgorithms implements IAxis
       for ( int i=0; i<children.size(); i++)
       {
         IModelObject child = (IModelObject)children.get( i);
-        IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
-        if ( childDup != null)
+        if ( exclude == null || !exclude.contains( child))
         {
-          sourceDup.addChild( childDup);
-          fifo.push( child);
-          fifo.push( childDup);
+          IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
+          if ( childDup != null)
+          {
+            sourceDup.addChild( childDup);
+            fifo.push( child);
+            fifo.push( childDup);
+          }
         }
       }
     }
     return thisDup;
   }
-
+  
 //  /**
 //   * Create a clone of the specified object. If the object has a caching policy, then the caching policy
 //   * is cloned and the new element will be left in the dirty state.
@@ -428,7 +433,7 @@ public class ModelAlgorithms implements IAxis
   public static IModelObject cloneBranch( IModelObject object, IModelObjectFactory factory)
   {
     // clone tree
-    IModelObject clone = cloneTree( object, factory);
+    IModelObject clone = cloneTree( object, factory, null);
     
     // clone ancestors
     IModelObject child = clone;
@@ -471,7 +476,7 @@ public class ModelAlgorithms implements IAxis
     if ( factory == null) factory = new ModelObjectFactory();
     for ( IModelObject child: source.getChildren())
     {
-      IModelObject clone = cloneTree( child, factory);
+      IModelObject clone = cloneTree( child, factory, null);
       destination.addChild( clone);
     }
   }

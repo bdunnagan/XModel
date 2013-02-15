@@ -91,7 +91,7 @@ public class CreateAction extends GuardedAction
     // create children
     for( IModelObject child: document.getRoot().getChildren())
     {
-      IModelObject element = ModelAlgorithms.cloneTree( child, factory);
+      IModelObject element = ModelAlgorithms.cloneTree( child, factory, null);
       replaceTemplateExpressions( context, element);
       elements.add( element);
     }

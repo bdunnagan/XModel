@@ -398,7 +398,7 @@ public class BreakAction extends GuardedAction implements IBreakHandler
   {
     try
     {
-      IModelObject clone = ModelAlgorithms.cloneTree( element, factory);
+      IModelObject clone = ModelAlgorithms.cloneTree( element, factory, null);
       String xml = xmlIO.write( clone);
       showText( prefix, xml, maxLines);
     }

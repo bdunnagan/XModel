@@ -19,7 +19,10 @@
  */
 package org.xmodel.xaction;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -30,6 +33,7 @@ import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 
 public class AddAction extends GuardedAction
@@ -50,6 +54,9 @@ public class AddAction extends GuardedAction
     sourceExpr = document.getExpression( "source", true);
     targetExpr = document.getExpression( "target", true);
     indexExpr = document.getExpression( "index", true);
+    
+    // get filter
+    filterExpr = document.getExpression( "filter", true);
     
     // alternate form with either source or target expression defined in value
     if ( sourceExpr == null) sourceExpr = document.getExpression();
@@ -119,6 +126,13 @@ public class AddAction extends GuardedAction
         }
         else if ( mode.equals( "copy"))
         {
+          Set<IModelObject> exclude = null;
+          if ( filterExpr != null)
+          {
+            StatefulContext filterContext = new StatefulContext( context, source);
+            exclude = new HashSet<IModelObject>( filterExpr.evaluateNodes( filterContext));
+          }
+          
           if ( unique)
           {
             IModelObject matching = target.getChild( source.getType(), source.getID());
@@ -130,13 +144,13 @@ public class AddAction extends GuardedAction
             }
             else
             {
-              IModelObject object = ModelAlgorithms.cloneTree( source, factory);
+              IModelObject object = ModelAlgorithms.cloneTree( source, factory, exclude);
               target.addChild( object, start);        	  
             }
           }
           else
           {
-            IModelObject object = ModelAlgorithms.cloneTree( source, factory);
+            IModelObject object = ModelAlgorithms.cloneTree( source, factory, exclude);
             target.addChild( object, start);
           }
         }
@@ -157,6 +171,7 @@ public class AddAction extends GuardedAction
   private IExpression sourceExpr;
   private IExpression targetExpr;
   private IExpression indexExpr;
+  private IExpression filterExpr;
   private String mode;
   private boolean unique;
   private boolean create;

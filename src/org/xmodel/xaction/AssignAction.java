@@ -20,7 +20,10 @@
 package org.xmodel.xaction;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.ModelAlgorithms;
@@ -28,6 +31,7 @@ import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.IVariableSource;
 
@@ -62,6 +66,9 @@ public class AssignAction extends GuardedAction
     // load IModelObjectFactory class
     factory = Conventions.getFactory( config);
 
+    // get filter
+    filterExpr = document.getExpression( "filter", true);
+    
     // flags
     mode = Xlate.get( config, "mode", "assign");
     append = Xlate.get( config, "append", false);
@@ -114,7 +121,17 @@ public class AssignAction extends GuardedAction
           else if ( mode.equals( "copy"))
           {
             List<IModelObject> clones = new ArrayList<IModelObject>( sources.size());
-            for( IModelObject source: sources) clones.add( ModelAlgorithms.cloneTree( source, factory));
+            for( IModelObject source: sources) 
+            {
+              Set<IModelObject> exclude = null;
+              if ( filterExpr != null)
+              {
+                StatefulContext filterContext = new StatefulContext( context, source);
+                exclude = new HashSet<IModelObject>( filterExpr.evaluateNodes( filterContext));
+              }
+              
+              clones.add( ModelAlgorithms.cloneTree( source, factory, exclude));
+            }
             setVariable( scope, clones);
           }
           else if ( mode.equals( "clone"))
@@ -222,5 +239,6 @@ public class AssignAction extends GuardedAction
   private boolean define;
   private IModelObjectFactory factory;
   private IExpression sourceExpr;
+  private IExpression filterExpr;
   private List<IModelObject> inlines;
 }

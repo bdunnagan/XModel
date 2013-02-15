@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -165,7 +163,7 @@ public class RunAction extends GuardedAction
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
     //
-    StatefulContext runContext = new StatefulContext( context);
+    StatefulContext runContext = new StatefulContext( context.getScope().cloneOne(), context.getObject());
     runContext.setExecutor( executor);
     executor.execute( new ScriptRunnable( runContext, script));
   }
@@ -253,8 +251,9 @@ public class RunAction extends GuardedAction
       }
       else
       {
+        StatefulContext runContext = new StatefulContext( context.getScope().cloneOne(), context.getObject());
         AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-        client.execute( context, varArray, scriptNode, callback, timeout);
+        client.execute( runContext, varArray, scriptNode, callback, timeout);
       }
     }
     finally
