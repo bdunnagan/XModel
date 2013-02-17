@@ -5,7 +5,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -71,7 +70,7 @@ public class XioClient extends XioPeer
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler, null));
         return pipeline;
       }
     });
@@ -133,9 +132,7 @@ public class XioClient extends XioPeer
    */
   public ChannelFuture connect( InetSocketAddress address)
   {
-    ChannelFuture future = bootstrap.connect( address);
-    channel = future.getChannel();
-    return future;
+    return connect( address, 3, 1000);
   }
   
   /**
@@ -172,6 +169,13 @@ public class XioClient extends XioPeer
    */
   public ConnectFuture connect( InetSocketAddress address, int retries, int[] delays)
   {
+    synchronized( this)
+    {
+      lastAddress = address;
+      lastRetries = retries;
+      lastDelays = delays;
+    }
+    
     ConnectFuture future = new ConnectFuture( bootstrap, address, scheduler, retries, delays);
     future.addListener( new ChannelFutureListener() {
       public void operationComplete( ChannelFuture future) throws Exception
@@ -181,16 +185,27 @@ public class XioClient extends XioPeer
     });
     return future;
   }
-  
-  /**
-   * Set the channel.
-   * @param channel The channel.
+    
+  /* (non-Javadoc)
+   * @see org.xmodel.net.XioPeer#reconnect()
    */
-  private synchronized void setChannel( Channel channel)
+  @Override
+  protected ChannelFuture reconnect()
   {
-    this.channel = channel;
+    InetSocketAddress address = null;
+    int retries = 0;
+    int[] delays = null;
+    
+    synchronized( this)
+    {
+      address = lastAddress;
+      retries = lastRetries;
+      delays = lastDelays;
+    }
+    
+    return (lastAddress != null)? connect( address, retries, delays): null;
   }
-  
+
   private static synchronized Executor getDefaultBossExecutor()
   {
     if ( defaultBossExecutor == null)
@@ -210,4 +225,7 @@ public class XioClient extends XioPeer
   
   private ClientBootstrap bootstrap;
   private ScheduledExecutorService scheduler;
+  private InetSocketAddress lastAddress;
+  private int lastRetries;
+  private int[] lastDelays;
 }

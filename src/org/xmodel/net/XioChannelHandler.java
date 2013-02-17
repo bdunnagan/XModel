@@ -14,6 +14,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
+import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -35,21 +36,24 @@ public class XioChannelHandler extends SimpleChannelHandler
     removeChild,
     changeAttribute,
     clearAttribute,
-    changeDirty
+    changeDirty,
+    register,
+    unregister
   }
   
-  public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler)
+  public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler, IXioPeerRegistry registry)
   {
     if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     headerProtocol = new HeaderProtocol();
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
+    this.registry = registry;
   }
   
   public XioChannelHandler( XioChannelHandler handler)
   {
-    this( handler.bindProtocol.context, handler.executionProtocol.executor, handler.executionProtocol.scheduler);
+    this( handler.bindProtocol.context, handler.executionProtocol.executor, handler.executionProtocol.scheduler, handler.registry);
   }
   
   /**
@@ -74,6 +78,9 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
+    if ( registry != null)
+      registry.channelConnected( e.getChannel());
+     
 //    final SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
 //
 //    ChannelFuture handshakeFuture = sslHandler.handshake();
@@ -86,6 +93,9 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
+    if ( registry != null)
+      registry.channelDisconnected( e.getChannel());
+    
     bindProtocol.reset();
     executionProtocol.reset();
   }
@@ -164,6 +174,9 @@ public class XioChannelHandler extends SimpleChannelHandler
       case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
       case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
       case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
+      
+      case register:        registerProtocol.registerRequestProtocol.handle( channel, buffer); return true;
+      case unregister:      registerProtocol.unregisterRequestProtocol.handle( channel, buffer); return true;
     }
     
     return false;
@@ -217,6 +230,8 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   private ChannelBuffer buffer;
   private HeaderProtocol headerProtocol;
+  private RegisterProtocol registerProtocol;
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;
+  private IXioPeerRegistry registry;
 }

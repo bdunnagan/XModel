@@ -90,15 +90,13 @@ public class UpdateProtocol
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] attrNameBytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes();
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( new DataOutputStream( new ChannelBufferOutputStream( buffer2)), newValue);
     
-    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, attrLength);
+    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, attrLength);
     buffer1.writeInt( netID);
-    
-    byte[] bytes = attrName.getBytes();
     buffer1.writeByte( bytes.length);
     buffer1.writeBytes( bytes);
     
@@ -117,12 +115,11 @@ public class UpdateProtocol
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] attrNameBytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes();
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, 0);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, 0);
     buffer.writeInt( netID);
     
-    byte[] bytes = attrName.getBytes();
     buffer.writeByte( bytes.length);
     buffer.writeBytes( bytes);
     

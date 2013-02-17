@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
 import java.net.InetSocketAddress;
+import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,6 +47,8 @@ public class XioServer
    */
   public XioServer( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
+    this.registry = new MemoryXioPeerRegistry();
+    
     ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
     
     if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
@@ -65,7 +68,7 @@ public class XioServer
 //
 //        pipeline.addLast( "ssl", new SslHandler(engine));
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, context.getExecutor(), scheduler));
+        pipeline.addLast( "xio", new XioChannelHandler( context, context.getExecutor(), scheduler, registry));
         return pipeline;
       }
     });
@@ -95,6 +98,40 @@ public class XioServer
     }
   }
   
+  /**
+   * Register the specified remote-host with the specified name, remote-server reverse connection
+   * port, and time-to-live.  This registration provides all the information that a server needs
+   * to obtain a peer connection.
+   * @param name A name, not necessarily unique, to associate with the peer.
+   * @param host The host to be registered.
+   * @param port The server port number for reverse connection.
+   * @param ttl The duration of the association in milliseconds.
+   */
+  public void register( String name, String host, int port, long ttl)
+  {
+    registry.register( name, host, port);
+  }
+  
+  /**
+   * Cancel a peer registration by name and host.
+   * @param name The name associated with the peer.
+   * @param host The remote host.
+   */
+  public void cancel( String name, String host)
+  {
+    registry.cancel( name, host);
+  }
+  
+  /**
+   * Returns an iterator over XioPeer instances registered under the specified name.
+   * @param name The name.
+   * @return Returns the associated peers.
+   */
+  public Iterator<XioPeer> getPeerByName( String name)
+  {
+    return registry.lookup( name);
+  }
+
   /**
    * Get and/or create an XioPeer instance to represent the specified server connected channel.
    * @param channel A connected channel.
@@ -135,4 +172,5 @@ public class XioServer
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
+  private IXioPeerRegistry registry;
 }
