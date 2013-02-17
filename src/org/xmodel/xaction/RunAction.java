@@ -252,6 +252,8 @@ public class RunAction extends GuardedAction
       else
       {
         StatefulContext runContext = new StatefulContext( context.getScope().cloneOne(), context.getObject());
+        runContext.setExecutor( context.getExecutor());
+        
         AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
         client.execute( runContext, varArray, scriptNode, callback, timeout);
       }
