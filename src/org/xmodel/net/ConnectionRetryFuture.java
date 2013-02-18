@@ -18,7 +18,7 @@ import org.jboss.netty.channel.ChannelFutureListener;
  * identical to ChannelFuture with the exception that it may attempt to connect again if a connection attempt
  * fails.  In this case, the underlying ChannelFuture changes with each attempt.
  */
-public class ConnectFuture implements ChannelFuture
+public class ConnectionRetryFuture implements ChannelFuture
 {
   /**
    * Create with the ChannelFuture for the initial connection attempt.
@@ -28,7 +28,7 @@ public class ConnectFuture implements ChannelFuture
    * @param retries The maximum number of retry attempts.
    * @param delays An array of delays between retries in milliseconds.
    */
-  public ConnectFuture( ClientBootstrap bootstrap, SocketAddress address, ScheduledExecutorService scheduler, int retries, int[] delays)
+  public ConnectionRetryFuture( ClientBootstrap bootstrap, SocketAddress address, ScheduledExecutorService scheduler, int retries, int[] delays)
   {
     if ( retries < 0) throw new IllegalArgumentException( "retries < 0");
     if ( delays.length == 0) throw new IllegalArgumentException( "delays.length == 0");

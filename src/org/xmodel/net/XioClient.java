@@ -95,7 +95,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( String address, int port, int retries, int delay)
+  public ConnectionRetryFuture connect( String address, int port, int retries, int delay)
   {
     return connect( new InetSocketAddress( address, port), retries, new int[] { delay});
   }
@@ -107,7 +107,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( String address, int port, int[] delays)
+  public ConnectionRetryFuture connect( String address, int port, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), delays.length, delays);
   }
@@ -120,7 +120,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( String address, int port, int retries, int[] delays)
+  public ConnectionRetryFuture connect( String address, int port, int retries, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), retries, delays);
   }
@@ -143,7 +143,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( InetSocketAddress address, int retries, int delay)
+  public ConnectionRetryFuture connect( InetSocketAddress address, int retries, int delay)
   {
     return connect( address, retries, new int[] { delay});
   }
@@ -155,7 +155,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( InetSocketAddress address, int[] delays)
+  public ConnectionRetryFuture connect( InetSocketAddress address, int[] delays)
   {
     return connect( address, delays.length, delays);
   }
@@ -167,7 +167,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectFuture connect( InetSocketAddress address, int retries, int[] delays)
+  public ConnectionRetryFuture connect( InetSocketAddress address, int retries, int[] delays)
   {
     synchronized( this)
     {
@@ -176,7 +176,7 @@ public class XioClient extends XioPeer
       lastDelays = delays;
     }
     
-    ConnectFuture future = new ConnectFuture( bootstrap, address, scheduler, retries, delays);
+    ConnectionRetryFuture future = new ConnectionRetryFuture( bootstrap, address, scheduler, retries, delays);
     future.addListener( new ChannelFutureListener() {
       public void operationComplete( ChannelFuture future) throws Exception
       {

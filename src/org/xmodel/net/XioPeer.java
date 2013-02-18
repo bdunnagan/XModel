@@ -36,6 +36,42 @@ class XioPeer
   }
   
   /**
+   * Register this peer under the specified name with the remote endpoint.
+   * @param name The name to be associated with this peer.
+   */
+  public void register( String name) throws IOException, InterruptedException
+  {
+    if ( retry && (channel == null || !channel.isConnected()))
+    {
+      ChannelFuture future = reconnect();
+      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
+      future.await(); 
+    }
+    
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getRegisterProtocol().registerRequestProtocol.send( channel, name);
+  }
+  
+  /**
+   * Unregister this peer under the specified name with the remote endpoint.
+   * @param name The name previously associated with this peer.
+   */
+  public void unregister( String name) throws IOException, InterruptedException
+  {
+    if ( retry && (channel == null || !channel.isConnected()))
+    {
+      ChannelFuture future = reconnect();
+      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
+      future.await(); 
+    }
+    
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getRegisterProtocol().unregisterRequestProtocol.send( channel, name);
+  }
+  
+  /**
    * Remotely bind the specified query.
    * @param reference The reference for which the bind is being performed.
    * @param readonly True if binding is readonly.

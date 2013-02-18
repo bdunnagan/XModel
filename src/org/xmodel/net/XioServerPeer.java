@@ -17,11 +17,25 @@ public class XioServerPeer extends XioPeer
   @Override
   protected ChannelFuture reconnect()
   {
+    synchronized( this)
+    {
+      this.future = new ClientConnectionFuture();
+    }
+    
+    
   }
   
   protected void connected( Channel channel)
   {
-    setChannel( channel);
+    ChannelFuture future = null;
+    
+    synchronized( this)
+    {
+      setChannel( channel);
+      future = this.future;
+    }
+    
+    if ( future != null) future.setSuccess();
   }
   
   protected void disconnected()
@@ -29,4 +43,5 @@ public class XioServerPeer extends XioPeer
   }
   
   private InetSocketAddress address;
+  private ChannelFuture future;
 }

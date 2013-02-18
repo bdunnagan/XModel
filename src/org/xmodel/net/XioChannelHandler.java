@@ -45,6 +45,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     headerProtocol = new HeaderProtocol();
+    registerProtocol = new RegisterProtocol( registry, headerProtocol);
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
@@ -54,6 +55,14 @@ public class XioChannelHandler extends SimpleChannelHandler
   public XioChannelHandler( XioChannelHandler handler)
   {
     this( handler.bindProtocol.context, handler.executionProtocol.executor, handler.executionProtocol.scheduler, handler.registry);
+  }
+  
+  /**
+   * @return Returns the protocol that implements registration.
+   */
+  public RegisterProtocol getRegisterProtocol()
+  {
+    return registerProtocol;
   }
   
   /**
