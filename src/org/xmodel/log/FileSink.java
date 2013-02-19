@@ -51,8 +51,6 @@ public final class FileSink implements ILogSink
       if ( logFolder == null) logFolder = "logs";
     }
     
-    System.out.println( "log-folder="+logFolder);
-    
     this.logFolder = new File( logFolder).getAbsoluteFile();
     this.filePrefix = filePrefix;
     this.maxFileCount = maxFileCount;

@@ -137,17 +137,6 @@ public final class Log
   }
   
   /**
-   * Set the sink to be used by all logs whose names that match the specified regular expression.
-   * @param regex The regular expression.
-   * @param sink The sink.
-   */
-  public static void setSink( String regex, ILogSink sink)
-  {
-    for( Log log: map.findLogs( Pattern.compile( regex)))
-      log.setSink( sink);
-  }
-  
-  /**
    * Set the default implementation of ILogSink used by newly created Log instances.
    * @param sink The sink.
    */
@@ -159,7 +148,7 @@ public final class Log
   protected Log()
   {
     this.mask = new AtomicInteger( problems | info);
-    this.sink = new AtomicReference<ILogSink>( defaultSink.get());
+    this.sink = null;
   }
   
   /**
@@ -178,16 +167,7 @@ public final class Log
   {
     return mask.get();
   }
-  
-  /**
-   * Set the log sink.
-   * @param sink The log sink.
-   */
-  public void setSink( ILogSink sink)
-  {
-    this.sink.set( sink);
-  }
-  
+    
   /**
    * Returns true if the specified logging level is enabled.
    * @param level The logging level.
@@ -472,7 +452,9 @@ public final class Log
   public void exception( Throwable throwable)
   {
     if ( (mask.get() & exception) == 0) return;
-    if ( sink != null) sink.get().log( this, exception, throwable);
+    
+    if ( sink == null) sink = defaultSink.get();
+    sink.log( this, exception, throwable);
     
     Throwable cause = throwable.getCause();
     if ( cause != null && cause != throwable)
@@ -488,7 +470,9 @@ public final class Log
   public void exceptionf( Throwable throwable, String format, Object... params)
   {
     if ( (mask.get() & exception) == 0) return;
-    if ( sink != null) sink.get().log( this, exception, String.format( format, params), throwable);
+    
+    if ( sink == null) sink = defaultSink.get();
+    sink.log( this, exception, String.format( format, params), throwable);
     
     Throwable cause = throwable.getCause();
     if ( cause != null && cause != throwable)
@@ -505,11 +489,12 @@ public final class Log
     if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.get().log( this, level, message);
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, message);
     }
     catch( Exception e)
     {
-      log( error, String.format( "Caught exception in log event for message, '%s'", message), e);
+      log( error, e.toString());
     }
   }
   
@@ -524,11 +509,12 @@ public final class Log
     if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.get().log( this, level, message, throwable);
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, message, throwable);
     }
     catch( Exception e)
     {
-      log( error, e.getMessage());
+      log( error, e.toString());
     }
   }
   
@@ -543,11 +529,12 @@ public final class Log
     if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.get().log( this, level, String.format( format, params));
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, String.format( format, params));
     }
     catch( Exception e)
     {
-      log( error, String.format( "Caught exception in log event for message with format, '%s'", format), e);
+      log( error, e.toString());
     }
   }
   
@@ -555,5 +542,5 @@ public final class Log
   private static AtomicReference<ILogSink> defaultSink = new AtomicReference<ILogSink>( new FormatSink( new ConsoleSink()));
     
   private AtomicInteger mask;
-  private AtomicReference<ILogSink> sink;
+  private ILogSink sink;
 }

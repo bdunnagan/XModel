@@ -119,7 +119,7 @@ public class ExecutionResponseProtocol
     
     ResponseTask task = tasks.remove( correlation);
     log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
-    if ( task != null && !task.isExpired()) 
+    if ( task != null && task.cancelTimer()) 
     {
       task.setResponse( response);
       Executor executor = task.context.getExecutor();
@@ -193,12 +193,12 @@ public class ExecutionResponseProtocol
     }
     
     /**
-     * Test whether this task has expired.
-     * @return Returns true if task has expired.
+     * Cancel timer and true if timer has not already fired.
+     * @return Returns true if cancellation was successful and timer has not already fired.
      */
-    public boolean isExpired()
+    public boolean cancelTimer()
     {
-      return timer != null && !timer.cancel( false);
+      return timer != null && timer.cancel( false);
     }
     
     /**

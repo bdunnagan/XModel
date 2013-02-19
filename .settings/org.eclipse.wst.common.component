@@ -3,5 +3,6 @@
     <wb-module deploy-name="XModel">
         <wb-resource deploy-path="/" source-path="/src"/>
         <wb-resource deploy-path="/" source-path="/test"/>
+        <wb-resource deploy-path="/" source-path="/slf4j"/>
     </wb-module>
 </project-modules>

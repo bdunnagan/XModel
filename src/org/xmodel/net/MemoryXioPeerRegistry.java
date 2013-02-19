@@ -6,11 +6,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.netty.channel.Channel;
 import org.xmodel.log.SLog;
 
 public class MemoryXioPeerRegistry implements IXioPeerRegistry
 {
+  public MemoryXioPeerRegistry()
+  {
+    channelsByHost = new ConcurrentHashMap<String, Channel>();
+    addressesByName = new HashMap<String, Map<String, InetSocketAddress>>();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.IXioPeerRegistry#register(java.lang.String, java.lang.String, int, long)
    */
