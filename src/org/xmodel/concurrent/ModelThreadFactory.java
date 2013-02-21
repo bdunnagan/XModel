@@ -26,7 +26,7 @@ public class ModelThreadFactory implements ThreadFactory
   @Override
   public Thread newThread( final Runnable runnable)
   {
-    String name = String.format( "%s-%d-%d", prefix, classCounter.incrementAndGet(), threadCounter.incrementAndGet());
+    String name = String.format( "%s-%d", prefix, threadCounter.incrementAndGet());
     return new Thread( new Runnable() {
       public void run()
       {
@@ -35,8 +35,6 @@ public class ModelThreadFactory implements ThreadFactory
       }
     }, name);
   }
-  
-  private static AtomicInteger classCounter = new AtomicInteger( 0);
   
   private AtomicInteger threadCounter;
   private String prefix;
