@@ -28,7 +28,7 @@ public class XioClient extends XioPeer
    */
   public XioClient( Executor executor)
   {
-    this( null, null, null, null, executor);
+    this( null, null, executor);
   }
   
   /**
@@ -38,7 +38,7 @@ public class XioClient extends XioPeer
    */
   public XioClient( IContext context)
   {
-    this( context, null, null, null, context.getExecutor());
+    this( context, null, context.getExecutor());
   }
   
   /**
@@ -52,17 +52,45 @@ public class XioClient extends XioPeer
    * </ul>
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
-   * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
+   * @param contextExecutor
    */
-  public XioClient( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor, final Executor contextExecutor)
+  public XioClient( final IContext context, final ScheduledExecutorService scheduler, final Executor contextExecutor)
   {
-    if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
-    if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
-    
     this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
     
-    bootstrap = new ClientBootstrap( new NioClientSocketChannelFactory( bossExecutor, workerExecutor));
+    bootstrap = new ClientBootstrap( getDefaultChannelFactory());
+    bootstrap.setOption( "tcpNoDelay", true);
+    bootstrap.setOption( "keepAlive", true);
+    
+    bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
+      public ChannelPipeline getPipeline() throws Exception
+      {
+        ChannelPipeline pipeline = Channels.pipeline();
+        pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler, null));
+        return pipeline;
+      }
+    });
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
+   * for optional arguments. The following table shows defaults used for each optional argument:
+   * <ul>
+   *   <li>context - Required for remote execution from the server</li>
+   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
+   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
+   * </ul>
+   * @param context Optional context.
+   * @param scheduler Optional scheduler used for protocol timers.
+   * @param channelFactory User-supplied channel factory.
+   * @param contextExecutor
+   */
+  public XioClient( final IContext context, final ScheduledExecutorService scheduler, NioClientSocketChannelFactory channelFactory, final Executor contextExecutor)
+  {
+    this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
+    
+    bootstrap = new ClientBootstrap( channelFactory);
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
     
@@ -206,6 +234,13 @@ public class XioClient extends XioPeer
     return (lastAddress != null)? connect( address, retries, delays): null;
   }
 
+  private static synchronized NioClientSocketChannelFactory getDefaultChannelFactory()
+  {
+    if ( defaultChannelFactory == null)
+      defaultChannelFactory = new NioClientSocketChannelFactory( getDefaultBossExecutor(), getDefaultWorkerExecutor());
+    return defaultChannelFactory;
+  }
+
   private static synchronized Executor getDefaultBossExecutor()
   {
     if ( defaultBossExecutor == null)
@@ -220,6 +255,7 @@ public class XioClient extends XioPeer
     return defaultWorkerExecutor;
   }
   
+  private static NioClientSocketChannelFactory defaultChannelFactory = null;
   private static Executor defaultBossExecutor = null;
   private static Executor defaultWorkerExecutor = null;
   
