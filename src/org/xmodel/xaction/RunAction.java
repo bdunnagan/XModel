@@ -163,7 +163,8 @@ public class RunAction extends GuardedAction
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
     //
-    StatefulContext runContext = new StatefulContext( context.getScope().cloneOne(), context.getObject());
+    StatefulContext runContext = new StatefulContext( context.getObject());
+    runContext.getScope().copyFrom( context.getScope());
     runContext.setExecutor( executor);
     executor.execute( new ScriptRunnable( runContext, script));
   }
@@ -251,7 +252,8 @@ public class RunAction extends GuardedAction
       }
       else
       {
-        StatefulContext runContext = new StatefulContext( context.getScope().cloneOne(), context.getObject());
+        StatefulContext runContext = new StatefulContext( context.getObject());
+        runContext.getScope().copyFrom( context.getScope());
         runContext.setExecutor( context.getExecutor());
         
         AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);

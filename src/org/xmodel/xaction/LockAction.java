@@ -28,13 +28,12 @@ public class LockAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> nodes = onExpr.evaluateNodes( context);
-    if ( nodes.size() != 1) 
-    {
-      throw new XActionException( "Target node-set of LockAction must contain exactly 1 node.");
-    }
+    Object lock = context;
     
-    synchronized( nodes.get( 0))
+    List<IModelObject> nodes = (onExpr != null)? onExpr.evaluateNodes( context): null;
+    if ( nodes != null && nodes.size() > 0) lock = nodes.get( 0);
+       
+    synchronized( lock)
     {
       return script.run( context);
     }
