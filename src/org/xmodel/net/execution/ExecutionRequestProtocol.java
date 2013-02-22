@@ -1,10 +1,12 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -172,6 +174,12 @@ public class ExecutionRequestProtocol
     // to hold the variables that will be passed to the script.
     //
     IContext context = new StatefulContext( bundle.context);
+    
+    // store remote address in context
+    InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
+    context.set(  "remoteHost", address.getHostName());
+    context.set(  "remotePort", address.getPort());
+    
     try
     {
       IModelObject element = ExecutionSerializer.readRequest( request, context);
