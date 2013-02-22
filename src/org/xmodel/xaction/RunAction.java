@@ -207,7 +207,9 @@ public class RunAction extends GuardedAction
           final StatefulContext runContext = new StatefulContext( context.getObject());
           runContext.getScope().copyFrom( context.getScope());
           runContext.setExecutor( context.getExecutor());
-  
+          runContext.set( "remoteHost", address.getHostName());
+          runContext.set( "remotePort", address.getPort());
+          
           if ( !client.isConnected())
           {
             ChannelFuture future = client.connect( address, connectionRetries);
