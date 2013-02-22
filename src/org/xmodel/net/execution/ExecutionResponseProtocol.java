@@ -198,7 +198,7 @@ public class ExecutionResponseProtocol
      */
     public boolean cancelTimer()
     {
-      return timer != null && timer.cancel( false);
+      return timer == null || timer.cancel( false);
     }
     
     /**
