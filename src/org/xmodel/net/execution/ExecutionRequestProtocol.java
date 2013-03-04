@@ -171,7 +171,7 @@ public class ExecutionRequestProtocol
     
     log.debugf( "ExecutionRequestProtocol.handleCancel: corr=%d", correlation);
     
-    RequestRunnable runnable = requests.get( correlation);
+    RequestRunnable runnable = requests.remove( correlation);
     if ( runnable != null) runnable.interrupt();
   }
   
