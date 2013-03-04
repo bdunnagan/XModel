@@ -128,7 +128,16 @@ public class ExecutionResponseProtocol
   }
   
   /**
-   * Allocates the next correlation number.
+   * Allocates the next correlation without associating a queue or task.
+   * @return Returns the allocated correlation number.
+   */
+  public int allocCorrelation()
+  {
+    return counter.incrementAndGet();
+  }
+  
+  /**
+   * Allocates the next correlation number for a synchronous execution.
    * @return Returns the correlation number.
    */
   protected int nextCorrelation()
@@ -139,15 +148,22 @@ public class ExecutionResponseProtocol
   }
   
   /**
-   * Allocates the next correlation number and associates the specified callback.
+   * Associate the specified callback with the specified correlation.
    * @param callback The callback.
    * @return Returns the correlation number.
    */
-  protected int nextCorrelation( ResponseTask runnable)
+  protected void setCorrelation( int correlation, ResponseTask runnable)
   {
-    int correlation = counter.incrementAndGet();
     tasks.put( correlation, runnable);
-    return correlation;
+  }
+  
+  /**
+   * Remove the async context associated with the specified correlation number.
+   * @param correlation The correlation number.
+   */
+  protected void cancel( int correlation)
+  {
+    tasks.remove( correlation);
   }
   
   /**

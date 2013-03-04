@@ -27,6 +27,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     executeRequest,
     executeResponse,
+    cancelRequest,
     bindRequest,
     bindResponse,
     unbindRequest,
@@ -171,6 +172,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     switch( type)
     {
       case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
+      case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
       case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
       
       case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;

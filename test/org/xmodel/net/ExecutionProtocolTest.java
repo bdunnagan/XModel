@@ -1,10 +1,13 @@
 package org.xmodel.net;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +15,9 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.concurrent.ThreadPoolExecutor;
+import org.xmodel.log.Log;
+import org.xmodel.net.execution.ExecutionRequestProtocol;
+import org.xmodel.net.execution.ExecutionResponseProtocol;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -28,7 +34,7 @@ public class ExecutionProtocolTest
   
   @Before public void start() throws IOException
   {
-    GlobalSettings.getInstance().getModel().setExecutor( new ThreadPoolExecutor( "server-model", 1));
+    GlobalSettings.getInstance().setDefaultExecutor( new ThreadPoolExecutor( "server-model", 1));
     serverContext = new StatefulContext();
     server = new XioServer( serverContext);
     server.start( address, port);
@@ -36,13 +42,16 @@ public class ExecutionProtocolTest
   
   @After public void shutdown() throws IOException
   {
-    for( XioClient client: clients)
+    if ( clients != null)
     {
-      client.close();
-      client = null;
+      for( XioClient client: clients)
+      {
+        client.close();
+        client = null;
+      }
+      clients.clear();
+      clients = null;
     }
-    clients.clear();
-    clients = null;
     
     server.stop();
     server = null;
@@ -53,7 +62,7 @@ public class ExecutionProtocolTest
 //    Log.getLog( ExecutionRequestProtocol.class).setLevel( Log.all);
 //    Log.getLog( ExecutionResponseProtocol.class).setLevel( Log.all);
     
-    GlobalSettings.getInstance().getModel().setExecutor( new ThreadPoolExecutor( "client-model", 1));
+    GlobalSettings.getInstance().setDefaultExecutor( new ThreadPoolExecutor( "client-model", 1));
     
     createClients( 1);
 
@@ -130,12 +139,56 @@ public class ExecutionProtocolTest
     assertTrue( String.format( "Payload count is %d, should be %d", count, largePayloadCount), count == largePayloadCount);
   }
     
+  @Test
+  public void cancelTest() throws Exception
+  {
+    Log.getLog( ExecutionRequestProtocol.class).setLevel( Log.all);
+    Log.getLog( ExecutionResponseProtocol.class).setLevel( Log.all);
+    
+    String xml = 
+      "<script>" +
+      "  <sleep>1000</sleep>" +
+      "</script>";
+    
+    IModelObject element = new XmlIO().read( xml);
+    
+    XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
+    assertTrue( "Failed to connect", client.connect( "localhost", port).await( 1000));
+
+    class Callback implements IXioCallback
+    {
+      public void onComplete( IContext context)
+      {
+        complete = true;
+      }
+      public void onSuccess( IContext context, Object[] results)
+      {
+        success = true;
+      }
+      public void onError( IContext context, String error)
+      {
+      }
+      
+      public boolean success;
+      public boolean complete;
+    };
+
+    Callback callback = new Callback();
+    StatefulContext context = new StatefulContext();
+    int corr = client.execute( context, new String[ 0], element, callback, 1200);
+    client.cancel( corr);
+    
+    Thread.sleep( 1500);
+    assertFalse( "Callback completed", callback.complete);
+    assertFalse( "Callback succeeded", callback.success);
+  }
+  
   private void createClients( int count) throws IOException
   {
     clients = new ArrayList<XioClient>();
     for( int i=0; i<count; i++)
     {
-      XioClient client = new XioClient();
+      XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
       clients.add( client);
     }
   }

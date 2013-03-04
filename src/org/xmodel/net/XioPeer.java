@@ -160,10 +160,13 @@ class XioPeer
    * @param element The element representing the operation to execute.
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
+   * @return Returns the correlation number for the request.
    */
-  public void execute( final IContext context, final String[] vars, final IModelObject element, final IXioCallback callback, final int timeout) 
-      throws IOException, InterruptedException
+  public int execute( final IContext context, final String[] vars, final IModelObject element, final IXioCallback callback, final int timeout) throws IOException, InterruptedException
   {
+    final XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    final int correlation = handler.getExecuteProtocol().responseProtocol.allocCorrelation();
+    
     Channel channel = getChannel();
     if ( retry && (channel == null || !channel.isConnected()))
     {
@@ -177,8 +180,7 @@ class XioPeer
           {
             Channel channel = future.getChannel();
             setChannel( channel);
-            XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
-            handler.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, callback, timeout);
+            handler.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
           }
           else
           {
@@ -196,9 +198,20 @@ class XioPeer
     else
     {
       if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
-      handler.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, callback, timeout);
+      handler.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
     }
+    
+    return correlation;
+  }
+  
+  /**
+   * Cancel the request with the specified correlation number.
+   * @param correlation The correlation number.
+   */
+  public void cancel( int correlation)
+  {
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getExecuteProtocol().requestProtocol.cancel( channel, correlation);
   }
   
   /**

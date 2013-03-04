@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +33,7 @@ public class ExecutionRequestProtocol
   public ExecutionRequestProtocol( ExecutionProtocol bundle)
   {
     this.bundle = bundle;
+    this.requests = new ConcurrentHashMap<Integer, RequestRunnable>();
   }
   
   /**
@@ -39,6 +42,7 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
+    requests.clear();
   }
   
   /**
@@ -76,13 +80,14 @@ public class ExecutionRequestProtocol
   /**
    * Send an asynchronous execution request via the specified channel.
    * @param channel The channel.
+   * @param correlation The preallocated correlation number.
    * @param context The local context.
    * @param vars Shared variables from the local context.
    * @param element The script element to execute.
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( Channel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
+  public void send( Channel channel, int correlation, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     ResponseTask task = new ResponseTask( context, callback);
     if ( timeout != Integer.MAX_VALUE)
@@ -91,7 +96,7 @@ public class ExecutionRequestProtocol
       task.setTimer( timer);
     }
     
-    int correlation = bundle.responseProtocol.nextCorrelation( task);
+    bundle.responseProtocol.setCorrelation( correlation, task);
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
     // The execution protocol can function in a variety of client/server threading models.
@@ -132,7 +137,42 @@ public class ExecutionRequestProtocol
     
     IModelObject request = compressor.decompress( new ChannelBufferInputStream( buffer));
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
+    requests.put( correlation, runnable);
     bundle.executor.execute( runnable);
+  }
+  
+  /**
+   * Cancel an asynchronous execute request.  This method first removes the async context associated with the specified
+   * correlation number, and then sends a cancel request to the server.  The handling of the cancel request is implementation
+   * dependent, and no guarantee is made that the server will interrupt the operation.
+   * @param channel The channel. 
+   * @param correlation The correlation number of the request.
+   */
+  public void cancel( Channel channel, int correlation)
+  {
+    log.debugf( "ExecutionRequestProtocol.cancel: corr=%d", correlation);
+    
+    // ignore response with this correlation
+    bundle.responseProtocol.cancel( correlation);
+
+    // send cancel
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.cancelRequest, 4, correlation);
+    channel.write( buffer);
+  }
+  
+  /**
+   * Handle an execution cancel request. 
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleCancel( Channel channel, ChannelBuffer buffer) throws IOException
+  {
+    int correlation = buffer.readInt();
+    
+    log.debugf( "ExecutionRequestProtocol.handleCancel: corr=%d", correlation);
+    
+    RequestRunnable runnable = requests.get( correlation);
+    if ( runnable != null) runnable.interrupt();
   }
   
   /**
@@ -212,18 +252,35 @@ public class ExecutionRequestProtocol
       this.request = request;
     }
     
+    /**
+     * Interrupt the thread currently processing this request.
+     */
+    public void interrupt()
+    {
+      if ( thread != null) thread.interrupt();
+    }
+    
     /* (non-Javadoc)
      * @see java.lang.Runnable#run()
      */
     @Override
     public void run()
     {
-      execute( channel, correlation, request);
+      try
+      {
+        thread = Thread.currentThread();
+        execute( channel, correlation, request);
+      }
+      finally
+      {
+        requests.remove( this);
+      }
     }
 
     private Channel channel;
     private int correlation;
     private IModelObject request;
+    private Thread thread;
   }
   
   private class ResponseTimeout implements Runnable
@@ -252,4 +309,5 @@ public class ExecutionRequestProtocol
 
   private ExecutionProtocol bundle;
   private ExecutionPrivilege privilege;
+  private Map<Integer, RequestRunnable> requests;
 }
