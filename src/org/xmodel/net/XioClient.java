@@ -4,6 +4,10 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -11,8 +15,10 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -56,20 +62,7 @@ public class XioClient extends XioPeer
    */
   public XioClient( final IContext context, final ScheduledExecutorService scheduler, final Executor contextExecutor)
   {
-    this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
-    
-    bootstrap = new ClientBootstrap( getDefaultChannelFactory());
-    bootstrap.setOption( "tcpNoDelay", true);
-    bootstrap.setOption( "keepAlive", true);
-    
-    bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
-      public ChannelPipeline getPipeline() throws Exception
-      {
-        ChannelPipeline pipeline = Channels.pipeline();
-        pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler, null));
-        return pipeline;
-      }
-    });
+    this( context, scheduler, getDefaultChannelFactory(), contextExecutor);
   }
   
   /**
@@ -88,6 +81,31 @@ public class XioClient extends XioPeer
    */
   public XioClient( final IContext context, final ScheduledExecutorService scheduler, NioClientSocketChannelFactory channelFactory, final Executor contextExecutor)
   {
+    this( context, scheduler, channelFactory, null, contextExecutor);
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
+   * for optional arguments. The following table shows defaults used for each optional argument:
+   * <ul>
+   *   <li>context - Required for remote execution from the server</li>
+   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
+   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
+   * </ul>
+   * @param context Optional context.
+   * @param scheduler Optional scheduler used for protocol timers.
+   * @param channelFactory User-supplied channel factory.
+   * @param sslContext An SSLContext.
+   * @param contextExecutor
+   */
+  public XioClient( 
+      final IContext context, 
+      final ScheduledExecutorService scheduler, 
+      final NioClientSocketChannelFactory channelFactory, 
+      final SSLContext sslContext, 
+      final Executor contextExecutor)
+  {
     this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
     
     bootstrap = new ClientBootstrap( channelFactory);
@@ -98,6 +116,14 @@ public class XioClient extends XioPeer
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
+        
+        if ( sslContext != null)
+        {
+          SSLEngine engine = sslContext.createSSLEngine();
+          engine.setUseClientMode( false);
+          pipeline.addLast( "ssl", new SslHandler( engine));
+        }
+        
         pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler, null));
         return pipeline;
       }
@@ -110,7 +136,7 @@ public class XioClient extends XioPeer
    * @param port The port of the server.
    * @return Returns true if the connection was established.
    */
-  public ChannelFuture connect( String address, int port)
+  public AsyncFuture<XioClient> connect( String address, int port)
   {
     return connect( new InetSocketAddress( address, port));
   }
@@ -123,7 +149,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( String address, int port, int retries, int delay)
+  public AsyncFuture<XioClient> connect( String address, int port, int retries, int delay)
   {
     return connect( new InetSocketAddress( address, port), retries, new int[] { delay});
   }
@@ -135,7 +161,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( String address, int port, int[] delays)
+  public AsyncFuture<XioClient> connect( String address, int port, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), delays.length, delays);
   }
@@ -148,7 +174,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( String address, int port, int retries, int[] delays)
+  public AsyncFuture<XioClient> connect( String address, int port, int retries, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), retries, delays);
   }
@@ -158,7 +184,7 @@ public class XioClient extends XioPeer
    * @param address The address of the server.
    * @return Returns true if the connection was established.
    */
-  public ChannelFuture connect( InetSocketAddress address)
+  public AsyncFuture<XioClient> connect( InetSocketAddress address)
   {
     return connect( address, 3, 1000);
   }
@@ -171,7 +197,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( InetSocketAddress address, int retries, int delay)
+  public AsyncFuture<XioClient> connect( InetSocketAddress address, int retries, int delay)
   {
     return connect( address, retries, new int[] { delay});
   }
@@ -183,7 +209,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( InetSocketAddress address, int[] delays)
+  public AsyncFuture<XioClient> connect( InetSocketAddress address, int[] delays)
   {
     return connect( address, delays.length, delays);
   }
@@ -195,7 +221,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public ConnectionRetryFuture connect( InetSocketAddress address, int retries, int[] delays)
+  public AsyncFuture<XioClient> connect( InetSocketAddress address, int retries, int[] delays)
   {
     synchronized( this)
     {
@@ -204,21 +230,60 @@ public class XioClient extends XioPeer
       lastDelays = delays;
     }
     
-    ConnectionRetryFuture future = new ConnectionRetryFuture( bootstrap, address, scheduler, retries, delays);
-    future.addListener( new ChannelFutureListener() {
-      public void operationComplete( ChannelFuture future) throws Exception
+    final ConnectionRetryFuture retryFuture = new ConnectionRetryFuture( bootstrap, address, scheduler, retries, delays);
+    
+    final AsyncFuture<XioClient> asyncFuture = new AsyncFuture<XioClient>( this) {
+      public void cancel()
       {
-        if ( future.isSuccess()) setChannel( future.getChannel());
+        retryFuture.cancel();
+      }
+    };
+    
+    retryFuture.addListener( new ChannelFutureListener() {
+      public void operationComplete( ChannelFuture retryFuture) throws Exception
+      {
+        if ( retryFuture.isSuccess()) 
+        {
+          setChannel( retryFuture.getChannel());
+          
+          XioChannelHandler xioHandler = retryFuture.getChannel().getPipeline().get( XioChannelHandler.class);
+          ChannelFuture handshakeFuture = xioHandler.getSSLHandshakeFuture();
+          if ( handshakeFuture != null)
+          {
+            handshakeFuture.addListener( new ChannelFutureListener() {
+              public void operationComplete( ChannelFuture handshakeFuture) throws Exception
+              {
+                if ( handshakeFuture.isSuccess()) 
+                {
+                  asyncFuture.notifySuccess();
+                }
+                else
+                {
+                  asyncFuture.notifyFailure( handshakeFuture.getCause());
+                }
+              }
+            });
+          }
+          else
+          {
+            asyncFuture.notifySuccess();
+          }
+        }
+        else
+        {
+          asyncFuture.notifyFailure( retryFuture.getCause());
+        }
       }
     });
-    return future;
+    
+    return asyncFuture;
   }
     
   /* (non-Javadoc)
    * @see org.xmodel.net.XioPeer#reconnect()
    */
   @Override
-  protected ChannelFuture reconnect()
+  protected AsyncFuture<XioClient> reconnect()
   {
     InetSocketAddress address = null;
     int retries = 0;

@@ -95,7 +95,7 @@ public class ExecutionProtocolTest
       
       for( int i=0; i<count; i++)
       {
-        client.execute( context, new String[ 0], script, cb, 600000);
+        client.execute( context, i, new String[ 0], script, cb, 600000);
         assertTrue( cb.failed == -1);
       }
     }
@@ -175,8 +175,8 @@ public class ExecutionProtocolTest
 
     Callback callback = new Callback();
     StatefulContext context = new StatefulContext();
-    int corr = client.execute( context, new String[ 0], element, callback, 1200);
-    client.cancel( corr);
+    client.execute( context, 1, new String[ 0], element, callback, 1200);
+    client.cancel( 1);
     
     Thread.sleep( 1500);
     assertFalse( "Callback completed", callback.complete);

@@ -28,13 +28,14 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioClientFactory;
@@ -70,6 +71,7 @@ public class RunAction extends GuardedAction
     super.configure( document);
 
     var = Conventions.getVarName( document.getRoot(), false, "assign");    
+    cancelVar = Xlate.get( document.getRoot(), "cancelVar", (String)null);    
     contextExpr = document.getExpression( "context", true);
     scriptExpr = document.getExpression();
     
@@ -210,18 +212,27 @@ public class RunAction extends GuardedAction
           runContext.set( "remoteHost", address.getHostName());
           runContext.set( "remotePort", address.getPort());
           
+          final int correlation = correlationCounter.getAndIncrement();
+          if ( cancelVar != null)
+          {
+            IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
+            asyncInvocation.setAttribute( "client", client);
+            asyncInvocation.setAttribute( "correlation", correlation);
+            context.set( cancelVar, asyncInvocation);
+          }
+          
           if ( !client.isConnected())
           {
-            ChannelFuture future = client.connect( address, connectionRetries);
-            future.addListener( new ChannelFutureListener() {
-              public void operationComplete( ChannelFuture future) throws Exception
+            AsyncFuture<XioClient> future = client.connect( address, connectionRetries);
+            future.addListener( new IListener<XioClient>() {
+              public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
               {
                 if ( future.isSuccess())
                 {
                   try
                   {
                     AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-                    client.execute( runContext, varArray, scriptNode, callback, timeout);
+                    client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
                   }
                   catch( final Exception e)
                   {
@@ -256,7 +267,7 @@ public class RunAction extends GuardedAction
             try
             {
               AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-              client.execute( runContext, varArray, scriptNode, callback, timeout);
+              client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
             }
             finally
             {
@@ -521,11 +532,25 @@ public class RunAction extends GuardedAction
     private IXAction onError;
   }
   
+  protected class AsyncInvocation
+  {
+    public AsyncInvocation( XioClient client, int correlation)
+    {
+      this.client = client;
+      this.correlation = correlation;
+    }
+    
+    public XioClient client;
+    public int correlation;
+  }
+  
   private final static Log log = Log.getLog( RunAction.class);
   private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};  
   private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
+  private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
   private String var;
+  private String cancelVar;
   private IExpression varsExpr;
   private IExpression contextExpr;
   private IExpression hostExpr;

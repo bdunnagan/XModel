@@ -2,12 +2,14 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.SucceededChannelFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -43,7 +45,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await(); 
     }
@@ -61,7 +63,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await(); 
     }
@@ -82,7 +84,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await( timeout); 
     }
@@ -100,7 +102,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await(); 
     }
@@ -120,7 +122,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await( timeout); 
     }
@@ -129,7 +131,6 @@ class XioPeer
     XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
     return handler.getBindProtocol().syncRequestProtocol.send( channel, netID, timeout);
   }
-
   
   /**
    * Remotely execute the specified operation synchronously.
@@ -143,7 +144,7 @@ class XioPeer
   {
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       future.await( timeout); 
     }
@@ -156,30 +157,35 @@ class XioPeer
   /**
    * Remotely execute the specified operation asynchronously.
    * @param context The local context.
+   * @param correlation The correlation number.
    * @param vars Shared variables from the local context.
    * @param element The element representing the operation to execute.
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
-   * @return Returns the correlation number for the request.
    */
-  public int execute( final IContext context, final String[] vars, final IModelObject element, final IXioCallback callback, final int timeout) throws IOException, InterruptedException
+  public void execute(
+      final IContext context, 
+      final int correlation, 
+      final String[] vars, 
+      final IModelObject element, 
+      final IXioCallback callback, 
+      final int timeout) 
+      throws IOException, InterruptedException
   {
-    final XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
-    final int correlation = handler.getExecuteProtocol().responseProtocol.allocCorrelation();
-    
     Channel channel = getChannel();
     if ( retry && (channel == null || !channel.isConnected()))
     {
-      ChannelFuture future = reconnect();
+      AsyncFuture<XioClient> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
       
-      future.addListener( new ChannelFutureListener() {
-        public void operationComplete( ChannelFuture future) throws Exception
+      future.addListener( new IListener<XioClient>() {
+        public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
         {
           if ( future.isSuccess())
           {
-            Channel channel = future.getChannel();
+            Channel channel = future.getInitiator().getChannel();
             setChannel( channel);
+            XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
           }
           else
@@ -198,10 +204,9 @@ class XioPeer
     else
     {
       if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+      XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
       handler.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
     }
-    
-    return correlation;
   }
   
   /**
@@ -219,7 +224,7 @@ class XioPeer
    * Sub-classes may re-establish the connection.
    * @return Returns null or the ChannelFuture for the connection.
    */
-  protected ChannelFuture reconnect()
+  protected AsyncFuture<XioClient> reconnect()
   {
     return null;
   }
@@ -264,7 +269,7 @@ class XioPeer
   {
     return isConnected()? channel.close(): new SucceededChannelFuture( channel);
   }
-  
+
   private Channel channel;
   private boolean retry;
 }

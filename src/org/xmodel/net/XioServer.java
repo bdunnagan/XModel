@@ -5,15 +5,21 @@ import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.concurrent.ModelThreadFactory;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -28,7 +34,18 @@ public class XioServer
    */
   public XioServer( IContext context)
   {
-    this( context, null, null, null);
+    this( null, context, null, null, null);
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
+   * @param SSLContext An SSLContext.
+   * @param context The context.
+   */
+  public XioServer( SSLContext sslContext, IContext context)
+  {
+    this( sslContext, context, null, null, null);
   }
   
   /**
@@ -40,12 +57,13 @@ public class XioServer
    *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
    *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
    * </ul>
+   * @param SSLContext Optional SSLContext.
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
    * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
    * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
    */
-  public XioServer( final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
     this.registry = new MemoryXioPeerRegistry();
     
@@ -63,15 +81,28 @@ public class XioServer
       {
         ChannelPipeline pipeline = Channels.pipeline();
         
-//        SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
-//        engine.setUseClientMode(false);
-//
-//        pipeline.addLast( "ssl", new SslHandler(engine));
+        if ( sslContext != null)
+        {
+          SSLEngine engine = sslContext.createSSLEngine();
+          engine.setUseClientMode( false);
+          pipeline.addLast( "ssl", new SslHandler( engine));
+        }
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, context.getExecutor(), scheduler, registry));
+        XioChannelHandler channelHandler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
+        channelHandler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        pipeline.addLast( "xio", channelHandler);
         return pipeline;
       }
     });
+  }
+  
+  /**
+   * Set the execution privileges.
+   * @param privilege The privilege instance.
+   */
+  public void setExecutionPrivileges( ExecutionPrivilege privilege)
+  {
+    this.executionPrivilege = privilege;
   }
   
   /**
@@ -173,4 +204,5 @@ public class XioServer
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
   private IXioPeerRegistry registry;
+  private ExecutionPrivilege executionPrivilege;
 }

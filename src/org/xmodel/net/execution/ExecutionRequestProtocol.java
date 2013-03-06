@@ -37,6 +37,15 @@ public class ExecutionRequestProtocol
   }
   
   /**
+   * Set the execution privileges.
+   * @param privilege The object that defines the privileges.
+   */
+  public void setPrivilege( ExecutionPrivilege privilege)
+  {
+    this.privilege = privilege;
+  }
+  
+  /**
    * Reset this instance by releasing internal resources.  This method should be called after 
    * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
    */

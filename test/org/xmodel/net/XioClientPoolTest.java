@@ -27,7 +27,7 @@ public class XioClientPoolTest
   
   @Before public void start() throws IOException
   {
-    GlobalSettings.getInstance().getModel().setExecutor( new ThreadPoolExecutor( "server-model", 10));
+    GlobalSettings.getInstance().setDefaultExecutor( new ThreadPoolExecutor( "server-model", 10));
     serverContext = new StatefulContext();
     server = new XioServer( serverContext);
     server.start( address, port);
@@ -44,7 +44,7 @@ public class XioClientPoolTest
 //    Log.getLog( ExecutionRequestProtocol.class).setLevel( Log.all);
 //    Log.getLog( ExecutionResponseProtocol.class).setLevel( Log.all);
     
-    GlobalSettings.getInstance().getModel().setExecutor( new ThreadPoolExecutor( "client-model", 10));
+    GlobalSettings.getInstance().setDefaultExecutor( new ThreadPoolExecutor( "client-model", 10));
     
     createClients( 1);
 
@@ -96,7 +96,7 @@ public class XioClientPoolTest
       
       for( int i=0; i<count; i++)
       {
-        client.execute( context, new String[ 0], script, cb, 600000);
+        client.execute( context, i, new String[ 0], script, cb, 600000);
       }
     }
     catch( Exception e)
