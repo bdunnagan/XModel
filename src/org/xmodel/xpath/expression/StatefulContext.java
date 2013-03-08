@@ -23,8 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
@@ -353,17 +352,6 @@ public class StatefulContext implements IContext
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getLock()
-   */
-  @Override
-  public synchronized ReadWriteLock getLock()
-  {
-    if ( lock != null) return lock;
-    lock = new ReentrantReadWriteLock();
-    return lock;
-  }
-
-  /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
   @Override
@@ -383,5 +371,4 @@ public class StatefulContext implements IContext
   private Map<IExpression, Update> updates;
   private IVariableScope scope;
   private Executor executor;
-  private ReadWriteLock lock;
 }

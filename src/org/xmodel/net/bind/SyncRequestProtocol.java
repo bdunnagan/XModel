@@ -74,27 +74,27 @@ public class SyncRequestProtocol
    */
   private void sync( Channel channel, int correlation, long netID, IModelObject element, UpdateListener listener)
   {
-    try
+    synchronized( bundle.context)
     {
-      bundle.context.getLock().writeLock().lock();
-      
-      // disable updates
-      listener.setEnabled( false);
-      
-      // sync
-      element.getChildren();
-      
-      // send response
-      bundle.syncResponseProtocol.send( channel, correlation, element);
-    }
-    catch( IOException e)
-    {
-      log.exceptionf( e, "Failed to send sync response for %X", netID);
-    }
-    finally
-    {
-      listener.setEnabled( true);
-      bundle.context.getLock().writeLock().unlock();
+      try
+      {
+        // disable updates
+        listener.setEnabled( false);
+        
+        // sync
+        element.getChildren();
+        
+        // send response
+        bundle.syncResponseProtocol.send( channel, correlation, element);
+      }
+      catch( IOException e)
+      {
+        log.exceptionf( e, "Failed to send sync response for %X", netID);
+      }
+      finally
+      {
+        listener.setEnabled( true);
+      }
     }
   }
   

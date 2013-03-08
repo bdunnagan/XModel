@@ -21,7 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReadWriteLock;
+
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.Update;
@@ -291,15 +291,6 @@ public class SubContext implements IContext
   public IContext cloneTree()
   {
     return new SubContext( parent, object, position, size);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getLock()
-   */
-  @Override
-  public ReadWriteLock getLock()
-  {
-    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)

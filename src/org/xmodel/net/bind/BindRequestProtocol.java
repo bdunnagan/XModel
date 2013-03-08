@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -141,26 +142,24 @@ public class BindRequestProtocol
    */
   private void bind( Channel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
   {
-    bundle.context.getLock().writeLock().lock();
-    try
+    synchronized( bundle.context)
     {
-      IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
-      bundle.bindResponseProtocol.send( channel, correlation, target);
-      
-      if ( target != null)
+      try
       {
-        UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
-        listener.install( target);
-        synchronized( this) { listeners.put( target, listener);}
+        IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
+        bundle.bindResponseProtocol.send( channel, correlation, target);
+        
+        if ( target != null)
+        {
+          UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
+          listener.install( target);
+          synchronized( this) { listeners.put( target, listener);}
+        }
       }
-    }
-    catch( IOException e)
-    {
-      SLog.exception( this, e);
-    }
-    finally
-    {
-      bundle.context.getLock().writeLock().unlock();
+      catch( IOException e)
+      {
+        SLog.exception( this, e);
+      }
     }
   }
   

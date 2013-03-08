@@ -68,22 +68,20 @@ public class UnbindRequestProtocol
    */
   private void unbind( Channel channel, long netID, IModelObject element)
   {
-    bundle.context.getLock().writeLock().lock();
-    try
+    synchronized( bundle.context)
     {
-      // release resources
-      bundle.responseCompressor.freeLocal( element);
-    
-      UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
-      if ( listener != null) listener.uninstall( element);
-    }
-    catch( Exception e)
-    {
-      SLog.exception( this, e);
-    }
-    finally
-    {
-      bundle.context.getLock().writeLock().unlock();
+      try
+      {
+        // release resources
+        bundle.responseCompressor.freeLocal( element);
+      
+        UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
+        if ( listener != null) listener.uninstall( element);
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
+      }
     }
   }
   
