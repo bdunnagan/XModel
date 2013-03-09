@@ -251,6 +251,7 @@ public class ExecutionResponseProtocol
         {
           log.exceptionf( throwable, "Remote invocation returned exception: ");
           error = String.format( "%s: %s", throwable.getClass().getName(), throwable.getMessage());
+          callback.onError( context, error);
         }
         else
         {
