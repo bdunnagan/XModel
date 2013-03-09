@@ -180,6 +180,7 @@ public class ExecutionResponseProtocol
     {
       BlockingQueue<IModelObject> queue = queues.get( correlation);
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      if ( response == null) return null;
       
       Throwable throwable = ExecutionSerializer.readResponseException( response);
       if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);

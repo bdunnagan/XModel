@@ -190,7 +190,8 @@ class XioPeer
     {
       AsyncFuture<XioPeer> future = reconnect();
       if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      if ( future.await( timeout)) setChannel( future.getInitiator().getChannel());
+      if ( future.await( timeout)) 
+        setChannel( future.getInitiator().getChannel());
     }
     
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");

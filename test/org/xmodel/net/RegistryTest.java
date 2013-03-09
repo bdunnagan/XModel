@@ -72,7 +72,7 @@ public class RegistryTest
     Object[] result = peer.execute( serverContext, new String[ 0], script, 1000);
     assertTrue( "Wrong value for $name.", result[ 0].equals( "Client"));
     
-    client.close();
+    client.close().await();
     result = peer.execute( serverContext, new String[ 0], script, 1000);
     assertTrue( "Wrong value for $name.", result[ 0].equals( "Client"));
     
