@@ -1,47 +1,32 @@
 package org.xmodel.net;
 
-import java.net.InetSocketAddress;
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
+import org.xmodel.future.AsyncFuture;
 
+/**
+ * An XioPeer for the server-side.  This class will reconnect using the reverse connection address
+ * for the client, if it becomes disconnected.
+ */
 public class XioServerPeer extends XioPeer
 {
-  public XioServerPeer( InetSocketAddress address)
+  public XioServerPeer( XioServer server, String clientHost, Channel channel)
   {
-    this.address = address;
+    this.server = server;
+    this.clientHost = clientHost;
+    
+    setReconnect( true);
+    setChannel( channel);
   }
   
   /* (non-Javadoc)
    * @see org.xmodel.net.XioPeer#reconnect()
    */
   @Override
-  protected ChannelFuture reconnect()
+  protected AsyncFuture<XioPeer> reconnect()
   {
-    synchronized( this)
-    {
-      this.future = new ClientConnectionFuture();
-    }
-    
-    
+    return server.getPeerByHost( clientHost);
   }
   
-  protected void connected( Channel channel)
-  {
-    ChannelFuture future = null;
-    
-    synchronized( this)
-    {
-      setChannel( channel);
-      future = this.future;
-    }
-    
-    if ( future != null) future.setSuccess();
-  }
-  
-  protected void disconnected()
-  {
-  }
-  
-  private InetSocketAddress address;
-  private ChannelFuture future;
+  private XioServer server;
+  private String clientHost;
 }

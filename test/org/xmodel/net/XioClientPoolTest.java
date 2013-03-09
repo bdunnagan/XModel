@@ -85,11 +85,12 @@ public class XioClientPoolTest
 
     try
     {
-      serverContext.getLock().writeLock().lock();
-      IModelObject valueNode = new ModelObject( "value");
-      valueNode.setValue( -1);
-      serverContext.set( "value", valueNode);
-      serverContext.getLock().writeLock().unlock();
+      synchronized( serverContext)
+      {
+        IModelObject valueNode = new ModelObject( "value");
+        valueNode.setValue( -1);
+        serverContext.set( "value", valueNode);
+      }
       
       IModelObject script = new XmlIO().read( xml);
       StatefulContext context = new StatefulContext();

@@ -1,6 +1,7 @@
 package org.xmodel.future;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +17,7 @@ public abstract class AsyncFuture<T>
   public AsyncFuture( T initiator)
   {
     this.initiator = initiator;
-    this.listeners = new ArrayList<IListener<T>>();
+    this.listeners = Collections.synchronizedList( new ArrayList<IListener<T>>());
     this.latch = new Semaphore( 0);
   }
   
@@ -95,10 +96,9 @@ public abstract class AsyncFuture<T>
    * Add a listener to this future.
    * @param listener The listener.
    */
-  public synchronized void addListener( IListener<T> listener)
+  public void addListener( IListener<T> listener)
   {
     log.debugf( "addListener( %x, %x)", hashCode(), listener.hashCode());
-
     try
     {
       if ( isSuccess())
@@ -125,33 +125,23 @@ public abstract class AsyncFuture<T>
    * Remove a listener from this future.
    * @param listener The listener.
    */
-  public synchronized void removeListener( IListener<T> listener)
+  public void removeListener( IListener<T> listener)
   {
     log.debugf( "removeListener( %x, %x)", hashCode(), listener.hashCode());
-    
     listeners.remove( listener);
-  }
-  
-  /**
-   * @return Returns a snapshot of the listeners.
-   */
-  @SuppressWarnings("unchecked")
-  private synchronized IListener<T>[] getListeners()
-  {
-    return listeners.toArray( new IListener[ 0]);
   }
   
   /**
    * Notify listeners that the future is complete.
    */
-  public synchronized void notifySuccess() throws Exception
+  public void notifySuccess() throws Exception
   {
     log.debugf( "notifySuccess( %x)", hashCode());
     
     status = Status.success;
     
-    for( IListener<T> listener: getListeners())
-      listener.notifyComplete( this);
+    for( int i=0; i<listeners.size(); i++)
+      listeners.get( i).notifyComplete( this);
     
     latch.release();
   }
@@ -160,15 +150,15 @@ public abstract class AsyncFuture<T>
    * Notify listeners that the future is complete.
    * @param message The message.
    */
-  public synchronized void notifyFailure( String message) throws Exception
+  public void notifyFailure( String message) throws Exception
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), message);
     
     this.status = Status.failure;
     this.message = message;
     
-    for( IListener<T> listener: getListeners())
-      listener.notifyComplete( this);
+    for( int i=0; i<listeners.size(); i++)
+      listeners.get( i).notifyComplete( this);
     
     latch.release();
   }
@@ -177,15 +167,15 @@ public abstract class AsyncFuture<T>
    * Notify listeners that the future is complete.
    * @param throwable The cause.
    */
-  public synchronized void notifyFailure( Throwable throwable) throws Exception
+  public void notifyFailure( Throwable throwable) throws Exception
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), throwable.toString());
     
     this.status = Status.failure;
     this.throwable = throwable;
     
-    for( IListener<T> listener: getListeners())
-      listener.notifyComplete( this);
+    for( int i=0; i<listeners.size(); i++)
+      listeners.get( i).notifyComplete( this);
     
     latch.release();
   }

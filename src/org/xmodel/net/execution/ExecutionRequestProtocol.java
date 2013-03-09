@@ -98,7 +98,7 @@ public class ExecutionRequestProtocol
    */
   public void send( Channel channel, int correlation, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
-    ResponseTask task = new ResponseTask( context, callback);
+    ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)
     {
       ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task), timeout, TimeUnit.MILLISECONDS);

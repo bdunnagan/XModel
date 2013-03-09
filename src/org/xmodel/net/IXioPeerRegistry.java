@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.util.Iterator;
 import org.jboss.netty.channel.Channel;
+import org.xmodel.future.AsyncFuture;
 
 /**
  * Interface for registering and querying peer connections by name.
@@ -9,28 +10,44 @@ import org.jboss.netty.channel.Channel;
 public interface IXioPeerRegistry
 {
   /**
-   * Register the specified remote-host with the specified name, remote-server reverse connection
-   * and port.  This registration provides all the information that a server needs to obtain a peer 
-   * connection.
+   * Register the specified remote-host with the specified name.
    * @param name A name, not necessarily unique, to associate with the peer.
    * @param host The host to be registered.
-   * @param port The server port number for reverse connection.
    */
-  public void register( String name, String host, int port);
+  public void register( String name, String host);
   
   /**
    * Cancel a peer registration by name and host.
    * @param name The name associated with the peer.
    * @param host The remote host.
    */
-  public void cancel( String name, String host);
-
+  public void unregister( String name, String host);
+  
+  /**
+   * Returns a future for a peer connection from the specified host.
+   * @param host The remote host.
+   * @return Returns a future for a peer connection from the specified host.
+   */
+  public AsyncFuture<XioPeer> lookupByHost( String host);
+  
   /**
    * Returns an iterator over XioPeer instances registered under the specified name.
    * @param name The name.
    * @return Returns the associated peers.
    */
-  public Iterator<XioPeer> lookup( String name);
+  public Iterator<XioPeer> lookupByName( String name);
+  
+  /**
+   * Add a listener for peer registration.
+   * @param listener The The listener.
+   */
+  public void addListener( IXioPeerRegistryListener listener);
+  
+  /**
+   * Remove a listener.
+   * @param listener The listener.
+   */
+  public void removeListener( IXioPeerRegistryListener listener);
   
   /**
    * Called when a channel is connected.

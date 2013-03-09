@@ -5,12 +5,12 @@ import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
@@ -19,6 +19,7 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.concurrent.ModelThreadFactory;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
@@ -65,16 +66,17 @@ public class XioServer
    */
   public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
-    this.registry = new MemoryXioPeerRegistry();
+    this.registry = new MemoryXioPeerRegistry( this);
     
     ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
     
     if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
     if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
     
-    bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
-    bootstrap.setOption( "tcpNoDelay", true);
-    bootstrap.setOption( "keepAlive", true);
+    NioServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossExecutor, workerExecutor);
+    bootstrap = new ServerBootstrap( channelFactory);
+    bootstrap.setOption( "child.tcpNoDelay", true);
+    bootstrap.setOption( "child.keepAlive", true);
     
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
@@ -125,22 +127,24 @@ public class XioServer
   {
     if ( serverChannel != null) 
     {
-      serverChannel.close().awaitUninterruptibly();
+      serverChannel.close().addListener( new ChannelFutureListener() {
+        public void operationComplete( ChannelFuture future) throws Exception
+        {
+          serverChannel.getFactory().releaseExternalResources();
+        }
+      });
     }
   }
   
   /**
-   * Register the specified remote-host with the specified name, remote-server reverse connection
-   * port, and time-to-live.  This registration provides all the information that a server needs
-   * to obtain a peer connection.
+   * Register the specified remote-host with the specified name.
    * @param name A name, not necessarily unique, to associate with the peer.
    * @param host The host to be registered.
-   * @param port The server port number for reverse connection.
    * @param ttl The duration of the association in milliseconds.
    */
-  public void register( String name, String host, int port, long ttl)
+  public void register( String name, String host, long ttl)
   {
-    registry.register( name, host, port);
+    registry.register( name, host);
   }
   
   /**
@@ -150,7 +154,17 @@ public class XioServer
    */
   public void cancel( String name, String host)
   {
-    registry.cancel( name, host);
+    registry.unregister( name, host);
+  }
+
+  /**
+   * Returns a future for obtaining a peer connection from the specified host.
+   * @param host The remote host.
+   * @return Returns a future for a peer connection from the specified host.
+   */
+  public AsyncFuture<XioPeer> getPeerByHost( String host)
+  {
+    return registry.lookupByHost( host);
   }
   
   /**
@@ -158,30 +172,27 @@ public class XioServer
    * @param name The name.
    * @return Returns the associated peers.
    */
-  public Iterator<XioPeer> getPeerByName( String name)
+  public Iterator<XioPeer> getPeersByName( String name)
   {
-    return registry.lookup( name);
+    return registry.lookupByName( name);
   }
 
   /**
-   * Get and/or create an XioPeer instance to represent the specified server connected channel.
-   * @param channel A connected channel.
-   * @return Returns null or the new XioPeer instance.
+   * Add a peer registration listener.
+   * @param listener The The listener.
    */
-  public static XioPeer getPeer( Channel channel)
+  public void addPeerRegistryListener( IXioPeerRegistryListener listener)
   {
-    synchronized( channel)
-    {
-      XioPeer peer = (XioPeer)channel.getAttachment();
-      if ( peer != null) return peer;
-    
-      Channel serverChannel = channel.getParent();
-      if ( serverChannel == null) return null;
-      
-      peer = new XioPeer();
-      channel.setAttachment( peer);
-      return peer;
-    }
+    registry.addListener( listener);
+  }
+  
+  /**
+   * Remove a peer registration listener.
+   * @param listener The listener.
+   */
+  public void removePeerRegistryListener( IXioPeerRegistryListener listener)
+  {
+    registry.removeListener( listener);
   }
   
   private static synchronized Executor getDefaultBossExecutor()

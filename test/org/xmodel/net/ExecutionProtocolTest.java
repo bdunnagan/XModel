@@ -2,12 +2,10 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,11 +82,12 @@ public class ExecutionProtocolTest
 
     try
     {
-      serverContext.getLock().writeLock().lock();
-      IModelObject valueNode = new ModelObject( "value");
-      valueNode.setValue( -1);
-      serverContext.set( "value", valueNode);
-      serverContext.getLock().writeLock().unlock();
+      synchronized( serverContext)
+      {
+        IModelObject valueNode = new ModelObject( "value");
+        valueNode.setValue( -1);
+        serverContext.set( "value", valueNode);
+      }
       
       IModelObject script = new XmlIO().read( xml);
       StatefulContext context = new StatefulContext();
@@ -181,6 +180,36 @@ public class ExecutionProtocolTest
     Thread.sleep( 1500);
     assertFalse( "Callback completed", callback.complete);
     assertFalse( "Callback succeeded", callback.success);
+  }
+  
+  @Test
+  public void disconnectDuringExecution() throws Exception
+  {
+    XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
+    client.connect( "localhost", port).await();
+
+    final StringBuilder error = new StringBuilder();
+    IXioCallback callback = new IXioCallback() {
+      public void onComplete( IContext context)
+      {
+      }
+      public void onSuccess( IContext context, Object[] results)
+      {
+      }
+      public void onError( IContext context, String message)
+      {
+        error.append( message);
+      }
+    };
+    
+    StatefulContext context = new StatefulContext();
+    IModelObject script = new XmlIO().read( "<script><sleep>1000</sleep><return>1</return></script>");
+    client.execute( context, 1, new String[ 0], script, callback, 1000);
+    
+    client.getChannel().disconnect().await();
+    
+    assertTrue( "Incorrect timeout expiration.", !error.equals( "timeout"));
+    assertTrue( "Wrong is empty.", error.length() > 0);
   }
   
   private void createClients( int count) throws IOException

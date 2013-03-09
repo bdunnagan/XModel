@@ -10,11 +10,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
@@ -193,10 +194,24 @@ public class ExecutionResponseProtocol
 
   public static class ResponseTask implements Runnable
   {
-    public ResponseTask( IContext context, IXioCallback callback)
+    public ResponseTask( Channel channel, IContext context, IXioCallback callback)
     {
+      this.channel = channel;
       this.context = context;
       this.callback = callback;
+      
+      closeListener = new ChannelFutureListener() {
+        public void operationComplete( ChannelFuture future) throws Exception
+        {
+          if ( cancelTimer())
+          {
+            setError( "Channel closed during remote execution.");
+            ResponseTask.this.context.getExecutor().execute( ResponseTask.this);
+          }
+        }
+      };
+      
+      channel.getCloseFuture().addListener( closeListener);
     }
     
     /**
@@ -241,6 +256,8 @@ public class ExecutionResponseProtocol
     @Override
     public void run()
     {      
+      channel.getCloseFuture().removeListener( closeListener);
+      
       IContext context = new StatefulContext( this.context);
       callback.onComplete( context);
       
@@ -265,6 +282,8 @@ public class ExecutionResponseProtocol
       }
     }
 
+    private Channel channel;
+    private ChannelFutureListener closeListener;
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;

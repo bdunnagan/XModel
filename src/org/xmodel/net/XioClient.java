@@ -4,10 +4,8 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -19,6 +17,7 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.UnionFuture;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -283,7 +282,7 @@ public class XioClient extends XioPeer
    * @see org.xmodel.net.XioPeer#reconnect()
    */
   @Override
-  protected AsyncFuture<XioClient> reconnect()
+  protected AsyncFuture<XioPeer> reconnect()
   {
     InetSocketAddress address = null;
     int retries = 0;
@@ -296,7 +295,12 @@ public class XioClient extends XioPeer
       delays = lastDelays;
     }
     
-    return (lastAddress != null)? connect( address, retries, delays): null;
+    AsyncFuture<XioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
+    if ( future == null) return null;
+    
+    UnionFuture<XioPeer, XioClient> wrapperFuture = new UnionFuture<XioPeer, XioClient>( this);
+    wrapperFuture.addTask( future);
+    return wrapperFuture;
   }
 
   private static synchronized NioClientSocketChannelFactory getDefaultChannelFactory()

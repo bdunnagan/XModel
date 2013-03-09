@@ -33,7 +33,7 @@ public class RegisterRequestProtocol
     
     byte[] bytes = name.getBytes();
     
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.register, 1 + bytes.length);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 1 + bytes.length, Type.register, 0);
     buffer.writeByte( bytes.length);
     buffer.writeBytes( bytes);
     
@@ -58,7 +58,7 @@ public class RegisterRequestProtocol
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
     InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    bundle.registry.register( name, address.getHostName(), address.getPort());
+    bundle.registry.register( name, address.getHostName());
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);

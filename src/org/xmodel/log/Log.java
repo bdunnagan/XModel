@@ -132,8 +132,7 @@ public final class Log
    */
   public static void setLevel( String regex, int level)
   {
-    for( Log log: map.findLogs( Pattern.compile( regex)))
-      log.setLevel( level);
+    map.configure( Pattern.compile( regex), level);
   }
   
   /**

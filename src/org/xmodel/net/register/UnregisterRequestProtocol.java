@@ -33,7 +33,7 @@ public class UnregisterRequestProtocol
     
     byte[] bytes = name.getBytes();
     
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.unregister, 1 + bytes.length);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 1 + bytes.length, Type.unregister, 0);
     buffer.writeByte( bytes.length);
     buffer.writeBytes( bytes);
     
@@ -58,7 +58,7 @@ public class UnregisterRequestProtocol
     log.debugf( "UnregisterRequestProtocol.handle: name=%s", name);
     
     InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    bundle.registry.cancel( name, address.getHostName());
+    bundle.registry.unregister( name, address.getHostName());
   }
   
   private final static Log log = Log.getLog( UnregisterRequestProtocol.class);
