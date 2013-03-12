@@ -98,13 +98,12 @@ public class AddAction extends GuardedAction
     // perform add
     for( IModelObject target: targets)
     {
-      int start = (index < 0)? target.getNumberOfChildren(): index;
       for( IModelObject source: sources)
       {
         if ( mode.startsWith( "ref"))
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
-            target.addChild( new Reference( source), start);
+            target.addChild( new Reference( source), index);
         }
         else if ( mode.equals( "fk1"))
         {
@@ -112,7 +111,7 @@ public class AddAction extends GuardedAction
           {
             IModelObject object = factory.createObject( target, source.getType());
             object.setValue( source.getID());
-            target.addChild( object, start);
+            target.addChild( object, index);
           }
         }
         else if ( mode.equals( "fk2"))
@@ -121,7 +120,7 @@ public class AddAction extends GuardedAction
           {
             IModelObject object = factory.createObject( target, source.getType());
             object.setID( source.getID());
-            target.addChild( object, start);
+            target.addChild( object, index);
           }
         }
         else if ( mode.equals( "copy"))
@@ -145,21 +144,22 @@ public class AddAction extends GuardedAction
             else
             {
               IModelObject object = ModelAlgorithms.cloneTree( source, factory, exclude);
-              target.addChild( object, start);        	  
+              target.addChild( object, index);        	  
             }
           }
           else
           {
             IModelObject object = ModelAlgorithms.cloneTree( source, factory, exclude);
-            target.addChild( object, start);
+            target.addChild( object, index);
           }
         }
         else if ( mode.equals( "move"))
         {
           if ( !unique || target.getChild( source.getType(), source.getID()) == null)
-            target.addChild( source, start);
+            target.addChild( source, index);
         }
-        start++;
+        
+        if ( index >= 0) index++;
       }
     }
     

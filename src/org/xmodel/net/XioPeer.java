@@ -113,8 +113,8 @@ class XioPeer
     if ( reconnect && (channel == null || !channel.isConnected()))
     {
       AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      if ( future.await( timeout)) setChannel( future.getInitiator().getChannel());
+      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
+      setChannel( future.getInitiator().getChannel());
     }
     else
     {
@@ -167,8 +167,8 @@ class XioPeer
     if ( reconnect && (channel == null || !channel.isConnected()))
     {
       AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      if ( future.await( timeout)) setChannel( future.getInitiator().getChannel());
+      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
+      setChannel( future.getInitiator().getChannel());
     }
     
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
@@ -189,9 +189,8 @@ class XioPeer
     if ( reconnect && (channel == null || !channel.isConnected()))
     {
       AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      if ( future.await( timeout)) 
-        setChannel( future.getInitiator().getChannel());
+      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
+      setChannel( future.getInitiator().getChannel());
     }
     
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");

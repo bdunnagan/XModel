@@ -139,11 +139,10 @@ public abstract class AsyncFuture<T>
     log.debugf( "notifySuccess( %x)", hashCode());
     
     status = Status.success;
+    latch.release();
     
     for( int i=0; i<listeners.size(); i++)
       listeners.get( i).notifyComplete( this);
-    
-    latch.release();
   }
   
   /**
@@ -156,11 +155,10 @@ public abstract class AsyncFuture<T>
     
     this.status = Status.failure;
     this.message = message;
+    latch.release();
     
     for( int i=0; i<listeners.size(); i++)
       listeners.get( i).notifyComplete( this);
-    
-    latch.release();
   }
   
   /**
@@ -173,11 +171,10 @@ public abstract class AsyncFuture<T>
     
     this.status = Status.failure;
     this.throwable = throwable;
+    latch.release();
     
     for( int i=0; i<listeners.size(); i++)
       listeners.get( i).notifyComplete( this);
-    
-    latch.release();
   }
   
   public interface IListener<T>
