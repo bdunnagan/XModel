@@ -473,8 +473,8 @@ public class XActionDocument
     }
     
     // summarize class loader and packaging to help diagnose why class was not found
-    System.out.println( "Unable to resolve IXAction class: "+ModelAlgorithms.createIdentityPath( object));
-    System.out.println( (new XmlIO()).write( 2, object));
+    SLog.error( this, "Unable to resolve IXAction class: "+ModelAlgorithms.createIdentityPath( object));
+    SLog.info( this, (new XmlIO()).write( 2, object));
     
     // print defined packages
     System.out.println( "\nPackages (processed from last to first): ");
