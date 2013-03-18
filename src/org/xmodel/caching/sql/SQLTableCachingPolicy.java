@@ -521,7 +521,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The row stubs to be populated.
    * @return Returns a prepared statement which will select stubs for all rows of a table.
    */
-  private PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
+  protected PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); 
@@ -1080,29 +1080,29 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
   private static Map<String, Class<? extends ISQLProvider>> providers;
 
-  private ISQLProvider provider;
-  private boolean stub;
-  private boolean readonly;
-  private List<String> excluded;
-  private String where;
-  private String orderby;
-  private int offset;
-  private int limit;
-  private SQLRowCachingPolicy rowCachingPolicy;
-  private String catalog;
-  private String tableName;
-  private List<String> columnNames;
-  private List<Integer> columnTypes;
-  private String queryColumns;
-  private String primaryKey;
-  private List<String> otherKeys;
-  private String rowElementName;
-  private Set<String> xmlColumns;
-  private SQLEntityListener updateMonitor;
-  private SQLTransaction transaction;
-  private Map<IModelObject, List<IModelObject>> rowInserts;
-  private Map<IModelObject, List<IModelObject>> rowDeletes;
-  private Map<IModelObject, List<String>> rowUpdates;  
-  private ICompressor compressor;
+  protected ISQLProvider provider;
+  protected boolean stub;
+  protected boolean readonly;
+  protected List<String> excluded;
+  protected String where;
+  protected String orderby;
+  protected int offset;
+  protected int limit;
+  protected SQLRowCachingPolicy rowCachingPolicy;
+  protected String catalog;
+  protected String tableName;
+  protected List<String> columnNames;
+  protected List<Integer> columnTypes;
+  protected String queryColumns;
+  protected String primaryKey;
+  protected List<String> otherKeys;
+  protected String rowElementName;
+  protected Set<String> xmlColumns;
+  protected SQLEntityListener updateMonitor;
+  protected SQLTransaction transaction;
+  protected Map<IModelObject, List<IModelObject>> rowInserts;
+  protected Map<IModelObject, List<IModelObject>> rowDeletes;
+  protected Map<IModelObject, List<String>> rowUpdates;  
+  protected ICompressor compressor;
 }
 
