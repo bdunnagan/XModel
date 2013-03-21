@@ -103,11 +103,11 @@ public abstract class AsyncFuture<T>
     {
       if ( isSuccess())
       {
-        listener.notifyComplete( this);
+        notifyComplete( listener);
       }
       else if ( isFailure())
       {
-        listener.notifyComplete( this);
+        notifyComplete( listener);
       }
       else
       {
@@ -141,7 +141,7 @@ public abstract class AsyncFuture<T>
     status = Status.success;
     
     for( int i=0; i<listeners.size(); i++)
-      listeners.get( i).notifyComplete( this);
+      notifyComplete( listeners.get( i));
     
     latch.release();
   }
@@ -158,7 +158,7 @@ public abstract class AsyncFuture<T>
     this.message = message;
     
     for( int i=0; i<listeners.size(); i++)
-      listeners.get( i).notifyComplete( this);
+      notifyComplete( listeners.get( i));
     
     latch.release();
   }
@@ -175,9 +175,25 @@ public abstract class AsyncFuture<T>
     this.throwable = throwable;
     
     for( int i=0; i<listeners.size(); i++)
-      listeners.get( i).notifyComplete( this);
+      notifyComplete( listeners.get( i));
     
     latch.release();
+  }
+  
+  /**
+   * Notify a listener that the future is complete.
+   * @param listener The listener.
+   */
+  public void notifyComplete( IListener<T> listener) throws Exception
+  {
+    try
+    {
+      listener.notifyComplete( this);
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+    }
   }
   
   public interface IListener<T>
