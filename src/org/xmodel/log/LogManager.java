@@ -63,7 +63,7 @@ public final class LogManager implements Runnable
     {
       init();
       log = Log.getLog( this);
-      log.infof( "LogManager created with configuration: %s", path);
+      log.debugf( "LogManager created with configuration: %s", path);
     }
     
     // log uncaught exceptions
@@ -194,7 +194,7 @@ public final class LogManager implements Runnable
     long modified = config.lastModified();
     if ( timestamp == 0 || modified > timestamp)
     {
-      log.info( "Logging configuration updated.");
+      log.debug( "Logging configuration updated.");
       timestamp = modified;
       update();
     }

@@ -26,7 +26,7 @@ public class CurrentThreadExecutor implements Executor
     long now = System.nanoTime();
     long latency = now - lastProcessTime;
     if ( latency > maxLatencyWarning)
-      log.warnf( "CurrentThreadExecutor.process() not called for %dms", latency / (long)1e9);
+      log.warnf( "CurrentThreadExecutor.process() not called for %dms", latency / (long)1e6);
     
     queue.offer( runnable);
   }
@@ -58,7 +58,7 @@ public class CurrentThreadExecutor implements Executor
   }
   
   private final static Log log = Log.getLog( CurrentThreadExecutor.class);
-  private final static long maxLatencyWarning = (long)30e6;
+  private final static long maxLatencyWarning = (long)5e9;
   
   private BlockingQueue<Runnable> queue;
   private long lastProcessTime;

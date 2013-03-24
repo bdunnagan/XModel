@@ -35,8 +35,6 @@ public class RuntimeAction extends GuardedAction
     Xlate.set( memoryNode, "total", runtime.totalMemory());
     Xlate.set( memoryNode, "max", runtime.maxMemory());
 
-    
-    
     context.set( var, runtimeNode);
     
     return null;
