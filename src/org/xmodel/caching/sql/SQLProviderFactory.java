@@ -2,6 +2,7 @@ package org.xmodel.caching.sql;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
@@ -20,8 +21,8 @@ public class SQLProviderFactory
    */
   public synchronized static ISQLProvider getProvider( IModelObject annotation) throws ClassNotFoundException
   {
-    String id = Xlate.childGet( annotation, "provider", (String)null);
-    String host = Xlate.childGet( annotation, "host", (String)null);
+    String id = Xlate.get( annotation, "provider", Xlate.childGet( annotation, "provider", (String)null));
+    String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", (String)null));
     
     String key = String.format( "%s+%s", id, host);
     ISQLProvider provider = providers.get( key);

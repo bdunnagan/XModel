@@ -60,6 +60,18 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A caching policy for accessing information from an SQL database. 
  * This caching policy is used to load both rows and columns of a table.
+ * 
+ * <h3>Database Updates</h3>
+ * When the <i>update</i> flag evaluates true, changes to the data-model will make corresponding changes to the
+ * database.  The following table summarizes the types of database updates:
+ * <ul>
+ * <li>Inserting a row element will cause a row to be added to the database table.</li>
+ * <li>Deleting a row element will cause a row to be deleted from the database table.</li>
+ * <li>Updating any column of a row element will cause that column to be updated in the database.</li>
+ * <li>Any changes to the data-model of an XML column will cause that column to be updated in the database.</li>
+ * <li>Caching policy transactions allow multiple updates to be committed together.</li>
+ * <li>Insert and delete statements appearing in caching policy transactions are optimized by batch updating.</li>
+ * </ul> 
  */
 public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 {
