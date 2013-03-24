@@ -53,7 +53,7 @@ public class DefaultSQLRowTransform implements ISQLRowTransform
     for( int i=0; i<transformList.size(); )
       transformList.get( i).importColumn( rowCursor, rowElement, ++i);
     
-    return null;
+    return rowElement;
   }
 
   /* (non-Javadoc)

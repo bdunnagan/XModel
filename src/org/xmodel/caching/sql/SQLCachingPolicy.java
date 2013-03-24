@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -14,13 +13,19 @@ import org.xmodel.caching.sql.transform.DefaultSQLRowTransform;
 import org.xmodel.caching.sql.transform.ISQLColumnTransform;
 import org.xmodel.caching.sql.transform.SQLColumnMetaData;
 import org.xmodel.caching.sql.transform.SQLDirectColumnTransform;
+import org.xmodel.caching.sql.transform.SQLXmlColumnTransform;
 import org.xmodel.caching.sql.transform.SimpleSQLParser;
+import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
+import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
+import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An ICachingPolicy that uses an arbitrary SQL query statement to load data.  The caching policy can also generate
@@ -83,6 +88,11 @@ import org.xmodel.xpath.expression.IExpression;
  */
 public class SQLCachingPolicy extends ConfiguredCachingPolicy
 {
+  public SQLCachingPolicy( ICache cache)
+  {
+    super( cache);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
@@ -159,6 +169,17 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
       Object attribute = element.getValue();
       if ( attribute != null) attributes.add( attribute.toString());
     }
+    
+    // xml columns
+    Set<String> xmlColumns = null;
+    String xml = Xlate.childGet( annotation, "xml", (String)null);
+    if ( xml != null)
+    {
+      xmlColumns = new HashSet<String>();
+      String[] split = xml.split( "\\s*,\\s*");
+      for( String field: split) 
+        xmlColumns.add( field);
+    }
 
     // get row element name
     String rowElementName = Xlate.childGet( annotation, "name", annotation.getParent().getType());
@@ -170,12 +191,20 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
       // two-layer caching means only static attributes are populated during first layer sync
       if ( !shallow || isStaticAttribute( column))
       {
-        ISQLColumnTransform columnTransform = new SQLDirectColumnTransform( metadata, column, column, attributes.contains( column));
-        transform.defineColumn( column, columnTransform);
+        if ( xmlColumns.contains( column))
+        {
+          ISQLColumnTransform columnTransform = new SQLXmlColumnTransform( metadata, column, column, new TabularCompressor());
+          transform.defineColumn( column, columnTransform);
+        }
+        else
+        {
+          ISQLColumnTransform columnTransform = new SQLDirectColumnTransform( metadata, column, column, attributes.contains( column));
+          transform.defineColumn( column, columnTransform);
+        }
       }
     }
   }
-  
+    
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
@@ -273,6 +302,35 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     return null;
   }
 
+  public static void main( String[] args) throws Exception
+  {
+    IXAction script = XActionDocument.parseScript( 
+        "<script>" +
+        "  <create var='provider'>" +
+        "    <provider provider='mysql' host='localhost'>" +
+        "      <username>root</username>" +
+        "      <password>root</password>" +
+        "      <database>ip6sonar</database>" +
+        "    </provider>" +
+        "  </create>" +
+        "" +
+        "  <create var='users'>" +
+        "    <users>" +
+        "      <extern:cache class='org.xmodel.caching.sql.SQLCachingPolicy'>" +
+        "        <provider>$provider</provider>" +
+        "        <query>'SELECT id, account, purchases FROM user'</query>" +
+        "        <xml>purchases</xml>" +
+        "      </extern:cache>" +
+        "    </users>" +
+        "  </create>" +
+        "" +
+        "  <print>$users</print>" +
+        "</script>");
+    
+    StatefulContext context = new StatefulContext();
+    script.run( context);
+  }
+  
   protected ISQLProvider provider;
   protected String query;
   protected String rowQuery;

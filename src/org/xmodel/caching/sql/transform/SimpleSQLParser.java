@@ -1,7 +1,9 @@
 package org.xmodel.caching.sql.transform;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,10 +40,16 @@ public class SimpleSQLParser
    */
   private boolean parse( String sql)
   {
-    Matcher matcher = columnsRegex.matcher( sql);
-    if ( !matcher.find()) return false;
+    // section query
+    Map<String, String> sections = section( sql);
     
-    querySansPredicate = matcher.group( 1);
+    // validate query
+    if ( !sections.containsKey( "SELECT")) return false;
+    if ( !sections.containsKey( "FROM")) return false;
+    
+    querySansPredicate = String.format( "SELECT %s FROM %s",
+        sections.get( "SELECT"),
+        sections.get( "FROM"));
     
     List<String> names = new ArrayList<String>();
     int parens = 0;
@@ -49,7 +57,7 @@ public class SimpleSQLParser
     boolean word = false;
     String name = null;
     
-    String columns = matcher.group( 1).trim();
+    String columns = sections.get( "SELECT");
     for( int i=0; i<columns.length(); i++)
     {
       char c = columns.charAt( i);
@@ -105,10 +113,35 @@ public class SimpleSQLParser
     return true;
   }
   
+  /**
+   * Section the query and return the sections.
+   * @param sql The query.
+   * @return Returns the section map.
+   */
+  private Map<String, String> section( String sql)
+  {
+    Map<String, String> sections = new HashMap<String, String>();
+    
+    String keyword = null;
+    int start = 0;
+    
+    Matcher matcher = keywordRegex.matcher( sql);
+    while( matcher.find())
+    {
+      if ( keyword != null) sections.put( keyword, sql.substring( start, matcher.start()).trim());
+      start = matcher.end();
+      keyword = matcher.group().toUpperCase();
+    }
+    
+    if ( keyword != null) sections.put( keyword, sql.substring( start).trim());
+    
+    return sections;
+  }
+  
   private String querySansPredicate;
   private List<String> columns;
   
-  private static Pattern columnsRegex = Pattern.compile( "(?i)^\\s*+(select\\s++(.*)\\s++from\\s++.*)\\s+(WHERE.*);");
+  private static Pattern keywordRegex = Pattern.compile( "(?i)select|from|where|order by|group by");
   
   public static void main( String[] args) throws Exception
   {
