@@ -236,8 +236,6 @@ public class RunAction extends GuardedAction
                   }
                   catch( final Exception e)
                   {
-                    if ( client != null) clientPool.release( client);
-                    
                     context.getExecutor().execute( new Runnable() {
                       public void run()
                       {
@@ -246,6 +244,10 @@ public class RunAction extends GuardedAction
                         if ( onComplete != null) onComplete.run( context);
                       }
                     });
+                  }
+                  finally
+                  {
+                    if ( client != null) clientPool.release( client);
                   }
                 }
                 else

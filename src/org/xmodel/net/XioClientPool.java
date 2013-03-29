@@ -81,29 +81,29 @@ public class XioClientPool
   {
     log.debugf( "Releasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
 
-    InetSocketAddress address = client.getRemoteAddress();
     if ( client.isConnected()) 
     {
-      Queue<XioClient> queue = getClients( address);
+      Queue<XioClient> queue = getClients( client.getRemoteAddress());
       queue.offer( client);
     }
   }
   
   /**
    * Returns the queue containing clients connected to the specified address.
-   * @param address The remote address.
+   * @param socketAddress The remote address.
    * @return Returns the queue containing clients connected to the specified address.
    */
-  private Queue<XioClient> getClients( InetSocketAddress address)
+  private Queue<XioClient> getClients( InetSocketAddress socketAddress)
   {
+    String address = toString( socketAddress);
     synchronized( clients)
     {
-      Queue<XioClient> queue = clients.get( address.toString());
+      Queue<XioClient> queue = clients.get( address);
       if ( queue == null)
       {
         log.debugf( "Creating new queue for address, %s", address);
         queue = new ConcurrentLinkedQueue<XioClient>();
-        clients.put( address.toString(), queue);
+        clients.put( address, queue);
       }
       return queue;
     }
@@ -123,10 +123,20 @@ public class XioClientPool
     synchronized( clients)
     {
       queue.remove( client);
-      if ( queue.isEmpty()) clients.remove( address.toString());
+      if ( queue.isEmpty()) clients.remove( toString( address));
     }
     
     timers.remove( client);
+  }
+  
+  /**
+   * Returns a consistent string representation of the specified address.
+   * @param address The address.
+   * @return Returns a consistent string representation of the specified address.
+   */
+  private static String toString( InetSocketAddress address)
+  {
+    return address.getHostName() + ":" + address.getPort();
   }
   
   private class TimeoutTask implements Runnable

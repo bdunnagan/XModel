@@ -302,6 +302,14 @@ public class XioClient extends XioPeer
     wrapperFuture.addTask( future);
     return wrapperFuture;
   }
+  
+  /**
+   * @return Returns the address of the last connection attempt.
+   */
+  public InetSocketAddress getRemoteAddress()
+  {
+    return lastAddress;
+  }
 
   private static synchronized NioClientSocketChannelFactory getDefaultChannelFactory()
   {

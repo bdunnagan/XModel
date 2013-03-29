@@ -1,7 +1,6 @@
 package org.xmodel.future;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -12,12 +11,13 @@ import org.xmodel.log.Log;
  */
 public abstract class AsyncFuture<T>
 {
-  public enum Status { running, success, failure};
+  public enum Status { pending, success, failure};
   
   public AsyncFuture( T initiator)
   {
+    this.status = Status.pending;
     this.initiator = initiator;
-    this.listeners = Collections.synchronizedList( new ArrayList<IListener<T>>());
+    this.listeners = new ArrayList<IListener<T>>();
     this.latch = new Semaphore( 0);
   }
   
@@ -89,7 +89,7 @@ public abstract class AsyncFuture<T>
    */
   public boolean isDone()
   {
-    return status != Status.running;
+    return status != Status.pending;
   }
   
   /**
@@ -99,19 +99,24 @@ public abstract class AsyncFuture<T>
   public void addListener( IListener<T> listener)
   {
     log.debugf( "addListener( %x, %x)", hashCode(), listener.hashCode());
+    
+    Status status;
+    synchronized( this)
+    {
+      status = this.status;
+      if ( status == Status.pending)
+        listeners.add( listener);
+    }
+    
     try
     {
-      if ( isSuccess())
+      if ( status == Status.success)
       {
         notifyComplete( listener);
       }
-      else if ( isFailure())
+      else if ( status == Status.failure)
       {
         notifyComplete( listener);
-      }
-      else
-      {
-        listeners.add( listener);
       }
     }
     catch( Exception e)
@@ -128,9 +133,12 @@ public abstract class AsyncFuture<T>
   public void removeListener( IListener<T> listener)
   {
     log.debugf( "removeListener( %x, %x)", hashCode(), listener.hashCode());
-    listeners.remove( listener);
+    synchronized( this)
+    {
+      listeners.remove( listener);
+    }
   }
-  
+
   /**
    * Notify listeners that the future is complete.
    */
@@ -138,7 +146,12 @@ public abstract class AsyncFuture<T>
   {
     log.debugf( "notifySuccess( %x)", hashCode());
     
-    status = Status.success;
+    List<IListener<T>> listeners = null;
+    synchronized( this)
+    {
+      status = Status.success;
+      listeners = new ArrayList<IListener<T>>( this.listeners);
+    }
     
     for( int i=0; i<listeners.size(); i++)
       notifyComplete( listeners.get( i));
@@ -153,9 +166,14 @@ public abstract class AsyncFuture<T>
   public void notifyFailure( String message) throws Exception
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), message);
-    
-    this.status = Status.failure;
-    this.message = message;
+
+    List<IListener<T>> listeners = null;
+    synchronized( this)
+    {
+      this.status = Status.failure;
+      this.message = message;
+      listeners = new ArrayList<IListener<T>>( this.listeners);
+    }
     
     for( int i=0; i<listeners.size(); i++)
       notifyComplete( listeners.get( i));
@@ -171,8 +189,13 @@ public abstract class AsyncFuture<T>
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), throwable.toString());
     
-    this.status = Status.failure;
-    this.throwable = throwable;
+    List<IListener<T>> listeners = null;
+    synchronized( this)
+    {
+      this.status = Status.failure;
+      this.throwable = throwable;
+      listeners = new ArrayList<IListener<T>>( this.listeners);
+    }
     
     for( int i=0; i<listeners.size(); i++)
       notifyComplete( listeners.get( i));
@@ -195,7 +218,7 @@ public abstract class AsyncFuture<T>
       log.exception( e);
     }
   }
-  
+
   public interface IListener<T>
   {
     /**
@@ -209,7 +232,7 @@ public abstract class AsyncFuture<T>
   
   private T initiator;
   private List<IListener<T>> listeners;
-  private Status status;
+  private volatile Status status;
   private String message;
   private Throwable throwable;
   private Semaphore latch;
