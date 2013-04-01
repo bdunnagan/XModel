@@ -21,7 +21,8 @@ package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -98,6 +99,17 @@ public class MySQLProvider implements ISQLProvider
   public void releaseConnection( Connection connection)
   {
     pool.release( connection);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long)
+   */
+  @Override
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException
+  {
+    if ( limit < 0) return connection.prepareStatement( query);
+    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", limit, offset));
+    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", limit, offset));
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";

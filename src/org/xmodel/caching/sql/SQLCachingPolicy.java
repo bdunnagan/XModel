@@ -40,6 +40,13 @@ import org.xmodel.xpath.expression.StatefulContext;
  * <li>The names of row element attributes and children are the same as the table column name or alias.</li>
  * </ul>
  * 
+ * <h3>Thin Wrapping vs. Cross-Platform</h3>
+ * Whenever possible, SQL queries should be written using generic SQL syntax that does not tie the query to a
+ * specific vendor.  To that end, this class will provide support for some common query keywords that are do
+ * not have generic representations.  For example, restricting a query result to a maximum number of rows is 
+ * accomplished with the "LIMIT" keyword in MySQL, while SQLServer uses the "TOP" keyword.  The "limit" and
+ * "offset" expressions provide a cross-platform mechanism for selecting a specific subset of the records.
+ * 
  * <h3>Two-Layer Caching</h3>
  * When the <i>shallow</i> flag evaluates true, only the indexed columns for each row element are loaded from the
  * database, and a second caching policy is assigned to each row element.  When a non-static node of a row element
@@ -71,6 +78,8 @@ import org.xmodel.xpath.expression.StatefulContext;
  * <li>indexes - A string expression giving comma-separated list of indexed columns where the first index is primary key.</li>
  * <li>attributes - An optional string expression giving a comma-separated list of column names to store in attributes.</li>
  * <li>shallow - A boolean expression that specifies whether row content is loaded on demand (default: false()).</li>
+ * <li>limit - The maximum number of rows to return.</li>
+ * <li>offset - The offset of the first record to be returned from the result-set.</li>
  * </ul>
  * 
  * <h3>Example:</h3>
@@ -112,6 +121,12 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     
     IExpression shallowExpr = Xlate.childGet( annotation, "shallow", (IExpression)null);
     boolean shallow = (shallowExpr != null)? shallowExpr.evaluateBoolean( context): false;
+    
+    IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
+    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): -1;
+    
+    IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
+    limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
     parser = new SimpleSQLParser( query);
     configureProvider( context, annotation);
@@ -238,7 +253,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       Connection connection = provider.leaseConnection();
-      PreparedStatement statement = connection.prepareStatement( query);
+      PreparedStatement statement = provider.createStatement( connection, query, limit, offset);
       ResultSet rowCursor = statement.executeQuery();
       
       if ( !metadataReady) 
@@ -341,4 +356,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   protected boolean metadataReady;
   protected DefaultSQLRowTransform transform;
   protected IExternalReference tableReference;
+  protected long limit;
+  protected long offset;
 }

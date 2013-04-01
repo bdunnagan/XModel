@@ -284,7 +284,7 @@ public class ExecutionRequestProtocol
       }
       finally
       {
-        requests.remove( this);
+        requests.remove( correlation);
       }
     }
 

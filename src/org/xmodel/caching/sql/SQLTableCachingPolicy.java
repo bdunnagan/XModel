@@ -130,7 +130,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
     
     IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
-    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): 0;
+    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): -1;
     
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
@@ -569,19 +569,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( orderby);
     }
     
-    // HACK: optional row limit and offset optimization that only works for MySQL
-    if ( limit > 0 && provider instanceof MySQLProvider)
-    {
-      sb.append( " LIMIT "); sb.append( limit);
-      sb.append( " OFFSET "); sb.append( offset);
-    }
-    
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
     
     log.debugf( "table query: %s", sb);
     
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset);
     if ( limit > 0) statement.setMaxRows( limit);
     return statement;
   }
