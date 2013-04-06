@@ -108,8 +108,8 @@ public class MySQLProvider implements ISQLProvider
   public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException
   {
     if ( limit < 0) return connection.prepareStatement( query);
-    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", limit, offset));
-    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", limit, offset));
+    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", query, limit));
+    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", query, limit, offset));
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
