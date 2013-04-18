@@ -15,11 +15,12 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param unique True if keys in the tree are unique.
    * @param storageController The storage controller for the database.
    */
-  public BTree( int degree, StorageController<K> storageController) throws IOException
+  public BTree( int degree, boolean unique, StorageController<K> storageController) throws IOException
   {
-    this( degree, storageController, null);
+    this( degree, unique, storageController, (Comparator<K>)null);
   }
   
   /**
@@ -27,44 +28,21 @@ public class BTree<K>
    * of entries in a node is degree - 1, and the maximum number of nodes is 2 * degree - 1.  The implementation uses the specified
    * instance of IRandomAccessStore to store and retrieve nodes.
    * @param degree The degree of the b+tree.
+   * @param unique True if keys in the tree are unique.
    * @param recordFormat The record format.
    * @param storageController The store controller for the database.
    * @param comparator The key comparator.
    */
-  public BTree( int degree, StorageController<K> storageController, Comparator<K> comparator) throws IOException
+  public BTree( int degree, boolean unique, StorageController<K> storageController, Comparator<K> comparator) throws IOException
   {
     this.degree = degree;
+    this.unique = unique;
     this.garbage = new ArrayList<BNode<K>>();
     this.storageController = storageController;
 
     int minKeys = degree - 1;
     int maxKeys = 2 * degree - 1;
-
-    int storeDegree = storageController.readIndexDegree();
-    if ( storeDegree == 0)
-    {
-      initActiveStore();
-      root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
-    }
-    else if ( storeDegree == degree)
-    {
-      long position = storageController.readIndexPointer();
-      root = new BNode<K>( this, minKeys, maxKeys, position, 0, comparator);
-      if ( position > 0) root.load();
-    }
-    else
-    {
-      throw new IllegalStateException();
-    }
-  }
-  
-  /**
-   * Initialize the active store in the specified StorageController for use with this BTree.
-   * @param storageController The storage controller.
-   */
-  protected void initActiveStore() throws IOException
-  {
-    storageController.writeIndexDegree( degree);
+    root = new BNode<K>( this, minKeys, maxKeys, 0, 0, comparator);
   }
   
   /**
@@ -79,19 +57,30 @@ public class BTree<K>
   }
   
   /**
-   * Delete a record.
+   * Delete a record with a unique key.
    * @param key The key.
    * @return Returns 0 or the pointer associated with the key.
    */
   public long delete( K key) throws IOException
   {
-    long pointer = root.delete( key);
+    return delete( key, -1);
+  }
+  
+  /**
+   * Delete a record.
+   * @param key The key.
+   * @param pointer The pointer (-1 for unique keys).
+   * @return Returns 0 or the pointer associated with the key.
+   */
+  public long delete( K key, long pointer) throws IOException
+  {
+    pointer = root.delete( key, pointer);
     if ( root.count() == 0 && root.getChildren().size() > 0) root = root.getChildren().get( 0);
     return pointer;
   }
   
   /**
-   * Returns the pointer associated with the specified key.
+   * Returns the pointer associated with the specified unique key.
    * @param key The key.
    * @return Returns 0 or the pointer associated with the specified key.
    */
@@ -101,12 +90,60 @@ public class BTree<K>
   }
   
   /**
+   * Get a cursor for navigating keys in order.
+   * @param key The unique starting key.
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursorUnique( K key) throws IOException
+  {
+    return root.getCursorUnique( key);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The unique starting key.
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursorNonUnique( K key) throws IOException
+  {
+    return root.getCursorNonUnique( key);
+  }
+  
+  /**
+   * Get a cursor for navigating keys in order.
+   * @param key The starting key.
+   * @param value The value (-1 for unique keys).
+   * @return Returns a cursor.
+   */
+  public Cursor<K> getCursor( K key, long value) throws IOException
+  {
+    return root.getCursor( key, value);
+  }
+  
+  /**
    * Add the specified node to the garbage.
    * @param node The node.
    */
   protected void markGarbage( BNode<K> node)
   {
     garbage.add( node);
+  }
+  
+  /**
+   * Load the root node of this b+tree from the specified pointer into the storage controller.
+   */
+  protected void loadFrom( long pointer) throws IOException
+  {
+    root.pointer = pointer;
+    root.load();
+  }
+  
+  /**
+   * @return Returns the degree of the tree.
+   */
+  public int getDegree()
+  {
+    return degree;
   }
 
   /* (non-Javadoc)
@@ -119,13 +156,14 @@ public class BTree<K>
   }
 
   private int degree;
+  protected boolean unique;
   protected StorageController<K> storageController;
   protected BNode<K> root;
-  private List<BNode<K>> garbage;
+  protected List<BNode<K>> garbage;
   
   public static void main( String[] args) throws Exception
   {
-    BTree<String> tree = new BTree<String>( 3, null, new Comparator<String>() {
+    BTree<String> tree = new BTree<String>( 3, true, null, new Comparator<String>() {
       public int compare( String lhs, String rhs)
       {
         return lhs.compareTo( rhs);
@@ -143,7 +181,7 @@ public class BTree<K>
       System.out.println( "------------------------------------------------------------");
     }
     
-    Cursor<String> cursor = tree.root.getCursor( "5");
+    Cursor<String> cursor = tree.root.getCursorUnique( "5");
     while( cursor.hasPrevious())
     {
       System.out.printf( "Traverse: %s\n", cursor.get().getKey());

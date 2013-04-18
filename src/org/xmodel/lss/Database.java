@@ -1,7 +1,6 @@
 package org.xmodel.lss;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -15,7 +14,7 @@ public class Database<K>
     this.indexes = indexes;
     this.record = new Record();
     
-    storageController.finishIndex( indexes);
+    storageController.loadIndex( indexes);
   }
   
   /**
@@ -29,6 +28,12 @@ public class Database<K>
     position = indexes.get( 0).insert( keys[ 0], position);
     if ( position != 0) storageController.markGarbage( position);
     
+    for( int i=1; i<keys.length; i++)
+    {
+      BTree<K> index = indexes.get( i);
+      index.insert( keys[ i], position);
+    }
+    
     storageController.flush();
   }
   
@@ -40,58 +45,66 @@ public class Database<K>
   {
     long position = indexes.get( 0).delete( keys[ 0]);
     if ( position != 0) storageController.markGarbage( position);
-    storageController.flush();
     
     for( int i=1; i<keys.length; i++)
     {
       BTree<K> index = indexes.get( i);
       index.delete( keys[ i]);
     }
+    
+    storageController.flush();
   }
   
   /**
-   * Query a record from the database with one or more keys.
+   * Delete a record from the database.
    * @param key The key.
+   * @param index The index of the b+tree to which the key belongs.
+   */
+  public void delete( K key, int index) throws IOException
+  {
+    BTree<K> btree = indexes.get( index);
+    long position = btree.get( key);
+    if ( position != 0) 
+    {
+      // keys may be null after restart because b+tree is missing deletes
+      K[] keys = storageController.extractKeys( position);
+      if ( keys != null) delete( keys);
+    }
+  }
+  
+  /**
+   * Query a record from the database with one unique key.
+   * @param key The key.
+   * @param index The index of the b+tree to which the key belongs.
    * @return Returns null or the record.
    */
-  public byte[] query( K[] keys) throws IOException
+  public byte[] query( K key, int index) throws IOException
   {
+    BTree<K> btree = indexes.get( index);
     long position = btree.get( key);
     if ( position != 0) 
     {
       storageController.readRecord( position, record);
+      
+      // b+tree may not be up-to-date with deletes after restart
+      if ( record.isGarbage())
+      {
+        btree.delete( key);
+        return null;
+      }
+      
       return record.getContent();
     }
     return null;
   }
   
   /**
-   * Write the database indexes to the store.
+   * Store the current state of the index.  Call this method more frequently to reduce the time it takes
+   * to initialize the database at startup at the expense of increased storage consumption.
    */
   public void storeIndex() throws IOException
   {
-    // begin with clean slate
-    storageController.flush();
-    
-    // update indexes
-    for( BTree<K> index: indexes)
-      index.root.store();
-    
-    // update index pointer
-    storageController.writeIndexPointer( root.pointer);
-
-    //
-    // Mark index garbage. 
-    // Failure just before this point could result in leaked garbage.
-    //
-    while( garbage.size() > 0)
-    {
-      BNode<K> node = garbage.remove( 0);
-      if ( node.pointer > 0) storageController.markGarbage( node.pointer);
-    }
-    
-    // flush changes
-    storageController.flush();
+    storageController.storeIndex( indexes);
   }
   
   private StorageController<K> storageController;
