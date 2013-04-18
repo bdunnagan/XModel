@@ -20,8 +20,11 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
-import org.xmodel.IModel;
+import java.util.concurrent.Executor;
+
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -54,13 +57,14 @@ public class SubContext implements IContext
     this.size = size;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return (object != null)? object.getModel(): null;
-  }
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  @Override
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()
@@ -166,6 +170,25 @@ public class SubContext implements IContext
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    if ( parent != null) return parent.getExecutor();
+    return GlobalSettings.getInstance().getDefaultExecutor();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#notifyBind(org.xmodel.xpath.expression.IExpression)
    */
   public void notifyBind( IExpression expression)
@@ -208,7 +231,7 @@ public class SubContext implements IContext
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getLastUpdate(org.xmodel.xpath.expression.IExpression)
    */
-  public int getLastUpdate( IExpression expression)
+  public Update getLastUpdate( IExpression expression)
   {
     return getParent().getLastUpdate( expression);
   }

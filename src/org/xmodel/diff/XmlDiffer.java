@@ -175,7 +175,7 @@ public class XmlDiffer extends AbstractXmlDiffer
    */
   public IModelObject getFactoryClone( IModelObject object)
   {
-    if ( factory != null) return ModelAlgorithms.cloneTree( object, factory);
+    if ( factory != null) return ModelAlgorithms.cloneTree( object, factory, null);
     return object;
   }
   

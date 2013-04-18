@@ -8,10 +8,10 @@ import java.net.InetSocketAddress;
 public interface IXioClientFactory
 {
   /**
-   * Returns a client that is connected to the specified address.
+   * Returns a client that is connected to the specified address, or is going to be connected to the specified address.
+   * If the client is not connected, the caller must not connect the client to any other address but the one specified.
    * @param address The address.
-   * @param connect True if the client should be connected before it is returned.
    * @return Returns a new XioClient.
    */
-  public XioClient newInstance( InetSocketAddress address, boolean connect);
+  public XioClient newInstance( InetSocketAddress address);
 }

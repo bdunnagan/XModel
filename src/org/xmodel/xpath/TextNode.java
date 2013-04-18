@@ -39,23 +39,6 @@ public class TextNode implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-    source.clearModel();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    return source.getModel();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getID()
    */
   public String getID()

@@ -20,7 +20,7 @@ public class Logging implements LoggingMBean
     }
     catch( Exception e)
     {
-      SLog.exception( this, e);
+      SLog.warnf( this, "Failed to register logging mbean: %s", e.toString());
     }
   }
 

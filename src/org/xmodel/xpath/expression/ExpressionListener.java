@@ -21,6 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.ListDiffer;
@@ -88,7 +89,7 @@ public class ExpressionListener implements IExpressionListener
   {
     try
     {
-      IModel model = context.getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       switch( expression.getType( context))
       {
         case NODES:

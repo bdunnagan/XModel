@@ -21,7 +21,8 @@ package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -51,6 +52,8 @@ public class MySQLProvider implements ISQLProvider
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
     
+    database = Xlate.childGet( annotation, "database", (String)null);
+    
     pool = new ConnectionPool( this, 20);
   }
 
@@ -61,7 +64,9 @@ public class MySQLProvider implements ISQLProvider
   {
     try
     {
-      return DriverManager.getConnection( url, username, password);
+      Connection connection = DriverManager.getConnection( url, username, password);
+      if ( database != null) connection.setCatalog( database);
+      return connection;
     }
     catch( Exception e)
     {
@@ -96,11 +101,23 @@ public class MySQLProvider implements ISQLProvider
     pool.release( connection);
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long)
+   */
+  @Override
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException
+  {
+    if ( limit < 0) return connection.prepareStatement( query);
+    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", query, limit));
+    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", query, limit, offset));
+  }
+
   private final static String driverClassName = "com.mysql.jdbc.Driver";
   private final static Log log = Log.getLog( MySQLProvider.class);
   
   private String url;
   private String username;
   private String password;
+  private String database;
   private ConnectionPool pool;
 }

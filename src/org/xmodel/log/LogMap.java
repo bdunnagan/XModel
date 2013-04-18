@@ -39,9 +39,8 @@ public class LogMap
    * Configure all logs, including logs created in the future, that match the specified pattern.
    * @param pattern The regular expression.
    * @param level The level.
-   * @param sink The sink.
    */
-  public void configure( Pattern pattern, int level, ILogSink sink)
+  public void configure( Pattern pattern, int level)
   {
     Config config = configs.get( pattern.pattern());
     if ( config == null)
@@ -49,7 +48,7 @@ public class LogMap
       synchronized( this)
       {
         // save to configure future logs
-        config = new Config( pattern, level, sink);
+        config = new Config( pattern, level);
         configs.put( pattern.pattern(), config);
       }
     }
@@ -57,7 +56,6 @@ public class LogMap
     // configure current logs
     for( Log log: findLogs( pattern))
     {
-      log.setSink( sink);
       log.setLevel( level);
     }
   }
@@ -98,7 +96,6 @@ public class LogMap
       if ( config.matcher.matches())
       {
         log.setLevel( config.level);
-        log.setSink( config.sink);
       }
     }
     
@@ -107,16 +104,14 @@ public class LogMap
   
   private static class Config
   {
-    public Config( Pattern pattern, int level, ILogSink sink)
+    public Config( Pattern pattern, int level)
     {
       this.matcher = pattern.matcher( "");
       this.level = level;
-      this.sink = sink;
     }
     
     public Matcher matcher;
     public int level;
-    public ILogSink sink;
   }
 
   private final static LogMap instance = new LogMap();

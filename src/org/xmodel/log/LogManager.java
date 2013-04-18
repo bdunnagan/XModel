@@ -3,6 +3,7 @@ package org.xmodel.log;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.mbean.Logging;
@@ -45,21 +47,25 @@ public final class LogManager implements Runnable
   public LogManager()
   {
     period = 10;
-    log = Log.getLog( this);
-
+    
     // get logging configuration
     String path = System.getProperty( "org.xmodel.log.config");
     if ( path == null) path = "logging.xml";
     
-    log.infof( "LogManager created with configuration: %s", path);
-    
     config = new File( path);
     if ( !config.exists()) 
     {
+      log = Log.getLog( this);
       log.warnf( "Logging configuration file not found, %s", new File( path).getAbsolutePath());
       config = null;
     }
-
+    else
+    {
+      init();
+      log = Log.getLog( this);
+      log.debugf( "LogManager created with configuration: %s", path);
+    }
+    
     // log uncaught exceptions
     Thread.setDefaultUncaughtExceptionHandler( new UncaughtExceptionLogger());
     
@@ -115,30 +121,47 @@ public final class LogManager implements Runnable
   }
   
   /**
-   * Update the logging configuration.
+   * Initialize the logging configuration.
    */
-  private void updateConfig()
+  private void init()
   {
     try
     {
-      IModelObject root = new XmlIO().read( new BufferedInputStream( new FileInputStream( config)));
+      InputStream stream = new BufferedInputStream( new FileInputStream( config));
+      IModelObject root = new XmlIO().read( stream);
+      stream.close(); stream = null;
+      
       period = Xlate.childGet( root, "reload", period);
 
       ILogSink defaultSink = configure( root);
       Log.setDefaultSink( defaultSink);
+    }
+    catch( Exception e)
+    {
+      log.warnf( "Unable to parse logging configuration, %s", e.toString());
+    }
+  }
+  
+  /**
+   * Update the logging configuration.
+   */
+  private void update()
+  {
+    try
+    {
+      InputStream stream = new BufferedInputStream( new FileInputStream( config));
+      IModelObject root = new XmlIO().read( stream);
+      stream.close(); stream = null;
       
+      period = Xlate.childGet( root, "reload", period);
+
       for( IModelObject child: root.getChildren( "log"))
       {
         String level = Xlate.get( child, "level", (String)null);
-        
-        ILogSink sink = configure( child);
-        if ( sink == null) sink = defaultSink;
-        
         String name = Xlate.get( child, "name", (String)null);
         if ( name != null)
         {
           Log log = Log.getLog( name);
-          if ( sink != null) log.setSink( sink);
           if ( level != null) log.setLevel( Log.getLevelIndex( level));
         }
         
@@ -147,7 +170,7 @@ public final class LogManager implements Runnable
         {
           try
           {
-            LogMap.getInstance().configure( Pattern.compile( regex), Log.getLevelIndex( level), sink);
+            LogMap.getInstance().configure( Pattern.compile( regex), Log.getLevelIndex( level));
           }
           catch( Exception e)
           {
@@ -171,9 +194,9 @@ public final class LogManager implements Runnable
     long modified = config.lastModified();
     if ( timestamp == 0 || modified > timestamp)
     {
-      log.info( "Logging configuration updated.");
+      log.debug( "Logging configuration updated.");
       timestamp = modified;
-      updateConfig();
+      update();
     }
     
     if ( period <= 0) period = 1;

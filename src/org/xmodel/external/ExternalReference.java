@@ -19,6 +19,7 @@
  */
 package org.xmodel.external;
 
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -165,7 +166,7 @@ public class ExternalReference extends ModelObject implements IExternalReference
    */
   public String toString()
   {
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     boolean wasSyncLocked = model.getSyncLock();
     model.setSyncLock( true);
     try

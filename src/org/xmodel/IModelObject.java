@@ -47,20 +47,6 @@ import org.xmodel.memento.IMemento;
 public interface IModelObject
 {
   /**
-   * Clear the cached IModel, if present.  This method must be called before an object is accessed
-   * by a different thread, since the IModel for the previous thread may be cached.
-   */
-  public void clearModel();
-  
-  /**
-   * Returns the IModel to which this object belongs. Implementations should use the IModelRegistry
-   * to find the IModel. Since using the IModelRegistry involves accessing thread-local data, the
-   * IModel should usually be cached.
-   * @return Returns the IModel to which this object belongs.
-   */
-  public IModel getModel();
-  
-  /**
    * Set the id of the object.
    * @param id The object id.
    */

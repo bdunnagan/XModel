@@ -25,11 +25,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.zip.CRC32;
+
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.SLog;
 import org.xmodel.util.Fifo;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.AttributeNode;
@@ -316,7 +320,7 @@ public class ModelAlgorithms implements IAxis
    */
   public static IModelObject cloneTree( IModelObject object)
   {
-    return cloneTree( object, null);
+    return cloneTree( object, null, null);
   }
   
   /**
@@ -324,10 +328,10 @@ public class ModelAlgorithms implements IAxis
    * the factory is null then a default factory is used.
    * @param object The root of the subtree to clone.
    * @param factory The factory to use when creating objects in the tree.
+   * @param exclude Null or a list of descendants of the object to be excluded.
    * @return Returns a complete clone of the subtree.
-   * TODO: Optimize cloning with backdoor for fast object creation without involving IModel
    */
-  public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory)
+  public static IModelObject cloneTree( IModelObject object, IModelObjectFactory factory, Set<IModelObject> exclude)
   {
     IModelObject thisDup = (factory == null)? object.cloneObject(): factory.createClone( object);
     Fifo<IModelObject> fifo = new Fifo<IModelObject>();
@@ -341,20 +345,37 @@ public class ModelAlgorithms implements IAxis
       for ( int i=0; i<children.size(); i++)
       {
         IModelObject child = (IModelObject)children.get( i);
-        IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
-        if ( childDup != null)
+        if ( exclude == null || !exclude.contains( child))
         {
-          childDup.clearModel();
-          sourceDup.addChild( childDup);
-          fifo.push( child);
-          fifo.push( childDup);
+          IModelObject childDup = (factory == null)? child.cloneObject(): factory.createClone( child);
+          if ( childDup != null)
+          {
+            sourceDup.addChild( childDup);
+            fifo.push( child);
+            fifo.push( childDup);
+          }
         }
       }
-      sourceDup.clearModel();
     }
     return thisDup;
   }
-
+  
+//  /**
+//   * Create a clone of the specified object. If the object has a caching policy, then the caching policy
+//   * is cloned and the new element will be left in the dirty state.
+//   * @param object The root of the subtree.
+//   * @param factory Null or the factory to use for elements that are not IExternalReference instances.
+//   * @return Returns the clone.
+//   */
+//  public static IModelObject cloneExternalObject( IModelObject object, IModelObjectFactory factory)
+//  {
+//    ReferenceFactory referenceFactory = new ReferenceFactory();
+//    referenceFactory.delegate = factory;
+//    IExternalReference clone = (IExternalReference)referenceFactory.createClone( object);
+//    clone.setDirty( true);
+//    return clone;
+//  }
+  
   /**
    * Create a deep copy of the specified subtree. External references present in the tree are cloned
    * as ExternalReferences and their caching policies and dirty state are preserved.
@@ -389,7 +410,6 @@ public class ModelAlgorithms implements IAxis
           fifo.push( childDup);
         }
       }
-      sourceDup.clearModel();
     }
     return thisDup;
   }
@@ -413,7 +433,7 @@ public class ModelAlgorithms implements IAxis
   public static IModelObject cloneBranch( IModelObject object, IModelObjectFactory factory)
   {
     // clone tree
-    IModelObject clone = cloneTree( object, factory);
+    IModelObject clone = cloneTree( object, factory, null);
     
     // clone ancestors
     IModelObject child = clone;
@@ -456,7 +476,7 @@ public class ModelAlgorithms implements IAxis
     if ( factory == null) factory = new ModelObjectFactory();
     for ( IModelObject child: source.getChildren())
     {
-      IModelObject clone = cloneTree( child, factory);
+      IModelObject clone = cloneTree( child, factory, null);
       destination.addChild( clone);
     }
   }
@@ -975,14 +995,15 @@ public class ModelAlgorithms implements IAxis
    * and the slave will be kept synchronized via its thread dispatcher.
    * @see org.xmodel.concurrent.MasterSlaveListener
    * @param slave The slave.
+   * @param executor The executor for handling updates in the correct thread.
    * @return Returns the master clone, or null if the argument is null.
    */
-  public static IModelObject createMasterClone( IModelObject slave)
+  public static IModelObject createMasterClone( IModelObject slave, Executor executor)
   {
     if ( slave == null) return null;
     
     IModelObject master = slave.cloneTree();
-    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave, executor);
     masterListener.install( master);
     return master;
   }
@@ -992,14 +1013,15 @@ public class ModelAlgorithms implements IAxis
    * and it will be kept synchronized with the master via its thread dispatcher.
    * @see org.xmodel.concurrent.MasterSlaveListener
    * @param master The master.
+   * @param executor The executor for handling updates in the correct thread.
    * @return Returns the slave clone, or null if the argument is null.
    */
-  public static IModelObject createSlaveClone( IModelObject master)
+  public static IModelObject createSlaveClone( IModelObject master, Executor executor)
   {
     if ( master == null) return null;
     
     IModelObject slave = master.cloneTree();
-    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave);
+    MasterSlaveListener masterListener = new MasterSlaveListener( master, slave, executor);
     masterListener.install( master);
     return slave;
   }
@@ -1031,8 +1053,23 @@ public class ModelAlgorithms implements IAxis
         {
           ModelAlgorithms.copyAttributes( reference, clone);
         }
-        clone.setCachingPolicy( reference.getCachingPolicy());
-        clone.setDirty( reference.isDirty());
+        
+        try
+        {
+          ICachingPolicy cachingPolicy = reference.getCachingPolicy();
+          if ( cachingPolicy != null)
+          {
+            clone.setCachingPolicy( (ICachingPolicy)cachingPolicy.clone());
+            clone.setDirty( reference.isDirty());
+          }
+        }
+        catch( CloneNotSupportedException e)
+        {
+          SLog.errorf( this, "%s of element, %s, is not cloneable!", 
+              reference.getCachingPolicy().getClass().getSimpleName(),
+              reference.getType());
+        }
+        
         return clone;
       }
       

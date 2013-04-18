@@ -20,6 +20,8 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 
 
@@ -95,17 +97,18 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( !newValue);
         boolean oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, literal, rhs);
         
@@ -113,11 +116,11 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( !newValue);
         boolean oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, lhs, literal);
         
@@ -137,17 +140,18 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         boolean oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, literal, rhs);
         
@@ -155,11 +159,11 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         boolean oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, lhs, literal);
         
@@ -179,17 +183,18 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
    */
   public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       IExpression lhs = getArgument( 0);
       IExpression rhs = getArgument( 1);
       if ( expression == lhs)
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         boolean oldResult = evaluate( context, literal, rhs);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, literal, rhs);
         
@@ -197,11 +202,11 @@ public abstract class AbstractBinaryBooleanExpression extends Expression
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         literal.setValue( oldValue);
         boolean oldResult = evaluate( context, lhs, literal);
                
-        context.getModel().restore();
+        model.restore();
         literal.setValue( newValue);
         boolean newResult = evaluate( context, lhs, literal);
         

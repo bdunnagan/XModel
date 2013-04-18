@@ -60,6 +60,18 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A caching policy for accessing information from an SQL database. 
  * This caching policy is used to load both rows and columns of a table.
+ * 
+ * <h3>Database Updates</h3>
+ * When the <i>update</i> flag evaluates true, changes to the data-model will make corresponding changes to the
+ * database.  The following table summarizes the types of database updates:
+ * <ul>
+ * <li>Inserting a row element will cause a row to be added to the database table.</li>
+ * <li>Deleting a row element will cause a row to be deleted from the database table.</li>
+ * <li>Updating any column of a row element will cause that column to be updated in the database.</li>
+ * <li>Any changes to the data-model of an XML column will cause that column to be updated in the database.</li>
+ * <li>Caching policy transactions allow multiple updates to be committed together.</li>
+ * <li>Insert and delete statements appearing in caching policy transactions are optimized by batch updating.</li>
+ * </ul> 
  */
 public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -118,7 +130,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
     
     IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
-    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): 0;
+    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): -1;
     
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
@@ -199,9 +211,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       long t3 = System.nanoTime();
       log.debugf( "query exec: %1.3fs", ((t3 - t2) / 1e9));
       
+      long count = 0;
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
+        count++;
+        
         IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
@@ -216,6 +231,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         
         parent.addChild( row);
       }
+      
+      log.debugf( "query size: %d", count);
       
       update( reference, parent);
     }
@@ -521,7 +538,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The row stubs to be populated.
    * @return Returns a prepared statement which will select stubs for all rows of a table.
    */
-  private PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
+  protected PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); 
@@ -557,19 +574,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( orderby);
     }
     
-    // HACK: optional row limit and offset optimization that only works for MySQL
-    if ( limit > 0 && provider instanceof MySQLProvider)
-    {
-      sb.append( " LIMIT "); sb.append( limit);
-      sb.append( " OFFSET "); sb.append( offset);
-    }
-    
     Connection connection = provider.leaseConnection();
     connection.setCatalog( catalog);
     
     log.debugf( "table query: %s", sb);
     
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset);
     if ( limit > 0) statement.setMaxRows( limit);
     return statement;
   }
@@ -1080,29 +1090,29 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
   private static Map<String, Class<? extends ISQLProvider>> providers;
 
-  private ISQLProvider provider;
-  private boolean stub;
-  private boolean readonly;
-  private List<String> excluded;
-  private String where;
-  private String orderby;
-  private int offset;
-  private int limit;
-  private SQLRowCachingPolicy rowCachingPolicy;
-  private String catalog;
-  private String tableName;
-  private List<String> columnNames;
-  private List<Integer> columnTypes;
-  private String queryColumns;
-  private String primaryKey;
-  private List<String> otherKeys;
-  private String rowElementName;
-  private Set<String> xmlColumns;
-  private SQLEntityListener updateMonitor;
-  private SQLTransaction transaction;
-  private Map<IModelObject, List<IModelObject>> rowInserts;
-  private Map<IModelObject, List<IModelObject>> rowDeletes;
-  private Map<IModelObject, List<String>> rowUpdates;  
-  private ICompressor compressor;
+  protected ISQLProvider provider;
+  protected boolean stub;
+  protected boolean readonly;
+  protected List<String> excluded;
+  protected String where;
+  protected String orderby;
+  protected int offset;
+  protected int limit;
+  protected SQLRowCachingPolicy rowCachingPolicy;
+  protected String catalog;
+  protected String tableName;
+  protected List<String> columnNames;
+  protected List<Integer> columnTypes;
+  protected String queryColumns;
+  protected String primaryKey;
+  protected List<String> otherKeys;
+  protected String rowElementName;
+  protected Set<String> xmlColumns;
+  protected SQLEntityListener updateMonitor;
+  protected SQLTransaction transaction;
+  protected Map<IModelObject, List<IModelObject>> rowInserts;
+  protected Map<IModelObject, List<IModelObject>> rowDeletes;
+  protected Map<IModelObject, List<String>> rowUpdates;  
+  protected ICompressor compressor;
 }
 

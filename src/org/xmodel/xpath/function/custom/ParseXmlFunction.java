@@ -21,6 +21,8 @@ package org.xmodel.xpath.function.custom;
 
 import java.util.Collections;
 import java.util.List;
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xml.XmlException;
@@ -107,9 +109,10 @@ public class ParseXmlFunction extends Function
   {
     try
     {
-      context.getModel().revert();
+      IModel model = GlobalSettings.getInstance().getModel();
+      model.revert();
       String oldValue = expression.evaluateString( context);
-      context.getModel().restore();
+      model.restore();
       String newValue = expression.evaluateString( context);
       notifyChange( expression, context, newValue, oldValue);
     }

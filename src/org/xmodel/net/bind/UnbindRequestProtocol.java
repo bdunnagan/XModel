@@ -5,8 +5,8 @@ import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioException;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioException;
 
 public class UnbindRequestProtocol
 {
@@ -57,7 +57,7 @@ public class UnbindRequestProtocol
     
     log.debugf( "UnbindRequestProtocol.handle: element=%X", netID);
     
-    bundle.context.getModel().dispatch( new UnbindRunnable( channel, netID, element));
+    bundle.executor.execute( new UnbindRunnable( channel, netID, element));
   }
   
   /**
@@ -68,23 +68,20 @@ public class UnbindRequestProtocol
    */
   private void unbind( Channel channel, long netID, IModelObject element)
   {
-    try
+    synchronized( bundle.context)
     {
-      bundle.context.getModel().writeLockUninterruptibly();
+      try
+      {
+        // release resources
+        bundle.responseCompressor.freeLocal( element);
       
-      // release resources
-      bundle.responseCompressor.freeLocal( element);
-    
-      UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
-      if ( listener != null) listener.uninstall( element);
-    }
-    catch( Exception e)
-    {
-      SLog.exception( this, e);
-    }
-    finally
-    {
-      bundle.context.getModel().writeUnlock();
+        UpdateListener listener = bundle.bindRequestProtocol.getListener( element);
+        if ( listener != null) listener.uninstall( element);
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
+      }
     }
   }
   

@@ -1,17 +1,24 @@
 package org.xmodel.net;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.handler.ssl.SslHandler;
+import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
+import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -24,6 +31,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     executeRequest,
     executeResponse,
+    cancelRequest,
     bindRequest,
     bindResponse,
     unbindRequest,
@@ -33,20 +41,33 @@ public class XioChannelHandler extends SimpleChannelHandler
     removeChild,
     changeAttribute,
     clearAttribute,
-    changeDirty
+    changeDirty,
+    register,
+    unregister
   }
   
-  public XioChannelHandler( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler)
+  public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler, IXioPeerRegistry registry)
   {
+    if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     headerProtocol = new HeaderProtocol();
-    bindProtocol = new BindProtocol( headerProtocol, bindContext);
-    executionProtocol = new ExecutionProtocol( headerProtocol, executeContext, scheduler);
+    registerProtocol = new RegisterProtocol( registry, headerProtocol);
+    bindProtocol = new BindProtocol( headerProtocol, context, executor);
+    executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
     buffer = ChannelBuffers.dynamicBuffer();
+    this.registry = registry;
   }
   
   public XioChannelHandler( XioChannelHandler handler)
   {
-    this( handler.bindProtocol.context, handler.executionProtocol.context, handler.executionProtocol.scheduler);
+    this( handler.bindProtocol.context, handler.executionProtocol.executor, handler.executionProtocol.scheduler, handler.registry);
+  }
+  
+  /**
+   * @return Returns the protocol that implements registration.
+   */
+  public RegisterProtocol getRegisterProtocol()
+  {
+    return registerProtocol;
   }
   
   /**
@@ -65,16 +86,44 @@ public class XioChannelHandler extends SimpleChannelHandler
     return executionProtocol;
   }
 
+  /**
+   * @return Returns null or the handshake future.
+   */
+  public ChannelFuture getSSLHandshakeFuture()
+  {
+    return sslHandshakeFuture;
+  }
+  
   /* (non-Javadoc)
    * @see org.jboss.netty.channel.SimpleChannelHandler#channelConnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
-//    final SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
-//
-//    ChannelFuture handshakeFuture = sslHandler.handshake();
-//    handshakeFuture.addListener( new Greeter( sslHandler));
+    SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
+    if ( sslHandler != null)
+    {
+      sslHandshakeFuture = sslHandler.handshake();
+      sslHandshakeFuture.addListener( new ChannelFutureListener() {
+        public void operationComplete( ChannelFuture handshakeFuture) throws Exception
+        {
+          if ( handshakeFuture.isSuccess()) 
+          {
+            if ( registry != null)
+              registry.channelConnected( handshakeFuture.getChannel());
+          }
+          else
+          {
+            handshakeFuture.getChannel().close();
+          }
+        }
+      });
+    }
+    else
+    {
+      if ( registry != null)
+        registry.channelConnected( e.getChannel());
+    }
   }
 
   /* (non-Javadoc)
@@ -83,6 +132,9 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
   {
+    if ( registry != null)
+      registry.channelDisconnected( e.getChannel());
+    
     bindProtocol.reset();
     executionProtocol.reset();
   }
@@ -149,6 +201,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     switch( type)
     {
       case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
+      case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
       case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
       
       case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
@@ -161,6 +214,9 @@ public class XioChannelHandler extends SimpleChannelHandler
       case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
       case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
       case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
+      
+      case register:        registerProtocol.registerRequestProtocol.handle( channel, buffer); return true;
+      case unregister:      registerProtocol.unregisterRequestProtocol.handle( channel, buffer); return true;
     }
     
     return false;
@@ -173,7 +229,6 @@ public class XioChannelHandler extends SimpleChannelHandler
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
     log.exception( event.getCause());
-//    log.error( event);
   }
   
   /**
@@ -214,6 +269,9 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   private ChannelBuffer buffer;
   private HeaderProtocol headerProtocol;
+  private RegisterProtocol registerProtocol;
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;
+  private IXioPeerRegistry registry;
+  private ChannelFuture sslHandshakeFuture;  
 }

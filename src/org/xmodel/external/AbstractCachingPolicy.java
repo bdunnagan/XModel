@@ -22,6 +22,7 @@ package org.xmodel.external;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
@@ -84,6 +85,15 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   public IModelObjectFactory getFactory()
   {
     return factory;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
+  @Override
+  public Object clone() throws CloneNotSupportedException
+  {
+    return super.clone();
   }
 
   /**
@@ -324,10 +334,11 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     applyNextStages( object, reference);
     
     // turn off syncing while updating reference
-    boolean syncLock = reference.getModel().getSyncLock();
+    IModel model = GlobalSettings.getInstance().getModel();
+    boolean syncLock = model.getSyncLock();
     try
     {
-      reference.getModel().setSyncLock( true);
+      model.setSyncLock( true);
       differ.diffAndApply( reference, object);
       
       // This is necessary when children have not been removed by the clear method
@@ -335,7 +346,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
     }
     finally
     {
-      reference.getModel().setSyncLock( syncLock);
+      model.setSyncLock( syncLock);
     }
   }
 
@@ -441,7 +452,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   protected void internal_sync( IExternalReference reference) throws CachingException
   {
     // check sync lock before proceeding
-    IModel model = reference.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     if ( model.getSyncLock()) return;
     
     // clear dirty flag

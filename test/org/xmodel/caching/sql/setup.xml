@@ -1,0 +1,13 @@
+<!--
+  Setup a database provider for the test cases in this package.
+-->
+<script>
+  <create var="provider">
+    <provider>
+      <host>localhost</host>
+      <username>root</username>
+      <password>root</password>
+      <database>cptest</database>
+    </provider>
+  </create>
+</script>

@@ -214,24 +214,6 @@ public class NullObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-    model = null;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    if ( model == null) model = GlobalSettings.getInstance().getModel();
-    return model;
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModelListeners()
    */
   public ModelListenerList getModelListeners()
@@ -470,6 +452,4 @@ public class NullObject implements IModelObject
   {
     throw new UnsupportedOperationException();
   }
-  
-  private IModel model;
 }

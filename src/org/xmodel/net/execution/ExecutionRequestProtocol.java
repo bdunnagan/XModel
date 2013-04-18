@@ -1,8 +1,11 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -11,6 +14,8 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.IXioCallback;
@@ -19,6 +24,8 @@ import org.xmodel.net.XioExecutionException;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -27,6 +34,16 @@ public class ExecutionRequestProtocol
   public ExecutionRequestProtocol( ExecutionProtocol bundle)
   {
     this.bundle = bundle;
+    this.requests = new ConcurrentHashMap<Integer, RequestRunnable>();
+  }
+  
+  /**
+   * Set the execution privileges.
+   * @param privilege The object that defines the privileges.
+   */
+  public void setPrivilege( ExecutionPrivilege privilege)
+  {
+    this.privilege = privilege;
   }
   
   /**
@@ -35,6 +52,7 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
+    requests.clear();
   }
   
   /**
@@ -50,9 +68,16 @@ public class ExecutionRequestProtocol
   {
     int correlation = bundle.responseProtocol.nextCorrelation();
     log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
+    if ( log.debug()) log.debugf( "script:\n%s", XmlIO.write( Style.printable, element));
+    
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
     
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    List<byte[]> buffers = bundle.requestCompressor.compress( request);
+    List<byte[]> buffers = compressor.compress( request);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
@@ -66,26 +91,32 @@ public class ExecutionRequestProtocol
   /**
    * Send an asynchronous execution request via the specified channel.
    * @param channel The channel.
+   * @param correlation The preallocated correlation number.
    * @param context The local context.
    * @param vars Shared variables from the local context.
    * @param element The script element to execute.
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( Channel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
+  public void send( Channel channel, int correlation, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
-    ResponseTask task = new ResponseTask( context, callback);
+    ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)
     {
       ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task), timeout, TimeUnit.MILLISECONDS);
       task.setTimer( timer);
     }
     
-    int correlation = bundle.responseProtocol.nextCorrelation( task);
+    bundle.responseProtocol.setCorrelation( correlation, task);
     log.debugf( "ExecutionRequestProtocol.send (async): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
     
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    
     IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
-    List<byte[]> buffers = bundle.requestCompressor.compress( request);
+    List<byte[]> buffers = compressor.compress( request);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
@@ -108,10 +139,51 @@ public class ExecutionRequestProtocol
       bundle.responseProtocol.send( channel, correlation, null, (Object[])null);
       return;
     }
+
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the client worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
     
-    IModelObject request = bundle.responseCompressor.decompress( new ChannelBufferInputStream( buffer));
+    IModelObject request = compressor.decompress( new ChannelBufferInputStream( buffer));
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
-    bundle.context.getModel().dispatch( runnable);
+    requests.put( correlation, runnable);
+    bundle.executor.execute( runnable);
+  }
+  
+  /**
+   * Cancel an asynchronous execute request.  This method first removes the async context associated with the specified
+   * correlation number, and then sends a cancel request to the server.  The handling of the cancel request is implementation
+   * dependent, and no guarantee is made that the server will interrupt the operation.
+   * @param channel The channel. 
+   * @param correlation The correlation number of the request.
+   */
+  public void cancel( Channel channel, int correlation)
+  {
+    log.debugf( "ExecutionRequestProtocol.cancel: corr=%d", correlation);
+    
+    // ignore response with this correlation
+    bundle.responseProtocol.cancel( correlation);
+
+    // send cancel
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.cancelRequest, 4, correlation);
+    channel.write( buffer);
+  }
+  
+  /**
+   * Handle an execution cancel request. 
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleCancel( Channel channel, ChannelBuffer buffer) throws IOException
+  {
+    int correlation = buffer.readInt();
+    
+    log.debugf( "ExecutionRequestProtocol.handleCancel: corr=%d", correlation);
+    
+    RequestRunnable runnable = requests.remove( correlation);
+    if ( runnable != null) runnable.interrupt();
   }
   
   /**
@@ -153,6 +225,11 @@ public class ExecutionRequestProtocol
     // to hold the variables that will be passed to the script.
     //
     IContext context = new StatefulContext( bundle.context);
+    
+    // store remote address in context
+    InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
+    context.set(  "remoteHost", address.getHostName());
+    
     try
     {
       IModelObject element = ExecutionSerializer.readRequest( request, context);
@@ -186,18 +263,35 @@ public class ExecutionRequestProtocol
       this.request = request;
     }
     
+    /**
+     * Interrupt the thread currently processing this request.
+     */
+    public void interrupt()
+    {
+      if ( thread != null) thread.interrupt();
+    }
+    
     /* (non-Javadoc)
      * @see java.lang.Runnable#run()
      */
     @Override
     public void run()
     {
-      execute( channel, correlation, request);
+      try
+      {
+        thread = Thread.currentThread();
+        execute( channel, correlation, request);
+      }
+      finally
+      {
+        requests.remove( correlation);
+      }
     }
 
     private Channel channel;
     private int correlation;
     private IModelObject request;
+    private Thread thread;
   }
   
   private class ResponseTimeout implements Runnable
@@ -215,7 +309,8 @@ public class ExecutionRequestProtocol
     {
       log.debug( "Response timeout.");
       task.setError( "timeout");
-      bundle.context.getModel().dispatch( task);
+      
+      bundle.executor.execute( task);
     }
 
     private ResponseTask task;
@@ -225,4 +320,5 @@ public class ExecutionRequestProtocol
 
   private ExecutionProtocol bundle;
   private ExecutionPrivilege privilege;
+  private Map<Integer, RequestRunnable> requests;
 }

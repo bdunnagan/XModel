@@ -22,8 +22,10 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.xmodel.IModel;
+import java.util.concurrent.Executor;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
 
@@ -62,7 +64,7 @@ public class Context implements IContext
     this.object = object;
     this.position = position;
     this.size = size;
-    this.updates = new HashMap<IExpression, Integer>( 1);
+    this.updates = new HashMap<IExpression, Update>( 1);
   }
     
   /**
@@ -77,7 +79,7 @@ public class Context implements IContext
     this.object = object;
     this.position = position;
     this.size = size;
-    this.updates = new HashMap<IExpression, Integer>( 1);
+    this.updates = new HashMap<IExpression, Update>( 1);
     this.scope = scope;
   }
     
@@ -118,14 +120,14 @@ public class Context implements IContext
     return Precedences.contextScope;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return (object != null)? object.getModel(): null;
-  }
-
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
+//
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()
    */
@@ -221,6 +223,24 @@ public class Context implements IContext
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    return GlobalSettings.getInstance().getDefaultExecutor();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#notifyBind(org.xmodel.xpath.expression.IExpression)
    */
   public void notifyBind( IExpression expression)
@@ -241,7 +261,7 @@ public class Context implements IContext
    */
   public void notifyUpdate( IExpression expression)
   {
-    updates.put( expression, getModel().getUpdateID());
+    updates.put( expression, GlobalSettings.getInstance().getModel().getCurrentUpdate());
   }
 
   /* (non-Javadoc)
@@ -257,18 +277,16 @@ public class Context implements IContext
    */
   public boolean shouldUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    return lastUpdate == null || lastUpdate == 0 || lastUpdate != getModel().getUpdateID();
+    Update lastUpdate = updates.get( expression);
+    return lastUpdate == null || !lastUpdate.isActive() || lastUpdate != GlobalSettings.getInstance().getModel().getCurrentUpdate();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getLastUpdate(org.xmodel.xpath.expression.IExpression)
    */
-  public int getLastUpdate( IExpression expression)
+  public Update getLastUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    if ( lastUpdate == null) return 0;
-    return lastUpdate;
+    return updates.get( expression);
   }
 
   /* (non-Javadoc)
@@ -327,6 +345,6 @@ public class Context implements IContext
   private IModelObject object;
   private int position;
   private int size;
-  private Map<IExpression, Integer> updates;
+  private Map<IExpression, Update> updates;
   protected IVariableScope scope;
 }

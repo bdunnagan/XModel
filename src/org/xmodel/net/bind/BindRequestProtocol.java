@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
@@ -34,11 +35,12 @@ public class BindRequestProtocol
   public synchronized void reset()
   {
     for( Map.Entry<IModelObject, UpdateListener> entry: listeners.entrySet())
-      bundle.context.getModel().dispatch( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
+      bundle.executor.execute( new UninstallListenerRunnable( entry.getKey(), entry.getValue())); 
     listeners.clear();
     
     for( IExternalReference binding: bindings)
-      bundle.context.getModel().dispatch( new SetDirtyRunnable( binding));
+      bundle.executor.execute( new SetDirtyRunnable( binding));
+    
     bindings.clear();
   }
   
@@ -121,7 +123,8 @@ public class BindRequestProtocol
     try
     {
       IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
-      bundle.context.getModel().dispatch( new BindRunnable( channel, correlation, readonly, query, queryExpr));
+      Executor executor = bundle.context.getExecutor();
+      executor.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
     }
     catch( PathSyntaxException e)
     {
@@ -139,27 +142,24 @@ public class BindRequestProtocol
    */
   private void bind( Channel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
   {
-    try
+    synchronized( bundle.context)
     {
-      bundle.context.getModel().writeLockUninterruptibly();
-      
-      IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
-      bundle.bindResponseProtocol.send( channel, correlation, target);
-      
-      if ( target != null)
+      try
       {
-        UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
-        listener.install( target);
-        synchronized( this) { listeners.put( target, listener);}
+        IModelObject target = (bundle.context != null)? queryExpr.queryFirst( bundle.context): null;
+        bundle.bindResponseProtocol.send( channel, correlation, target);
+        
+        if ( target != null)
+        {
+          UpdateListener listener = new UpdateListener( bundle.updateProtocol, channel, query);
+          listener.install( target);
+          synchronized( this) { listeners.put( target, listener);}
+        }
       }
-    }
-    catch( IOException e)
-    {
-      SLog.exception( this, e);
-    }
-    finally
-    {
-      bundle.context.getModel().writeUnlock();
+      catch( IOException e)
+      {
+        SLog.exception( this, e);
+      }
     }
   }
   

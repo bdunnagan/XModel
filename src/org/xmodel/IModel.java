@@ -21,7 +21,6 @@ package org.xmodel;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
@@ -38,52 +37,6 @@ public interface IModel
    * @param thread The thread.
    */
   public void setThread( Thread thread);
-  
-  /**
-   * Acquire a read lock on this model.
-   */
-  public void readLock() throws InterruptedException;
-  
-  /**
-   * Acquire a read lock on this model without interruption.
-   */
-  public void readLockUninterruptibly();
-  
-  /**
-   * Acquire a read lock on this model.
-   * @param timeout The timeout.
-   * @param unit The units of the timeout.
-   * @return Returns true if the lock was acquired.
-   */
-  public boolean readLock( int timeout, TimeUnit unit) throws InterruptedException;
-
-  /**
-   * Release the read lock for this model.
-   */
-  public void readUnlock();
-  
-  /**
-   * Acquire a write lock on this model.
-   */
-  public void writeLock() throws InterruptedException;
-  
-  /**
-   * Acquire a write lock on this model without interruption.
-   */
-  public void writeLockUninterruptibly();
-  
-  /**
-   * Acquire a read lock on this model.
-   * @param timeout The timeout.
-   * @param unit The units of the timeout.
-   * @return Returns true if the lock was acquired.
-   */
-  public boolean writeLock( int timeout, TimeUnit unit) throws InterruptedException;
-  
-  /**
-   * Release the write lock for this model.
-   */
-  public void writeUnlock();
   
   /**
    * Add a document to the specified collection.
@@ -184,33 +137,6 @@ public interface IModel
   public Update getCurrentUpdate();
 
   /**
-   * Returns the <i>id</i> of the current update.
-   * @return Returns the <i>id</i> of the current update.
-   */
-  public int getUpdateID();
-  
-  /**
-   * Set the dispatcher which will execute a runnable in the thread associated with this model.
-   * A dispatcher is required for automated, asynchronous updates to the model such as those
-   * performed by the NetworkCachingPolicy.
-   * @param dispatcher The dispatcher implementation.
-   * @throws NullPointerException If no dispatcher is installed.
-   */
-  public void setDispatcher( IDispatcher dispatcher);
-  
-  /**
-   * Returns the currently installed dispatcher.
-   * @return Returns the currently installed dispatcher.
-   */
-  public IDispatcher getDispatcher();
-  
-  /**
-   * Dispatch the specified runnable using the IDispatcher associated with this model.
-   * @param runnable The runnable to be executed in the thread associated with this model.
-   */
-  public void dispatch( Runnable runnable);
-  
-  /**
    * Setting the sync lock temporarily prevents any external references from being synchronized.
    * @param lock True if the lock should be set.
    */
@@ -221,10 +147,4 @@ public interface IModel
    * @return Returns true if the sync lock is set.
    */
   public boolean getSyncLock();
-  
-  /**
-   * Handle an exception or error which is thrown during a listener callback.
-   * @param e The exception.
-   */
-  public void handleException( Exception e);
 }

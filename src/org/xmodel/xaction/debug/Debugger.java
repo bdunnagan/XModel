@@ -269,7 +269,6 @@ public class Debugger
     public String getName()
     {
       IModelObject config = action.getDocument().getRoot().cloneObject();
-      config.clearModel();
       config.removeAttribute( "xaction");
       config.removeAttribute( "xm:compiled");
       return XmlIO.write( Style.printable, config);

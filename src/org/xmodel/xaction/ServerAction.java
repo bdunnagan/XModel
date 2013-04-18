@@ -30,12 +30,7 @@ public class ServerAction extends GuardedAction
     String address = addressExpr.evaluateString( context);
     int port = (int)portExpr.evaluateNumber( context);
 
-    //
-    // Make sure context node has its model so that a model is not created in an I/O thread.
-    //
-    context.getModel();
-    
-    XioServer server = new XioServer( context, context);
+    XioServer server = new XioServer( context);
     server.start( address, port);
     
     return null;

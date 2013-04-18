@@ -6,15 +6,19 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
+import org.xmodel.compress.ICompressor;
+import org.xmodel.compress.TabularCompressor;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.XioChannelHandler.Type;
@@ -53,8 +57,14 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
-    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    List<byte[]> buffers = compressor.compress( response);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
@@ -73,8 +83,14 @@ public class ExecutionResponseProtocol
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    
     IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
-    List<byte[]> buffers = bundle.responseCompressor.compress( response);
+    List<byte[]> buffers = compressor.compress( response);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
@@ -91,7 +107,12 @@ public class ExecutionResponseProtocol
   {
     int correlation = buffer.readInt();
     
-    IModelObject response = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
     
     BlockingQueue<IModelObject> queue = queues.get( correlation);
     log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
@@ -99,15 +120,25 @@ public class ExecutionResponseProtocol
     
     ResponseTask task = tasks.remove( correlation);
     log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
-    if ( task != null && !task.isExpired()) 
+    if ( task != null && task.cancelTimer()) 
     {
       task.setResponse( response);
-      task.context.getModel().dispatch( task);
+      Executor executor = task.context.getExecutor();
+      executor.execute( task);
     }
   }
   
   /**
-   * Allocates the next correlation number.
+   * Allocates the next correlation without associating a queue or task.
+   * @return Returns the allocated correlation number.
+   */
+  public int allocCorrelation()
+  {
+    return counter.incrementAndGet();
+  }
+  
+  /**
+   * Allocates the next correlation number for a synchronous execution.
    * @return Returns the correlation number.
    */
   protected int nextCorrelation()
@@ -118,15 +149,22 @@ public class ExecutionResponseProtocol
   }
   
   /**
-   * Allocates the next correlation number and associates the specified callback.
+   * Associate the specified callback with the specified correlation.
    * @param callback The callback.
    * @return Returns the correlation number.
    */
-  protected int nextCorrelation( ResponseTask runnable)
+  protected void setCorrelation( int correlation, ResponseTask runnable)
   {
-    int correlation = counter.incrementAndGet();
     tasks.put( correlation, runnable);
-    return correlation;
+  }
+  
+  /**
+   * Remove the async context associated with the specified correlation number.
+   * @param correlation The correlation number.
+   */
+  protected void cancel( int correlation)
+  {
+    tasks.remove( correlation);
   }
   
   /**
@@ -142,6 +180,7 @@ public class ExecutionResponseProtocol
     {
       BlockingQueue<IModelObject> queue = queues.get( correlation);
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      if ( response == null) return null;
       
       Throwable throwable = ExecutionSerializer.readResponseException( response);
       if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
@@ -156,10 +195,24 @@ public class ExecutionResponseProtocol
 
   public static class ResponseTask implements Runnable
   {
-    public ResponseTask( IContext context, IXioCallback callback)
+    public ResponseTask( Channel channel, IContext context, IXioCallback callback)
     {
+      this.channel = channel;
       this.context = context;
       this.callback = callback;
+      
+      closeListener = new ChannelFutureListener() {
+        public void operationComplete( ChannelFuture future) throws Exception
+        {
+          if ( cancelTimer())
+          {
+            setError( "Channel closed during remote execution.");
+            ResponseTask.this.context.getExecutor().execute( ResponseTask.this);
+          }
+        }
+      };
+      
+      channel.getCloseFuture().addListener( closeListener);
     }
     
     /**
@@ -172,12 +225,12 @@ public class ExecutionResponseProtocol
     }
     
     /**
-     * Test whether this task has expired.
-     * @return Returns true if task has expired.
+     * Cancel timer and true if timer has not already fired.
+     * @return Returns true if cancellation was successful and timer has not already fired.
      */
-    public boolean isExpired()
+    public boolean cancelTimer()
     {
-      return timer != null && !timer.cancel( false);
+      return timer == null || timer.cancel( false);
     }
     
     /**
@@ -204,6 +257,8 @@ public class ExecutionResponseProtocol
     @Override
     public void run()
     {      
+      channel.getCloseFuture().removeListener( closeListener);
+      
       IContext context = new StatefulContext( this.context);
       callback.onComplete( context);
       
@@ -214,6 +269,7 @@ public class ExecutionResponseProtocol
         {
           log.exceptionf( throwable, "Remote invocation returned exception: ");
           error = String.format( "%s: %s", throwable.getClass().getName(), throwable.getMessage());
+          callback.onError( context, error);
         }
         else
         {
@@ -227,6 +283,8 @@ public class ExecutionResponseProtocol
       }
     }
 
+    private Channel channel;
+    private ChannelFutureListener closeListener;
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;

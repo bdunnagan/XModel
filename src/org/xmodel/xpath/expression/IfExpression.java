@@ -20,7 +20,9 @@
 package org.xmodel.xpath.expression;
 
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeSet;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 
@@ -181,6 +183,7 @@ public class IfExpression extends Expression
    */
   public void rebind( IContext context)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression condition = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     IExpression arg2 = getArgument( 2);
@@ -189,7 +192,7 @@ public class IfExpression extends Expression
     boolean newState = condition.evaluateBoolean( context);
     try
     {
-      context.getModel().revert();
+      model.revert();
       boolean oldState = condition.evaluateBoolean( context);
       if ( newState != oldState)
       {
@@ -199,7 +202,7 @@ public class IfExpression extends Expression
     }
     finally
     {
-      context.getModel().restore();
+      model.restore();
     }
 
     if ( needRebind)

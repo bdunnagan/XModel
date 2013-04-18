@@ -19,15 +19,11 @@
  */
 package org.xmodel.concurrent;
 
-import org.xmodel.BlockingDispatcher;
+import java.util.concurrent.Executor;
 import org.xmodel.IChangeRecord;
-import org.xmodel.IDispatcher;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelListener;
-import org.xmodel.ModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.record.AddChildRecord;
 import org.xmodel.record.ChangeAttributeRecord;
@@ -41,12 +37,11 @@ import org.xmodel.record.RemoveChildRecord;
  */
 public class MasterSlaveListener extends NonSyncingListener
 {
-  public MasterSlaveListener( IModelObject master, IModelObject slave)
+  public MasterSlaveListener( IModelObject master, IModelObject slave, Executor executor)
   {
     this.master = master;
     this.slave = slave;
-    this.dispatcher = slave.getModel().getDispatcher();
-    if ( dispatcher == null) throw new IllegalArgumentException( "Slave element does not have associated dispatcher.");
+    this.executor = executor;
   }
   
   /* (non-Javadoc)
@@ -64,7 +59,7 @@ public class MasterSlaveListener extends NonSyncingListener
     super.notifyAddChild( parent, child, index);
     
     IChangeRecord record = new AddChildRecord( getPath( parent), child, index);
-    if ( dispatcher != null) dispatcher.execute( new ApplyRecordRunnable( record)); else uninstall( master);
+    if ( executor != null) executor.execute( new ApplyRecordRunnable( record)); else uninstall( master);
   }
 
   /* (non-Javadoc)
@@ -75,7 +70,7 @@ public class MasterSlaveListener extends NonSyncingListener
     super.notifyRemoveChild( parent, child, index);
     
     IChangeRecord record = new RemoveChildRecord( getPath( parent), index);
-    if ( dispatcher != null) dispatcher.execute( new ApplyRecordRunnable( record)); else uninstall( master);
+    if ( executor != null) executor.execute( new ApplyRecordRunnable( record)); else uninstall( master);
   }
 
   /* (non-Javadoc)
@@ -86,7 +81,7 @@ public class MasterSlaveListener extends NonSyncingListener
     super.notifyChange( object, attrName, newValue, oldValue);
     
     IChangeRecord record = new ChangeAttributeRecord( getPath( object), attrName, newValue);
-    if ( dispatcher != null) dispatcher.execute( new ApplyRecordRunnable( record)); else uninstall( master);
+    if ( executor != null) executor.execute( new ApplyRecordRunnable( record)); else uninstall( master);
   }
 
   /* (non-Javadoc)
@@ -97,7 +92,7 @@ public class MasterSlaveListener extends NonSyncingListener
     super.notifyClear( object, attrName, oldValue);
     
     IChangeRecord record = new ClearAttributeRecord( getPath( object), attrName);
-    if ( dispatcher != null) dispatcher.execute( new ApplyRecordRunnable( record)); else uninstall( master);
+    if ( executor != null) executor.execute( new ApplyRecordRunnable( record)); else uninstall( master);
   }
 
   /**
@@ -131,48 +126,5 @@ public class MasterSlaveListener extends NonSyncingListener
   
   private IModelObject master;
   private IModelObject slave;
-  private IDispatcher dispatcher;
-  
-  public static void main( String[] args) throws Exception
-  {
-    final ModelObject master = new ModelObject( "master");
-    master.setValue( 0);
-    
-    Thread thread = new Thread() {
-      public void run()
-      {
-        ModelObject slave = new ModelObject( "slave");
-        slave.setValue( 0);
-        
-        BlockingDispatcher dispatcher = new BlockingDispatcher();
-        slave.getModel().setDispatcher( dispatcher);
-        
-        MasterSlaveListener listener = new MasterSlaveListener( master, slave);
-        listener.install( master);
-        
-        slave.addModelListener( new ModelListener() {
-          public void notifyChange( IModelObject element, String attrName, Object newValue, Object oldValue)
-          {
-            System.out.println( newValue);
-          }
-        });
-        
-        while( true)
-        {
-          dispatcher.process();
-          
-          if ( slave != null && Xlate.get( slave, 0) > 5) 
-            slave = null;
-        }
-      }
-    };
-    
-    thread.start();
-    
-    for( int i=1; i<1000; i++)
-    {
-      master.setValue( i);
-      Thread.sleep( 1000);
-    }
-  }
+  private Executor executor;
 }

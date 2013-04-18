@@ -175,7 +175,7 @@ public class BindCompressor extends TabularCompressor
     {
       Integer key = remoteKeys.remove( descendant);
       if ( key == null || remoteMap.remove( key) == null)
-        log.warnf( "%X - remote not found (memory leak): %s", hashCode(), element.getType());
+        log.debugf( "%X - remote not found: %s", hashCode(), element.getType());
     }
     
     //log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
@@ -260,9 +260,6 @@ public class BindCompressor extends TabularCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
 
-    // disassociate from model so it can be passed to a new thread
-    element.clearModel();
-    
     return element;
   }
   

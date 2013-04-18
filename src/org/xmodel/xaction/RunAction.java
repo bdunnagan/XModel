@@ -24,21 +24,25 @@
  */
 package org.xmodel.xaction;
 
-import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.xmodel.IDispatcher;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
-import org.xmodel.NullObject;
 import org.xmodel.Xlate;
+import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
+import org.xmodel.net.IXioClientFactory;
 import org.xmodel.net.XioClient;
+import org.xmodel.net.XioClientPool;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
@@ -66,6 +70,7 @@ public class RunAction extends GuardedAction
     super.configure( document);
 
     var = Conventions.getVarName( document.getRoot(), false, "assign");    
+    cancelVar = Xlate.get( document.getRoot(), "cancelVar", (String)null);    
     contextExpr = document.getExpression( "context", true);
     scriptExpr = document.getExpression();
     
@@ -78,7 +83,7 @@ public class RunAction extends GuardedAction
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
-    dispatcherExpr = document.getExpression( "dispatcher", true);
+    executorExpr = document.getExpression( "executor", true);
   }
 
   /* (non-Javadoc)
@@ -89,9 +94,9 @@ public class RunAction extends GuardedAction
   {
     if ( hostExpr != null)
     {
-      runRemote( context);
+      runRemote( context, getRemoteAddresses( context));
     }
-    else if ( dispatcherExpr != null)
+    else if ( executorExpr != null)
     {
       runLocalAsync( context);
     }
@@ -105,15 +110,14 @@ public class RunAction extends GuardedAction
   /**
    * Perform local execution.
    * @param context The context.
-   * @return Returns the execution result.
    */
   @SuppressWarnings("unchecked")
-  private Object[] runLocalSync( IContext context)
+  private void runLocalSync( IContext context)
   {
     Object[] results = null;
 
     IXAction script = getScript( context, scriptExpr);
-    if ( script == null) return null;
+    if ( script == null) return;
     
     if ( contextExpr != null)
     {
@@ -137,8 +141,6 @@ public class RunAction extends GuardedAction
       else if ( result instanceof Number) scope.set( var, (Number)result);
       else if ( result instanceof Boolean) scope.set( var, (Boolean)result);
     }
-    
-    return null;
   }
   
   /**
@@ -148,117 +150,132 @@ public class RunAction extends GuardedAction
    */
   private void runLocalAsync( IContext context)
   {
-    IModelObject dispatcherNode = dispatcherExpr.queryFirst( context);
-    if ( dispatcherNode == null)
+    IModelObject executorNode = executorExpr.queryFirst( context);
+    if ( executorNode == null)
     {
-      log.warnf( "Dispatcher not found, '%s'", dispatcherExpr);
+      log.warnf( "Executor not found, '%s'", executorExpr);
       return;
     }
     
-    IDispatcher dispatcher = (IDispatcher)dispatcherNode.getValue();
+    Executor executor = (Executor)executorNode.getValue();
     IXAction script = getScript( getScriptNode( context));
     
     //
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
     //
-    dispatcher.execute( new ScriptRunnable( new StatefulContext( context, new NullObject()), script));
+    StatefulContext runContext = new StatefulContext( context.getObject());
+    runContext.getScope().copyFrom( context.getScope());
+    runContext.setExecutor( executor);
+    executor.execute( new ScriptRunnable( runContext, script));
   }
   
   /**
    * Perform remote execution.
    * @param context The context.
-   * @return Returns the execution result.
    */
-  private Object[] runRemote( final IContext context)
+  private void runRemote( final IContext context, final InetSocketAddress[] addresses)
   {
-    final String host = (hostExpr != null)? hostExpr.evaluateString( context): null;
-    final int port = (portExpr != null)? (int)portExpr.evaluateNumber( context): -1;
     final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
 
     final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
     final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
     final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    final String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
+    String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     final String[] varArray = vars.split( "\\s*,\\s*");
     final IModelObject scriptNode = getScriptNode( context);
 
     try
     {
-      log.debugf( "Remote execution at %s:%d, @name=%s ...", host, port, Xlate.get( scriptNode, "name", "?"));
-      
-      // execute synchronously unless one of the async callback scripts exists
-      if ( onComplete == null && onSuccess == null && onError == null)
+      for( InetSocketAddress address: addresses)
       {
-        XioClient client = null;
-        try
+        log.debugf( "Remote execution at %s, @name=%s ...", address.toString(), Xlate.get( scriptNode, "name", "?"));
+  
+        final XioClientPool clientPool = getClientPool( context);
+        final XioClient client = clientPool.lease( address);
+        
+        if ( onComplete == null && onSuccess == null && onError == null)
         {
-          client = new XioClient( context, context);
-          if ( !client.connect( host, port, connectionRetries).await( timeout)) 
-            throw new IOException( "Connection not established.");
+          if ( !client.isConnected())
+            client.connect( address, connectionRetries).await( timeout);
           
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
           if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
-        finally
+        else
         {
-          if ( client != null) client.close();
-        }
-      }
-      else
-      {
-        final XioClient client = new XioClient( context, context);
-        ChannelFuture future = client.connect( host, port, connectionRetries);
-        future.addListener( new ChannelFutureListener() {
-          public void operationComplete( ChannelFuture future) throws Exception
+          final StatefulContext runContext = new StatefulContext( context.getObject());
+          runContext.getScope().copyFrom( context.getScope());
+          runContext.setExecutor( context.getExecutor());
+          runContext.set( "remoteHost", address.getHostName());
+          runContext.set( "remotePort", address.getPort());
+          
+          final int correlation = correlationCounter.getAndIncrement();
+          if ( cancelVar != null)
           {
-            if ( future.isSuccess())
-            {
-              context.getModel().dispatch( new Runnable() {
-                public void run()
+            IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
+            asyncInvocation.setAttribute( "client", client);
+            asyncInvocation.setAttribute( "correlation", correlation);
+            context.set( cancelVar, asyncInvocation);
+          }
+          
+          if ( !client.isConnected())
+          {
+            AsyncFuture<XioClient> future = client.connect( address, connectionRetries);
+            future.addListener( new IListener<XioClient>() {
+              public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
+              {
+                if ( future.isSuccess())
                 {
                   try
                   {
-                    AsyncCallback callback = new AsyncCallback( client, onComplete, onSuccess, onError);
-                    client.execute( context, varArray, scriptNode, callback, timeout);
+                    AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+                    client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
                   }
-                  catch( Exception e)
+                  catch( final Exception e)
                   {
-                    if ( onError != null) 
-                    {
-                      context.set( "error", "Execution failed!");
-                      onError.run( context);
-                    }
-                    
-                    if ( onComplete != null)
-                    {
-                      onComplete.run( context);
-                    }
+                    context.getExecutor().execute( new Runnable() {
+                      public void run()
+                      {
+                        context.set( "error", e.toString());
+                        if ( onError != null) onError.run( context);
+                        if ( onComplete != null) onComplete.run( context);
+                      }
+                    });
+                  }
+                  finally
+                  {
+                    if ( client != null) clientPool.release( client);
                   }
                 }
-              });
-            }
-            else
-            {
-              context.getModel().dispatch( new Runnable() {
-                public void run()
+                else
                 {
-                  if ( onError != null) 
-                  {
-                    context.set( "error", "Connection not established!");
-                    onError.run( context);
-                  }
-                  
-                  if ( onComplete != null)
-                  {
-                    onComplete.run( context);
-                  }
+                  context.getExecutor().execute( new Runnable() {
+                    public void run()
+                    {
+                      context.set( "error", "Connection not established!");
+                      if ( onError != null) onError.run( context);
+                      if ( onComplete != null) onComplete.run( context);
+                    }
+                  });
                 }
-              });
+              }
+            });
+          }
+          else
+          {
+            try
+            {
+              AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+              client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+            }
+            finally
+            {
+              if ( client != null) clientPool.release( client);
             }
           }
-        });
+        }
       }
       
       log.debug( "Finished remote.");
@@ -267,8 +284,103 @@ public class RunAction extends GuardedAction
     {
       handleException( e, context, onComplete, onError);
     }
+  }
+  
+  /**
+   * Returns the addresses of the execution hosts.
+   * @param context The context.
+   * @return Returns the addresses of the execution hosts.
+   */
+  private InetSocketAddress[] getRemoteAddresses( IContext context)
+  {
+    String[] hosts = getRemoteHosts( context);
+    int[] ports = getRemotePorts( context);
+    int count = (hosts.length > ports.length)? hosts.length: ports.length;
     
-    return null;
+    InetSocketAddress[] addresses = new InetSocketAddress[ count];
+    for( int i=0; i<count; i++)
+    {
+      if ( i >= hosts.length)
+      {
+        addresses[ i] = new InetSocketAddress( hosts[ hosts.length - 1], ports[ i]);
+      }
+      else if ( i >= ports.length)
+      {
+        addresses[ i] = new InetSocketAddress( hosts[ i], ports[ ports.length - 1]);
+      }
+      else
+      {
+        addresses[ i] = new InetSocketAddress( hosts[ i], ports[ i]);
+      }
+    }
+    
+    return addresses;
+  }
+  
+  /**
+   * Returns the remote hosts.
+   * @param context The context.
+   * @return Returns the remote hosts.
+   */
+  private String[] getRemoteHosts( IContext context)
+  {
+    ResultType resultType = hostExpr.getType( context);
+    if ( resultType == ResultType.NODES)
+    {
+      List<IModelObject> nodes = hostExpr.evaluateNodes( context);
+      String[] hosts = new String[ nodes.size()];
+      for( int i=0; i<nodes.size(); i++)
+        hosts[ i] = Xlate.get( nodes.get( i), "");
+      return hosts;
+    }
+    else
+    {
+      return new String[] { hostExpr.evaluateString( context)};
+    }
+  }
+  
+  /**
+   * Returns the remote ports.
+   * @param context The context.
+   * @return Returns the remote ports.
+   */
+  private int[] getRemotePorts( IContext context)
+  {
+    ResultType resultType = portExpr.getType( context);
+    if ( resultType == ResultType.NODES)
+    {
+      List<IModelObject> nodes = portExpr.evaluateNodes( context);
+      int[] ports = new int[ nodes.size()];
+      for( int i=0; i<nodes.size(); i++)
+        ports[ i] = Xlate.get( nodes.get( i), 0);
+      return ports;
+    }
+    else
+    {
+      return new int[] { (int)portExpr.evaluateNumber( context)};
+    }
+  }
+  
+  /**
+   * Returns the XioClientPool associated with the specified context.
+   * @param context The context.
+   * @return Returns the XioClientPool associated with the specified context.
+   */
+  private XioClientPool getClientPool( final IContext context)
+  {
+    XioClientPool clientPool = clientPools.get( context.getExecutor());
+    if ( clientPool == null)
+    {
+      clientPool = new XioClientPool( new IXioClientFactory() {
+        public XioClient newInstance( InetSocketAddress address)
+        {
+          return new XioClient( context.getExecutor());
+        }
+      });
+      // TODO: potential memory leak!!
+      clientPools.put( context.getExecutor(), clientPool);
+    }
+    return clientPool;
   }
   
   /**
@@ -374,9 +486,8 @@ public class RunAction extends GuardedAction
   
   private final class AsyncCallback implements IXioCallback
   {
-    public AsyncCallback( XioClient client, IXAction onComplete, IXAction onSuccess, IXAction onError)
+    public AsyncCallback( IXAction onComplete, IXAction onSuccess, IXAction onError)
     {
-      this.client = client;
       this.onComplete = onComplete;
       this.onSuccess = onSuccess;
       this.onError = onError;
@@ -389,8 +500,6 @@ public class RunAction extends GuardedAction
     public void onComplete( IContext context)
     {
       if ( onComplete != null) onComplete.run( context);
-//      clientSyncPool.release( context, client);
-      client.close();
     }
 
     /* (non-Javadoc)
@@ -419,28 +528,30 @@ public class RunAction extends GuardedAction
       }
     }
     
-    private XioClient client;
     private IXAction onComplete;
     private IXAction onSuccess;
     private IXAction onError;
   }
   
-  private final static Log log = Log.getLog( RunAction.class);
-  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};
+  protected class AsyncInvocation
+  {
+    public AsyncInvocation( XioClient client, int correlation)
+    {
+      this.client = client;
+      this.correlation = correlation;
+    }
+    
+    public XioClient client;
+    public int correlation;
+  }
   
-//  private static XioClientPool clientSyncPool = new XioClientPool( new IXioClientFactory() {
-//    public XioClient newInstance( InetSocketAddress address, boolean connect)
-//    {
-//      XioClient client = new XioClient();
-//      if ( connect)
-//      {
-//        client.connect( address, connectionRetries).awaitUninterruptibly( 30000);
-//      }
-//      return client;
-//    }
-//  });
+  private final static Log log = Log.getLog( RunAction.class);
+  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};  
+  private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
+  private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
   private String var;
+  private String cancelVar;
   private IExpression varsExpr;
   private IExpression contextExpr;
   private IExpression hostExpr;
@@ -451,5 +562,5 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
-  private IExpression dispatcherExpr;
+  private IExpression executorExpr;
 }

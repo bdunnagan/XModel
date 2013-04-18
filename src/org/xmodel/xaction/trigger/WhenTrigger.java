@@ -109,7 +109,7 @@ public class WhenTrigger extends AbstractTrigger
           runnable.correlation = correlation;
           runnable.context = context;
           runnable.newValue = newValue;
-          context.getModel().dispatch( runnable);
+          context.getExecutor().execute( runnable);
         }
         finally
         {

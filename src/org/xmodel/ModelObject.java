@@ -87,25 +87,6 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-    storageClass.setModel( null);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    IModel model = storageClass.getModel();
-    if ( model == null && parent != null) return parent.getModel();
-    return GlobalSettings.getInstance().getModel();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#setID(java.lang.String)
    */
   public void setID( String id)
@@ -176,7 +157,7 @@ public class ModelObject implements IModelObject
       return oldValue;
     }
     
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
@@ -237,7 +218,7 @@ public class ModelObject implements IModelObject
     Object oldValue = getAttribute( attrName);
     if ( oldValue == null) return null;
     
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
@@ -327,8 +308,8 @@ public class ModelObject implements IModelObject
     
     if ( index < 0) index += getChildren().size() + 1;
     
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.addChild( this, child, index);
@@ -417,8 +398,8 @@ public class ModelObject implements IModelObject
    */
   public IModelObject removeChild( int index)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       // bail if no children
@@ -464,8 +445,8 @@ public class ModelObject implements IModelObject
    */
   public void removeChild( IModelObject child)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.removeChild( this, child);
@@ -1038,7 +1019,7 @@ public class ModelObject implements IModelObject
    */
   public String toXml()
   {
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     boolean syncLock = model.getSyncLock();
     try
     {
