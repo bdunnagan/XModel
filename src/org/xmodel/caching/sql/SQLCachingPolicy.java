@@ -333,7 +333,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         "    <users>" +
         "      <extern:cache class='org.xmodel.caching.sql.SQLCachingPolicy'>" +
         "        <provider>$provider</provider>" +
-        "        <query>'SELECT id, account, purchases FROM user'</query>" +
+        "        <query>'SELECT * FROM user'</query>" +
         "        <xml>purchases</xml>" +
         "      </extern:cache>" +
         "    </users>" +

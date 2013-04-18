@@ -77,7 +77,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
   {
     // allow final notification to be performed if update has already completed
     Update update = context.getLastUpdate( expression);
-    if ( !update.isActive())
+    if ( update == null || !update.isActive())
     {
       notifyInsert( expression, context, nodes, 0, nodes.size());
     }
@@ -96,7 +96,7 @@ public abstract class ExactExpressionListener extends ExpressionListener
   {
     // allow final notification to be performed if update has already completed
     Update update = context.getLastUpdate( expression);
-    if ( !update.isActive())
+    if ( update == null || !update.isActive())
     {
       notifyRemove( expression, context, nodes, 0, nodes.size());
     }

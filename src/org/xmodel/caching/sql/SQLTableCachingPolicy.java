@@ -211,9 +211,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       long t3 = System.nanoTime();
       log.debugf( "query exec: %1.3fs", ((t3 - t2) / 1e9));
       
+      long count = 0;
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
+        count++;
+        
         IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
@@ -228,6 +231,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         
         parent.addChild( row);
       }
+      
+      log.debugf( "query size: %d", count);
       
       update( reference, parent);
     }
