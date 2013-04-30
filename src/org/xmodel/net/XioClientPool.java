@@ -63,12 +63,6 @@ public class XioClientPool
       if ( future == null || !future.cancel( false)) return lease( address);
     }
     
-    //
-    // Create a idle timeout for the connection.  The previous timer will have been cancelled above.
-    //
-    ScheduledFuture<?> future = scheduler.schedule( new TimeoutTask( client), idleTimeout, TimeUnit.MILLISECONDS);
-    timers.put( client, future);
-    
     log.debugf( "Leasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
     return client;
   }
@@ -83,6 +77,15 @@ public class XioClientPool
 
     if ( client.isConnected()) 
     {
+      //
+      // Create idle timeout for connected client. The client will be removed and disconnected when the timer fires.
+      //
+      ScheduledFuture<?> future = scheduler.schedule( new TimeoutTask( client), idleTimeout, TimeUnit.MILLISECONDS);
+      timers.put( client, future);
+      
+      // 
+      // Put client in reuse queue.
+      //
       Queue<XioClient> queue = getClients( client.getRemoteAddress());
       queue.offer( client);
     }
