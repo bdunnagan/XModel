@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -44,6 +45,7 @@ import org.xmodel.compress.ZipCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.external.NonSyncingListener;
@@ -119,6 +121,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
     
+    attributes = new ArrayList<String>( 3);
+    for( IModelObject element: annotation.getChildren( "attribute"))
+      attributes.add( Xlate.get( element, ""));
+    
     excluded = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "exclude"))
       excluded.add( Xlate.get( element, ""));
@@ -161,7 +167,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void transactionComplete( ITransaction transaction)
   {
-    transaction = null;
+    if ( transaction != this.transaction) throw new IllegalArgumentException();
+    this.transaction = null;
   }
   
   /* (non-Javadoc)
@@ -220,7 +227,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
-          row.setID( result.getString( 1));
+          row.setAttribute( primaryKey, result.getString( 1));
           for( int i=0; i<otherKeys.size(); i++) 
             row.setAttribute( otherKeys.get( i), result.getObject( i+2));
         }
@@ -289,7 +296,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       String columnName = columnNames.get( i);
 
       Object value = result.getObject( i+1);
-      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName))
+      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName) || attributes.contains( columnName))
       {
         object.setAttribute( columnName, value);
       }
@@ -308,7 +315,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private void importColumn( IModelObject row, String column, Object value)
   {
-    if ( otherKeys.contains( column))
+    if ( otherKeys.contains( column) || attributes.contains( column))
     {
       row.setAttribute( column, value);
     }
@@ -328,6 +335,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           try
           {
             IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
+            ModelAlgorithms.copyAttributes( superroot, row.getFirstChild( column));
             ModelAlgorithms.moveChildren( superroot, row.getFirstChild( column));
           }
           catch( Exception e)
@@ -396,7 +404,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     else
     {
-      if ( otherKeys.contains( column)) 
+      if ( otherKeys.contains( column) || attributes.contains( column)) 
       {
         return row.getAttribute( column);
       }
@@ -601,7 +609,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     log.debugf( "row query: %s", sb);
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
-    statement.setString( 1, reference.getID());
+    statement.setString( 1, Xlate.get( reference, primaryKey, (String)null));
     return statement;
   }
   
@@ -627,7 +635,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, node.getID());
+      statement.setString( 1, Xlate.get( node, primaryKey, (String)null));
       for( int i=0; i<columnNames.size(); i++)
       {
         if ( columnNames.get( i).equals( primaryKey)) continue;
@@ -662,7 +670,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param columns The columns of the row that were updated.
    * @return Returns a prepared statement which will update one or more rows.
    */
-  private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> columns) throws SQLException
+  private PreparedStatement createUpdateStatement( Connection connection, IModelObject reference, List<String> columns) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "UPDATE "); sb.append( tableName);
@@ -702,7 +710,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
     }
     
-    statement.setString( columns.size() + 1, reference.getID());
+    statement.setString( columns.size() + 1, Xlate.get( reference, primaryKey, (String)null));
     
     return statement;
   }
@@ -725,7 +733,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, node.getID());
+      statement.setString( 1, Xlate.get( node, primaryKey, (String)null));
       statement.addBatch();
     }
     
@@ -850,7 +858,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
     {
-      PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
+      PreparedStatement statement = createUpdateStatement( connection, entry.getKey(), entry.getValue());
       log.verbosef( "%s", statement);
       try
       {
@@ -933,8 +941,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         // handle row insert
         if ( isTable( parent))
         {
-          SQLRowCachingPolicy cachingPolicy = (SQLRowCachingPolicy)((IExternalReference)child).getCachingPolicy();
-          cachingPolicy.parent = SQLTableCachingPolicy.this;
+          ICachingPolicy cachingPolicy = child.getCachingPolicy();
+          if ( cachingPolicy != null)
+          {
+            ((SQLRowCachingPolicy)cachingPolicy).parent = SQLTableCachingPolicy.this;
+          }
+          else
+          {
+            cachingPolicy = new SQLRowCachingPolicy( SQLTableCachingPolicy.this, getCache());
+            child.setCachingPolicy( cachingPolicy);
+          }
           
           List<IModelObject> inserts = rowInserts.get( parent);
           if ( inserts == null)
@@ -1094,6 +1110,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected boolean stub;
   protected boolean readonly;
   protected List<String> excluded;
+  protected List<String> attributes;
   protected String where;
   protected String orderby;
   protected int offset;

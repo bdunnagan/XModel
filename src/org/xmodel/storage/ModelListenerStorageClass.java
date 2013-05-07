@@ -83,7 +83,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public void setDirty( boolean dirty)
   {
-    throw new UnsupportedOperationException();
+    storageClass.setDirty( dirty);
   }
 
   /* (non-Javadoc)
@@ -92,7 +92,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public boolean getDirty()
   {
-    return false;
+    return storageClass.getDirty();
   }
 
   /* (non-Javadoc)
@@ -101,7 +101,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public void setCachingPolicy( ICachingPolicy cachingPolicy)
   {
-    throw new UnsupportedOperationException();
+    storageClass.setCachingPolicy( cachingPolicy);
   }
 
   /* (non-Javadoc)
@@ -110,7 +110,7 @@ public final class ModelListenerStorageClass implements IStorageClass
   @Override
   public ICachingPolicy getCachingPolicy()
   {
-    return null;
+    return storageClass.getCachingPolicy();
   }
 
   /* (non-Javadoc)

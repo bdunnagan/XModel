@@ -22,7 +22,6 @@ package org.xmodel.external;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelListenerList;
 import org.xmodel.ModelObject;
 import org.xmodel.storage.CachingPolicyStorageClass;
 import org.xmodel.storage.ValueStorageClass;
@@ -42,54 +41,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#setCachingPolicy(org.xmodel.external.ICachingPolicy)
-   */
-  public void setCachingPolicy( ICachingPolicy newCachingPolicy)
-  {
-    storageClass = storageClass.getCachingPolicyStorageClass();
-    storageClass.setCachingPolicy( newCachingPolicy);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#setDirty(boolean)
-   */
-  public void setDirty( boolean dirty)
-  {
-    storageClass = storageClass.getCachingPolicyStorageClass();
-    
-    // 050109: added this back during xidget tree development
-    boolean wasDirty = storageClass.getDirty();
-    storageClass.setDirty( dirty);
-    if ( wasDirty != dirty) 
-    {
-      notifyDirty( dirty);
-
-      if ( dirty)
-      {
-        // resync immediately if reference has listeners
-        ModelListenerList listeners = getModelListeners();
-        if ( listeners != null && listeners.count() > 0) getChildren();
-      }
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#isDirty()
-   */
-  public boolean isDirty()
-  {
-    return storageClass.getDirty();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.reference.IExternalObject#getCachingPolicy()
-   */
-  public ICachingPolicy getCachingPolicy()
-  {
-    return storageClass.getCachingPolicy();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.IExternalReference#sync()
    */
   public void sync() throws CachingException
@@ -98,17 +49,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
     if ( cachingPolicy == null) throw new CachingException( "No caching policy to sync entity: "+this);
     setDirty( false);
     cachingPolicy.sync( this);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#transaction()
-   */
-  @Override
-  public ITransaction transaction()
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy for this entity: "+this);
-    return cachingPolicy.transaction();
   }
 
   /* (non-Javadoc)
@@ -131,27 +71,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
     if ( cachingPolicy != null) cachingPolicy.notifyAccessChildren( this, write);
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#clearCache()
-   */
-  public void clearCache() throws CachingException
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy to clear entity: "+this);
-    cachingPolicy.clear( this);
-  }
-  
-  /**
-   * Notify listeners that the dirty state of a reference has changed.
-   * @param reference The reference.
-   * @param dirty The new dirty state.
-   */
-  protected void notifyDirty( boolean dirty)
-  {
-    ModelListenerList listeners = getModelListeners();
-    if ( listeners != null) listeners.notifyDirty( this, dirty);
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.ModelObject#createObject(java.lang.String)
    */

@@ -77,10 +77,10 @@ public class XioClientPoolTest
 
     String xml = 
       "<script>" +
-      "  <lock on='$value'>" +
+      "  <mutex on='$value'>" +
       "    <set target='$value'>$value + 1</set>" +
       "    <return>string( $value)</return>" +
-      "  </lock>" +
+      "  </mutex>" +
       "</script>";
 
     try

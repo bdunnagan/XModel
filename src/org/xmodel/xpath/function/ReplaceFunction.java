@@ -59,7 +59,6 @@ public class ReplaceFunction extends Function
   public String evaluateString( IContext context) throws ExpressionException
   {
     assertArgs( 3, 4);
-    assertType( context, ResultType.STRING);
     
     Pattern pattern = getPattern( context);
     if ( pattern == null) return "";

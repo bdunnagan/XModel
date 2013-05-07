@@ -6,10 +6,10 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * An XAction that will acquire a lock on its execution context, if that context is an instance of ThreadPoolContext,
- * or throw an IllegalStateException.
+ * An XAction that will acquire a mutex on either the context, or the IModelObject returned
+ * by the <i>on</i> expression. 
  */
-public class LockAction extends GuardedAction
+public class MutexAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.ViewModel)

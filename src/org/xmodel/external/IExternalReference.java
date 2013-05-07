@@ -30,35 +30,4 @@ import org.xmodel.IModelObject;
  */
 public interface IExternalReference extends IModelObject
 {
-  /**
-   * Set the ICachingPolicy for this IExternalReference.
-   * @param cachingPolicy The ICachingPolicy to associate with this reference.
-   */
-  public void setCachingPolicy( ICachingPolicy cachingPolicy);
-  
-  /**
-   * Returns the ICachingPolicy which controls the synchronization and flushing of this reference.
-   * @return Returns the ICachingPolicy associated with this reference.
-   */
-  public ICachingPolicy getCachingPolicy();
- 
-  /**
-   * Set whether this object is dirty or not.  This method should not be called after the object
-   * has been sync'ed once.  The <code>clearCache</code> method should be used to transition
-   * back to the dirty state.
-   * @param dirty True if the object should be marked dirty.
-   */
-  public void setDirty( boolean dirty);
-  
-  /**
-   * @return Returns a new transaction.
-   */
-  public ITransaction transaction();
-  
-  /**
-   * If this reference is dirty then remove all children and mark dirty.  In addition, if this object
-   * has listeners any where in its subtree as defined by the <code>hasListeners</code> method, then
-   * the object will be immediately resync'ed.
-   */
-  public void clearCache() throws CachingException;
 }

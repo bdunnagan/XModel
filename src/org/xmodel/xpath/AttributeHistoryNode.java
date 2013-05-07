@@ -21,6 +21,9 @@ package org.xmodel.xpath;
 
 import java.util.*;
 import org.xmodel.*;
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
+import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
 
 
@@ -488,6 +491,51 @@ public class AttributeHistoryNode implements IModelObject
     throw new UnsupportedOperationException();
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setCachingPolicy(org.xmodel.external.ICachingPolicy)
+   */
+  @Override
+  public void setCachingPolicy( ICachingPolicy cachingPolicy)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getCachingPolicy()
+   */
+  @Override
+  public ICachingPolicy getCachingPolicy()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setDirty(boolean)
+   */
+  @Override
+  public void setDirty( boolean dirty)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearCache()
+   */
+  @Override
+  public void clearCache() throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */

@@ -53,7 +53,6 @@ public class StartsWithFunction extends Function
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
     assertArgs( 2, 2);
-    assertType( context, ResultType.STRING);
     
     String string0 = getArgument( 0).evaluateString( context);
     String string1 = getArgument( 1).evaluateString( context);
