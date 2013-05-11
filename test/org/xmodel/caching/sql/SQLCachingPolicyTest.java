@@ -70,11 +70,19 @@ public class SQLCachingPolicyTest
   {
     String xml = 
         "<script>" +
+        "  <create var=\"sonarDB\">\n" + 
+        "    <provider>mysql</provider>\n" + 
+        "    <host>localhost</host>\n" + 
+        "    <username>root</username>\n" + 
+        "    <password>root</password>\n" + 
+        "    <catalog>cptest</catalog>\n" + 
+        "  </create>\n" + 
+        "" +
         "  <assign var='id'>5</assign>" +
         "  <create var='x'>" +
         "    <table>" +
         "      <extern:cache class='org.xmodel.caching.sql.SQLTableCachingPolicy'>" +
-        "        <provider>mysql</provider>\n" + 
+        "        <provider>$sonarDB</provider>\n" + 
         "        <host>localhost</host>\n" + 
         "        <username>root</username>\n" + 
         "        <password>root</password>\n" + 

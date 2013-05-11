@@ -113,13 +113,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     // create SQLManager
-    provider = getProvider( annotation);
+    provider = getProvider( context, annotation);
     
     catalog = Xlate.childGet( annotation, "catalog", (String)null);
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
+    nodelete = Xlate.childGet( annotation, "nodelete", false);
     
     attributes = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "attribute"))
@@ -385,7 +386,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         try
         {
-          List<byte[]> buffers = compressor.compress( row.getFirstChild( column));
+          IModelObject element = row.getFirstChild( column);
+          if ( element == null) return null;
+          
+          List<byte[]> buffers = compressor.compress( element);
           return new MultiByteArrayInputStream( buffers);
         }
         catch( IOException e)
@@ -437,14 +441,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   
   /**
    * Returns the SQLManager for the specified reference.
+   * @param context The configuration context.
    * @param annotation The caching policy annotation.
    * @return Returns the SQLManager for the specified reference.
    */
-  private static ISQLProvider getProvider( IModelObject annotation) throws CachingException
+  private static ISQLProvider getProvider( IContext context, IModelObject annotation) throws CachingException
   {
+    IExpression providerExpr = Xlate.childGet( annotation, "provider", Xlate.get( annotation, "provider", (IExpression)null));
+    IModelObject providerAnnotation = providerExpr.queryFirst( context);
+    if ( providerAnnotation == null) 
+      throw new CachingException( String.format(
+        "Provider not found for expression '%s'",
+        providerExpr));
+    
     try
     {
-      return SQLProviderFactory.getProvider( annotation);
+      return SQLProviderFactory.getProvider( providerAnnotation);
     }
     catch( Exception e)
     {
@@ -626,20 +638,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
-    sb.append( " VALUES");
-    sb.append( "(?");
-    for( int i=1; i<columnNames.size(); i++) sb.append( ",?");
-    sb.append( ")");
+    sb.append( " SET");
+
+    char sep = ' ';    
+    for( int i=0; i<columnNames.size(); i++)
+    {
+      sb.append( sep); sep = ',';
+      sb.append( columnNames.get( i));
+      sb.append( "=?");
+    }
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, Xlate.get( node, primaryKey, (String)null));
       for( int i=0; i<columnNames.size(); i++)
       {
-        if ( columnNames.get( i).equals( primaryKey)) continue;
-        
         Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
         if ( value != null)
         {
@@ -995,7 +1009,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       if ( enabled)
       {
         // handle row delete
-        if ( isTable( parent))
+        if ( !nodelete && isTable( parent))
         {
           List<IModelObject> deletes = rowDeletes.get( parent);
           if ( deletes == null)
@@ -1109,6 +1123,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected ISQLProvider provider;
   protected boolean stub;
   protected boolean readonly;
+  protected boolean nodelete;
   protected List<String> excluded;
   protected List<String> attributes;
   protected String where;
