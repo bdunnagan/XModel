@@ -58,7 +58,7 @@ public class UnregisterRequestProtocol
     log.debugf( "UnregisterRequestProtocol.handle: name=%s", name);
     
     InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    bundle.registry.unregister( name, address.getHostName());
+    bundle.registry.unregister( name, address.getAddress().getHostAddress());
   }
   
   private final static Log log = Log.getLog( UnregisterRequestProtocol.class);

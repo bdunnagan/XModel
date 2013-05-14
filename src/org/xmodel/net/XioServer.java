@@ -1,12 +1,16 @@
 package org.xmodel.net;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -20,6 +24,7 @@ import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.log.SLog;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
@@ -28,6 +33,35 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioServer
 {
+  public interface IListener
+  {
+    /**
+     * Called when a client connects.
+     * @param peer The peer instance of the client.
+     */
+    public void notifyConnect( XioPeer peer);
+    
+    /**
+     * Called when a client disconnects.
+     * @param peer The peer instance of the client.
+     * @param name Null or the registered name of the client.
+     */
+    public void notifyDisconnect( XioPeer peer);
+    
+    /**
+     * Called when a client registers.
+     * @param peer The peer instance of the client.
+     * @param name The registered name of the client.
+     */
+    public void notifyRegister( XioPeer peer);
+    
+    /**
+     * Called when a client un-registers.
+     * @param peer The peer instance of the client.
+     */
+    public void notifyUnregister( XioPeer peer);
+  }
+  
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
@@ -66,7 +100,10 @@ public class XioServer
    */
   public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
   {
+    this.listeners = new ArrayList<IListener>( 1);
+    
     this.registry = new MemoryXioPeerRegistry( this);
+    this.registry.addListener( registryListener);
     
     ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
     
@@ -92,6 +129,7 @@ public class XioServer
         
         XioChannelHandler channelHandler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
         channelHandler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        channelHandler.setListeners( listeners.toArray( new IListener[ 0]));
         pipeline.addLast( "xio", channelHandler);
         return pipeline;
       }
@@ -105,6 +143,25 @@ public class XioServer
   public void setExecutionPrivileges( ExecutionPrivilege privilege)
   {
     this.executionPrivilege = privilege;
+  }
+  
+  /**
+   * Add a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void addListener( IListener listener)
+  {
+    if ( !listeners.contains( listener))
+      listeners.add( listener);
+  }
+  
+  /**
+   * Remove a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void removeListener( IListener listener)
+  {
+    listeners.remove( listener);
   }
   
   /**
@@ -195,6 +252,51 @@ public class XioServer
     registry.removeListener( listener);
   }
   
+  private IXioPeerRegistryListener registryListener = new IXioPeerRegistryListener() {
+    public void onRegister( String name, String host)
+    {
+      if ( listeners != null)
+      {
+        XioPeer peer = registry.lookupByHost( host).getInitiator();
+        peer.setRegisteredName( name);
+        
+        for( IListener listener: listeners)
+        {
+          try
+          {
+            listener.notifyRegister( peer);
+          }
+          catch( Exception e)
+          {
+            SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+          }
+        }
+      }
+      
+    }
+    public void onUnregister( String name, String host)
+    {
+      if ( listeners != null)
+      {
+        XioPeer peer = registry.lookupByHost( host).getInitiator();
+        
+        for( IListener listener: listeners)
+        {
+          try
+          {
+            listener.notifyUnregister( peer);
+          }
+          catch( Exception e)
+          {
+            SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+          }
+        }
+        
+        peer.setRegisteredName( null);
+      }
+    }
+  };
+  
   private static synchronized Executor getDefaultBossExecutor()
   {
     if ( defaultBossExecutor == null)
@@ -216,4 +318,5 @@ public class XioServer
   private Channel serverChannel;
   private IXioPeerRegistry registry;
   private ExecutionPrivilege executionPrivilege;
+  private List<IListener> listeners;
 }

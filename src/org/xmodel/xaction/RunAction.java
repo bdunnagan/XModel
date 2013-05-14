@@ -25,10 +25,12 @@
 package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -36,10 +38,13 @@ import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioClientFactory;
 import org.xmodel.net.XioClient;
 import org.xmodel.net.XioClientPool;
+import org.xmodel.net.XioPeer;
+import org.xmodel.net.XioServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -75,8 +80,13 @@ public class RunAction extends GuardedAction
     scriptExpr = document.getExpression();
     
     varsExpr = document.getExpression( "vars", true);
+    
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
+    
+    serverExpr = document.getExpression( "server", true);
+    clientsExpr = document.getExpression( "clients", true);
+    
     timeoutExpr = document.getExpression( "timeout", true);
     
     onCompleteExpr = document.getExpression( "onComplete", true);
@@ -96,6 +106,17 @@ public class RunAction extends GuardedAction
     {
       runRemote( context, getRemoteAddresses( context));
     }
+    else if ( serverExpr != null)
+    {
+      if ( clientsExpr != null)
+      {
+        runRemote( context, getClients( context));
+      }
+      else
+      {
+        SLog.warnf( this, "Client expression not specified.");
+      }
+    }
     else if ( executorExpr != null)
     {
       runLocalAsync( context);
@@ -104,6 +125,7 @@ public class RunAction extends GuardedAction
     {
       runLocalSync( context); 
     }
+    
     return null;
   }
 
@@ -197,7 +219,7 @@ public class RunAction extends GuardedAction
         
         if ( onComplete == null && onSuccess == null && onError == null)
         {
-          if ( !client.isConnected())
+          if ( !client.isConnected())  // TODO: no longer necessary - remove and test
             client.connect( address, connectionRetries).await( timeout);
           
           Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
@@ -208,14 +230,14 @@ public class RunAction extends GuardedAction
           final StatefulContext runContext = new StatefulContext( context.getObject());
           runContext.getScope().copyFrom( context.getScope());
           runContext.setExecutor( context.getExecutor());
-          runContext.set( "remoteHost", address.getHostName());
+          runContext.set( "remoteHost", address.getAddress().getHostAddress());
           runContext.set( "remotePort", address.getPort());
           
           final int correlation = correlationCounter.getAndIncrement();
           if ( cancelVar != null)
           {
             IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
-            asyncInvocation.setAttribute( "client", client);
+            asyncInvocation.setAttribute( "peer", client);
             asyncInvocation.setAttribute( "correlation", correlation);
             context.set( cancelVar, asyncInvocation);
           }
@@ -285,6 +307,83 @@ public class RunAction extends GuardedAction
       handleException( e, context, onComplete, onError);
     }
   }
+
+  /**
+   * Perform remote execution at the specified clients.
+   * @param context The context.
+   * @param clients The registered names of the clients.
+   */
+  private void runRemote( final IContext context, final String[] clients)
+  {
+    final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+
+    final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
+    final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
+    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    
+    String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
+    final String[] varArray = vars.split( "\\s*,\\s*");
+    final IModelObject scriptNode = getScriptNode( context);
+
+    try
+    {
+      XioServer server = (XioServer)Conventions.getCache( context, serverExpr);
+      if ( server == null)
+      {
+        log.warnf( "No server specified in server-initiated remote execution: %s", serverExpr);
+        return;
+      }
+      
+      for( String client: clients)
+      {
+        if ( client == null) continue;
+        
+        log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
+        
+        Iterator<XioPeer> iterator = server.getPeersByName( client);
+        while( iterator.hasNext())
+        {
+          XioPeer peer = iterator.next();
+
+          InetSocketAddress address = peer.getRemoteAddress();
+          log.debugf( "Remote execution at named client with address, %s:%d ...", address.getAddress().getHostAddress(), address.getPort());
+          
+          if ( onComplete == null && onSuccess == null && onError == null)
+          {
+            Object[] result = peer.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+            if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+          }
+          else
+          {
+            final StatefulContext runContext = new StatefulContext( context.getObject());
+            runContext.getScope().copyFrom( context.getScope());
+            runContext.setExecutor( context.getExecutor());
+            runContext.set( "remoteName", client);
+            runContext.set( "remoteHost", address.getAddress().getHostAddress());
+            runContext.set( "remotePort", address.getPort());
+            
+            final int correlation = correlationCounter.getAndIncrement();
+            if ( cancelVar != null)
+            {
+              IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
+              asyncInvocation.setAttribute( "peer", peer);
+              asyncInvocation.setAttribute( "correlation", correlation);
+              context.set( cancelVar, asyncInvocation);
+            }
+            
+            AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+            peer.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+          }
+        }
+      }
+      
+      log.debug( "Finished remote.");
+    }
+    catch( Exception e)
+    {
+      handleException( e, context, onComplete, onError);
+    }    
+  }
   
   /**
    * Returns the addresses of the execution hosts.
@@ -315,6 +414,28 @@ public class RunAction extends GuardedAction
     }
     
     return addresses;
+  }
+  
+  /**
+   * Returns the registered names of the clients at which the script will be executed.
+   * @param context The context.
+   * @return Returns the registered names of the clients.
+   */
+  private String[] getClients( IContext context)
+  {
+    if ( clientsExpr.getType( context) == ResultType.NODES)
+    {
+      List<IModelObject> nodes = clientsExpr.evaluateNodes( context);
+      String[] clients = new String[ nodes.size()];
+      for( int i=0; i<clients.length; i++)
+        clients[ i] = Xlate.get( nodes.get( i), (String)null);
+      return clients;
+    }
+    else
+    {
+      String name = clientsExpr.evaluateString( context);
+      return new String[] { name};
+    }
   }
   
   /**
@@ -556,6 +677,8 @@ public class RunAction extends GuardedAction
   private IExpression contextExpr;
   private IExpression hostExpr;
   private IExpression portExpr;
+  private IExpression serverExpr;
+  private IExpression clientsExpr;
   private IExpression timeoutExpr;
   private IExpression scriptExpr;
   private IModelObject inline;

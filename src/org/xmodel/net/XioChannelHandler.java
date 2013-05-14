@@ -16,6 +16,8 @@ import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
+import org.xmodel.net.XioServer.IListener;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
@@ -63,6 +65,15 @@ public class XioChannelHandler extends SimpleChannelHandler
   }
   
   /**
+   * Set listeners.
+   * @param listeners The listeners.
+   */
+  public void setListeners( IListener[] listeners)
+  {
+    this.listeners = listeners;
+  }
+  
+  /**
    * @return Returns the protocol that implements registration.
    */
   public RegisterProtocol getRegisterProtocol()
@@ -98,7 +109,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    * @see org.jboss.netty.channel.SimpleChannelHandler#channelConnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */
   @Override
-  public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+  public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
     SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
     if ( sslHandler != null)
@@ -122,7 +133,22 @@ public class XioChannelHandler extends SimpleChannelHandler
     else
     {
       if ( registry != null)
-        registry.channelConnected( e.getChannel());
+        registry.channelConnected( event.getChannel());
+    }
+    
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try
+        {
+          listener.notifyConnect( new XioServerPeer( event.getChannel()));
+        }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
     }
   }
 
@@ -130,10 +156,26 @@ public class XioChannelHandler extends SimpleChannelHandler
    * @see org.jboss.netty.channel.SimpleChannelHandler#channelDisconnected(org.jboss.netty.channel.ChannelHandlerContext, org.jboss.netty.channel.ChannelStateEvent)
    */
   @Override
-  public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception
+  public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try
+        {
+          XioPeer peer = (XioPeer)event.getChannel().getAttachment();
+          listener.notifyDisconnect( peer);
+        }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+    
     if ( registry != null)
-      registry.channelDisconnected( e.getChannel());
+      registry.channelDisconnected( event.getChannel());
     
     bindProtocol.reset();
     executionProtocol.reset();
@@ -274,4 +316,5 @@ public class XioChannelHandler extends SimpleChannelHandler
   private BindProtocol bindProtocol;
   private IXioPeerRegistry registry;
   private ChannelFuture sslHandshakeFuture;  
+  private IListener[] listeners;
 }

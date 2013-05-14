@@ -16,7 +16,7 @@ import org.xmodel.xpath.expression.IContext;
  * This class represents an XIO protocol end-point.
  * (thread-safe)
  */
-class XioPeer
+public class XioPeer
 {
   protected XioPeer()
   {
@@ -25,6 +25,7 @@ class XioPeer
   protected XioPeer( Channel channel)
   {
     this.channel = channel;
+    this.channel.setAttachment( this);
   }
 
   /**
@@ -279,10 +280,11 @@ class XioPeer
   protected synchronized void setChannel( Channel channel)
   {
     this.channel = channel;
+    getRemoteAddress();
   }
   
   /**
-   * @return Returns null or the underyling channel.
+   * @return Returns null or the underlying channel.
    */
   protected synchronized Channel getChannel()
   {
@@ -290,11 +292,27 @@ class XioPeer
   }
   
   /**
-   * @return Returns the remote address to which this client is connected.
+   * @return Returns the remote address to which this client is, or was last, connected.
    */
   public synchronized InetSocketAddress getRemoteAddress()
   {
     return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
+  }
+  
+  /**
+   * Set the registered peer of this peer.
+   * @param name The name.
+   */
+  public synchronized void setRegisteredName( String name)
+  {
+  }
+  
+  /**
+   * @return Returns null or the registered name of this peer.
+   */
+  public synchronized String getRegisteredName()
+  {
+    return null;
   }
   
   /**

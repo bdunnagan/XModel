@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 
@@ -139,7 +140,7 @@ public class XioClientPool
    */
   private static String toString( InetSocketAddress address)
   {
-    return address.getHostName() + ":" + address.getPort();
+    return address.getAddress().getHostAddress() + ":" + address.getPort();
   }
   
   private class TimeoutTask implements Runnable

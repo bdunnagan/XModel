@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.debug.Debugger;
@@ -61,6 +63,15 @@ public class ScriptAction extends GuardedAction
   }
   
   /**
+   * Create a ScriptAction while will execute the specified elements as a script.
+   * @param elements The script elements to be executed in sequence.
+   */
+  public ScriptAction( List<IModelObject> elements)
+  {
+    this( ScriptAction.class.getClassLoader(), elements);
+  }
+  
+  /**
    * Create a ScriptAction which will execute the children of the specified element.
    * @param loader The class loader.
    * @param element The root of the script.
@@ -89,6 +100,26 @@ public class ScriptAction extends GuardedAction
 
       configure( document);
     }
+  }
+  
+  /**
+   * Create a ScriptAction while will execute the specified elements as a script.
+   * @param loader The class loader.
+   * @param elements The script elements to be executed in sequence.
+   */
+  public ScriptAction( ClassLoader loader, List<IModelObject> elements)
+  {
+    ignore = new HashSet<String>();
+    ignore( defaultIgnore);
+    
+    IModelObject root = new ModelObject( "script");
+    for( IModelObject element: elements)
+      root.addChild( element.cloneTree());
+    
+    XActionDocument document = new XActionDocument( loader);
+    document.setRoot( root);
+    
+    configure( document);
   }
   
   /**

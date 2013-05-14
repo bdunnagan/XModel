@@ -228,7 +228,7 @@ public class ExecutionRequestProtocol
     
     // store remote address in context
     InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    context.set(  "remoteHost", address.getHostName());
+    context.set( "remoteHost", address.getAddress().getHostAddress());
     
     try
     {

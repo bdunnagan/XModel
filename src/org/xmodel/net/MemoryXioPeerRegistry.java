@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.netty.channel.Channel;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
@@ -17,7 +18,6 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
 {
   public MemoryXioPeerRegistry( XioServer server)
   {
-    this.server = server;
     this.channelsByHost = new ConcurrentHashMap<String, Channel>();
     this.hostsByName = new HashMap<String, List<String>>();
     this.futuresByHost = new HashMap<String, AsyncFuture<XioPeer>>();
@@ -34,7 +34,7 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     synchronized( this)
     {
       List<String> hosts = getHostsByName( name);
-      hosts.add( host);
+      if ( !hosts.contains( host)) hosts.add( host);
     }
     
     // notify listeners
@@ -67,12 +67,12 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     synchronized( lookupByHostLock)
     {
       Channel channel = channelsByHost.get( host);
-      if ( channel != null) return new SuccessAsyncFuture<XioPeer>( new XioServerPeer( server, host, channel));
+      if ( channel != null) return new SuccessAsyncFuture<XioPeer>( new XioServerPeer( channel));
       
       AsyncFuture<XioPeer> future = futuresByHost.get( host);
       if ( future == null)
       {
-        future = new AsyncFuture<XioPeer>( new XioServerPeer( server, host, null)) {
+        future = new AsyncFuture<XioPeer>( new XioServerPeer()) {
           public void cancel()
           {
             futuresByHost.remove( host);
@@ -98,7 +98,7 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     for( String host: hosts)
     {
       Channel channel = channelsByHost.get( host);
-      peers.add( new XioServerPeer( server, host, channel));
+      peers.add( new XioServerPeer( channel));
     }
     
     return peers.iterator();
@@ -132,17 +132,21 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     try
     {
       InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-      channelsByHost.put( address.getHostName(), channel);
+      channelsByHost.put( address.getAddress().getHostAddress(), channel);
       
       // complete pending future
       AsyncFuture<XioPeer> future = null;
       synchronized( lookupByHostLock)
       {
-        String host = ((InetSocketAddress)channel.getRemoteAddress()).getHostName();
-        future = futuresByHost.get( host);
+        String host = ((InetSocketAddress)channel.getRemoteAddress()).getAddress().getHostAddress();
+        future = futuresByHost.remove( host);
       }
       
-      if ( future != null) future.notifySuccess();
+      if ( future != null) 
+      {
+        future.getInitiator().setChannel( channel);
+        future.notifySuccess();
+      }        
     }
     catch( Exception e)
     {
@@ -159,7 +163,7 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     try
     {
       InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-      channelsByHost.remove( address.getHostName());
+      channelsByHost.remove( address.getAddress().getHostAddress());
     }
     catch( Exception e)
     {
@@ -183,7 +187,6 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     return hosts;
   }  
   
-  private XioServer server;
   private Map<String, Channel> channelsByHost;
   private Map<String, List<String>> hostsByName;
   private List<IXioPeerRegistryListener> listeners;

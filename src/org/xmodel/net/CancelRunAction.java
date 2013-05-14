@@ -26,9 +26,9 @@ public class CancelRunAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     IModelObject asyncInvocation = cancelExpr.queryFirst( context);
-    XioClient client = (XioClient)asyncInvocation.getAttribute( "client");
+    XioPeer peer = (XioPeer)asyncInvocation.getAttribute( "peer");
     int correlation = Xlate.get( asyncInvocation, "correlation", 0);
-    client.cancel( correlation);
+    peer.cancel( correlation);
     return null;
   }
 

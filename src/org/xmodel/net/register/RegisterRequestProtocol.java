@@ -58,7 +58,7 @@ public class RegisterRequestProtocol
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
     InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    bundle.registry.register( name, address.getHostName());
+    bundle.registry.register( name, address.getAddress().getHostAddress());
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);
