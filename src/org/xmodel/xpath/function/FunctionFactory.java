@@ -42,6 +42,7 @@ public class FunctionFactory implements IFunctionFactory
     Class[] classes = {
       AvgFunction.class,
       BooleanFunction.class,
+      CallFunction.class,
       CeilingFunction.class,
       CollectionFunction.class,
       ConcatFunction.class,
@@ -80,7 +81,9 @@ public class FunctionFactory implements IFunctionFactory
       StaticFunction.class,
       StringFunction.class,
       StringJoinFunction.class,
+      DeepRegexParseFunction.class,
       StringLengthFunction.class,
+      MonotonicCounterFunction.class,
       SubstringAfterFunction.class,
       SubstringBeforeFunction.class,
       SubstringFunction.class,
