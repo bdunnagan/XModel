@@ -38,6 +38,11 @@ public interface ISQLProvider
   public void configure( IModelObject annotation);
 
   /**
+   * @return Returns null or the name of the database defined for this provider.
+   */
+  public String getDatabase();
+  
+  /**
    * Create a new Connection instance.
    * @return Returns the new Connection instance.
    */

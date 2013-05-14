@@ -115,7 +115,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     // create SQLManager
     provider = getProvider( context, annotation);
     
-    catalog = Xlate.childGet( annotation, "catalog", (String)null);
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
@@ -489,7 +488,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
-      connection.setCatalog( catalog);
+//      connection.setCatalog( catalog);
       
       DatabaseMetaData meta = connection.getMetaData();
       ResultSet result = meta.getColumns( null, null, tableName, null);
@@ -595,7 +594,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     
     Connection connection = provider.leaseConnection();
-    connection.setCatalog( catalog);
+//    connection.setCatalog( catalog);
     
     log.debugf( "table query: %s", sb);
     
@@ -616,7 +615,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     Connection connection = provider.leaseConnection();
-    connection.setCatalog( catalog);
+//    connection.setCatalog( catalog);
     
     log.debugf( "row query: %s", sb);
     
@@ -836,7 +835,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     long t0 = System.nanoTime();
     
-    connection.setCatalog( catalog);
+//    connection.setCatalog( catalog);
     
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
@@ -1131,7 +1130,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected int offset;
   protected int limit;
   protected SQLRowCachingPolicy rowCachingPolicy;
-  protected String catalog;
   protected String tableName;
   protected List<String> columnNames;
   protected List<Integer> columnTypes;

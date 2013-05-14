@@ -15,11 +15,6 @@ import org.xmodel.xpath.expression.IExpression;
 
 public class TransactionAction extends ScriptAction
 {
-  public TransactionAction()
-  {
-    transactions = new ConcurrentHashMap<IContext, GroupTransaction>();
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.ScriptAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -102,7 +97,7 @@ public class TransactionAction extends ScriptAction
    * @param context The context.
    * @return Returns null or the GroupTransaction.
    */
-  public GroupTransaction getTransaction( IContext context)
+  public static GroupTransaction getTransaction( IContext context)
   {
     return transactions.get( context);
   }
@@ -127,5 +122,5 @@ public class TransactionAction extends ScriptAction
   private String var;
   private IExpression onExpr;
   private IExpression timeoutExpr;
-  private Map<IContext, GroupTransaction> transactions;
+  private static Map<IContext, GroupTransaction> transactions = new ConcurrentHashMap<IContext, GroupTransaction>();
 }

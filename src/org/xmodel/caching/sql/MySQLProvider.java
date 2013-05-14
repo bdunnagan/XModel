@@ -58,6 +58,15 @@ public class MySQLProvider implements ISQLProvider
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#getDatabase()
+   */
+  @Override
+  public String getDatabase()
+  {
+    return database;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.external.sql.ISQLProvider#newConnection()
    */
   public Connection newConnection() throws CachingException
