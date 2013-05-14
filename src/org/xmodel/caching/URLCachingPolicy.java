@@ -58,6 +58,7 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
     addAssociation( txtAssociation);
     addAssociation( xipAssociation);
     addAssociation( xmlAssociation);
+    defaultAssociation = txtAssociation;
     
     // default behavior when not configured
     urlExpr = defaultUrlExpr;
@@ -110,12 +111,12 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
       if ( index >= 0)
       {
         String extension = string.substring( index);
+        
         IFileAssociation association = associations.get( extension);
-        if ( association != null) 
-        {
-          url = new URL( string);
-          association.apply( reference, reference.getType(), url.openStream());
-        }
+        if ( association == null) association = defaultAssociation;
+        
+        url = new URL( string);
+        association.apply( reference, reference.getType(), url.openStream());
       }
     }
     catch( Exception e)
@@ -133,4 +134,5 @@ public class URLCachingPolicy extends ConfiguredCachingPolicy
   
   private IExpression urlExpr;
   private Map<String, IFileAssociation> associations;
+  private IFileAssociation defaultAssociation;
 }

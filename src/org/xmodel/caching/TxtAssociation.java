@@ -50,10 +50,11 @@ public class TxtAssociation extends AbstractFileAssociation
       char[] buffer = new char[ 1 << 16];
       StringBuilder content = new StringBuilder();
       BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
-      while( reader.ready())
+      while( true)
       {
         int count = reader.read( buffer, 0, buffer.length);
         if ( count > 0) content.append( buffer, 0, count);
+        if ( count < 0) break;
       }
       parent.setValue( content.toString());
     }
