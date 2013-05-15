@@ -17,8 +17,7 @@ public class XioServerPeer extends XioPeer
 
   public XioServerPeer( Channel channel)
   {
-    super( channel);
-    server = (XioServer)channel.getParent().getAttachment();
+    setChannel( channel);
   }
 
   /* (non-Javadoc)
@@ -76,7 +75,16 @@ public class XioServerPeer extends XioPeer
   @Override
   protected synchronized void setChannel( Channel channel)
   {
+    Object attachment = channel.getAttachment();
+    if ( attachment instanceof XioServerPeer)
+    {
+      XioServerPeer peer = (XioServerPeer)attachment;
+      this.address = peer.address;
+      this.name = peer.name;
+    }
+    
     super.setChannel( channel);
+    
     server = (XioServer)channel.getParent().getAttachment();
   }
 

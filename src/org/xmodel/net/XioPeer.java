@@ -279,7 +279,9 @@ public class XioPeer
    */
   protected synchronized void setChannel( Channel channel)
   {
+    if ( this.channel != null) this.channel.setAttachment( null);
     this.channel = channel;
+    if ( this.channel != null) this.channel.setAttachment( this);
     getRemoteAddress();
   }
   

@@ -119,7 +119,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
-    nodelete = Xlate.childGet( annotation, "nodelete", false);
     
     attributes = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "attribute"))
@@ -975,11 +974,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
+          // xml column insert
           addRowUpdate( parent.getParent(), parent.getType());
+        }
+        else if ( isTable( parent.getParent()))
+        {
+          addRowUpdate( parent, child.getType());
         }
         else
         {
-          // handle xml column insert
+          // xml column content update
           IModelObject columnAncestor = findColumnElement( parent);
           if ( columnAncestor != null)
           {
@@ -1008,7 +1012,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       if ( enabled)
       {
         // handle row delete
-        if ( !nodelete && isTable( parent))
+        if ( isTable( parent))
         {
           List<IModelObject> deletes = rowDeletes.get( parent);
           if ( deletes == null)
@@ -1023,11 +1027,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
+          // xml column delete
           addRowUpdate( parent.getParent(), parent.getType());
+        }
+        else if ( isTable( parent.getParent()))
+        {
+          addRowUpdate( parent, child.getType());
         }
         else
         {
-          // handle xml column delete
+          // xml column content updated
           IModelObject columnAncestor = findColumnElement( parent);
           if ( columnAncestor != null)
           {
@@ -1122,7 +1131,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected ISQLProvider provider;
   protected boolean stub;
   protected boolean readonly;
-  protected boolean nodelete;
   protected List<String> excluded;
   protected List<String> attributes;
   protected String where;

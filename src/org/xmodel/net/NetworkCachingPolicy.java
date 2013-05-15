@@ -2,6 +2,7 @@ package org.xmodel.net;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
