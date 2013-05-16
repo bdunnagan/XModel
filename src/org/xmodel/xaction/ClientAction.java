@@ -15,6 +15,9 @@ import org.xmodel.xpath.expression.IExpression;
  */
 public class ClientAction extends GuardedAction
 {
+  public final static int defaultRetries = Integer.MAX_VALUE;
+  public final static int[] defaultDelays = { 250, 500, 1000, 2000, 3000, 4000, 5000, 5000, 5000, 5000, 10000};
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -43,7 +46,8 @@ public class ClientAction extends GuardedAction
     final String clientName = clientNameExpr.evaluateString( context);
     
     XioClient client = new XioClient( context);
-    AsyncFuture<XioClient> future = client.connect( serverHost, serverPort);
+    
+    AsyncFuture<XioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
     future.addListener( new IListener<XioClient>() {
       public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
       {

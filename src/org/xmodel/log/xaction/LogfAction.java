@@ -22,7 +22,7 @@ public class LogfAction extends GuardedAction
     String logName = LogAction.createLogName( document.getRoot());
     log = Log.getLog( logName);
     
-    level = Log.error;
+    level = Log.fatal;
     messageExpr = document.getExpression();
   }
   
