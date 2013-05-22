@@ -1,5 +1,7 @@
 package org.xmodel.xpath.function.custom;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.function.Function;
@@ -38,21 +40,9 @@ public class MonotonicCounterFunction extends Function
   @Override
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    synchronized( this)
-    {
-      if ( counter == 0) counter = initCounter(); else counter++;
-      return counter;
-    }
+    return (double)counter.incrementAndGet();
   }
   
-  /**
-   * @return Returns the initial value of the counter.
-   */
-  private double initCounter()
-  {
-    return (System.currentTimeMillis() - 1367959093000L) * 10;
-  }
-
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.Expression#bind(org.xmodel.xpath.expression.IContext)
    */
@@ -70,6 +60,6 @@ public class MonotonicCounterFunction extends Function
   {
     throw new UnsupportedOperationException();
   }
-  
-  private double counter;
+
+  private static AtomicLong counter = new AtomicLong( (System.currentTimeMillis() - 1367959093000L) * 10);
 }
