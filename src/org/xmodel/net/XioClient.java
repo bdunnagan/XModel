@@ -1,6 +1,8 @@
 package org.xmodel.net;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -9,6 +11,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -20,6 +23,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.UnionFuture;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -28,6 +32,21 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioClient extends XioPeer
 {
+  public interface IListener
+  {
+    /**
+     * Called when the client connects.
+     * @param client The client.
+     */
+    public void notifyConnect( XioClient client);
+    
+    /**
+     * Called when the client connects.
+     * @param client The client.
+     */
+    public void notifyDisconnect( XioClient client);
+  }    
+  
   /**
    * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
@@ -46,6 +65,16 @@ public class XioClient extends XioPeer
   public XioClient( IContext context)
   {
     this( context, null, context.getExecutor());
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
+   * @param context The context.
+   */
+  public XioClient( SSLContext sslContext, IContext context)
+  {
+    this( context, null, getDefaultChannelFactory(), sslContext, context.getExecutor());
   }
   
   /**
@@ -108,6 +137,7 @@ public class XioClient extends XioPeer
       final Executor contextExecutor)
   {
     this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
+    this.listeners = new ArrayList<IListener>( 1);
     
     bootstrap = new ClientBootstrap( channelFactory);
     bootstrap.setOption( "tcpNoDelay", true);
@@ -117,18 +147,52 @@ public class XioClient extends XioPeer
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
-        
+
         if ( sslContext != null)
         {
           SSLEngine engine = sslContext.createSSLEngine();
-          engine.setUseClientMode( false);
+          engine.setUseClientMode( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
+
+        XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
+        handler.setClient( XioClient.this);
+        pipeline.addLast( "xio", handler);
         
-        pipeline.addLast( "xio", new XioChannelHandler( context, contextExecutor, scheduler, null));
+        handler.addListener( channelConnectionListener);
+                
         return pipeline;
       }
     });
+  }
+  
+  /**
+   * Returns the XioClient associated with this channel, creating one if necessary.
+   * @param channel The channel.
+   * @return Returns the XioClient associated with this channel.
+   */
+  public static XioClient getChannelPeer( Channel channel)
+  {
+    return (XioClient)channel.getAttachment();
+  }
+  
+  /**
+   * Add a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void addListener( IListener listener)
+  {
+    if ( !listeners.contains( listener))
+      listeners.add( listener);
+  }
+  
+  /**
+   * Remove a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void removeListener( IListener listener)
+  {
+    listeners.remove( listener);
   }
   
   /**
@@ -140,6 +204,15 @@ public class XioClient extends XioPeer
   public AsyncFuture<XioClient> connect( String address, int port)
   {
     return connect( new InetSocketAddress( address, port));
+  }
+  
+  /**
+   * Set whether the client will automatically reconnect when disconnected.
+   * @param autoReconnect True if client should automatically reconnect when disconnected.
+   */
+  public void setAutoReconnect( boolean autoReconnect)
+  {
+    this.autoReconnect = autoReconnect;
   }
   
   /**
@@ -245,6 +318,7 @@ public class XioClient extends XioPeer
       {
         if ( retryFuture.isSuccess()) 
         {
+          // ChannelFutureListener is called before XioChannelHandler.channelConnected???
           setChannel( retryFuture.getChannel());
           
           XioChannelHandler xioHandler = retryFuture.getChannel().getPipeline().get( XioChannelHandler.class);
@@ -284,7 +358,7 @@ public class XioClient extends XioPeer
    * @see org.xmodel.net.XioPeer#reconnect()
    */
   @Override
-  protected AsyncFuture<XioPeer> reconnect()
+  public AsyncFuture<XioPeer> reconnect()
   {
     InetSocketAddress address = null;
     int retries = 0;
@@ -312,7 +386,7 @@ public class XioClient extends XioPeer
   {
     return lastAddress;
   }
-
+  
   private static synchronized NioClientSocketChannelFactory getDefaultChannelFactory()
   {
     if ( defaultChannelFactory == null)
@@ -333,6 +407,75 @@ public class XioClient extends XioPeer
       defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-worker"));
     return defaultWorkerExecutor;
   }
+
+  /**
+   * Notify listeners that a connection was established.
+   */
+  private void notifyChannelConnected()
+  {
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyConnect( XioClient.this); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+  }
+  
+  /**
+   * Notify listeners that a connection has been closed.
+   */
+  private void notifyChannelDisconnected()
+  {
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyDisconnect( XioClient.this); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+    
+    if ( autoReconnect)
+    {
+      reconnect();
+    }
+  }
+  
+  private ChannelFutureListener channelHandshakeListener = new ChannelFutureListener() {
+    public void operationComplete( ChannelFuture future) throws Exception
+    {
+      if ( future.isSuccess())
+        notifyChannelConnected();
+    }
+  };
+  
+  private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
+    public void notifyConnect( XioPeer peer)
+    {
+      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      if ( sslHandler != null)
+      {
+        ChannelFuture future = sslHandler.handshake();
+        future.addListener( channelHandshakeListener);
+      }
+      else
+      {
+        notifyChannelConnected();
+      }
+    }      
+    public void notifyDisconnect( XioPeer peer)
+    {
+      notifyChannelDisconnected();
+    }
+  };
   
   private static NioClientSocketChannelFactory defaultChannelFactory = null;
   private static Executor defaultBossExecutor = null;
@@ -343,4 +486,6 @@ public class XioClient extends XioPeer
   private InetSocketAddress lastAddress;
   private int lastRetries;
   private int[] lastDelays;
+  private boolean autoReconnect;
+  private List<IListener> listeners;
 }

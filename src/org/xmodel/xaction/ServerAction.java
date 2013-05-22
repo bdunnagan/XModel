@@ -1,7 +1,10 @@
 package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+
+import javax.net.ssl.SSLContext;
 
 import org.xmodel.IModelObject;
 import org.xmodel.net.XioPeer;
@@ -28,6 +31,8 @@ public class ServerAction extends GuardedAction
     addressExpr = document.getExpression( "address", true);
     portExpr = document.getExpression( "port", true);
     
+    sslExpr = document.getExpression( "ssl", true);
+    
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onRegisterExpr = document.getExpression( "onRegister", true);
@@ -45,77 +50,94 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    XioServer.IListener listener = null;
+    XioServer server = new XioServer( getSSLContext( context), context);
     
-    if ( onConnect != null || onDisconnect != null || onRegister != null)
+    if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
     {
-      listener = new XioServer.IListener() {
-        public void notifyConnect( XioPeer peer)
+      XioServer.IListener listener = new XioServer.IListener() {
+        public void notifyConnect( final XioPeer peer)
         {
           if ( onConnect != null) 
           {
-            StatefulContext nested = new StatefulContext( context);
-            InetSocketAddress address = peer.getRemoteAddress();
-            nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-            onConnect.run( nested);
+            context.getExecutor().execute( new Runnable() {
+              public void run() 
+              {
+                StatefulContext nested = new StatefulContext( context);
+                InetSocketAddress address = peer.getRemoteAddress();
+                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                onConnect.run( nested);
+              }
+            });
           }
         }
-        public void notifyDisconnect( XioPeer peer)
+        public void notifyDisconnect( final XioPeer peer)
         {
           if ( onDisconnect != null) 
           {
-            StatefulContext nested = new StatefulContext( context);
-            
-            InetSocketAddress address = peer.getRemoteAddress();
-            nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-            
-            String name = peer.getRegisteredName();
-            nested.set( "name", (name != null)? name: "");
-            
-            onDisconnect.run( nested);
+            context.getExecutor().execute( new Runnable() {
+              public void run() 
+              {
+                StatefulContext nested = new StatefulContext( context);
+                
+                InetSocketAddress address = peer.getRemoteAddress();
+                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                
+                String name = peer.getRegisteredName();
+                nested.set( "name", (name != null)? name: "");
+                
+                onDisconnect.run( nested);
+              }
+            });
           }
         }
-        public void notifyRegister( XioPeer peer)
+        public void notifyRegister( final XioPeer peer)
         {
           if ( onRegister != null) 
           {
-            StatefulContext nested = new StatefulContext( context);
-            
-            InetSocketAddress address = peer.getRemoteAddress();
-            nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-            
-            String name = peer.getRegisteredName();
-            nested.set( "name", (name != null)? name: "");
-            
-            onRegister.run( nested);
+            context.getExecutor().execute( new Runnable() {
+              public void run() 
+              {
+                StatefulContext nested = new StatefulContext( context);
+                
+                InetSocketAddress address = peer.getRemoteAddress();
+                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                
+                String name = peer.getRegisteredName();
+                nested.set( "name", (name != null)? name: "");
+                
+                onRegister.run( nested);
+              }
+            });
           }
         }
-        public void notifyUnregister( XioPeer peer)
+        public void notifyUnregister( final XioPeer peer)
         {
           if ( onUnregister != null) 
           {
-            StatefulContext nested = new StatefulContext( context);
-            
-            InetSocketAddress address = peer.getRemoteAddress();
-            nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-            
-            String name = peer.getRegisteredName();
-            nested.set( "name", (name != null)? name: "");
-            
-            onUnregister.run( nested);
+            context.getExecutor().execute( new Runnable() {
+              public void run() 
+              {
+                StatefulContext nested = new StatefulContext( context);
+                
+                InetSocketAddress address = peer.getRemoteAddress();
+                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                
+                String name = peer.getRegisteredName();
+                nested.set( "name", (name != null)? name: "");
+                
+                onUnregister.run( nested);
+              }
+            });
           }
         }
       };
+      
+      server.addListener( listener);
     }
-    
-    XioServer server = new XioServer( context);
     
     // servers that support client registration must be accessible
     if ( var != null) Conventions.putCache( context, var, server);
     
-    // add listener for script notifications
-    if ( listener != null) server.addListener( listener);
-
     // bind server
     String address = addressExpr.evaluateString( context);
     int port = (int)portExpr.evaluateNumber( context);
@@ -137,9 +159,31 @@ public class ServerAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
+  /**
+   * Get the SSLContext if ssl is requested.
+   * @param context The context.
+   * @return Returns null or the SSLContext.
+   */
+  private SSLContext getSSLContext( IContext context)
+  {
+    boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false; 
+    if ( !ssl) return null;
+    
+    try
+    {
+      return SSLContext.getDefault();
+    }
+    catch( NoSuchAlgorithmException e)
+    {
+      throw new XActionException( e);
+    }
+  }
+  
   private String var;
+  
   private IExpression addressExpr;
   private IExpression portExpr;
+  private IExpression sslExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;

@@ -1,15 +1,14 @@
 package org.xmodel.net;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
 
-import org.jboss.netty.channel.Channel;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
@@ -18,104 +17,182 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
 {
   public MemoryXioPeerRegistry( XioServer server)
   {
-    this.channelsByHost = new ConcurrentHashMap<String, Channel>();
-    this.hostsByName = new HashMap<String, List<String>>();
-    this.futuresByHost = new HashMap<String, AsyncFuture<XioPeer>>();
-    this.listeners = Collections.synchronizedList( new ArrayList<IXioPeerRegistryListener>( 1));
-    this.lookupByHostLock = new Object();
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#register(java.lang.String, java.lang.String)
-   */
-  @Override
-  public void register( String name, String host)
-  {
-    synchronized( this)
-    {
-      List<String> hosts = getHostsByName( name);
-      if ( !hosts.contains( host)) hosts.add( host);
-    }
-    
-    // notify listeners
-    for( int i=0; i<listeners.size(); i++)
-      listeners.get( i).onRegister( name, host);
+    peersByName = new HashMap<String, Set<XioPeer>>();
+    namesByPeer = new HashMap<XioPeer, Set<String>>();
+    listeners = new ArrayList<IXioPeerRegistryListener>();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#cancel(java.lang.String, java.lang.String)
+   * @see org.xmodel.net.IXioPeerRegistry#register(org.xmodel.net.XioPeer, java.lang.String)
    */
   @Override
-  public void unregister( String name, String host)
+  public void register( XioPeer peer, String name)
   {
+    IXioPeerRegistryListener[] array = null;
+    
     synchronized( this)
     {
-      hostsByName.remove( name);
-    }
-    
-    // notify listeners
-    for( int i=0; i<listeners.size(); i++)
-      listeners.get( i).onUnregister( name, host);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#lookupByHost(java.lang.String)
-   */
-  @Override
-  public AsyncFuture<XioPeer> lookupByHost( final String host)
-  {
-    synchronized( lookupByHostLock)
-    {
-      Channel channel = channelsByHost.get( host);
-      if ( channel != null) return new SuccessAsyncFuture<XioPeer>( new XioServerPeer( channel));
-      
-      AsyncFuture<XioPeer> future = futuresByHost.get( host);
-      if ( future == null)
+      Set<XioPeer> peers = peersByName.get( name);
+      if ( peers == null)
       {
-        future = new AsyncFuture<XioPeer>( new XioServerPeer()) {
-          public void cancel()
-          {
-            futuresByHost.remove( host);
-          }
-        };
-        
-        futuresByHost.put( host, future);
+        peers = new HashSet<XioPeer>();
+        peersByName.put( name, peers);
       }
+      
+      peers.add( peer);
+      
+      Set<String> names = namesByPeer.get( peer);
+      if ( names == null)
+      {
+        names = new HashSet<String>();
+        namesByPeer.put( peer, names);
+      }
+      
+      names.add( name);
+      
+      peer.setRegisteredName( name);
+      array = listeners.toArray( new IXioPeerRegistryListener[ 0]);
+    }
+    
+    for( IXioPeerRegistryListener listener: array)
+      listener.onRegister( peer, name);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.IXioPeerRegistry#unregister(org.xmodel.net.XioPeer, java.lang.String)
+   */
+  @Override
+  public void unregister( XioPeer peer, String name)
+  {
+    IXioPeerRegistryListener[] array = null;
+    
+    synchronized( this)
+    {
+      Set<XioPeer> peers = peersByName.get( name);
+      if ( peers != null) 
+      {
+        peers.remove( peer);
+        if ( peers.size() == 0) peersByName.remove( name);
+        
+        Set<String> set = namesByPeer.get( peer);
+        set.remove( name);
+        if ( set.size() == 0) namesByPeer.remove( peer);
+        
+        peer.setRegisteredName( null);
+      }
+      
+      array = listeners.toArray( new IXioPeerRegistryListener[ 0]);
+    }
+    
+    for( IXioPeerRegistryListener listener: array)
+      listener.onUnregister( peer, name);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.IXioPeerRegistry#unregisterAll(org.xmodel.net.XioPeer)
+   */
+  @Override
+  public void unregisterAll( XioPeer peer)
+  {
+    List<String> names = new ArrayList<String>();
+    
+    synchronized( this)
+    {
+      Set<String> set = namesByPeer.get( peer);
+      if ( set != null) names.addAll( set);
+    }
+    
+    for( String name: names)
+      unregister( peer, name);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.IXioPeerRegistry#getRegistrationFuture(java.lang.String)
+   */
+  @Override
+  public AsyncFuture<XioPeer> getRegistrationFuture( final String name)
+  {
+    class Listener implements IXioPeerRegistryListener
+    {
+      public Listener( AsyncFuture<XioPeer> future)
+      {
+        this.future = future;
+      }
+      
+      public void onRegister( XioPeer peer, String peerName)
+      {
+        try
+        {
+          if ( name.equals( peerName))
+            future.notifySuccess();
+        }
+        catch( Exception e)
+        {
+          SLog.exception( MemoryXioPeerRegistry.this, e);
+        }
+      }
+      
+      public void onUnregister( XioPeer peer, String peerName)
+      {
+      }
+      
+      private AsyncFuture<XioPeer> future;
+    }
+
+    class Future extends AsyncFuture<XioPeer>
+    {
+      public Future()
+      {
+        super( null);
+      }
+      
+      public void cancel()
+      {
+        MemoryXioPeerRegistry.this.removeListener( listener);
+      }
+      
+      protected Listener listener;
+    }
+    
+    synchronized( this)
+    {
+      Set<XioPeer> peers = peersByName.get( name);
+      if ( peers.size() > 0) return new SuccessAsyncFuture<XioPeer>( peers.iterator().next());
+    
+      Future future = new Future();
+      Listener listener = new Listener( future);
+      future.listener = listener;
+      
+      addListener( listener);
       
       return future;
     }
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#lookup(java.lang.String)
+   * @see org.xmodel.net.IXioPeerRegistry#lookupByName(java.lang.String)
    */
   @Override
   public synchronized Iterator<XioPeer> lookupByName( String name)
   {
-    List<XioPeer> peers = new ArrayList<XioPeer>();
+    Set<XioPeer> set = peersByName.get( name);
+    if ( set == null) return Collections.<XioPeer>emptyList().iterator();
     
-    List<String> hosts = getHostsByName( name);
-    for( String host: hosts)
-    {
-      Channel channel = channelsByHost.get( host);
-      peers.add( new XioServerPeer( channel));
-    }
-    
+    List<XioPeer> peers = new ArrayList<XioPeer>( set);
     return peers.iterator();
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#addListener(org.xmodel.net.IXioPeerRegistry.IListener)
-   */
-  @Override
-  public void addListener( IXioPeerRegistryListener listener)
-  {
-    if ( !listeners.contains( listener))
-      listeners.add( listener);
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#removeListener(org.xmodel.net.IXioPeerRegistry.IListener)
+   * @see org.xmodel.net.IXioPeerRegistry#addListener(org.xmodel.net.IXioPeerRegistryListener)
+   */
+  @Override
+  public synchronized void addListener( IXioPeerRegistryListener listener)
+  {
+    listeners.add( listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.IXioPeerRegistry#removeListener(org.xmodel.net.IXioPeerRegistryListener)
    */
   @Override
   public void removeListener( IXioPeerRegistryListener listener)
@@ -123,73 +200,7 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
     listeners.remove( listener);
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#channelConnected(org.jboss.netty.channel.Channel)
-   */
-  @Override
-  public void channelConnected( Channel channel)
-  {
-    try
-    {
-      InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-      channelsByHost.put( address.getAddress().getHostAddress(), channel);
-      
-      // complete pending future
-      AsyncFuture<XioPeer> future = null;
-      synchronized( lookupByHostLock)
-      {
-        String host = ((InetSocketAddress)channel.getRemoteAddress()).getAddress().getHostAddress();
-        future = futuresByHost.remove( host);
-      }
-      
-      if ( future != null) 
-      {
-        future.getInitiator().setChannel( channel);
-        future.notifySuccess();
-      }        
-    }
-    catch( Exception e)
-    {
-      SLog.exception( this, e);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioPeerRegistry#channelDisconnected(org.jboss.netty.channel.Channel)
-   */
-  @Override
-  public void channelDisconnected( Channel channel)
-  {
-    try
-    {
-      InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-      channelsByHost.remove( address.getAddress().getHostAddress());
-    }
-    catch( Exception e)
-    {
-      SLog.exception( this, e);
-    }
-  }
-  
-  /**
-   * Returns the hosts associated with the specified name.
-   * @param name The name.
-   * @return Returns the host list.
-   */
-  private List<String> getHostsByName( String name)
-  {
-    List<String> hosts = hostsByName.get( name);
-    if ( hosts == null)
-    {
-      hosts = new ArrayList<String>();
-      hostsByName.put( name, hosts);
-    }
-    return hosts;
-  }  
-  
-  private Map<String, Channel> channelsByHost;
-  private Map<String, List<String>> hostsByName;
+  private Map<String, Set<XioPeer>> peersByName;
+  private Map<XioPeer, Set<String>> namesByPeer;
   private List<IXioPeerRegistryListener> listeners;
-  private Map<String, AsyncFuture<XioPeer>> futuresByHost;
-  private Object lookupByHostLock;
 }

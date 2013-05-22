@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.util.Iterator;
 
-import org.jboss.netty.channel.Channel;
 import org.xmodel.future.AsyncFuture;
 
 /**
@@ -11,25 +10,31 @@ import org.xmodel.future.AsyncFuture;
 public interface IXioPeerRegistry
 {
   /**
-   * Register the specified remote-host with the specified name.
+   * Register the specified peer with the specified name.
+   * @param peer The peer.
    * @param name A name, not necessarily unique, to associate with the peer.
-   * @param host The host to be registered.
    */
-  public void register( String name, String host);
+  public void register( XioPeer peer, String name);
   
   /**
-   * Cancel a peer registration by name and host.
+   * Cancel a peer registration by name.
+   * @param peer The peer.
    * @param name The name associated with the peer.
-   * @param host The remote host.
    */
-  public void unregister( String name, String host);
+  public void unregister( XioPeer peer, String name);
   
   /**
-   * Returns a future for a peer connection from the specified host.
-   * @param host The remote host.
-   * @return Returns a future for a peer connection from the specified host.
+   * Unregister all names associated with the specified peer.
+   * @param peer The peer.
    */
-  public AsyncFuture<XioPeer> lookupByHost( String host);
+  public void unregisterAll( XioPeer peer);
+
+  /**
+   * Returns a future for a peer registration with the specified name.
+   * @param name The name associated with the peer.
+   * @return Returns a future for a peer registration with the specified name.
+   */
+  public AsyncFuture<XioPeer> getRegistrationFuture( String name);
   
   /**
    * Returns an iterator over XioPeer instances registered under the specified name.
@@ -49,16 +54,4 @@ public interface IXioPeerRegistry
    * @param listener The listener.
    */
   public void removeListener( IXioPeerRegistryListener listener);
-  
-  /**
-   * Called when a channel is connected.
-   * @param channel The channel.
-   */
-  public void channelConnected( Channel channel);
-  
-  /**
-   * Called when a channel is disconnected.
-   * @param channel The channel.
-   */
-  public void channelDisconnected( Channel channel);
 }

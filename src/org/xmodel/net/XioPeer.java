@@ -25,7 +25,6 @@ public class XioPeer
   protected XioPeer( Channel channel)
   {
     this.channel = channel;
-    this.channel.setAttachment( this);
   }
 
   /**
@@ -55,7 +54,6 @@ public class XioPeer
           if ( future.isSuccess())
           {
             Channel channel = future.getInitiator().getChannel();
-            setChannel( channel);
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getRegisterProtocol().registerRequestProtocol.send( channel, name);
           }
@@ -87,7 +85,6 @@ public class XioPeer
           if ( future.isSuccess())
           {
             Channel channel = future.getInitiator().getChannel();
-            setChannel( channel);
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getRegisterProtocol().unregisterRequestProtocol.send( channel, name);
           }
@@ -115,7 +112,6 @@ public class XioPeer
     {
       AsyncFuture<XioPeer> future = reconnect();
       if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-      setChannel( future.getInitiator().getChannel());
     }
     else
     {
@@ -142,7 +138,6 @@ public class XioPeer
           if ( future.isSuccess())
           {
             Channel channel = future.getInitiator().getChannel();
-            setChannel( channel);
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getBindProtocol().unbindRequestProtocol.send( channel, netID);
           }
@@ -169,7 +164,6 @@ public class XioPeer
     {
       AsyncFuture<XioPeer> future = reconnect();
       if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-      setChannel( future.getInitiator().getChannel());
     }
     
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
@@ -191,7 +185,6 @@ public class XioPeer
     {
       AsyncFuture<XioPeer> future = reconnect();
       if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-      setChannel( future.getInitiator().getChannel());
     }
     
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
@@ -228,7 +221,6 @@ public class XioPeer
           if ( future.isSuccess())
           {
             Channel channel = future.getInitiator().getChannel();
-            setChannel( channel);
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
           }
@@ -279,9 +271,7 @@ public class XioPeer
    */
   protected synchronized void setChannel( Channel channel)
   {
-    if ( this.channel != null) this.channel.setAttachment( null);
     this.channel = channel;
-    if ( this.channel != null) this.channel.setAttachment( this);
     getRemoteAddress();
   }
   
@@ -331,6 +321,27 @@ public class XioPeer
   public ChannelFuture close()
   {
     return isConnected()? channel.close(): new SucceededChannelFuture( channel);
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals( Object object)
+  {
+    Channel otherChannel = ((XioPeer)object).getChannel();
+    if ( channel == null || otherChannel == null) return false;
+    return channel == otherChannel;
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode()
+  {
+    if ( channel == null) return 0;
+    return channel.hashCode();
   }
 
   private Channel channel;

@@ -10,11 +10,6 @@ import org.xmodel.log.SLog;
 
 public class XioServerPeer extends XioPeer
 {
-  public XioServerPeer()
-  {
-    super();
-  }
-
   public XioServerPeer( Channel channel)
   {
     setChannel( channel);
@@ -26,7 +21,9 @@ public class XioServerPeer extends XioPeer
   @Override
   protected AsyncFuture<XioPeer> reconnect()
   {
-    if ( server == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected.");
+    String name = getRegisteredName();
+    if ( name == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected - name is null.");
+    if ( server == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected - server is null.");
     
     final AsyncFuture<XioPeer> reconnectFuture = new AsyncFuture<XioPeer>( this) {
       public void cancel()
@@ -34,34 +31,22 @@ public class XioServerPeer extends XioPeer
         throw new UnsupportedOperationException();
       }
     };
-    
-    AsyncFuture<XioPeer> future = server.getPeerByHost( address.getAddress().getHostAddress());
+
+    AsyncFuture<XioPeer> future = server.getPeerRegistry().getRegistrationFuture( name);
     future.addListener( new IListener<XioPeer>() {
       public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
       {
         if ( future.isSuccess())
         {
-          IXioPeerRegistryListener listener = new IXioPeerRegistryListener() {
-            public void onRegister( String name, String host)
-            {
-              server.removePeerRegistryListener( this);
-              
-              try
-              {
-                setChannel( server.getPeerByHost( host).getInitiator().getChannel());        
-                reconnectFuture.notifySuccess();
-              }
-              catch( Exception e)
-              {
-                SLog.exception( this, e);
-              }
-            }
-            public void onUnregister( String name, String host)
-            {
-            }
-          };
-          
-          server.addPeerRegistryListener( listener);
+          try
+          {
+            setChannel( future.getInitiator().getChannel());        
+            reconnectFuture.notifySuccess();
+          }
+          catch( Exception e)
+          {
+            SLog.exception( this, e);
+          }
         }
       }
     });
@@ -75,16 +60,7 @@ public class XioServerPeer extends XioPeer
   @Override
   protected synchronized void setChannel( Channel channel)
   {
-    Object attachment = channel.getAttachment();
-    if ( attachment instanceof XioServerPeer)
-    {
-      XioServerPeer peer = (XioServerPeer)attachment;
-      this.address = peer.address;
-      this.name = peer.name;
-    }
-    
     super.setChannel( channel);
-    
     server = (XioServer)channel.getParent().getAttachment();
   }
 

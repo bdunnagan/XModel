@@ -1,5 +1,7 @@
 package org.xmodel.net;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -7,17 +9,14 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
-import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioServer.IListener;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
@@ -29,6 +28,21 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioChannelHandler extends SimpleChannelHandler
 {
+  public interface IListener
+  {
+    /**
+     * Called when the peer connects.
+     * @param peer The peer.
+     */
+    public void notifyConnect( XioPeer peer);
+    
+    /**
+     * Called when the peer disconnects.
+     * @param peer The peer.
+     */
+    public void notifyDisconnect( XioPeer peer);
+  }    
+  
   public enum Type
   {
     executeRequest,
@@ -51,6 +65,8 @@ public class XioChannelHandler extends SimpleChannelHandler
   public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler, IXioPeerRegistry registry)
   {
     if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
+    this.listeners = new ArrayList<IListener>( 1);
+    
     headerProtocol = new HeaderProtocol();
     registerProtocol = new RegisterProtocol( registry, headerProtocol);
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
@@ -65,12 +81,31 @@ public class XioChannelHandler extends SimpleChannelHandler
   }
   
   /**
-   * Set listeners.
-   * @param listeners The listeners.
+   * If this handler is being used by a client, specify the client instance.
+   * @param client The client instance.
    */
-  public void setListeners( IListener[] listeners)
+  public void setClient( XioClient client)
   {
-    this.listeners = listeners;
+    this.peer = client;
+  }
+  
+  /**
+   * Add a connection listener.
+   * @param listener The listener.
+   */
+  public void addListener( IListener listener)
+  {
+    if ( !listeners.contains( listener))
+      listeners.add( listener);
+  }
+  
+  /**
+   * Remove a connection listener.
+   * @param listener The listener.
+   */
+  public void removeListener( IListener listener)
+  {
+    listeners.remove( listener);
   }
   
   /**
@@ -111,43 +146,19 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
-    SslHandler sslHandler = ctx.getPipeline().get( SslHandler.class);
-    if ( sslHandler != null)
-    {
-      sslHandshakeFuture = sslHandler.handshake();
-      sslHandshakeFuture.addListener( new ChannelFutureListener() {
-        public void operationComplete( ChannelFuture handshakeFuture) throws Exception
-        {
-          if ( handshakeFuture.isSuccess()) 
-          {
-            if ( registry != null)
-              registry.channelConnected( handshakeFuture.getChannel());
-          }
-          else
-          {
-            handshakeFuture.getChannel().close();
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( registry != null)
-        registry.channelConnected( event.getChannel());
-    }
+    XioPeer peer = this.peer;
+    if ( peer == null) peer = new XioServerPeer( event.getChannel());
+    event.getChannel().setAttachment( peer);
     
-    if ( listeners != null)
+    for( IListener listener: listeners)
     {
-      for( IListener listener: listeners)
+      try
       {
-        try
-        {
-          listener.notifyConnect( new XioServerPeer( event.getChannel()));
-        }
-        catch( Exception e)
-        {
-          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
-        }
+        listener.notifyConnect( peer);
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
       }
     }
   }
@@ -158,24 +169,19 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelDisconnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
-    if ( listeners != null)
+    for( IListener listener: listeners)
     {
-      for( IListener listener: listeners)
+      try
       {
-        try
-        {
-          XioPeer peer = (XioPeer)event.getChannel().getAttachment();
-          listener.notifyDisconnect( peer);
-        }
-        catch( Exception e)
-        {
-          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
-        }
+        listener.notifyDisconnect( peer);
+      }
+      catch( Exception e)
+      {
+        SLog.exception( this, e);
       }
     }
     
-    if ( registry != null)
-      registry.channelDisconnected( event.getChannel());
+    event.getChannel().setAttachment( null);
     
     bindProtocol.reset();
     executionProtocol.reset();
@@ -270,7 +276,8 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
-    log.exception( event.getCause());
+    if ( event.getCause() != null)
+      log.error( event.getCause().toString());
   }
   
   /**
@@ -315,6 +322,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;
   private IXioPeerRegistry registry;
-  private ChannelFuture sslHandshakeFuture;  
-  private IListener[] listeners;
+  private ChannelFuture sslHandshakeFuture;
+  private XioPeer peer;
+  private List<IListener> listeners;
 }

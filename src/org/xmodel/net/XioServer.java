@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -23,7 +22,6 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.xmodel.concurrent.ModelThreadFactory;
-import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
@@ -44,14 +42,12 @@ public class XioServer
     /**
      * Called when a client disconnects.
      * @param peer The peer instance of the client.
-     * @param name Null or the registered name of the client.
      */
     public void notifyDisconnect( XioPeer peer);
     
     /**
      * Called when a client registers.
      * @param peer The peer instance of the client.
-     * @param name The registered name of the client.
      */
     public void notifyRegister( XioPeer peer);
     
@@ -124,13 +120,17 @@ public class XioServer
         {
           SSLEngine engine = sslContext.createSSLEngine();
           engine.setUseClientMode( false);
+          //engine.setNeedClientAuth( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
         
-        XioChannelHandler channelHandler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
-        channelHandler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
-        channelHandler.setListeners( listeners.toArray( new IListener[ 0]));
-        pipeline.addLast( "xio", channelHandler);
+        XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
+        handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        pipeline.addLast( "xio", handler);
+        
+        if ( sslContext == null)
+          handler.addListener( channelConnectionListener);
+        
         return pipeline;
       }
     });
@@ -194,105 +194,40 @@ public class XioServer
   }
   
   /**
-   * Register the specified remote-host with the specified name.
-   * @param name A name, not necessarily unique, to associate with the peer.
-   * @param host The host to be registered.
-   * @param ttl The duration of the association in milliseconds.
+   * @return Returns the peer registry for this server.
    */
-  public void register( String name, String host, long ttl)
+  public IXioPeerRegistry getPeerRegistry()
   {
-    registry.register( name, host);
-  }
-  
-  /**
-   * Cancel a peer registration by name and host.
-   * @param name The name associated with the peer.
-   * @param host The remote host.
-   */
-  public void cancel( String name, String host)
-  {
-    registry.unregister( name, host);
-  }
-
-  /**
-   * Returns a future for obtaining a peer connection from the specified host.
-   * @param host The remote host.
-   * @return Returns a future for a peer connection from the specified host.
-   */
-  public AsyncFuture<XioPeer> getPeerByHost( String host)
-  {
-    return registry.lookupByHost( host);
-  }
-  
-  /**
-   * Returns an iterator over XioPeer instances registered under the specified name.
-   * @param name The name.
-   * @return Returns the associated peers.
-   */
-  public Iterator<XioPeer> getPeersByName( String name)
-  {
-    return registry.lookupByName( name);
-  }
-
-  /**
-   * Add a peer registration listener.
-   * @param listener The The listener.
-   */
-  public void addPeerRegistryListener( IXioPeerRegistryListener listener)
-  {
-    registry.addListener( listener);
-  }
-  
-  /**
-   * Remove a peer registration listener.
-   * @param listener The listener.
-   */
-  public void removePeerRegistryListener( IXioPeerRegistryListener listener)
-  {
-    registry.removeListener( listener);
+    return registry;
   }
   
   private IXioPeerRegistryListener registryListener = new IXioPeerRegistryListener() {
-    public void onRegister( String name, String host)
+    public void onRegister( XioPeer peer, String name)
     {
       if ( listeners != null)
       {
-        XioPeer peer = registry.lookupByHost( host).getInitiator();
-        peer.setRegisteredName( name);
-        
         for( IListener listener: listeners)
         {
-          try
-          {
-            listener.notifyRegister( peer);
-          }
+          try { listener.notifyRegister( peer); }
           catch( Exception e)
           {
             SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
           }
         }
       }
-      
     }
-    public void onUnregister( String name, String host)
+    public void onUnregister( XioPeer peer, String name)
     {
       if ( listeners != null)
       {
-        XioPeer peer = registry.lookupByHost( host).getInitiator();
-        
         for( IListener listener: listeners)
         {
-          try
-          {
-            listener.notifyUnregister( peer);
-          }
+          try { listener.notifyUnregister( peer); }
           catch( Exception e)
           {
             SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
           }
         }
-        
-        peer.setRegisteredName( null);
       }
     }
   };
@@ -310,6 +245,58 @@ public class XioServer
       defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work"));
     return defaultWorkerExecutor;
   }
+  
+  /**
+   * Notify listeners that a connection was established.
+   * @param peer The peer that connected.
+   */
+  private void notifyChannelConnected( XioPeer peer)
+  {
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyConnect( peer); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+  }
+  
+  /**
+   * Notify listeners that a connection has been closed.
+   * @param peer The peer that connected.
+   */
+  private void notifyChannelDisconnected( XioPeer peer)
+  {
+    registry.unregisterAll( peer);
+    
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyDisconnect( peer); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+  }
+    
+  private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
+    public void notifyConnect( XioPeer peer)
+    {
+      if ( !peer.getChannel().getPipeline().getNames().contains( "ssl"))
+        notifyChannelConnected( peer);
+    }      
+    public void notifyDisconnect( XioPeer peer)
+    {
+      notifyChannelDisconnected( peer);
+    }
+  };
   
   private static Executor defaultBossExecutor = null;
   private static Executor defaultWorkerExecutor = null;

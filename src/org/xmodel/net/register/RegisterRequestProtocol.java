@@ -1,11 +1,12 @@
 package org.xmodel.net.register;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.log.Log;
 import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.XioPeer;
 
 public class RegisterRequestProtocol
 {
@@ -57,8 +58,7 @@ public class RegisterRequestProtocol
     String name = new String( bytes);
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
-    InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    bundle.registry.register( name, address.getAddress().getHostAddress());
+    bundle.registry.register( (XioPeer)channel.getAttachment(), name);
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);

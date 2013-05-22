@@ -221,9 +221,16 @@ public class RunAction extends GuardedAction
         {
           if ( !client.isConnected())  // TODO: no longer necessary - remove and test
             client.connect( address, connectionRetries).await( timeout);
-          
-          Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
-          if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+
+          try
+          {
+            Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+            if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+          }
+          finally
+          {
+            clientPool.release( client);
+          }
         }
         else
         {
@@ -340,7 +347,7 @@ public class RunAction extends GuardedAction
         
         log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
         
-        Iterator<XioPeer> iterator = server.getPeersByName( client);
+        Iterator<XioPeer> iterator = server.getPeerRegistry().lookupByName( client);
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();

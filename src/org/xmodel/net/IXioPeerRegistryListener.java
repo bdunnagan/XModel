@@ -4,15 +4,15 @@ public interface IXioPeerRegistryListener
 {
   /**
    * Called when a new peer is registered.
+   * @param peer The peer.
    * @param name The name of the peer.
-   * @param address The peer host.
    */
-  public void onRegister( String name, String address); 
+  public void onRegister( XioPeer peer, String name); 
   
   /**
    * Called when a peer unregisters.
+   * @param peer The peer.
    * @param name The name.
-   * @param address The peer host.
    */
-  public void onUnregister( String name, String address);
+  public void onUnregister( XioPeer peer, String name);
 }
