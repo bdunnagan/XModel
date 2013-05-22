@@ -1,5 +1,6 @@
 package org.xmodel.xpath.function.custom;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.xmodel.IModelObject;
@@ -45,7 +46,8 @@ public class CallFunction extends Function
     script = new ScriptAction( element);
     params = Xlate.get( element, "params", "").split( "\\s*,\\s*");
     String spec = Xlate.get( element, "returns", (String)null);
-    return ResultType.valueOf( spec.toUpperCase());
+    if ( spec != null) return ResultType.valueOf( spec.toUpperCase());
+    return ResultType.NODES;
   }
 
   /* (non-Javadoc)
@@ -56,7 +58,7 @@ public class CallFunction extends Function
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
   {
     Object[] result = script.run( createCallContext( context));
-    if ( result == null) throw new ExpressionException( this, "Return value is null.");
+    if ( result == null) return Collections.emptyList();
     return (List<IModelObject>)result[ 0];
   }
 
