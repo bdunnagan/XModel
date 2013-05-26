@@ -152,6 +152,7 @@ public final class FileSink implements ILogSink
   private void queueLoop()
   {
     List<String> messages = new ArrayList<String>();
+    
     try
     {
       roll();
@@ -173,6 +174,10 @@ public final class FileSink implements ILogSink
         }
         
         stream.flush();
+        
+        // refresh if current file was moved or deleted
+//        if ( queue.isEmpty() && !currentFile.exists())
+//          roll();
       }
     }
     catch( InterruptedException e)
@@ -220,7 +225,8 @@ public final class FileSink implements ILogSink
     if ( !logFolder.exists()) logFolder.mkdirs();
     
     String name = String.format( "%s%s_%s.log", filePrefix, Integer.toString( ++counter, 36).toUpperCase(), dateFormat.format( new Date()));
-    stream = new FileOutputStream( new File( logFolder, name));
+    currentFile = new File( logFolder, name);
+    stream = new FileOutputStream( currentFile);
     files.add( name);
   }
   
@@ -391,6 +397,7 @@ public final class FileSink implements ILogSink
   private long currentFileSize;
   private int counter;
   private List<String> files;
+  private File currentFile;
   private OutputStream stream;
   private BlockingQueue<String> queue;
   private Thread thread;

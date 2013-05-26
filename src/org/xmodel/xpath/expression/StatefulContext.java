@@ -22,9 +22,12 @@ package org.xmodel.xpath.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.xmodel.IModel;
+import java.util.concurrent.Executor;
+
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
+import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.Precedences;
 
@@ -50,6 +53,7 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext context)
   {
     this( new ContextScope( context.getScope()), context.getObject(), context.getPosition(), context.getSize());
+    setExecutor( context.getExecutor());
   }
   
   /**
@@ -82,7 +86,7 @@ public class StatefulContext implements IContext
   {
     this( scope, object, 1, 1);
   }
-  
+
   /**
    * Create a context for the given context node and use the specified scope to store variables.
    * @param scope The scope to be associated with this context.
@@ -95,12 +99,12 @@ public class StatefulContext implements IContext
     this.object = object;
     this.position = position;
     this.size = size;
-    this.updates = new HashMap<IExpression, Integer>( 1);
+    this.updates = new HashMap<IExpression, Update>( 1);
     this.scope = (scope != null)? scope: new ContextScope();
   }
 
   /**
-   * Create a context with the specified parent. This method is useful for 
+   * Create a context with the specified parent scope. This method is useful for 
    * creating a nested context with its own local context variable scope.
    * @param scope A context whose scope will be shared.
    * @param object The context node.
@@ -108,10 +112,11 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext scope, IModelObject object)
   {
     this( new ContextScope( scope.getScope()), object, 1, 1);
+    setExecutor( scope.getExecutor());
   }
   
   /**
-   * Create a context with the specified parent. This method is useful for 
+   * Create a context with the specified parent scope. This method is useful for 
    * creating a nested context with its own local context variable scope.
    * @param scope A context whose scope will be shared.
    * @param object The context node.
@@ -121,7 +126,17 @@ public class StatefulContext implements IContext
   public StatefulContext( IContext scope, IModelObject object, int position, int size)
   {
     this( new ContextScope( scope.getScope()), object, position, size);
+    setExecutor( scope.getExecutor());
   }
+
+//  /* (non-Javadoc)
+//   * @see org.xmodel.xpath.expression.IContext#getModel()
+//   */
+//  @Override
+//  public IModel getModel()
+//  {
+//    return GlobalSettings.getInstance().getModel();
+//  }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#set(java.lang.String, java.lang.String)
@@ -197,6 +212,25 @@ public class StatefulContext implements IContext
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#setExecutor(java.util.concurrent.Executor)
+   */
+  @Override
+  public void setExecutor( Executor executor)
+  {
+    this.executor = executor;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.IContext#getExecutor()
+   */
+  @Override
+  public Executor getExecutor()
+  {
+    if ( executor != null) return executor;
+    return GlobalSettings.getInstance().getDefaultExecutor();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#getName()
    */
   public String getName()
@@ -210,14 +244,6 @@ public class StatefulContext implements IContext
   public int getPrecedence()
   {
     return Precedences.contextScope;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getModel()
-   */
-  public IModel getModel()
-  {
-    return (object != null)? object.getModel(): null;
   }
 
   /* (non-Javadoc)
@@ -281,7 +307,7 @@ public class StatefulContext implements IContext
    */
   public void notifyUpdate( IExpression expression)
   {
-    updates.put( expression, getModel().getUpdateID());
+    updates.put( expression, GlobalSettings.getInstance().getModel().getCurrentUpdate());
   }
 
   /* (non-Javadoc)
@@ -297,18 +323,16 @@ public class StatefulContext implements IContext
    */
   public boolean shouldUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    return lastUpdate == null || lastUpdate == 0 || lastUpdate != getModel().getUpdateID();
+    Update lastUpdate = updates.get( expression);
+    return lastUpdate == null || !lastUpdate.isActive() || lastUpdate != GlobalSettings.getInstance().getModel().getCurrentUpdate();
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getLastUpdate(org.xmodel.xpath.expression.IExpression)
    */
-  public int getLastUpdate( IExpression expression)
+  public Update getLastUpdate( IExpression expression)
   {
-    Integer lastUpdate = updates.get( expression);
-    if ( lastUpdate == null) return 0;
-    return lastUpdate;
+    return updates.get( expression);
   }
 
   /* (non-Javadoc)
@@ -340,10 +364,11 @@ public class StatefulContext implements IContext
     sb.append( ")");
     return sb.toString();
   }
-  
+ 
   private IModelObject object;
   private int position;
   private int size;
-  private Map<IExpression, Integer> updates;
+  private Map<IExpression, Update> updates;
   private IVariableScope scope;
+  private Executor executor;
 }

@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -44,6 +45,7 @@ import org.xmodel.compress.ZipCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
+import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
 import org.xmodel.external.NonSyncingListener;
@@ -60,6 +62,18 @@ import org.xmodel.xpath.expression.IExpression;
 /**
  * A caching policy for accessing information from an SQL database. 
  * This caching policy is used to load both rows and columns of a table.
+ * 
+ * <h3>Database Updates</h3>
+ * When the <i>update</i> flag evaluates true, changes to the data-model will make corresponding changes to the
+ * database.  The following table summarizes the types of database updates:
+ * <ul>
+ * <li>Inserting a row element will cause a row to be added to the database table.</li>
+ * <li>Deleting a row element will cause a row to be deleted from the database table.</li>
+ * <li>Updating any column of a row element will cause that column to be updated in the database.</li>
+ * <li>Any changes to the data-model of an XML column will cause that column to be updated in the database.</li>
+ * <li>Caching policy transactions allow multiple updates to be committed together.</li>
+ * <li>Insert and delete statements appearing in caching policy transactions are optimized by batch updating.</li>
+ * </ul> 
  */
 public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -99,13 +113,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     // create SQLManager
-    provider = getProvider( annotation);
+    provider = getProvider( context, annotation);
     
-    catalog = Xlate.childGet( annotation, "catalog", (String)null);
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
+    
+    attributes = new ArrayList<String>( 3);
+    for( IModelObject element: annotation.getChildren( "attribute"))
+      attributes.add( Xlate.get( element, ""));
     
     excluded = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "exclude"))
@@ -116,6 +133,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     IExpression orderbyExpr = Xlate.childGet( annotation, "orderby", (IExpression)null);
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
+    
+    IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
+    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): -1;
     
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
@@ -146,7 +166,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void transactionComplete( ITransaction transaction)
   {
-    transaction = null;
+    if ( transaction != this.transaction) throw new IllegalArgumentException();
+    this.transaction = null;
   }
   
   /* (non-Javadoc)
@@ -182,19 +203,30 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = null;
     try
     {
-      // get row stubs
-      statement = createTableSelectStatement( reference);
-      log.debugf( "sync %s with %s", reference.getType(), statement);
+      log.debugf( "sync %s ...", reference.getType());
       
+      long t0 = System.nanoTime();
+      statement = createTableSelectStatement( reference);
+      
+      long t1 = System.nanoTime();
+      log.debugf( "query prep: %1.3fs", ((t1 - t0) / 1e9));
+      
+      long t2 = System.nanoTime();
       ResultSet result = statement.executeQuery();
-
+      
+      long t3 = System.nanoTime();
+      log.debugf( "query exec: %1.3fs", ((t3 - t2) / 1e9));
+      
+      long count = 0;
       IModelObject parent = reference.cloneObject();
       while( result.next())
       {
+        count++;
+        
         IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
-          row.setID( result.getString( 1));
+          row.setAttribute( primaryKey, result.getString( 1));
           for( int i=0; i<otherKeys.size(); i++) 
             row.setAttribute( otherKeys.get( i), result.getObject( i+2));
         }
@@ -206,7 +238,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         parent.addChild( row);
       }
       
-      // update reference
+      log.debugf( "query size: %d", count);
+      
       update( reference, parent);
     }
     catch( SQLException e)
@@ -262,7 +295,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       String columnName = columnNames.get( i);
 
       Object value = result.getObject( i+1);
-      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName))
+      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName) || attributes.contains( columnName))
       {
         object.setAttribute( columnName, value);
       }
@@ -281,7 +314,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private void importColumn( IModelObject row, String column, Object value)
   {
-    if ( otherKeys.contains( column))
+    if ( otherKeys.contains( column) || attributes.contains( column))
     {
       row.setAttribute( column, value);
     }
@@ -301,6 +334,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           try
           {
             IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
+            ModelAlgorithms.copyAttributes( superroot, row.getFirstChild( column));
             ModelAlgorithms.moveChildren( superroot, row.getFirstChild( column));
           }
           catch( Exception e)
@@ -350,7 +384,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         try
         {
-          List<byte[]> buffers = compressor.compress( row.getFirstChild( column));
+          IModelObject element = row.getFirstChild( column);
+          if ( element == null) return null;
+          
+          List<byte[]> buffers = compressor.compress( element);
           return new MultiByteArrayInputStream( buffers);
         }
         catch( IOException e)
@@ -369,7 +406,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     else
     {
-      if ( otherKeys.contains( column)) 
+      if ( otherKeys.contains( column) || attributes.contains( column)) 
       {
         return row.getAttribute( column);
       }
@@ -402,14 +439,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   
   /**
    * Returns the SQLManager for the specified reference.
+   * @param context The configuration context.
    * @param annotation The caching policy annotation.
    * @return Returns the SQLManager for the specified reference.
    */
-  private static ISQLProvider getProvider( IModelObject annotation) throws CachingException
+  private static ISQLProvider getProvider( IContext context, IModelObject annotation) throws CachingException
   {
+    IExpression providerExpr = Xlate.childGet( annotation, "provider", Xlate.get( annotation, "provider", (IExpression)null));
+    IModelObject providerAnnotation = providerExpr.queryFirst( context);
+    if ( providerAnnotation == null) 
+      throw new CachingException( String.format(
+        "Provider not found for expression '%s'",
+        providerExpr));
+    
     try
     {
-      return SQLProviderFactory.getProvider( annotation);
+      return SQLProviderFactory.getProvider( providerAnnotation);
     }
     catch( Exception e)
     {
@@ -442,7 +487,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
-      connection.setCatalog( catalog);
+//      connection.setCatalog( catalog);
       
       DatabaseMetaData meta = connection.getMetaData();
       ResultSet result = meta.getColumns( null, null, tableName, null);
@@ -511,7 +556,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The row stubs to be populated.
    * @return Returns a prepared statement which will select stubs for all rows of a table.
    */
-  private PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
+  protected PreparedStatement createTableSelectStatement( IExternalReference reference) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "SELECT "); 
@@ -548,9 +593,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     
     Connection connection = provider.leaseConnection();
-    connection.setCatalog( catalog);
+//    connection.setCatalog( catalog);
     
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    log.debugf( "table query: %s", sb);
+    
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset);
     if ( limit > 0) statement.setMaxRows( limit);
     return statement;
   }
@@ -567,10 +614,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
     
     Connection connection = provider.leaseConnection();
-    connection.setCatalog( catalog);
+//    connection.setCatalog( catalog);
+    
+    log.debugf( "row query: %s", sb);
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
-    statement.setString( 1, reference.getID());
+    statement.setString( 1, Xlate.get( reference, primaryKey, (String)null));
     return statement;
   }
   
@@ -587,20 +636,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
-    sb.append( " VALUES");
-    sb.append( "(?");
-    for( int i=1; i<columnNames.size(); i++) sb.append( ",?");
-    sb.append( ")");
+    sb.append( " SET");
+
+    char sep = ' ';    
+    for( int i=0; i<columnNames.size(); i++)
+    {
+      sb.append( sep); sep = ',';
+      sb.append( columnNames.get( i));
+      sb.append( "=?");
+    }
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, node.getID());
       for( int i=0; i<columnNames.size(); i++)
       {
-        if ( columnNames.get( i).equals( primaryKey)) continue;
-        
         Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
         if ( value != null)
         {
@@ -631,7 +682,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param columns The columns of the row that were updated.
    * @return Returns a prepared statement which will update one or more rows.
    */
-  private PreparedStatement createUpdateStatement( Connection connection, IExternalReference reference, List<String> columns) throws SQLException
+  private PreparedStatement createUpdateStatement( Connection connection, IModelObject reference, List<String> columns) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "UPDATE "); sb.append( tableName);
@@ -671,7 +722,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
     }
     
-    statement.setString( columns.size() + 1, reference.getID());
+    statement.setString( columns.size() + 1, Xlate.get( reference, primaryKey, (String)null));
     
     return statement;
   }
@@ -694,7 +745,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, node.getID());
+      statement.setString( 1, Xlate.get( node, primaryKey, (String)null));
       statement.addBatch();
     }
     
@@ -781,12 +832,22 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   protected void commit( Connection connection) throws SQLException
   {
-    connection.setCatalog( catalog);
+    long t0 = System.nanoTime();
+    
+//    connection.setCatalog( catalog);
     
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
       PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.executeBatch();
+      log.verbosef( "%s", statement);
+      try
+      {
+        statement.executeBatch();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowDeletes.clear();
@@ -794,18 +855,37 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
       PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.executeBatch();
+      log.verbosef( "%s", statement);
+      try
+      {
+        statement.executeBatch();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowInserts.clear();
     
     for( Map.Entry<IModelObject, List<String>> entry: rowUpdates.entrySet())
     {
-      PreparedStatement statement = createUpdateStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      statement.execute();
+      PreparedStatement statement = createUpdateStatement( connection, entry.getKey(), entry.getValue());
+      log.verbosef( "%s", statement);
+      try
+      {
+        statement.execute();
+      }
+      finally
+      {
+        statement.close();
+      }
     }
     
     rowUpdates.clear();
+    
+    long t1 = System.nanoTime();
+    log.verbosef( "Commit time, %1.3fms", ((t1 - t0)/1e6));
   }
   
   /**
@@ -873,8 +953,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         // handle row insert
         if ( isTable( parent))
         {
-          SQLRowCachingPolicy cachingPolicy = (SQLRowCachingPolicy)((IExternalReference)child).getCachingPolicy();
-          cachingPolicy.parent = SQLTableCachingPolicy.this;
+          ICachingPolicy cachingPolicy = child.getCachingPolicy();
+          if ( cachingPolicy != null)
+          {
+            ((SQLRowCachingPolicy)cachingPolicy).parent = SQLTableCachingPolicy.this;
+          }
+          else
+          {
+            cachingPolicy = new SQLRowCachingPolicy( SQLTableCachingPolicy.this, getCache());
+            child.setCachingPolicy( cachingPolicy);
+          }
           
           List<IModelObject> inserts = rowInserts.get( parent);
           if ( inserts == null)
@@ -886,11 +974,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
+          // xml column insert
           addRowUpdate( parent.getParent(), parent.getType());
+        }
+        else if ( isTable( parent.getParent()))
+        {
+          addRowUpdate( parent, child.getType());
         }
         else
         {
-          // handle xml column insert
+          // xml column content update
           IModelObject columnAncestor = findColumnElement( parent);
           if ( columnAncestor != null)
           {
@@ -934,11 +1027,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
+          // xml column delete
           addRowUpdate( parent.getParent(), parent.getType());
+        }
+        else if ( isTable( parent.getParent()))
+        {
+          addRowUpdate( parent, child.getType());
         }
         else
         {
-          // handle xml column delete
+          // xml column content updated
           IModelObject columnAncestor = findColumnElement( parent);
           if ( columnAncestor != null)
           {
@@ -1030,28 +1128,29 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
   private static Map<String, Class<? extends ISQLProvider>> providers;
 
-  private ISQLProvider provider;
-  private boolean stub;
-  private boolean readonly;
-  private List<String> excluded;
-  private String where;
-  private String orderby;
-  private int limit;
-  private SQLRowCachingPolicy rowCachingPolicy;
-  private String catalog;
-  private String tableName;
-  private List<String> columnNames;
-  private List<Integer> columnTypes;
-  private String queryColumns;
-  private String primaryKey;
-  private List<String> otherKeys;
-  private String rowElementName;
-  private Set<String> xmlColumns;
-  private SQLEntityListener updateMonitor;
-  private SQLTransaction transaction;
-  private Map<IModelObject, List<IModelObject>> rowInserts;
-  private Map<IModelObject, List<IModelObject>> rowDeletes;
-  private Map<IModelObject, List<String>> rowUpdates;  
-  private ICompressor compressor;
+  protected ISQLProvider provider;
+  protected boolean stub;
+  protected boolean readonly;
+  protected List<String> excluded;
+  protected List<String> attributes;
+  protected String where;
+  protected String orderby;
+  protected int offset;
+  protected int limit;
+  protected SQLRowCachingPolicy rowCachingPolicy;
+  protected String tableName;
+  protected List<String> columnNames;
+  protected List<Integer> columnTypes;
+  protected String queryColumns;
+  protected String primaryKey;
+  protected List<String> otherKeys;
+  protected String rowElementName;
+  protected Set<String> xmlColumns;
+  protected SQLEntityListener updateMonitor;
+  protected SQLTransaction transaction;
+  protected Map<IModelObject, List<IModelObject>> rowInserts;
+  protected Map<IModelObject, List<IModelObject>> rowDeletes;
+  protected Map<IModelObject, List<String>> rowUpdates;  
+  protected ICompressor compressor;
 }
 

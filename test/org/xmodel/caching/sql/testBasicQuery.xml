@@ -1,0 +1,9 @@
+<!--
+  Test simple querying with SQLCachingPolicy
+-->
+<script>
+  <run>$tests/setup.xml/*</run>
+  
+  <create var="user">
+  </create>
+</script>

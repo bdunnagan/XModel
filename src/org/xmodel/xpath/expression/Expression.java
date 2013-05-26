@@ -22,7 +22,9 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeSet;
+import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.NullObject;
@@ -558,9 +560,10 @@ public abstract class Expression implements IExpression
    */
   public void rebind( IContext context)
   {
-    context.getModel().revert();
+    IModel model = GlobalSettings.getInstance().getModel();
+    model.revert();
     unbind( context);
-    context.getModel().restore();
+    model.restore();
     bind( context);
   }
   

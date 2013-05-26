@@ -2,7 +2,6 @@ package org.xmodel.storage;
 
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.PathListenerList;
@@ -47,17 +46,6 @@ public interface IStorageClass
    */
   public IStorageClass getPathListenersStorageClass();
 
-  /**
-   * Set the model.
-   * @param model The model.
-   */
-  public void setModel( IModel model);
-  
-  /**
-   * @return Returns the model.
-   */
-  public IModel getModel();
-  
   /**
    * Set the dirty flag.
    * @param dirty The dirty flag.

@@ -22,6 +22,10 @@ package org.xmodel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
+import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
 
 /**
@@ -47,32 +51,6 @@ import org.xmodel.memento.IMemento;
 public interface IModelObject
 {
   /**
-   * Clear the cached IModel, if present.  This method must be called before an object is accessed
-   * by a different thread, since the IModel for the previous thread may be cached.
-   */
-  public void clearModel();
-  
-  /**
-   * Returns the IModel to which this object belongs. Implementations should use the IModelRegistry
-   * to find the IModel. Since using the IModelRegistry involves accessing thread-local data, the
-   * IModel should usually be cached.
-   * @return Returns the IModel to which this object belongs.
-   */
-  public IModel getModel();
-  
-  /**
-   * Set the id of the object.
-   * @param id The object id.
-   */
-  public void setID( String id);
-  
-  /**
-   * Returns the id of the object.
-   * @return Returns the id of the object.
-   */
-  public String getID();
-  
-  /**
    * Get the type of this object.
    * @return Returns the type of this object.
    */
@@ -90,6 +68,38 @@ public interface IModelObject
    * @return Returns true if this object is an external reference and has not been touched yet.
    */
   public boolean isDirty();
+  
+  /**
+   * Set the ICachingPolicy for this IExternalReference.
+   * @param cachingPolicy The ICachingPolicy to associate with this reference.
+   */
+  public void setCachingPolicy( ICachingPolicy cachingPolicy);
+  
+  /**
+   * Returns the ICachingPolicy which controls the synchronization and flushing of this reference.
+   * @return Returns the ICachingPolicy associated with this reference.
+   */
+  public ICachingPolicy getCachingPolicy();
+ 
+  /**
+   * Set whether this object is dirty or not.  This method should not be called after the object
+   * has been sync'ed once.  The <code>clearCache</code> method should be used to transition
+   * back to the dirty state.
+   * @param dirty True if the object should be marked dirty.
+   */
+  public void setDirty( boolean dirty);
+  
+  /**
+   * @return Returns a new transaction.
+   */
+  public ITransaction transaction();
+  
+  /**
+   * If this reference is dirty then remove all children and mark dirty.  In addition, if this object
+   * has listeners any where in its subtree as defined by the <code>hasListeners</code> method, then
+   * the object will be immediately resync'ed.
+   */
+  public void clearCache() throws CachingException;
   
   /**
    * Set an attribute on this object with an empty value.  This method provides 
@@ -223,10 +233,10 @@ public interface IModelObject
    * Get the first child with the specified name and type.  If the child does not 
    * exists then null is returned.
    * @param type The type of the child.
-   * @param name The name of the child.
+   * @param id The id of the child.
    * @return Returns the child with the specified type and name.
    */
-  public IModelObject getChild( String type, String name);
+  public IModelObject getChild( String type, Object id);
   
   /**
    * Get the first child with the specified type if it exists, or
@@ -240,19 +250,19 @@ public interface IModelObject
    * Get the first child with the specified name and type if it exists, or
    * create it and add it to this object if it doesn't exist.
    * @param type The type of the child.
-   * @param name The name of the child.
+   * @param id The id of the child.
    * @return Returns the child with the specified type and name.
    */
-  public IModelObject getCreateChild( String type, String name);
+  public IModelObject getCreateChild( String type, Object id);
   
   /**
    * Get the children with the specified name and type.  If a child does not exist
    * then null is returned.
    * @param type The type of the children.
-   * @param name The name of the children.
+   * @param id The id of the child.
    * @return Returns the children with the specified type and name.
    */
-  public List<IModelObject> getChildren( String type, String name);
+  public List<IModelObject> getChildren( String type, Object id);
   
   /**
    * Get all the children of this node.

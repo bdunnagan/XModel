@@ -25,9 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
@@ -39,16 +36,11 @@ public class Model implements IModel
 {
   public Model()
   {
-    lock = new ReentrantReadWriteLock();
     updateStack = new ArrayList<Update>();
     updateObjects = new ArrayList<Update>();
     frozen = new ArrayList<IModelObject>();
     collections = new HashMultiMap<String, IModelObject>();
-    dispatcher = new BlockingDispatcher();
 
-    // counter must start at one because 0 has meaning
-    counter = 1;
-    
     // thread-access debugging
     if ( debugMap != null) debugMap.put( this, Thread.currentThread());
   }
@@ -60,157 +52,6 @@ public class Model implements IModel
   public void setThread( Thread thread)
   {
     if ( debugMap != null) debugMap.put( this, thread);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#readLock()
-   */
-  @Override
-  public void readLock() throws InterruptedException
-  {
-    try
-    {
-      log.debugf( "Entered Model.readLock( %X) ...", hashCode());
-      lock.readLock().lockInterruptibly();
-    }
-    finally
-    {
-      log.debugf( "Exited Model.readLock( %X).", hashCode());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#readLockUninterruptibly()
-   */
-  @Override
-  public void readLockUninterruptibly()
-  {
-    try
-    {
-      log.debugf( "Entered Model.readLockUninterruptibly( %X) ...", hashCode());
-      lock.readLock().lock();
-    }
-    finally
-    {
-      log.debugf( "Exited Model.readLockUninterruptibly( %X).", hashCode());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#readLock(int, java.util.concurrent.TimeUnit)
-   */
-  @Override
-  public boolean readLock( int timeout, TimeUnit units) throws InterruptedException
-  {
-    try
-    {
-      log.debugf( "Entered Model.readLock( %X, %d, %s) ...", hashCode(), timeout, units);
-      return lock.readLock().tryLock( timeout, units);
-    }
-    finally
-    {
-      log.debugf( "Exited Model.readLock( %X, %d, %s).", hashCode(), timeout, units);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#readUnlock()
-   */
-  @Override
-  public void readUnlock()
-  {
-    try
-    {
-      log.debugf( "Entered Model.readUnlock( %X) ...", hashCode());
-      lock.readLock().unlock();
-    }
-    finally
-    {
-      log.debugf( "Exited Model.readUnlock( %X).", hashCode());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#writeLock()
-   */
-  @Override
-  public void writeLock() throws InterruptedException
-  {
-    try
-    {
-      log.debugf( "Entered Model.writeLock( %X) ...", hashCode());
-      
-      lock.writeLock().lockInterruptibly();
-      setThread( Thread.currentThread());
-      GlobalSettings.getInstance().setModel( this);
-    }
-    finally
-    {
-      log.debugf( "Exited Model.writeLock( %X).", hashCode());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#writeLockUninterruptibly()
-   */
-  @Override
-  public void writeLockUninterruptibly()
-  {
-    try
-    {
-      log.debugf( "Entered Model.writeLockUninterruptibly( %X) ...", hashCode());
-      lock.writeLock().lock();
-      setThread( Thread.currentThread());
-      GlobalSettings.getInstance().setModel( this);
-    }
-    finally
-    {
-      log.debugf( "Exited Model.writeLockUninterruptibly( %X).", hashCode());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#writeLock(int, java.util.concurrent.TimeUnit)
-   */
-  @Override
-  public boolean writeLock( int timeout, TimeUnit units) throws InterruptedException
-  {
-    try
-    {
-      log.debugf( "Entered Model.writeLock( %X, %d, %s) ...", hashCode(), timeout, units);
-      
-      if ( lock.writeLock().tryLock( timeout, units))
-      {
-        setThread( Thread.currentThread());
-        GlobalSettings.getInstance().setModel( this);
-      }
-      
-      return false;
-    }
-    finally
-    {
-      log.debugf( "Exited Model.writeLock( %X, %d, %s).", hashCode(), timeout, units);
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#writeUnlock()
-   */
-  @Override
-  public void writeUnlock()
-  {
-    try
-    {
-      log.debugf( "Entered Model.writeUnlock( %X) ...", hashCode());
-      
-      setThread( null);
-      //GlobalSettings.getInstance().setModel( null);
-      lock.writeLock().unlock();
-    }
-    finally
-    {
-      log.debugf( "Exited Model.writeUnlock( %X).", hashCode());
-    }
   }
 
   /* (non-Javadoc)
@@ -366,8 +207,8 @@ public class Model implements IModel
     
     // allocate update object
     Update update = updateObjects.get( index);
+    update.setActive( true);
     update.clear();
-    update.setId( counter++);
     updateStack.add( update);
     
     return update;
@@ -390,7 +231,7 @@ public class Model implements IModel
     if ( index < 0) throw new IllegalStateException( "Update stack is empty.");
     Update update = updateStack.remove( index);
     update.clear();
-    update.setId( 0);
+    update.setActive( false);
     update.processDeferred();
   }
   
@@ -401,42 +242,6 @@ public class Model implements IModel
   {
     if ( updateStack.size() == 0) return null;
     return updateStack.get( updateStack.size() - 1);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#getUpdateID()
-   */
-  public int getUpdateID()
-  {
-    // return the current update id or the id of the last update
-    Update update = getCurrentUpdate();
-    if ( update != null) return update.getId();
-    return counter-1;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#setDispatcher(org.xmodel.net.IDispatcher)
-   */
-  public void setDispatcher( IDispatcher dispatcher)
-  {
-    this.dispatcher = dispatcher;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#getDispatcher()
-   */
-  public IDispatcher getDispatcher()
-  {
-    return dispatcher;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#dispatch(java.lang.Runnable)
-   */
-  public void dispatch( Runnable runnable)
-  {
-    if ( dispatcher == null) throw new IllegalStateException( "Dispatcher is not defined.");
-    dispatcher.execute( runnable);
   }
 
   /* (non-Javadoc)
@@ -455,15 +260,7 @@ public class Model implements IModel
     return syncLock;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.IModel#handleException(java.lang.Exception)
-   */
-  public void handleException( Exception e)
-  {
-    log.exception( e);
-  }
-  
-  private static Log log = Log.getLog( Model.class);
+  //private static Log log = Log.getLog( Model.class);
   
   private static final boolean debug = System.getProperty( "org.xmodel.Model.debug", null) != null;
   private static Map<Model, Thread> debugMap = debug? Collections.synchronizedMap( new Cache()): null;
@@ -487,13 +284,10 @@ public class Model implements IModel
     }
   }
 
-  private ReentrantReadWriteLock lock;
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;
   private List<Update> updateObjects;
   private List<IModelObject> frozen;
-  private int counter;
-  private IDispatcher dispatcher;
   private boolean syncLock;
   private boolean isReverted;
 }

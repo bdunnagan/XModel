@@ -22,7 +22,15 @@ public class MultiSink implements ILogSink
   @Override
   public void configure( IModelObject config)
   {
-    delegates = LogManager.configure( config);
+    ILogSink sink = LogManager.configure( config);
+    if ( sink instanceof MultiSink)
+    {
+      delegates = ((MultiSink)sink).delegates;
+    }
+    else
+    {
+      delegates = new ILogSink[] { sink};
+    }
   }
 
   /* (non-Javadoc)

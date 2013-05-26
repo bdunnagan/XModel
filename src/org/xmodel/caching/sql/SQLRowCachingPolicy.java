@@ -38,7 +38,7 @@ public class SQLRowCachingPolicy extends ConfiguredCachingPolicy
    */
   public void syncImpl( IExternalReference reference) throws CachingException
   {
-    SLog.debugf( this, "sync row: %s", reference.getID());
+    SLog.debugf( this, "sync row: %s", reference.getAttribute( "id"));
 
     SQLTableCachingPolicy parent = getParent( reference);
     parent.setUpdateMonitorEnabled( false);

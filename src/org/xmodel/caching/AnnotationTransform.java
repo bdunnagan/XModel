@@ -151,7 +151,7 @@ public class AnnotationTransform
       {
         if ( child != annotation)
         {
-          IModelObject clone = ModelAlgorithms.cloneTree( child, factory);
+          IModelObject clone = ModelAlgorithms.cloneTree( child, factory, null);
           reference.addChild( transform( clone));
         }
       }

@@ -190,11 +190,12 @@ public class PredicateExpression extends Expression implements IPredicate
   @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
-      context.getModel().revert();
+      model.revert();
       List<IModelObject> oldNodes = expression.evaluateNodes( context);
-      context.getModel().restore();
+      model.restore();
       if ( oldNodes.size() == 0) notifyChange( expression, context, true);
     }
     catch( ExpressionException e)
@@ -276,7 +277,7 @@ public class PredicateExpression extends Expression implements IPredicate
   {
     try
     {
-      IModel model = context.getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       switch( expression.getType( context))
       {
         case NODES:

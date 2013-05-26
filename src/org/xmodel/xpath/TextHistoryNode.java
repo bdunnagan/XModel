@@ -21,6 +21,9 @@ package org.xmodel.xpath;
 
 import java.util.*;
 import org.xmodel.*;
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
+import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
 
 
@@ -40,22 +43,6 @@ public class TextHistoryNode implements IModelObject
     this.oldValue = oldValue;
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    return null;
-  }
-
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getID()
    */
@@ -198,7 +185,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public IModelObject getChild( String type, Object id)
   {
     return null;
   }
@@ -214,7 +201,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<IModelObject> getChildren( String type, Object id)
   {
     return Collections.emptyList();
   }
@@ -254,7 +241,7 @@ public class TextHistoryNode implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public IModelObject getCreateChild( String type, Object id)
   {
     return null;
   }
@@ -499,6 +486,51 @@ public class TextHistoryNode implements IModelObject
     throw new UnsupportedOperationException();
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setCachingPolicy(org.xmodel.external.ICachingPolicy)
+   */
+  @Override
+  public void setCachingPolicy( ICachingPolicy cachingPolicy)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getCachingPolicy()
+   */
+  @Override
+  public ICachingPolicy getCachingPolicy()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setDirty(boolean)
+   */
+  @Override
+  public void setDirty( boolean dirty)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearCache()
+   */
+  @Override
+  public void clearCache() throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */

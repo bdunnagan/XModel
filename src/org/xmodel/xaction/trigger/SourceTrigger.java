@@ -123,7 +123,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyAdd runnable = new NotifyAdd();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getExecutor().execute( runnable);
       }
       finally
       {
@@ -140,7 +140,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyRemove runnable = new NotifyRemove();
         runnable.context = context;
         runnable.nodes = new ArrayList<IModelObject>( nodes);
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getExecutor().execute( runnable);
       }
       finally
       {
@@ -157,7 +157,7 @@ public class SourceTrigger extends AbstractTrigger
         NotifyBooleanChange runnable = new NotifyBooleanChange();
         runnable.context = context;
         runnable.newValue = newValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getExecutor().execute( runnable);
       }
       finally
       {
@@ -175,7 +175,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getExecutor().execute( runnable);
       }
       finally
       {
@@ -193,7 +193,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.context = context;
         runnable.newValue = newValue;
         runnable.oldValue = oldValue;
-        if ( immediate) runnable.run(); else context.getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else context.getExecutor().execute( runnable);
       }
       finally
       {
@@ -212,7 +212,7 @@ public class SourceTrigger extends AbstractTrigger
         runnable.node = object;
         runnable.newValue = (newValue != null)? newValue.toString(): "";
         runnable.oldValue = (oldValue != null)? oldValue.toString(): "";
-        if ( immediate) runnable.run(); else contexts[ 0].getModel().dispatch( runnable);
+        if ( immediate) runnable.run(); else contexts[ 0].getExecutor().execute( runnable);
       }
       finally
       {

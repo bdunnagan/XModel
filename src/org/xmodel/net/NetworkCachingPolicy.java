@@ -15,7 +15,6 @@ import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An ICachingPolicy that accesses data across a network.
@@ -52,8 +51,11 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
    */
   public void close()
   {
-    if ( client != null && client.isConnected())
+    if ( client != null)
+    {
       client.close();
+      client = null;
+    }
   }
   
   /* (non-Javadoc)
@@ -63,6 +65,9 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   public void configure( IContext context, IModelObject annotation) throws CachingException
   {
     super.configure( context, annotation);
+    
+    // save context to access executor
+    this.context = context;
     
     host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", "localhost"));
     port = Xlate.get( annotation, "port", Xlate.childGet( annotation, "port", defaultPort));
@@ -146,9 +151,8 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     {
       if ( client == null || !client.isConnected())
       {
-        StatefulContext context = new StatefulContext();
-        context.getModel();
-        client = new XioClient( context, context);
+        // context shouldn't be passed here
+        client = new XioClient( context);
         client.connect( host, port, retryCount, retryDelays).await();
       }
 
@@ -164,6 +168,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
   private XioClient client;
   private String host;
   private int port;
+  private IContext context;
   private boolean readonly;
   private String query;
   private int timeout;

@@ -1,16 +1,29 @@
 package org.xmodel.net;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.xmodel.GlobalSettings;
+import org.jboss.netty.handler.ssl.SslHandler;
+import org.jboss.netty.util.ThreadNameDeterminer;
+import org.jboss.netty.util.ThreadRenamingRunnable;
+import org.xmodel.concurrent.ModelThreadFactory;
+import org.xmodel.log.SLog;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -18,48 +31,139 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioServer
 {
-  /**
-   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
-   */
-  public XioServer( IContext bindContext, IContext executeContext)
+  public interface IListener
   {
-    this( bindContext, executeContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
+    /**
+     * Called when a client connects.
+     * @param peer The peer instance of the client.
+     */
+    public void notifyConnect( XioPeer peer);
+    
+    /**
+     * Called when a client disconnects.
+     * @param peer The peer instance of the client.
+     */
+    public void notifyDisconnect( XioPeer peer);
+    
+    /**
+     * Called when a client registers.
+     * @param peer The peer instance of the client.
+     * @param name The name.
+     */
+    public void notifyRegister( XioPeer peer, String name);
+    
+    /**
+     * Called when a client un-registers.
+     * @param peer The peer instance of the client.
+     * @param name The name.
+     */
+    public void notifyUnregister( XioPeer peer, String name);
   }
   
   /**
-   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive.
-   * @param bindContext The context for the remote bind protocol.
-   * @param executeContext The context for the remote execution protocol.
-   * @param scheduler The scheduler used for protocol timers.
-   * @param bossExecutor The NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor The NioClientSocketChannelFactory worker executor.
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
+   * @param context The context.
    */
-  public XioServer( IContext bindContext, IContext executeContext, ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( IContext context)
   {
-    handler = new XioChannelHandler( bindContext, executeContext, scheduler);
+    this( null, context, null, null, null);
+  }
+  
+  /**
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
+   * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
+   * @param SSLContext An SSLContext.
+   * @param context The context.
+   */
+  public XioServer( SSLContext sslContext, IContext context)
+  {
+    this( sslContext, context, null, null, null);
+  }
+  
+  /**
+   * Create a server that uses an NioServerSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
+   * for optional arguments. The following table shows defaults used for each optional argument:
+   * <ul>
+   *   <li>context - Required for remote execution from the server</li>
+   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
+   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
+   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
+   * </ul>
+   * @param SSLContext Optional SSLContext.
+   * @param context Optional context.
+   * @param scheduler Optional scheduler used for protocol timers.
+   * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
+   * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
+   */
+  public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  {
+    this.listeners = new ArrayList<IListener>( 1);
     
-    bootstrap = new ServerBootstrap( new NioServerSocketChannelFactory( bossExecutor, workerExecutor));
-    bootstrap.setOption( "tcpNoDelay", true);
-    bootstrap.setOption( "keepAlive", true);
+    this.registry = new MemoryXioPeerRegistry( this);
+    this.registry.addListener( registryListener);
+    
+    ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
+    
+    if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
+    if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
+    
+    NioServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossExecutor, workerExecutor);
+    bootstrap = new ServerBootstrap( channelFactory);
+    bootstrap.setOption( "child.tcpNoDelay", true);
+    bootstrap.setOption( "child.keepAlive", true);
     
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
       {
         ChannelPipeline pipeline = Channels.pipeline();
         
-//        SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
-//        engine.setUseClientMode(false);
-//
-//        pipeline.addLast( "ssl", new SslHandler(engine));
+        if ( sslContext != null)
+        {
+          SSLEngine engine = sslContext.createSSLEngine();
+          engine.setUseClientMode( false);
+          //engine.setNeedClientAuth( true);
+          pipeline.addLast( "ssl", new SslHandler( engine));
+        }
         
-        XioChannelHandler handler = XioServer.this.handler;
-        pipeline.addLast( "xio", sharedHandler? handler: new XioChannelHandler( handler));
+        XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
+        handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        pipeline.addLast( "xio", handler);
+        
+        if ( sslContext == null)
+          handler.addListener( channelConnectionListener);
         
         return pipeline;
       }
     });
+  }
+  
+  /**
+   * Set the execution privileges.
+   * @param privilege The privilege instance.
+   */
+  public void setExecutionPrivileges( ExecutionPrivilege privilege)
+  {
+    this.executionPrivilege = privilege;
+  }
+  
+  /**
+   * Add a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void addListener( IListener listener)
+  {
+    if ( !listeners.contains( listener))
+      listeners.add( listener);
+  }
+  
+  /**
+   * Remove a listener for client event notification.
+   * @param listener The listener.
+   */
+  public void removeListener( IListener listener)
+  {
+    listeners.remove( listener);
   }
   
   /**
@@ -82,38 +186,126 @@ public class XioServer
   {
     if ( serverChannel != null) 
     {
-      serverChannel.close().awaitUninterruptibly();
-      bootstrap.getFactory().releaseExternalResources();
+      serverChannel.close().addListener( new ChannelFutureListener() {
+        public void operationComplete( ChannelFuture future) throws Exception
+        {
+          serverChannel.getFactory().releaseExternalResources();
+        }
+      });
     }
   }
   
   /**
-   * Get and/or create an XioPeer instance to represent the specified server connected channel.
-   * @param channel A connected channel.
-   * @return Returns null or the new XioPeer instance.
+   * @return Returns the peer registry for this server.
    */
-  public static XioPeer getPeer( Channel channel)
+  public IXioPeerRegistry getPeerRegistry()
   {
-    synchronized( channel)
+    return registry;
+  }
+  
+  private IXioPeerRegistryListener registryListener = new IXioPeerRegistryListener() {
+    public void onRegister( XioPeer peer, String name)
     {
-      XioPeer peer = (XioPeer)channel.getAttachment();
-      if ( peer != null) return peer;
-    
-      Channel serverChannel = channel.getParent();
-      if ( serverChannel == null) return null;
-      
-      XioServer server = (XioServer)serverChannel.getAttachment();
-      XioChannelHandler handler = server.handler;
-      
-      peer = new XioPeer( sharedHandler? handler: new XioChannelHandler( handler));
-      channel.setAttachment( peer);
-      return peer;
+      if ( listeners != null)
+      {
+        for( IListener listener: listeners)
+        {
+          try { listener.notifyRegister( peer, name); }
+          catch( Exception e)
+          {
+            SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+          }
+        }
+      }
+    }
+    public void onUnregister( XioPeer peer, String name)
+    {
+      if ( listeners != null)
+      {
+        for( IListener listener: listeners)
+        {
+          try { listener.notifyUnregister( peer, name); }
+          catch( Exception e)
+          {
+            SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+          }
+        }
+      }
+    }
+  };
+  
+  private static synchronized Executor getDefaultBossExecutor()
+  {
+    if ( defaultBossExecutor == null)
+      defaultBossExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-boss"));
+    return defaultBossExecutor;
+  }
+  
+  private static synchronized Executor getDefaultWorkerExecutor()
+  {
+    if ( defaultWorkerExecutor == null)
+      defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work"));
+    return defaultWorkerExecutor;
+  }
+  
+  /**
+   * Notify listeners that a connection was established.
+   * @param peer The peer that connected.
+   */
+  private void notifyChannelConnected( XioPeer peer)
+  {
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyConnect( peer); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
     }
   }
   
-  private final static boolean sharedHandler = false;
+  /**
+   * Notify listeners that a connection has been closed.
+   * @param peer The peer that connected.
+   */
+  private void notifyChannelDisconnected( XioPeer peer)
+  {
+    registry.unregisterAll( peer);
+    
+    if ( listeners != null)
+    {
+      for( IListener listener: listeners)
+      {
+        try { listener.notifyDisconnect( peer); }
+        catch( Exception e)
+        {
+          SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
+        }
+      }
+    }
+  }
+    
+  private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
+    public void notifyConnect( XioPeer peer)
+    {
+      if ( !peer.getChannel().getPipeline().getNames().contains( "ssl"))
+        notifyChannelConnected( peer);
+    }      
+    public void notifyDisconnect( XioPeer peer)
+    {
+      notifyChannelDisconnected( peer);
+    }
+  };
+  
+  private static Executor defaultBossExecutor = null;
+  private static Executor defaultWorkerExecutor = null;
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
-  private XioChannelHandler handler;
+  private IXioPeerRegistry registry;
+  private ExecutionPrivilege executionPrivilege;
+  private List<IListener> listeners;
 }

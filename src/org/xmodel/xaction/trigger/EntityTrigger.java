@@ -73,21 +73,21 @@ public class EntityTrigger extends AbstractTrigger
     entityExpr.removeListener( context, entityListener);
   }
 
-  private void dispatch()
+  private void dispatch( IContext context)
   {
-    context.getModel().getDispatcher().execute( dispatch1);
+    context.getExecutor().execute( dispatch);
   }
   
   final IExpressionListener entityListener = new ExpressionListener() {
     public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
     {
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.addAll( nodes);
       for( IModelObject node: nodes) listener.install( node);
     }
     public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
     {
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.addAll( nodes);
       for( IModelObject node: nodes) listener.uninstall( node);
     }
@@ -97,35 +97,28 @@ public class EntityTrigger extends AbstractTrigger
     public void notifyAddChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyAddChild( parent, child, index);
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.add( parent);
     }
     public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
     {
       super.notifyRemoveChild( parent, child, index);
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.add( parent);
     }
     public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
     {
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.add( object);
     }
     public void notifyClear( IModelObject object, String attrName, Object oldValue)
     {
-      if ( touched.size() == 0) dispatch();
+      if ( touched.size() == 0) dispatch(context);
       touched.add( object);
     }
   };
   
-  private final Runnable dispatch1 = new Runnable() {
-    public void run()
-    {
-      context.getModel().getDispatcher().execute( dispatch2);
-    }
-  };
-  
-  private final Runnable dispatch2 = new Runnable() {
+  private final Runnable dispatch = new Runnable() {
     public void run()
     {
       SLog.debugf( EntityTrigger.this, "Trigger notifyUpdate(): %s", EntityTrigger.this.toString());

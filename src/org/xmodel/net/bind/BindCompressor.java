@@ -161,7 +161,7 @@ public class BindCompressor extends TabularCompressor
     for( IModelObject descendant: new BreadthFirstIterator( element))
     {
       Integer key = getLocalID( descendant);
-      localMap.remove( key);
+      if ( key != null) localMap.remove( key);
     }
   }
   
@@ -174,11 +174,11 @@ public class BindCompressor extends TabularCompressor
     for( IModelObject descendant: new BreadthFirstIterator( element))
     {
       Integer key = remoteKeys.remove( descendant);
-      if ( remoteMap.remove( key) == null)
-        log.warnf( "%X - remote not found (memory leak): %s", hashCode(), element.getType());
+      if ( key == null || remoteMap.remove( key) == null)
+        log.debugf( "%X - remote not found: %s", hashCode(), element.getType());
     }
     
-    log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
+    //log.infof( "%X.freeRemote( %s) - sizes: %d/%d", hashCode(), element.getType(), remoteMap.size(), remoteKeys.size());
   }
   
   /**
@@ -260,9 +260,6 @@ public class BindCompressor extends TabularCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
 
-    // disassociate from model so it can be passed to a new thread
-    element.clearModel();
-    
     return element;
   }
   

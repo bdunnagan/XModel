@@ -3,10 +3,12 @@ package org.xmodel.net.bind;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -21,7 +23,7 @@ public class SyncResponseProtocol
   {
     this.bundle = bundle;
     this.counter = new AtomicInteger( 1);
-    this.queues = new ConcurrentHashMap<Integer, SynchronousQueue<IModelObject>>();
+    this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
   }
   
   /**
@@ -64,7 +66,7 @@ public class SyncResponseProtocol
     
     log.debugf( "SyncResponseProtocol.handle: corr=%d, element=%s", correlation, element.getType());
     
-    SynchronousQueue<IModelObject> queue = queues.remove( correlation);
+    BlockingQueue<IModelObject> queue = queues.get( correlation);
     if ( queue != null) queue.offer( element); 
   }
 
@@ -75,7 +77,7 @@ public class SyncResponseProtocol
   protected int nextCorrelation()
   {
     int correlation = counter.getAndIncrement();
-    queues.put( correlation, new SynchronousQueue<IModelObject>());
+    queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
   
@@ -89,7 +91,7 @@ public class SyncResponseProtocol
   {
     try
     {
-      SynchronousQueue<IModelObject> queue = queues.get( correlation);
+      BlockingQueue<IModelObject> queue = queues.get( correlation);
       return queue.poll( timeout, TimeUnit.MILLISECONDS);
     }
     finally
@@ -102,5 +104,5 @@ public class SyncResponseProtocol
 
   private BindProtocol bundle;
   private AtomicInteger counter;
-  private Map<Integer, SynchronousQueue<IModelObject>> queues;
+  private Map<Integer, BlockingQueue<IModelObject>> queues;
 }

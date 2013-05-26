@@ -21,9 +21,12 @@ package org.xmodel.caching.sql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
+import org.xmodel.log.Log;
 
 /**
  * An implementation of ISQLProvider for the MySQL database.
@@ -48,6 +51,19 @@ public class MySQLProvider implements ISQLProvider
     
     password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
+    
+    database = Xlate.childGet( annotation, "database", (String)null);
+    
+    pool = new ConnectionPool( this, 20);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#getDatabase()
+   */
+  @Override
+  public String getDatabase()
+  {
+    return database;
   }
 
   /* (non-Javadoc)
@@ -57,7 +73,9 @@ public class MySQLProvider implements ISQLProvider
   {
     try
     {
-      return DriverManager.getConnection( url, username, password);
+      Connection connection = DriverManager.getConnection( url, username, password);
+      if ( database != null) connection.setCatalog( database);
+      return connection;
     }
     catch( Exception e)
     {
@@ -71,7 +89,16 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public Connection leaseConnection()
   {
-    return newConnection();
+    long t0 = System.nanoTime();
+    try
+    {
+      return pool.lease();
+    }
+    finally
+    {
+      long t1 = System.nanoTime();
+      log.debugf( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
+    }
   }
 
   /* (non-Javadoc)
@@ -80,12 +107,26 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void releaseConnection( Connection connection)
   {
-    try { connection.close();} catch( Exception e) {}
+    pool.release( connection);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long)
+   */
+  @Override
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException
+  {
+    if ( limit < 0) return connection.prepareStatement( query);
+    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", query, limit));
+    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", query, limit, offset));
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
+  private final static Log log = Log.getLog( MySQLProvider.class);
   
   private String url;
   private String username;
   private String password;
+  private String database;
+  private ConnectionPool pool;
 }

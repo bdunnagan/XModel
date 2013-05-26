@@ -1,10 +1,10 @@
 package org.xmodel.xaction;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.GroupTransaction;
 import org.xmodel.external.IExternalReference;
@@ -99,17 +99,7 @@ public class TransactionAction extends ScriptAction
    */
   public static GroupTransaction getTransaction( IContext context)
   {
-    Object object = context.get( transactionVariable);
-    if ( object != null)
-    { 
-      List<?> list = (List<?>)object;
-      if ( list.size() > 0) 
-      {
-        IModelObject holder = (IModelObject)list.get( 0);
-        return (GroupTransaction)holder.getValue();
-      }
-    }
-    return null;
+    return transactions.get( context);
   }
   
   /**
@@ -117,23 +107,20 @@ public class TransactionAction extends ScriptAction
    * @param context The context.
    * @param transaction The transaction.
    */
-  private static void setTransaction( IContext context, GroupTransaction transaction)
+  private void setTransaction( IContext context, GroupTransaction transaction)
   {
     if ( transaction != null)
     {
-      IModelObject holder = new ModelObject( "transaction");
-      holder.setValue( transaction);
-      context.set( transactionVariable, holder);
+      transactions.put( context, transaction);
     }
     else
     {
-      context.set( transactionVariable, Collections.<IModelObject>emptyList());
+      transactions.remove(  context);
     }
   }
   
-  private final static String transactionVariable = "TransactionAction.GroupTransaction";
-
   private String var;
   private IExpression onExpr;
   private IExpression timeoutExpr;
+  private static Map<IContext, GroupTransaction> transactions = new ConcurrentHashMap<IContext, GroupTransaction>();
 }

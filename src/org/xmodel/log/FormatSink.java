@@ -2,6 +2,9 @@ package org.xmodel.log;
 
 import java.util.Calendar;
 
+import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
+
 /**
  * An implementation of Log.ISink performs basic formatting and delegates logging.
  */
@@ -14,6 +17,16 @@ public final class FormatSink extends MultiSink
   public FormatSink( ILogSink... delegates)
   {
     super( delegates);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.log.MultiSink#configure(org.xmodel.IModelObject)
+   */
+  @Override
+  public void configure( IModelObject config)
+  {
+    super.configure( config);
+    showTrace = Xlate.childGet( config, "trace", Xlate.get( config, "trace", false)); 
   }
 
   /* (non-Javadoc)
@@ -33,8 +46,10 @@ public final class FormatSink extends MultiSink
     String threadName = thread.getName();
     sb.append( "["); sb.append( threadName); sb.append( "] ");
     
-    //sb.append( "("); sb.append( log.getName()); sb.append( ") - ");
-    sb.append( "("); sb.append( getStack( thread)); sb.append( ") - ");
+    if ( showTrace) 
+    {
+      sb.append( "("); sb.append( getStack( thread)); sb.append( ") - ");
+    }
     
     sb.append( message);
     
@@ -72,7 +87,12 @@ public final class FormatSink extends MultiSink
       sb.append( date); sb.append( ' ');
       sb.append( levelName);
       sb.append( " ["); sb.append( threadName); sb.append( "]");
-      sb.append( " ("); sb.append( trace); sb.append( ") - ");
+      
+      if ( showTrace) 
+      {
+        sb.append( " ("); sb.append( trace); sb.append( ") - ");
+      }
+      
       sb.append( message);
       sb.append( '\n');
     }
@@ -158,4 +178,6 @@ public final class FormatSink extends MultiSink
 
     return className + "." + stack[ start].getMethodName();
   }
+  
+  private boolean showTrace;
 }

@@ -161,7 +161,7 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
     // find candidates
     IListenerChain chain = getListenerChain();
     IContext bound = chain.getContext();
-    IModel model = bound.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     model.revert();
     List<IModelObject> candidates = candidatePath.query( bound, null);
     model.restore();
@@ -240,10 +240,11 @@ public class PredicateGuard extends ExpressionListener implements IListenerChain
     IListenerChainLink[] links = chain.getLinks();
     IListenerChainLink previous = links[ getPathIndex()];
 
-    context.getModel().revert();
+    IModel model = GlobalSettings.getInstance().getModel();
+    model.revert();
     List<IModelObject> oldCandidates = candidatePath.query( parent, null);
     
-    context.getModel().restore();
+    model.restore();
     List<IModelObject> newCandidates = candidatePath.query( parent, null);
 
     // ensure that all SubContext instances have correct indices

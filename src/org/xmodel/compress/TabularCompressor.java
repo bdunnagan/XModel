@@ -88,6 +88,14 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   /**
+   * @return Returns the tag table.
+   */
+  public List<String> getTagTable()
+  {
+    return table;
+  }
+  
+  /**
    * Clear the predefined tag table.
    */
   public void clearTagTable()
@@ -116,7 +124,7 @@ public class TabularCompressor extends AbstractCompressor
     header.write( flags);
     
     // write table if necessary
-    if ( !predefined) writeTable( new DataOutputStream( header));    
+    if ( !predefined) writeTable( new DataOutputStream( header));  
     
     // log
     log.debugf( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
@@ -176,7 +184,6 @@ public class TabularCompressor extends AbstractCompressor
     readAttributes( stream, element);
     readChildren( stream, element);
     
-    element.clearModel();
     return element;
   }
   

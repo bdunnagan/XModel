@@ -19,12 +19,8 @@
  */
 package org.xmodel.caching;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
 
 /**
  * An IFileAssociation for comma-separator value text files with the .csv extension. These
@@ -42,67 +38,13 @@ public class CsvAssociation extends AbstractFileAssociation
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.caching.IFileAssociation#apply(org.xmodel.IModelObject, java.lang.String, java.io.InputStream)
+   * @see org.xmodel.caching.AbstractFileAssociation#getCachingPolicy(org.xmodel.external.ICachingPolicy, java.lang.String)
    */
-  public void apply( IModelObject parent, String name, InputStream stream) throws CachingException
+  @Override
+  public ICachingPolicy getCachingPolicy( ICachingPolicy parent, String name) throws CachingException
   {
-    try
-    {
-      BufferedReader reader = new BufferedReader( new InputStreamReader( stream));
-      int lnum = 1;
-      while( reader.ready())
-      {
-        String line = reader.readLine();
-        
-        IModelObject object = new ModelObject( rowElementName, Integer.toString( lnum++));
-        parseFields( line, object);
-        
-        parent.addChild( object);
-      }
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( "Unable read text file: "+name, e);
-    }
+    return new CsvCachingPolicy();
   }
-  
-  /**
-   * Parse the fields in the specified line and add them to the specified parent.
-   * @param line The line.
-   * @param parent The parent.
-   */
-  private void parseFields( String line, IModelObject parent)
-  {
-    boolean quoting = false;
-    IModelObject child = new ModelObject( columnElementName);
-    int index = 0;
-    for( int i=0; i<line.length(); i++)
-    {
-      if ( !quoting && line.charAt( i) == ',')
-      {
-        String field = line.substring( index, i);
-        if ( field.length() > 0 && field.charAt( 0) == '"' && field.charAt( field.length() - 1) == '"') 
-          field = field.substring( 1, field.length() - 1);
-        if ( index < i) child.setValue( field);
-        parent.addChild( child);
-        child = new ModelObject( columnElementName);
-        index = i+1;
-      }
-      else if ( line.charAt( i) == '\"')
-      {
-        quoting = !quoting;
-      }
-    }
     
-    if ( index != line.length() - 1)
-    {
-      child.setValue( line.substring( index));
-      parent.addChild( child);
-    }
-  }
-  
-  private final static String rowElementName = "row";
-  private final static String columnElementName = "column";
-  
   private final static String[] extensions = { ".csv"};
 }

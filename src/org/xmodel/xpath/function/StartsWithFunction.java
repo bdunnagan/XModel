@@ -19,6 +19,8 @@
  */
 package org.xmodel.xpath.function;
 
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -51,7 +53,6 @@ public class StartsWithFunction extends Function
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
     assertArgs( 2, 2);
-    assertType( context, ResultType.STRING);
     
     String string0 = getArgument( 0).evaluateString( context);
     String string1 = getArgument( 1).evaluateString( context);
@@ -69,23 +70,24 @@ public class StartsWithFunction extends Function
     IExpression parent = getParent();
     if ( parent == null) return;
 
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     try
     {
       if ( expression == arg0)
       {
-        context.getModel().revert();
+        model.revert();
         boolean oldResult = oldValue.startsWith( arg1.evaluateString( context));
-        context.getModel().restore();
+        model.restore();
         boolean newResult = newValue.startsWith( arg1.evaluateString( context));
         if ( newResult != oldResult) parent.notifyChange( this, context, newResult);
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         boolean oldResult = arg0.evaluateString( context).startsWith( oldValue);
-        context.getModel().restore();
+        model.restore();
         boolean newResult = arg0.evaluateString( context).startsWith( newValue);
         if ( newResult != oldResult) parent.notifyChange( this, context, newResult);
       }

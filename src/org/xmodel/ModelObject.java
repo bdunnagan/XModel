@@ -25,6 +25,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
+import org.xmodel.external.ITransaction;
 import org.xmodel.log.Log;
 import org.xmodel.memento.AddChildMemento;
 import org.xmodel.memento.IMemento;
@@ -87,43 +91,6 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-    storageClass.setModel( null);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    IModel model = storageClass.getModel();
-    if ( model == null && parent != null) return parent.getModel();
-    return GlobalSettings.getInstance().getModel();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
-   */
-  public void setID( String id)
-  {
-    notifyAccessAttributes( "id", true);
-    setAttribute( "id", id);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
-   */
-  public String getID()
-  {
-    notifyAccessAttributes( "id", false);
-    return Xlate.get( this, "id", "");
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getType()
    */
   public String getType()
@@ -140,13 +107,91 @@ public class ModelObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#isDirty()
+   * @see org.xmodel.external.IExternalReference#setCachingPolicy(org.xmodel.external.ICachingPolicy)
+   */
+  public void setCachingPolicy( ICachingPolicy newCachingPolicy)
+  {
+    storageClass = storageClass.getCachingPolicyStorageClass();
+    storageClass.setCachingPolicy( newCachingPolicy);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.IExternalReference#setDirty(boolean)
+   */
+  public void setDirty( boolean dirty)
+  {
+    storageClass = storageClass.getCachingPolicyStorageClass();
+    
+    // 050109: added this back during xidget tree development
+    boolean wasDirty = storageClass.getDirty();
+    storageClass.setDirty( dirty);
+    if ( wasDirty != dirty) 
+    {
+      notifyDirty( dirty);
+
+      if ( dirty)
+      {
+        // resync immediately if reference has listeners
+        ModelListenerList listeners = getModelListeners();
+        if ( listeners != null && listeners.count() > 0) getChildren();
+      }
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.IExternalReference#isDirty()
    */
   public boolean isDirty()
   {
-    return false;
+    return storageClass.getDirty();
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.reference.IExternalObject#getCachingPolicy()
+   */
+  public ICachingPolicy getCachingPolicy()
+  {
+    return storageClass.getCachingPolicy();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.IExternalReference#sync()
+   */
+  public void sync() throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.IExternalReference#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    ICachingPolicy cachingPolicy = getCachingPolicy();
+    if ( cachingPolicy == null) throw new CachingException( "No caching policy for this entity: "+this);
+    return cachingPolicy.transaction();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.external.IExternalReference#clearCache()
+   */
+  public void clearCache() throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+  
+  /**
+   * Notify listeners that the dirty state of a reference has changed.
+   * @param reference The reference.
+   * @param dirty The new dirty state.
+   */
+  protected void notifyDirty( boolean dirty)
+  {
+    ModelListenerList listeners = getModelListeners();
+    if ( listeners != null) listeners.notifyDirty( this, dirty);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#setAttribute(java.lang.String)
    */
@@ -176,7 +221,7 @@ public class ModelObject implements IModelObject
       return oldValue;
     }
     
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
@@ -237,7 +282,7 @@ public class ModelObject implements IModelObject
     Object oldValue = getAttribute( attrName);
     if ( oldValue == null) return null;
     
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
@@ -327,8 +372,8 @@ public class ModelObject implements IModelObject
     
     if ( index < 0) index += getChildren().size() + 1;
     
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.addChild( this, child, index);
@@ -417,8 +462,8 @@ public class ModelObject implements IModelObject
    */
   public IModelObject removeChild( int index)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       // bail if no children
@@ -464,8 +509,8 @@ public class ModelObject implements IModelObject
    */
   public void removeChild( IModelObject child)
   {
-    IModel model = getModel();
-    IChangeSet transaction = getModel().isFrozen( this);
+    IModel model = GlobalSettings.getInstance().getModel();
+    IChangeSet transaction = model.isFrozen( this);
     if ( transaction != null)
     {
       transaction.removeChild( this, child);
@@ -583,9 +628,9 @@ public class ModelObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.Object)
    */
-  public IModelObject getChild( String type, String name)
+  public IModelObject getChild( String type, Object id)
   {
     notifyAccessChildren( false);
     
@@ -593,7 +638,7 @@ public class ModelObject implements IModelObject
     if ( children != null)
     {
       for( IModelObject child: children)
-        if ( child.isType( type) && child.getID().equals( name))
+        if ( child.isType( type) && child.getAttribute( "id").equals( id))
           return child;
     }
     return null;
@@ -614,24 +659,24 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.Object)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public IModelObject getCreateChild( String type, Object id)
   {
-    IModelObject child = getChild( type, name);
+    IModelObject child = getChild( type, id);
     if ( child == null) 
     {
       child = createObject( type);
-      child.setID( name);
+      child.setAttribute( "id", id);
       addChild( child);
     }
     return child;
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.Object)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<IModelObject> getChildren( String type, Object id)
   {
     notifyAccessChildren( false);
     
@@ -640,7 +685,7 @@ public class ModelObject implements IModelObject
     if ( children != null)
     {
       for( IModelObject child: children)
-        if ( child.isType( type) && child.getID().equals( name))
+        if ( child.isType( type) && child.getAttribute( "id").equals( id))
           result.add( child);
     }
     return result;
@@ -1038,7 +1083,7 @@ public class ModelObject implements IModelObject
    */
   public String toXml()
   {
-    IModel model = getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     boolean syncLock = model.getSyncLock();
     try
     {

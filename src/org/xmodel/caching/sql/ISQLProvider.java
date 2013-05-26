@@ -20,6 +20,8 @@
 package org.xmodel.caching.sql;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 
 /**
@@ -35,6 +37,11 @@ public interface ISQLProvider
    */
   public void configure( IModelObject annotation);
 
+  /**
+   * @return Returns null or the name of the database defined for this provider.
+   */
+  public String getDatabase();
+  
   /**
    * Create a new Connection instance.
    * @return Returns the new Connection instance.
@@ -52,4 +59,14 @@ public interface ISQLProvider
    * @param connection The connection.
    */
   public void releaseConnection( Connection connection);
+  
+  /**
+   * Create a PreparedStatement for the specified query with a vendor-specific implementation of the limit and offset parameters.
+   * @param connection The JDBC connection.
+   * @param query The base SQL query.
+   * @param limit The maximum number of rows to return, or -1.
+   * @param offset The offset of the first row to return, or -1.
+   * @return Returns a PreparedStatement with the specified query plus vendor-specific implementation of the limit and offset parameters.
+   */
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException;
 }

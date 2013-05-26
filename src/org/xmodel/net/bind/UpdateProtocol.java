@@ -90,15 +90,13 @@ public class UpdateProtocol
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] attrNameBytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes();
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( new DataOutputStream( new ChannelBufferOutputStream( buffer2)), newValue);
     
-    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, attrLength);
+    ChannelBuffer buffer1 = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, attrLength);
     buffer1.writeInt( netID);
-    
-    byte[] bytes = attrName.getBytes();
     buffer1.writeByte( bytes.length);
     buffer1.writeBytes( bytes);
     
@@ -117,12 +115,11 @@ public class UpdateProtocol
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] attrNameBytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes();
     
-    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + attrNameBytes.length, Type.changeAttribute, 0);
+    ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, 0);
     buffer.writeInt( netID);
     
-    byte[] bytes = attrName.getBytes();
     buffer.writeByte( bytes.length);
     buffer.writeBytes( bytes);
     
@@ -168,7 +165,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleAddChild: parent=%X, child=%s, index=%d", parentNetID, child.getType(), index);
     
-    protocol.context.getModel().dispatch( new AddChildEvent( parent, child, index));
+    protocol.executor.execute( new AddChildEvent( parent, child, index));
   }
 
   /**
@@ -186,7 +183,7 @@ public class UpdateProtocol
     
     log.debugf( "UpdateProtocol.handleRemoveChild: parent=%X, index=%d", parentNetID, index);
     
-    protocol.context.getModel().dispatch( new RemoveChildEvent( parent, index));
+    protocol.executor.execute( new RemoveChildEvent( parent, index));
   }
 
   /**
@@ -209,7 +206,7 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    protocol.context.getModel().dispatch( new ChangeAttributeEvent( element, attrName, newValue));
+    protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
   }
 
   /**
@@ -230,7 +227,7 @@ public class UpdateProtocol
     IModelObject element = protocol.requestCompressor.findRemote( netID);
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     
-    protocol.context.getModel().dispatch( new ClearAttributeEvent( element, attrName));
+    protocol.executor.execute( new ClearAttributeEvent( element, attrName));
   }
 
   /**
@@ -249,7 +246,7 @@ public class UpdateProtocol
     if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
     if ( !(element instanceof IExternalReference)) throw new XioException( String.format( "Element %X is not a reference", netID));
     
-    protocol.context.getModel().dispatch( new ChangeDirtyEvent( (IExternalReference)element, dirty));
+    protocol.executor.execute( new ChangeDirtyEvent( (IExternalReference)element, dirty));
   }
   
   private final class AddChildEvent implements Runnable

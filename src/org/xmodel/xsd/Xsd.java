@@ -403,7 +403,7 @@ public class Xsd
     IModelObject ancestor = findElementHead( schema, element);
     if ( ancestor == null) return null;
     
-    rootElementSchemaFinder.setVariable( "name", ancestor.getID());
+    rootElementSchemaFinder.setVariable( "name", Xlate.get( ancestor, "id", ""));
     return rootElementSchemaFinder.queryFirst( root);
   }
 

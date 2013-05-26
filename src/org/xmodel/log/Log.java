@@ -1,5 +1,9 @@
 package org.xmodel.log;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 /**
  * Yet another logging facility.
  */
@@ -33,8 +37,23 @@ public final class Log
       case Log.error:     return "Error";
       case Log.severe:    return "Severe";
       case Log.fatal:     return "Fatal";
+      default:            break;
     }
-    return null;
+    
+    if ( level == 0) return "none";
+    if ( (level ^ all) == 0) return "all";
+    if ( (level ^ problems) == 0) return "problems";
+    
+    StringBuilder sb = new StringBuilder();
+    if ( (level & exception) != 0) sb.append( "exception, ");
+    if ( (level & debug) != 0) sb.append( "debug, ");
+    if ( (level & info) != 0) sb.append( "info, ");
+    if ( (level & warn) != 0) sb.append( "warn, ");
+    if ( (level & error) != 0) sb.append( "error, ");
+    if ( (level & severe) != 0) sb.append( "severe, ");
+    if ( (level & fatal) != 0) sb.append( "fatal, ");
+    if ( sb.length() > 0) sb.setLength( sb.length() - 2);
+    return sb.toString();
   }
 
   /**
@@ -74,9 +93,9 @@ public final class Log
    * @param name The name of the log.
    * @return Returns the log with the specified name.
    */
-  public synchronized static Log getLog( String name)
+  public static Log getLog( String name)
   {
-    return map.getCreateOne( name);
+    return map.getLog( name);
   }
   
   /**
@@ -107,52 +126,28 @@ public final class Log
   }
   
   /**
-   * Set the logging level for all logs whose names begin with the specified prefix. Calling
-   * this operation may globally impact performance of users of this logging framework.
-   * @param query The log query.
+   * Set the logging level for all logs whose names match the specified regular expression.
+   * @param regex The regular expression.
    * @param level The new logging level.
    */
-  public synchronized static void setLevel( String query, int level)
+  public static void setLevel( String regex, int level)
   {
-    // make sure log exists
-    map.getCreateOne( query);
-    
-    // iterate over matching logs
-    for( Log log: map.getAll( query))
-      log.setLevel( level);
+    map.configure( Pattern.compile( regex), level);
   }
   
   /**
-   * Set the sink to be used by all logs whose names begin with the specified prefix. Calling
-   * this operation may globally impact performance of users of this logging framework.
-   * @param prefix The prefix.
+   * Set the default implementation of ILogSink used by newly created Log instances.
    * @param sink The sink.
    */
-  public synchronized static void setSink( String prefix, ILogSink sink)
+  public static void setDefaultSink( ILogSink sink)
   {
-    for( Log log: map.getAll( prefix))
-      log.setSink( sink);
-  }
-  
-  /**
-   * Set the default sink.
-   * @param sink The sink.
-   */
-  public synchronized static void setDefaultSink( ILogSink sink)
-  {
-    defaultSink = sink;
+    defaultSink.set( sink);
   }
   
   protected Log()
   {
-    this.mask = problems | info;
-    this.sink = defaultSink;
-  }
-  
-  protected Log( Log log)
-  {
-    this.mask = log.mask;
-    this.sink = log.sink;
+    this.mask = new AtomicInteger( problems | info);
+    this.sink = null;
   }
   
   /**
@@ -161,18 +156,17 @@ public final class Log
    */
   public void setLevel( int level)
   {
-    mask = level;
+    mask.set( level);
   }
   
   /**
-   * Set the log sink.
-   * @param sink The log sink.
+   * @return Returns the log level.
    */
-  public void setSink( ILogSink sink)
+  public int getLevel()
   {
-    this.sink = sink;
+    return mask.get();
   }
-  
+    
   /**
    * Returns true if the specified logging level is enabled.
    * @param level The logging level.
@@ -180,7 +174,7 @@ public final class Log
    */
   public boolean isLevelEnabled( int level)
   {
-    return (mask & level) != 0;
+    return (mask.get() & level) != 0;
   }
   
   /**
@@ -188,7 +182,7 @@ public final class Log
    */
   public boolean verbose()
   {
-    return (mask & Log.verbose) != 0;
+    return (mask.get() & Log.verbose) != 0;
   }
   
   /**
@@ -196,7 +190,7 @@ public final class Log
    */
   public boolean debug()
   {
-    return (mask & Log.debug) != 0;
+    return (mask.get() & Log.debug) != 0;
   }
   
   /**
@@ -204,7 +198,7 @@ public final class Log
    */
   public boolean info()
   {
-    return (mask & Log.info) != 0;
+    return (mask.get() & Log.info) != 0;
   }
   
   /**
@@ -212,7 +206,7 @@ public final class Log
    */
   public boolean warn()
   {
-    return (mask & Log.warn) != 0;
+    return (mask.get() & Log.warn) != 0;
   }
   
   /**
@@ -220,7 +214,7 @@ public final class Log
    */
   public boolean error()
   {
-    return (mask & Log.error) != 0;
+    return (mask.get() & Log.error) != 0;
   }
   
   /**
@@ -228,7 +222,7 @@ public final class Log
    */
   public boolean severe()
   {
-    return (mask & Log.severe) != 0;
+    return (mask.get() & Log.severe) != 0;
   }
   
   /**
@@ -236,7 +230,7 @@ public final class Log
    */
   public boolean fatal()
   {
-    return (mask & Log.fatal) != 0;
+    return (mask.get() & Log.fatal) != 0;
   }
   
   /**
@@ -244,7 +238,7 @@ public final class Log
    */
   public boolean exception()
   {
-    return (mask & Log.exception) != 0;
+    return (mask.get() & Log.exception) != 0;
   }
   
   /**
@@ -456,8 +450,10 @@ public final class Log
    */
   public void exception( Throwable throwable)
   {
-    if ( (mask & exception) == 0) return;
-    if ( sink != null) sink.log( this, exception, throwable);
+    if ( (mask.get() & exception) == 0) return;
+    
+    if ( sink == null) sink = defaultSink.get();
+    sink.log( this, exception, throwable);
     
     Throwable cause = throwable.getCause();
     if ( cause != null && cause != throwable)
@@ -472,8 +468,10 @@ public final class Log
    */
   public void exceptionf( Throwable throwable, String format, Object... params)
   {
-    if ( (mask & exception) == 0) return;
-    if ( sink != null) sink.log( this, exception, String.format( format, params), throwable);
+    if ( (mask.get() & exception) == 0) return;
+    
+    if ( sink == null) sink = defaultSink.get();
+    sink.log( this, exception, String.format( format, params), throwable);
     
     Throwable cause = throwable.getCause();
     if ( cause != null && cause != throwable)
@@ -487,14 +485,15 @@ public final class Log
    */
   public void log( int level, Object message)
   {
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.log( this, level, message);
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, message);
     }
     catch( Exception e)
     {
-      log( error, String.format( "Caught exception in log event for message, '%s'", message), e);
+      log( error, e.toString());
     }
   }
   
@@ -506,14 +505,15 @@ public final class Log
    */
   public void log( int level, Object message, Throwable throwable)
   {
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.log( this, level, message, throwable);
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, message, throwable);
     }
     catch( Exception e)
     {
-      log( error, e.getMessage());
+      log( error, e.toString());
     }
   }
   
@@ -525,20 +525,21 @@ public final class Log
    */
   public void logf( int level, String format, Object... params)
   {
-    if ( (mask & level) == 0) return;
+    if ( (mask.get() & level) == 0) return;
     try
     {
-      if ( sink != null) sink.log( this, level, String.format( format, params));
+      if ( sink == null) sink = defaultSink.get();
+      sink.log( this, level, String.format( format, params));
     }
     catch( Exception e)
     {
-      log( error, String.format( "Caught exception in log event for message with format, '%s'", format), e);
+      log( error, e.toString());
     }
   }
   
-  protected static PackageMap map = new PackageMap();
-  private static ILogSink defaultSink = new FormatSink( new ConsoleSink());
+  protected static LogMap map = LogMap.getInstance();
+  private static AtomicReference<ILogSink> defaultSink = new AtomicReference<ILogSink>( new FormatSink( new ConsoleSink()));
     
-  private volatile int mask;
-  private volatile ILogSink sink;
+  private AtomicInteger mask;
+  private ILogSink sink;
 }

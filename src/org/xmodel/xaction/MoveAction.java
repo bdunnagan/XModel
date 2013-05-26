@@ -85,7 +85,7 @@ public class MoveAction extends GuardedAction
       int start = (index < 0)? target.getNumberOfChildren(): index;
       for( IModelObject source: sources)
       {
-        if ( !unique || target.getChild( source.getType(), source.getID()) == null)
+        if ( !unique || target.getChild( source.getType(), source.getAttribute( "id")) == null)
           target.addChild( source, start);
         start++;
       }

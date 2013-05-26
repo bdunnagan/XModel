@@ -21,6 +21,7 @@ package org.xmodel.xpath.expression;
 
 import java.util.Collections;
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -49,7 +50,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
   @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     List<IModelObject> oldSet = Collections.emptyList();
     try
     {
@@ -86,7 +87,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
   @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     List<IModelObject> oldSet = Collections.emptyList();
     try
     {
@@ -125,7 +126,7 @@ public abstract class ExtentExpressionListener extends ExpressionListener
   {
     if ( expression.getType( context) == ResultType.NODES)
     {
-      IModel model = context.getModel();
+      IModel model = GlobalSettings.getInstance().getModel();
       List<IModelObject> oldSet = Collections.emptyList();
       try
       {

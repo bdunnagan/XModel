@@ -158,4 +158,9 @@ public interface ICachingPolicy
    * @param attrNames An array of attribute names.
    */
   public void setStaticAttributes( String[] attrNames);
+  
+  /**
+   * @return Returns a clone of this caching policy suitable for use from another thread.
+   */
+  public Object clone() throws CloneNotSupportedException;
 }

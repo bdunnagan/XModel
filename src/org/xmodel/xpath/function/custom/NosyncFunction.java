@@ -20,6 +20,7 @@
 package org.xmodel.xpath.function.custom;
 
 import java.util.List;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
@@ -69,7 +70,7 @@ public class NosyncFunction extends Function
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);
@@ -88,7 +89,7 @@ public class NosyncFunction extends Function
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);
@@ -107,7 +108,7 @@ public class NosyncFunction extends Function
   public double evaluateNumber( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);
@@ -126,7 +127,7 @@ public class NosyncFunction extends Function
   public String evaluateString( IContext context) throws ExpressionException
   {
     assertArgs( 1, 1);
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);
@@ -144,7 +145,7 @@ public class NosyncFunction extends Function
   @Override
   public void bind( IContext context)
   {
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);
@@ -162,7 +163,7 @@ public class NosyncFunction extends Function
   @Override
   public void unbind( IContext context)
   {
-    IModel model = context.getModel();
+    IModel model = GlobalSettings.getInstance().getModel();
     try
     {
       model.setSyncLock( true);

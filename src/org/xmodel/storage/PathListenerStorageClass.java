@@ -2,7 +2,6 @@ package org.xmodel.storage;
 
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.PathListenerList;
@@ -88,30 +87,12 @@ public final class PathListenerStorageClass implements IStorageClass
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#setModel(org.xmodel.IModel)
-   */
-  @Override
-  public void setModel( IModel model)
-  {
-    storageClass.setModel( model);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.storage.IStorageClass#getModel(org.xmodel.IModelObject)
-   */
-  @Override
-  public IModel getModel()
-  {
-    return storageClass.getModel();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setDirty(boolean)
    */
   @Override
   public void setDirty( boolean dirty)
   {
-    throw new UnsupportedOperationException();
+    storageClass.setDirty( dirty);
   }
 
   /* (non-Javadoc)
@@ -120,7 +101,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public boolean getDirty()
   {
-    return false;
+    return storageClass.getDirty();
   }
 
   /* (non-Javadoc)
@@ -129,7 +110,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public void setCachingPolicy( ICachingPolicy cachingPolicy)
   {
-    throw new UnsupportedOperationException();
+    storageClass.setCachingPolicy( cachingPolicy);
   }
 
   /* (non-Javadoc)
@@ -138,7 +119,7 @@ public final class PathListenerStorageClass implements IStorageClass
   @Override
   public ICachingPolicy getCachingPolicy()
   {
-    return null;
+    return storageClass.getCachingPolicy();
   }
 
   /* (non-Javadoc)

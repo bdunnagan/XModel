@@ -19,6 +19,8 @@
  */
 package org.xmodel.xpath.function;
 
+import org.xmodel.GlobalSettings;
+import org.xmodel.IModel;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -91,6 +93,7 @@ public class TranslateFunction extends Function
     IExpression parent = getParent();
     if ( parent == null) return;
       
+    IModel model = GlobalSettings.getInstance().getModel();
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
     IExpression arg2 = getArgument( 2);
@@ -99,12 +102,12 @@ public class TranslateFunction extends Function
     {
       if ( expression == arg0)
       {
-        context.getModel().revert();
+        model.revert();
         string1 = arg1.evaluateString( context);
         string2 = arg2.evaluateString( context);
         String oldResult = translate( oldValue, string1, string2);
 
-        context.getModel().restore();
+        model.restore();
         string1 = arg1.evaluateString( context);
         string2 = arg2.evaluateString( context);
         String newResult = translate( newValue, string1, string2);
@@ -113,12 +116,12 @@ public class TranslateFunction extends Function
       }
       else if ( expression == arg1)
       {
-        context.getModel().revert();
+        model.revert();
         string0 = arg0.evaluateString( context);
         string2 = arg2.evaluateString( context);
         String oldResult = translate( string0, oldValue, string2);
 
-        context.getModel().restore();
+        model.restore();
         string0 = arg0.evaluateString( context);
         string2 = arg2.evaluateString( context);
         String newResult = translate( string0, newValue, string2);
@@ -127,12 +130,12 @@ public class TranslateFunction extends Function
       }
       else
       {
-        context.getModel().revert();
+        model.revert();
         string0 = arg0.evaluateString( context);
         string1 = arg1.evaluateString( context);
         String oldResult = translate( string0, string1, oldValue);
 
-        context.getModel().restore();
+        model.restore();
         string0 = arg0.evaluateString( context);
         string1 = arg1.evaluateString( context);
         String newResult = translate( string0, string1, newValue);

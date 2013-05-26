@@ -22,6 +22,10 @@ package org.xmodel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import org.xmodel.external.CachingException;
+import org.xmodel.external.ICachingPolicy;
+import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.SetParentMemento;
 
@@ -48,39 +52,6 @@ public class Reference implements IModelObject
   public Reference( String type, IModelObject referent)
   {
     this.referent = referent;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#clearModel()
-   */
-  @Override
-  public void clearModel()
-  {
-    referent.clearModel();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getModel()
-   */
-  public IModel getModel()
-  {
-    return referent.getModel();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
-   */
-  public String getID()
-  {
-    return referent.getID();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
-   */
-  public void setID( String id)
-  {
-    referent.setID( id);
   }
 
   /* (non-Javadoc)
@@ -254,9 +225,9 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public IModelObject getChild( String type, Object id)
   {
-    return referent.getChild( type, name);
+    return referent.getChild( type, id);
   }
 
   /* (non-Javadoc)
@@ -270,17 +241,17 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public IModelObject getCreateChild( String type, Object id)
   {
-    return referent.getCreateChild( type, name);
+    return referent.getCreateChild( type, id);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<IModelObject> getChildren( String type, Object id)
   {
-    return referent.getChildren( type, name);
+    return referent.getChildren( type, id);
   }
 
   /* (non-Javadoc)
@@ -494,6 +465,51 @@ public class Reference implements IModelObject
     }
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setCachingPolicy(org.xmodel.external.ICachingPolicy)
+   */
+  @Override
+  public void setCachingPolicy( ICachingPolicy cachingPolicy)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getCachingPolicy()
+   */
+  @Override
+  public ICachingPolicy getCachingPolicy()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setDirty(boolean)
+   */
+  @Override
+  public void setDirty( boolean dirty)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#transaction()
+   */
+  @Override
+  public ITransaction transaction()
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#clearCache()
+   */
+  @Override
+  public void clearCache() throws CachingException
+  {
+    throw new UnsupportedOperationException();
+  }
+  
   /**
    * Traverse all references until the ultimate referent is found.
    * @param object The starting point reference.

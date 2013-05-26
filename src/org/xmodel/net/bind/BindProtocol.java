@@ -1,5 +1,6 @@
 package org.xmodel.net.bind;
 
+import java.util.concurrent.Executor;
 import org.xmodel.compress.DefaultSerializer;
 import org.xmodel.compress.ISerializer;
 import org.xmodel.net.HeaderProtocol;
@@ -7,9 +8,10 @@ import org.xmodel.xpath.expression.IContext;
 
 public class BindProtocol
 {
-  public BindProtocol( HeaderProtocol headerProtocol, IContext context)
+  public BindProtocol( HeaderProtocol headerProtocol, IContext context, Executor executor)
   {
     this.context = context;
+    this.executor = executor;
     this.serializer = new DefaultSerializer();
     this.headerProtocol = headerProtocol;
     this.bindRequestProtocol = new BindRequestProtocol( this);
@@ -40,6 +42,7 @@ public class BindProtocol
   }
   
   public IContext context;
+  public Executor executor;
   public ISerializer serializer;
   public HeaderProtocol headerProtocol;
   public BindRequestProtocol bindRequestProtocol;
