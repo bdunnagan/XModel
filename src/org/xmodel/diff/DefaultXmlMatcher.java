@@ -207,7 +207,7 @@ public class DefaultXmlMatcher implements IXmlMatcher
       {
         IModelObject candidate = children.get( i);
         if ( candidate == child) return i;
-        if ( candidate.isType( type) && candidate.getID().equals( name)) return i;
+        if ( candidate.isType( type) && candidate.getAttribute( "id").equals( name)) return i;
       }
     }
     return -1;
@@ -263,9 +263,9 @@ public class DefaultXmlMatcher implements IXmlMatcher
    */
   public boolean isMatch( IModelObject localChild, IModelObject foreignChild)
   {
-    String localID = localChild.getID();
-    String foreignID = foreignChild.getID();
-    if ( localID.length() == 0 && foreignID.length() == 0)
+    Object localID = localChild.getAttribute( "id");
+    Object foreignID = foreignChild.getAttribute( "id");
+    if ( localID == null && foreignID == null)
     {
       return localChild.isType( foreignChild.getType());
     }

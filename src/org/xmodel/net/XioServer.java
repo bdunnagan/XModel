@@ -48,14 +48,16 @@ public class XioServer
     /**
      * Called when a client registers.
      * @param peer The peer instance of the client.
+     * @param name The name.
      */
-    public void notifyRegister( XioPeer peer);
+    public void notifyRegister( XioPeer peer, String name);
     
     /**
      * Called when a client un-registers.
      * @param peer The peer instance of the client.
+     * @param name The name.
      */
-    public void notifyUnregister( XioPeer peer);
+    public void notifyUnregister( XioPeer peer, String name);
   }
   
   /**
@@ -208,7 +210,7 @@ public class XioServer
       {
         for( IListener listener: listeners)
         {
-          try { listener.notifyRegister( peer); }
+          try { listener.notifyRegister( peer, name); }
           catch( Exception e)
           {
             SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
@@ -222,7 +224,7 @@ public class XioServer
       {
         for( IListener listener: listeners)
         {
-          try { listener.notifyUnregister( peer); }
+          try { listener.notifyUnregister( peer, name); }
           catch( Exception e)
           {
             SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());

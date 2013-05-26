@@ -711,7 +711,7 @@ public class XmlIO implements IXmlIO
       
       // set id
       String id = attributes.getValue( "id");
-      if ( id != null) child.setID( id);
+      if ( id != null) child.setAttribute( "id", id);
       
       // record text position
       if ( parent != null && recordTextPosition)

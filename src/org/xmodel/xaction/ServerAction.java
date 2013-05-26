@@ -82,15 +82,12 @@ public class ServerAction extends GuardedAction
                 InetSocketAddress address = peer.getRemoteAddress();
                 nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
                 
-                String name = peer.getRegisteredName();
-                nested.set( "name", (name != null)? name: "");
-                
                 onDisconnect.run( nested);
               }
             });
           }
         }
-        public void notifyRegister( final XioPeer peer)
+        public void notifyRegister( final XioPeer peer, final String name)
         {
           if ( onRegister != null) 
           {
@@ -102,7 +99,6 @@ public class ServerAction extends GuardedAction
                 InetSocketAddress address = peer.getRemoteAddress();
                 nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
                 
-                String name = peer.getRegisteredName();
                 nested.set( "name", (name != null)? name: "");
                 
                 onRegister.run( nested);
@@ -110,7 +106,7 @@ public class ServerAction extends GuardedAction
             });
           }
         }
-        public void notifyUnregister( final XioPeer peer)
+        public void notifyUnregister( final XioPeer peer, final String name)
         {
           if ( onUnregister != null) 
           {
@@ -122,7 +118,6 @@ public class ServerAction extends GuardedAction
                 InetSocketAddress address = peer.getRemoteAddress();
                 nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
                 
-                String name = peer.getRegisteredName();
                 nested.set( "name", (name != null)? name: "");
                 
                 onUnregister.run( nested);

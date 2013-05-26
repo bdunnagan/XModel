@@ -24,9 +24,12 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
    * @see com.nephos6.ip6sonar.webclient.AsyncFuture#cancel()
    */
   @Override
-  public synchronized void cancel()
+  public void cancel()
   {
-    for( AsyncFuture<U> task: tasks)
+    List<AsyncFuture<U>> list = new ArrayList<AsyncFuture<U>>();
+    synchronized( this) { list.addAll( tasks);}
+    
+    for( AsyncFuture<U> task: list)
       task.cancel();
   }
 

@@ -24,13 +24,22 @@ public class UnregisterRequestProtocol
   }
   
   /**
+   * Send an asynchronous request to unregister all names via the specified channel.
+   * @param channel The channel.
+   */
+  public void send( Channel channel) throws IOException, InterruptedException
+  {
+    send( channel, "");
+  }
+  
+  /**
    * Send an asynchronous cancel request via the specified channel.
    * @param channel The channel.
    * @param name The name to associate with this peer.
    */
   public void send( Channel channel, String name) throws IOException, InterruptedException
   {
-    log.debugf( "UnregisterRequestProtocol.send: name=%s", name);
+    log.debugf( "UnregisterRequestProtocol.send: name='%s'", name);
     
     byte[] bytes = name.getBytes();
     
@@ -56,9 +65,16 @@ public class UnregisterRequestProtocol
     buffer.readBytes( bytes);
     
     String name = new String( bytes);
-    log.debugf( "UnregisterRequestProtocol.handle: name=%s", name);
+    log.debugf( "UnregisterRequestProtocol.handle: name='%s'", name);
     
-    bundle.registry.unregister( (XioPeer)channel.getAttachment(), name);
+    if ( name.length() > 0)
+    {
+      bundle.registry.unregister( (XioPeer)channel.getAttachment(), name);
+    }
+    else
+    {
+      bundle.registry.unregisterAll( (XioPeer)channel.getAttachment());
+    }
   }
   
   private final static Log log = Log.getLog( UnregisterRequestProtocol.class);

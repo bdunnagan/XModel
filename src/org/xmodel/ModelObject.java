@@ -91,24 +91,6 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
-   */
-  public void setID( String id)
-  {
-    notifyAccessAttributes( "id", true);
-    setAttribute( "id", id);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
-   */
-  public String getID()
-  {
-    notifyAccessAttributes( "id", false);
-    return Xlate.get( this, "id", "");
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getType()
    */
   public String getType()
@@ -646,9 +628,9 @@ public class ModelObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.Object)
    */
-  public IModelObject getChild( String type, String name)
+  public IModelObject getChild( String type, Object id)
   {
     notifyAccessChildren( false);
     
@@ -656,7 +638,7 @@ public class ModelObject implements IModelObject
     if ( children != null)
     {
       for( IModelObject child: children)
-        if ( child.isType( type) && child.getID().equals( name))
+        if ( child.isType( type) && child.getAttribute( "id").equals( id))
           return child;
     }
     return null;
@@ -677,24 +659,24 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.Object)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public IModelObject getCreateChild( String type, Object id)
   {
-    IModelObject child = getChild( type, name);
+    IModelObject child = getChild( type, id);
     if ( child == null) 
     {
       child = createObject( type);
-      child.setID( name);
+      child.setAttribute( "id", id);
       addChild( child);
     }
     return child;
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
+   * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.Object)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<IModelObject> getChildren( String type, Object id)
   {
     notifyAccessChildren( false);
     
@@ -703,7 +685,7 @@ public class ModelObject implements IModelObject
     if ( children != null)
     {
       for( IModelObject child: children)
-        if ( child.isType( type) && child.getID().equals( name))
+        if ( child.isType( type) && child.getAttribute( "id").equals( id))
           result.add( child);
     }
     return result;

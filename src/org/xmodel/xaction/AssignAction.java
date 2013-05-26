@@ -147,7 +147,7 @@ public class AssignAction extends GuardedAction
             for( IModelObject source: sources)
             {
               IModelObject fk = factory.createObject( null, source.getType());
-              fk.setValue( source.getID());
+              fk.setValue( source.getAttribute( "id"));
               fks.add( fk);
             }
             setVariable( scope, fks);
@@ -158,7 +158,7 @@ public class AssignAction extends GuardedAction
             for( IModelObject source: sources)
             {
               IModelObject fk = factory.createObject( null, source.getType());
-              fk.setID( source.getID());
+              fk.setAttribute( "id", source.getAttribute( "id"));
               fks.add( fk);
             }
             setVariable( scope, fks);

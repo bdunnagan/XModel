@@ -449,7 +449,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * The dirty flag is cleared and the reference is added to the cache.
    * @param reference The reference to be synced.
    */
-  protected void internal_sync( IExternalReference reference) throws CachingException
+  protected synchronized void internal_sync( IExternalReference reference) throws CachingException
   {
     // check sync lock before proceeding
     IModel model = GlobalSettings.getInstance().getModel();

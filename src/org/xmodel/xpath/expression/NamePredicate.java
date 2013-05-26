@@ -62,7 +62,7 @@ public class NamePredicate extends PredicateExpression
    */
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
-    return context.getObject().getID().equals( objectName);
+    return context.getObject().getAttribute( "id").equals( objectName);
   }
 
   /* (non-Javadoc)

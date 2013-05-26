@@ -51,18 +51,6 @@ import org.xmodel.memento.IMemento;
 public interface IModelObject
 {
   /**
-   * Set the id of the object.
-   * @param id The object id.
-   */
-  public void setID( String id);
-  
-  /**
-   * Returns the id of the object.
-   * @return Returns the id of the object.
-   */
-  public String getID();
-  
-  /**
    * Get the type of this object.
    * @return Returns the type of this object.
    */
@@ -245,10 +233,10 @@ public interface IModelObject
    * Get the first child with the specified name and type.  If the child does not 
    * exists then null is returned.
    * @param type The type of the child.
-   * @param name The name of the child.
+   * @param id The id of the child.
    * @return Returns the child with the specified type and name.
    */
-  public IModelObject getChild( String type, String name);
+  public IModelObject getChild( String type, Object id);
   
   /**
    * Get the first child with the specified type if it exists, or
@@ -262,19 +250,19 @@ public interface IModelObject
    * Get the first child with the specified name and type if it exists, or
    * create it and add it to this object if it doesn't exist.
    * @param type The type of the child.
-   * @param name The name of the child.
+   * @param id The id of the child.
    * @return Returns the child with the specified type and name.
    */
-  public IModelObject getCreateChild( String type, String name);
+  public IModelObject getCreateChild( String type, Object id);
   
   /**
    * Get the children with the specified name and type.  If a child does not exist
    * then null is returned.
    * @param type The type of the children.
-   * @param name The name of the children.
+   * @param id The id of the child.
    * @return Returns the children with the specified type and name.
    */
-  public List<IModelObject> getChildren( String type, String name);
+  public List<IModelObject> getChildren( String type, Object id);
   
   /**
    * Get all the children of this node.

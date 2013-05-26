@@ -26,6 +26,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
@@ -124,7 +125,7 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
             if ( tag != null)
             {
               IModelObject fileEntry = getFactory().createObject( newFolder, "file");
-              fileEntry.setID( file.getName());
+              fileEntry.setAttribute( "id", file.getName());
               fileEntry.setAttribute( "path", file.getParent());
               newFolder.addChild( fileEntry);
             }
@@ -161,9 +162,11 @@ public class FolderCachingPolicy extends ConfiguredCachingPolicy
         if ( matcher.matches())
         {
           String tag = matcher.group( 1);
+          reader.close();
           return tag;
         }
       }
+      reader.close();
     }
     catch( IOException e)
     {

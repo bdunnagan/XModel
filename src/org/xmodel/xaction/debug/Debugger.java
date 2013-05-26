@@ -153,7 +153,7 @@ public class Debugger
     for( DebugThread thread: threadList)
     {
       IModelObject threadNode = new ModelObject( "thread");
-      threadNode.setID( String.format( "%X", thread.hashCode()));
+      threadNode.setAttribute( "id", String.format( "%X", thread.hashCode()));
       Xlate.set( threadNode, "name", thread.thread);
       
       IContext frameContext = null;
@@ -162,7 +162,7 @@ public class Debugger
         DebugFrame frame = thread.frames.get( i);
         
         IModelObject frameNode = new ModelObject( "frame");
-        frameNode.setID( String.format( "%X", frame.hashCode()));
+        frameNode.setAttribute( "id", String.format( "%X", frame.hashCode()));
         Xlate.set( frameNode, "name", frame.getName());
         
         if ( frameContext != frame.context)

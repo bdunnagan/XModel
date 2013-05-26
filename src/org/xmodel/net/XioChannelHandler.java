@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -276,8 +277,18 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void exceptionCaught( ChannelHandlerContext context, ExceptionEvent event) throws Exception
   {
-    if ( event.getCause() != null)
-      log.error( event.getCause().toString());
+    Throwable t = event.getCause();
+    if ( t != null)
+    {
+      if ( t instanceof ConnectException)
+      {
+        log.error( t.toString());
+      }
+      else
+      {
+        log.exception( t);
+      }
+    }
   }
   
   /**

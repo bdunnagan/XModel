@@ -83,7 +83,7 @@ public class ModelAlgorithms implements IAxis
       while( ancestor1 != null && ancestor2 != null)
       {
         if ( !ancestor1.getType().equals( ancestor2.getType())) break;
-        if ( !ancestor1.getID().equals( ancestor2.getID())) break;
+        if ( !ancestor1.getAttribute( "id").equals( ancestor2.getAttribute( "id"))) break;
         ancestor1 = ancestor1.getParent();
         ancestor2 = ancestor2.getParent();
         depth++;
@@ -119,11 +119,11 @@ public class ModelAlgorithms implements IAxis
     }
     
     // look for best match
-    String id = object.getID();
-    if ( id.length() > 0)
+    Object id = object.getAttribute( "id");
+    if ( id != null)
     {
       for( IModelObject node: list)
-        if ( node.getID().equals( id))
+        if ( node.getAttribute( "id").equals( id))
           return node;
     }
     else
@@ -180,11 +180,11 @@ public class ModelAlgorithms implements IAxis
     if ( candidates.size() == 1) return candidates.get( 0);
     
     // narrow candidates by id
-    String id = object.getID();
-    if ( id != null && id.length() > 0)
+    Object id = object.getAttribute( "id");
+    if ( id != null)
     {
       for( IModelObject candidate: candidates)
-        if ( candidate.getID().equals( id))
+        if ( candidate.getAttribute( "id").equals( id))
           return candidate;
     }
     
@@ -460,7 +460,9 @@ public class ModelAlgorithms implements IAxis
     for( String attrName: attrNames)
     {
       // prevent unnecessary late id (id created after object is in model)
-      if ( attrName.equals( "id") && source.getID().length() > 0 && destination.getID().equals( source.getID())) continue;
+      Object sourceID = source.getAttribute( "id");
+      Object destinationID = destination.getAttribute( "id");
+      if ( attrName.equals( "id") && sourceID != null && destinationID != null && destinationID.equals( sourceID)) continue;
       Object attrValue = source.getAttribute( attrName);
       destination.setAttribute( attrName, attrValue);
     }

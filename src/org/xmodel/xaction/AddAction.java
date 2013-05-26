@@ -102,24 +102,24 @@ public class AddAction extends GuardedAction
       {
         if ( mode.startsWith( "ref"))
         {
-          if ( !unique || target.getChild( source.getType(), source.getID()) == null)
+          if ( !unique || target.getChild( source.getType(), source.getAttribute( "id")) == null)
             target.addChild( new Reference( source), index);
         }
         else if ( mode.equals( "fk1"))
         {
-          if ( !unique || target.getChild( source.getType(), source.getID()) == null)
+          if ( !unique || target.getChild( source.getType(), source.getAttribute( "id")) == null)
           {
             IModelObject object = factory.createObject( target, source.getType());
-            object.setValue( source.getID());
+            object.setValue( source.getAttribute( "id"));
             target.addChild( object, index);
           }
         }
         else if ( mode.equals( "fk2"))
         {
-          if ( !unique || target.getChild( source.getType(), source.getID()) == null)
+          if ( !unique || target.getChild( source.getType(), source.getAttribute( "id")) == null)
           {
             IModelObject object = factory.createObject( target, source.getType());
-            object.setID( source.getID());
+            object.setAttribute( "id", source.getAttribute( "id"));
             target.addChild( object, index);
           }
         }
@@ -134,7 +134,7 @@ public class AddAction extends GuardedAction
           
           if ( unique)
           {
-            IModelObject matching = target.getChild( source.getType(), source.getID());
+            IModelObject matching = target.getChild( source.getType(), source.getAttribute( "id"));
             if ( matching != null)
             {
             	XmlDiffer differ = new XmlDiffer();
@@ -155,7 +155,7 @@ public class AddAction extends GuardedAction
         }
         else if ( mode.equals( "move"))
         {
-          if ( !unique || target.getChild( source.getType(), source.getID()) == null)
+          if ( !unique || target.getChild( source.getType(), source.getAttribute( "id")) == null)
             target.addChild( source, index);
         }
         

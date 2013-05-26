@@ -55,22 +55,6 @@ public class Reference implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
-   */
-  public String getID()
-  {
-    return referent.getID();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
-   */
-  public void setID( String id)
-  {
-    referent.setID( id);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getType()
    */
   public String getType()
@@ -241,9 +225,9 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getChild( String type, String name)
+  public IModelObject getChild( String type, Object id)
   {
-    return referent.getChild( type, name);
+    return referent.getChild( type, id);
   }
 
   /* (non-Javadoc)
@@ -257,17 +241,17 @@ public class Reference implements IModelObject
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getCreateChild(java.lang.String, java.lang.String)
    */
-  public IModelObject getCreateChild( String type, String name)
+  public IModelObject getCreateChild( String type, Object id)
   {
-    return referent.getCreateChild( type, name);
+    return referent.getCreateChild( type, id);
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getChildren(java.lang.String, java.lang.String)
    */
-  public List<IModelObject> getChildren( String type, String name)
+  public List<IModelObject> getChildren( String type, Object id)
   {
-    return referent.getChildren( type, name);
+    return referent.getChildren( type, id);
   }
 
   /* (non-Javadoc)

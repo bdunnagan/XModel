@@ -32,6 +32,9 @@ public class RegisterRequestProtocol
   {
     log.debugf( "RegisterRequestProtocol.send: name=%s", name);
     
+    if ( name == null || name.length() == 0)
+      throw new IllegalArgumentException( "Name cannot be null or empty.");
+    
     byte[] bytes = name.getBytes();
     
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 1 + bytes.length, Type.register, 0);

@@ -69,7 +69,38 @@ public class XioPeer
   }
   
   /**
-   * Unregister this peer under the specified name with the remote endpoint.
+   * Unregister all the names of this peer with the remote endpoint.
+   * @param name The name previously associated with this peer.
+   */
+  public void unregisterAll() throws IOException, InterruptedException
+  {
+    if ( reconnect && (channel == null || !channel.isConnected()))
+    {
+      AsyncFuture<XioPeer> future = reconnect();
+      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
+      
+      future.addListener( new IListener<XioPeer>() {
+        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
+        {
+          if ( future.isSuccess())
+          {
+            Channel channel = future.getInitiator().getChannel();
+            XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+            handler.getRegisterProtocol().unregisterRequestProtocol.send( channel);
+          }
+        }
+      });
+    }
+    else
+    {
+      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+      XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+      handler.getRegisterProtocol().unregisterRequestProtocol.send( channel);
+    }
+  }
+  
+  /**
+   * Unregister the specified name of this peer with the remote endpoint.
    * @param name The name previously associated with this peer.
    */
   public void unregister( final String name) throws IOException, InterruptedException
@@ -289,22 +320,6 @@ public class XioPeer
   public synchronized InetSocketAddress getRemoteAddress()
   {
     return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
-  }
-  
-  /**
-   * Set the registered peer of this peer.
-   * @param name The name.
-   */
-  public synchronized void setRegisteredName( String name)
-  {
-  }
-  
-  /**
-   * @return Returns null or the registered name of this peer.
-   */
-  public synchronized String getRegisteredName()
-  {
-    return null;
   }
   
   /**

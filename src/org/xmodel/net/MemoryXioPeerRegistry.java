@@ -50,7 +50,6 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
       
       names.add( name);
       
-      peer.setRegisteredName( name);
       array = listeners.toArray( new IXioPeerRegistryListener[ 0]);
     }
     
@@ -77,8 +76,6 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
         Set<String> set = namesByPeer.get( peer);
         set.remove( name);
         if ( set.size() == 0) namesByPeer.remove( peer);
-        
-        peer.setRegisteredName( null);
       }
       
       array = listeners.toArray( new IXioPeerRegistryListener[ 0]);
