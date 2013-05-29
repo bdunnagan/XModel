@@ -130,8 +130,7 @@ public class XioServer
         handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
         pipeline.addLast( "xio", handler);
         
-        if ( sslContext == null)
-          handler.addListener( channelConnectionListener);
+        handler.addListener( channelConnectionListener);
         
         return pipeline;
       }
@@ -291,8 +290,8 @@ public class XioServer
   private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
     public void notifyConnect( XioPeer peer)
     {
-      if ( !peer.getChannel().getPipeline().getNames().contains( "ssl"))
-        notifyChannelConnected( peer);
+      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      if ( sslHandler == null) notifyChannelConnected( peer);
     }      
     public void notifyDisconnect( XioPeer peer)
     {

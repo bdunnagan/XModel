@@ -2,7 +2,9 @@ package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
@@ -18,6 +20,11 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class ServerAction extends GuardedAction
 {
+  public ServerAction()
+  {
+    notifyContexts = new HashMap<XioPeer, StatefulContext>();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -62,9 +69,7 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                StatefulContext nested = getNotifyContext( context, peer);
                 onConnect.run( nested);
               }
             });
@@ -77,12 +82,8 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                onDisconnect.run( nested);
+                StatefulContext nested = getNotifyContext( context, peer);
+                if ( nested != null) onDisconnect.run( nested);
               }
             });
           }
@@ -94,14 +95,12 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                nested.set( "name", (name != null)? name: "");
-                
-                onRegister.run( nested);
+                StatefulContext nested = getNotifyContext( context, peer);
+                if ( nested != null)
+                {
+                  nested.set( "name", (name != null)? name: "");
+                  onRegister.run( nested);
+                }
               }
             });
           }
@@ -113,14 +112,12 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                nested.set( "name", (name != null)? name: "");
-                
-                onUnregister.run( nested);
+                StatefulContext nested = getNotifyContext( context, peer);
+                if ( nested != null) 
+                {
+                  nested.set( "name", (name != null)? name: "");
+                  onUnregister.run( nested);
+                }
               }
             });
           }
@@ -174,6 +171,23 @@ public class ServerAction extends GuardedAction
     }
   }
   
+  private StatefulContext getNotifyContext( IContext context, XioPeer peer)
+  {
+    synchronized( notifyContexts)
+    {
+      StatefulContext nested = notifyContexts.get( peer);
+      if ( nested == null)
+      {
+        nested = new StatefulContext( context);
+        notifyContexts.put( peer, nested);
+        
+        InetSocketAddress address = peer.getRemoteAddress();
+        nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+      }
+      return nested;
+    }
+  }
+  
   private String var;
   
   private IExpression addressExpr;
@@ -183,4 +197,5 @@ public class ServerAction extends GuardedAction
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;
   private IExpression onUnregisterExpr;
+  private Map<XioPeer, StatefulContext> notifyContexts;
 }

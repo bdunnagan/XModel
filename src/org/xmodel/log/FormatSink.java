@@ -48,12 +48,38 @@ public final class FormatSink extends MultiSink
     
     if ( showTrace) 
     {
-      sb.append( "("); sb.append( getStack( thread)); sb.append( ") - ");
+      sb.append( "("); sb.append( getStack( thread)); sb.append( ") ");
+    }
+    else
+    {
+      String suffix = getNameSuffix( log.getName());
+      if ( suffix != null)
+      {
+        sb.append( "("); sb.append( suffix); sb.append( ") ");
+      }
     }
     
     sb.append( message);
     
     super.log( log, level, sb.toString());
+  }
+
+  /**
+   * Returns the last part of the specified name.
+   * @param name The name of the log.
+   * @return Returns the last part of the specified name.
+   */
+  private String getNameSuffix( String name)
+  {
+    char c = name.charAt( 0);
+    if ( c == '"') return name;
+    
+    // don't show script paths (require name)
+    if ( c == '/') return null;
+    
+    // class name
+    int index = name.lastIndexOf( '.');
+    return name.substring( index+1);
   }
 
   /* (non-Javadoc)

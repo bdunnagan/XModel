@@ -87,7 +87,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    */
   public void setClient( XioClient client)
   {
-    this.peer = client;
+    this.client = client;
   }
   
   /**
@@ -147,7 +147,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
-    XioPeer peer = this.peer;
+    XioPeer peer = this.client;
     if ( peer == null) peer = new XioServerPeer( event.getChannel());
     event.getChannel().setAttachment( peer);
     
@@ -174,6 +174,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     {
       try
       {
+        XioPeer peer = (XioPeer)event.getChannel().getAttachment();
         listener.notifyDisconnect( peer);
       }
       catch( Exception e)
@@ -334,6 +335,6 @@ public class XioChannelHandler extends SimpleChannelHandler
   private BindProtocol bindProtocol;
   private IXioPeerRegistry registry;
   private ChannelFuture sslHandshakeFuture;
-  private XioPeer peer;
+  private XioPeer client;
   private List<IListener> listeners;
 }

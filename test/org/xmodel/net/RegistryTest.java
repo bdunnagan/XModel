@@ -1,9 +1,11 @@
 package org.xmodel.net;
 
 import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,12 +44,12 @@ public class RegistryTest
     client.connect( "localhost", 10000).await();
     
     final Semaphore s4 = new Semaphore( 0);
-    server.addPeerRegistryListener( new IXioPeerRegistryListener() {
-      public void onRegister( String name, String host)
+    server.getPeerRegistry().addListener( new IXioPeerRegistryListener() {
+      public void onRegister( XioPeer peer, String name)
       {
         s4.release();
       }
-      public void onUnregister( String name, String host)
+      public void onUnregister( XioPeer peer, String name)
       {
         s4.release();
       }
@@ -55,17 +57,17 @@ public class RegistryTest
     
     client.register( "Test");
     s4.acquire();
-    Iterator<XioPeer> iterator = server.getPeersByName( "Test");
+    Iterator<XioPeer> iterator = server.getPeerRegistry().lookupByName( "Test");
     assertTrue( "Peer lookup failed.", iterator.next() != null);
 
     client.unregister( "Test");
     s4.acquire();
-    iterator = server.getPeersByName( "Test");
+    iterator = server.getPeerRegistry().lookupByName( "Test");
     assertTrue( "Peer not unregistered.", !iterator.hasNext());
     
     client.register( "Test");
     s4.acquire();
-    iterator = server.getPeersByName( "Test");
+    iterator = server.getPeerRegistry().lookupByName( "Test");
     XioPeer peer = iterator.next();
 
     IModelObject script = new XmlIO().read( "<script><return>$name</return></script>");
