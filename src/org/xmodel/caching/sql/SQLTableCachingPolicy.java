@@ -96,12 +96,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowInserts = new HashMap<IModelObject, List<IModelObject>>();
     rowDeletes = new HashMap<IModelObject, List<IModelObject>>();
     rowUpdates = new HashMap<IModelObject, List<String>>();
-    
-    if ( providers == null)
-    {
-      providers = new HashMap<String, Class<? extends ISQLProvider>>();
-      providers.put( "mysql", MySQLProvider.class);
-    }
   }
   
   /* (non-Javadoc)
@@ -1126,7 +1120,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   }
     
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
-  private static Map<String, Class<? extends ISQLProvider>> providers;
 
   protected ISQLProvider provider;
   protected boolean stub;
