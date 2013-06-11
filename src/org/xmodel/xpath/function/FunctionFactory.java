@@ -61,6 +61,7 @@ public class FunctionFactory implements IFunctionFactory
       IDFunction.class,
       HashCodeFunction.class,
       IndexOfFunction.class,
+      IsDefinedFunction.class,
       LastFunction.class,
       LowercaseFunction.class,
       MatchesFunction.class,
