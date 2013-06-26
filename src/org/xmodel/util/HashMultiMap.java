@@ -161,6 +161,23 @@ public class HashMultiMap<K, T> implements MultiMap<K, T>
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.util.MultiMap#removeFirst(java.lang.Object)
+   */
+  @Override
+  public T removeFirst( K key)
+  {
+    List<T> list = map.get( key);
+    if ( list == null) return null;
+    
+    T value = list.remove( 0);
+    if ( list.size() == 0) map.remove( key);
+    
+    size--;
+    
+    return value;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.util.MultiMap#removeAll(null)
    */
   public List<T> removeAll( K key)

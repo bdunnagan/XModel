@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.xml.XmlException;
@@ -49,6 +50,7 @@ public class FileLoadAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false, "assign");
     targetExpr = document.getExpression( "target", true);
     fileExpr = document.getExpression( "file", true);
+    typeExpr = document.getExpression( "type", true);
     if ( fileExpr == null) fileExpr = document.getExpression();
   }
 
@@ -58,8 +60,8 @@ public class FileLoadAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject parent = (targetExpr != null)? targetExpr.queryFirst( context): null;
-    IModelObject element = null;
+    String type = (typeExpr != null)? typeExpr.evaluateString( context): "xml";
+    IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
     
     // initialize variable
     IVariableScope scope = context.getScope();
@@ -82,47 +84,56 @@ public class FileLoadAction extends GuardedAction
       throw new IllegalArgumentException( "Unable to open file: "+this, e); 
     }
     
-    // parse
+    // determine type of content
     int offset = 0; while( offset < length && Character.isWhitespace( content[ offset])) offset++;
-    if ( content[ offset] == '<')
+    if ( type.equals( "xml") && content[ offset] == '<')
     {
       // xml
       try
       {
         if ( xmlIO == null) xmlIO = new XmlIO();
-        element = xmlIO.read( new String( content));
+        IModelObject element = xmlIO.read( new String( content));
+        if ( var != null && scope != null) scope.set( var, element);
+        if ( target != null) target.addChild( element);
       }
       catch( XmlException e)
       {
         throw new IllegalArgumentException( "Unable to parse file: "+this, e); 
       }
     }
-    else
+    else if ( type.equals( "xml"))
     {
       // compressed xml
       try
       {
         if ( compressor == null) compressor = new TabularCompressor();
-        element = compressor.decompress( new ByteArrayInputStream( content));
+        IModelObject element = compressor.decompress( new ByteArrayInputStream( content));
+        if ( var != null && scope != null) scope.set( var, element);
+        if ( target != null) target.addChild( element);
       }
       catch( IOException e)
       {
         throw new IllegalArgumentException( "Unable to decompress xml: "+this, e); 
       }
     }
-    
-    // set variable if defined
-    if ( var != null && scope != null) scope.set( var, element);
-    
-    // add to parent
-    if ( parent != null) parent.addChild( element);
+    else if ( type.equals( "binary"))
+    {
+      if ( target != null) target.setValue( content);
+      if ( var != null && scope != null) 
+      {
+        IModelObject element = new ModelObject( "binary");
+        element.setValue( content);
+        scope.set( var, element);
+      }
+    }
     
     return null;
   }
-
+ 
   private XmlIO xmlIO;
   private ICompressor compressor;
   private String var;
   private IExpression targetExpr;
   private IExpression fileExpr;
+  private IExpression typeExpr;
 }

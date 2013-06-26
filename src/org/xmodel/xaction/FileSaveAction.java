@@ -34,7 +34,8 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * An XAction which saves an element to a file in compressed or uncompressed form.
+ * An XAction which writes information from a node into a file.  The node may be written as raw or compressed
+ * xml, or the binary content of the node may be written to the file directly.
  */
 public class FileSaveAction extends GuardedAction
 {
@@ -45,7 +46,7 @@ public class FileSaveAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    mode = Xlate.get( document.getRoot(), "mode", "printable");
+    mode = Xlate.get( document.getRoot(), "mode", "uncompressed");
     overwrite = Xlate.get( document.getRoot(), "overwrite", false);
     
     sourceExpr = document.getExpression( "source", true);
@@ -80,7 +81,31 @@ public class FileSaveAction extends GuardedAction
       return null;
     }
     
-    if ( mode.equals( "compressed"))
+    if ( mode.equals( "value"))
+    {
+      Object value = element.getValue();
+      if ( value != null)
+      {
+        try
+        {
+          FileOutputStream stream = new FileOutputStream( file);
+          if ( value instanceof byte[])
+          {
+            stream.write( (byte[])value);
+          }
+          else
+          {
+            stream.write( value.toString().getBytes());
+          }
+          stream.close();
+        }
+        catch( IOException e)
+        {
+          throw new XActionException( "Unable to write file: "+file, e);
+        }
+      }
+    }
+    else if ( mode.equals( "compressed"))
     {
       if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
       try
@@ -95,7 +120,7 @@ public class FileSaveAction extends GuardedAction
         throw new XActionException( "Unable to write file: "+file, e);
       }
     }
-    else
+    else if ( mode.equals( "printable") || mode.equals( "uncompressed"))
     {
       if ( xmlIO == null) xmlIO = new XmlIO();
       xmlIO.setOutputStyle( mode.equals( "compact")? Style.compact: Style.printable);

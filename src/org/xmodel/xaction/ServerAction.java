@@ -5,9 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.net.ssl.SSLContext;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.XioServer;
@@ -57,7 +55,7 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    XioServer server = new XioServer( getSSLContext( context), context);
+    final XioServer server = new XioServer( getSSLContext( context), context);
     
     if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
     {
@@ -69,7 +67,7 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, peer);
+                StatefulContext nested = getNotifyContext( context, server, peer);
                 onConnect.run( nested);
               }
             });
@@ -82,7 +80,7 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, peer);
+                StatefulContext nested = getNotifyContext( context, server, peer);
                 if ( nested != null) onDisconnect.run( nested);
               }
             });
@@ -92,10 +90,13 @@ public class ServerAction extends GuardedAction
         {
           if ( onRegister != null) 
           {
+            if ( name.equals( getIdentityRegistration( peer)))
+              return;
+            
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, peer);
+                StatefulContext nested = getNotifyContext( context, server, peer);
                 if ( nested != null)
                 {
                   nested.set( "name", (name != null)? name: "");
@@ -107,12 +108,15 @@ public class ServerAction extends GuardedAction
         }
         public void notifyUnregister( final XioPeer peer, final String name)
         {
+          if ( name.equals( getIdentityRegistration( peer)))
+            return;
+          
           if ( onUnregister != null) 
           {
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, peer);
+                StatefulContext nested = getNotifyContext( context, server, peer);
                 if ( nested != null) 
                 {
                   nested.set( "name", (name != null)? name: "");
@@ -171,7 +175,7 @@ public class ServerAction extends GuardedAction
     }
   }
   
-  private StatefulContext getNotifyContext( IContext context, XioPeer peer)
+  private StatefulContext getNotifyContext( IContext context, XioServer server, XioPeer peer)
   {
     synchronized( notifyContexts)
     {
@@ -183,9 +187,18 @@ public class ServerAction extends GuardedAction
         
         InetSocketAddress address = peer.getRemoteAddress();
         nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+
+        String unique = getIdentityRegistration( peer);
+        server.getPeerRegistry().register( peer, unique);
+        nested.set( "peer", unique);
       }
       return nested;
     }
+  }
+  
+  private String getIdentityRegistration( XioPeer peer)
+  {
+    return String.format( "%X", System.identityHashCode( peer));
   }
   
   private String var;

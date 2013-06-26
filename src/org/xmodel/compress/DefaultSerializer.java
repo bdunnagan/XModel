@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.xmodel.compress.serial.AbstractSerializer;
 import org.xmodel.compress.serial.BooleanSerializer;
+import org.xmodel.compress.serial.ByteArraySerializer;
 import org.xmodel.compress.serial.NumberSerializer;
 import org.xmodel.compress.serial.StringSerializer;
 
@@ -23,6 +24,7 @@ public class DefaultSerializer extends AbstractSerializer
     register( Object.class, new StringSerializer());
     register( Boolean.class, new BooleanSerializer());
     register( Number.class, new NumberSerializer());
+    register( byte[].class, new ByteArraySerializer());
     //register( File.class, new FileSerializer());
   }
   

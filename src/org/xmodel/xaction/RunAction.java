@@ -25,12 +25,12 @@
 package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -83,7 +83,6 @@ public class RunAction extends GuardedAction
     
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
-    
     serverExpr = document.getExpression( "server", true);
     clientsExpr = document.getExpression( "clients", true);
     
@@ -102,20 +101,32 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( hostExpr != null)
-    {
-      runRemote( context, getRemoteAddresses( context));
-    }
-    else if ( serverExpr != null)
+    if ( serverExpr != null)
     {
       if ( clientsExpr != null)
       {
-        runRemote( context, getClients( context));
+        String[] clients = getClients( context);
+        if ( clients.length > 0)
+        {
+          runRemote( context, getClients( context));
+        }
+        else if ( hostExpr != null)
+        {
+          runRemote( context, getRemoteAddresses( context));
+        }
+        else
+        {
+          SLog.warnf( this, "No clients specified.");
+        }
       }
       else
       {
         SLog.warnf( this, "Client expression not specified.");
       }
+    }
+    else if ( hostExpr != null)
+    {
+      runRemote( context, getRemoteAddresses( context));
     }
     else if ( executorExpr != null)
     {
@@ -433,15 +444,19 @@ public class RunAction extends GuardedAction
     if ( clientsExpr.getType( context) == ResultType.NODES)
     {
       List<IModelObject> nodes = clientsExpr.evaluateNodes( context);
-      String[] clients = new String[ nodes.size()];
-      for( int i=0; i<clients.length; i++)
-        clients[ i] = Xlate.get( nodes.get( i), (String)null);
-      return clients;
+      List<String> clients = new ArrayList<String>( nodes.size());
+      for( IModelObject node: nodes)
+      {
+        String client = Xlate.get( node, (String)null);
+        if ( client.length() > 0) clients.add( client);
+      }
+      return clients.toArray( new String[ 0]);
     }
     else
     {
       String name = clientsExpr.evaluateString( context);
-      return new String[] { name};
+      if ( name.length() > 0) return new String[] { name};
+      return new String[ 0];
     }
   }
   

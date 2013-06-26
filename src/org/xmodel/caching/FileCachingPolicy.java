@@ -63,22 +63,6 @@ public class FileCachingPolicy extends ConfiguredCachingPolicy
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#checkout(
-   * org.xmodel.external.IExternalReference)
-   */
-  public void checkout( IExternalReference reference)
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#checkin(
-   * org.xmodel.external.IExternalReference)
-   */
-  public void checkin( IExternalReference reference)
-  {
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
    */
   public void syncImpl( IExternalReference reference) throws CachingException
