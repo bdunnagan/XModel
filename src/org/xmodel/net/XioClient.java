@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -19,6 +17,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
+import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
@@ -154,6 +153,9 @@ public class XioClient extends XioPeer
           engine.setUseClientMode( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
+        
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( XioServer.timer, 30, 30, 30));
+        pipeline.addLast( "heartbeatHandler", new Heartbeat( false));
 
         XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
         handler.setClient( XioClient.this);

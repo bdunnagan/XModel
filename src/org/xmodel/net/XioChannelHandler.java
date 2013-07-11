@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -19,6 +18,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.bind.BindProtocol;
+import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
@@ -46,6 +46,8 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   public enum Type
   {
+    echoRequest,
+    echoResponse,
     executeRequest,
     executeResponse,
     cancelRequest,
@@ -69,6 +71,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     this.listeners = new ArrayList<IListener>( 1);
     
     headerProtocol = new HeaderProtocol();
+    echoProtocol = new EchoProtocol( headerProtocol, executor);
     registerProtocol = new RegisterProtocol( registry, headerProtocol);
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
@@ -107,6 +110,14 @@ public class XioChannelHandler extends SimpleChannelHandler
   public void removeListener( IListener listener)
   {
     listeners.remove( listener);
+  }
+  
+  /**
+   * @return Returns the protocol that implements echo.
+   */
+  public EchoProtocol getEchoProtocol()
+  {
+    return echoProtocol;
   }
   
   /**
@@ -250,6 +261,9 @@ public class XioChannelHandler extends SimpleChannelHandler
     
     switch( type)
     {
+      case echoRequest:     echoProtocol.requestProtocol.handle( channel, buffer); return true;
+      case echoResponse:    echoProtocol.responseProtocol.handle( channel, buffer); return true;
+      
       case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
       case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
       case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
@@ -330,6 +344,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   private ChannelBuffer buffer;
   private HeaderProtocol headerProtocol;
+  private EchoProtocol echoProtocol;
   private RegisterProtocol registerProtocol;
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;

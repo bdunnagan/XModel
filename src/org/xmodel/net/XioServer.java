@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -19,8 +17,11 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
+import org.jboss.netty.handler.timeout.IdleStateHandler;
+import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.jboss.netty.util.ThreadRenamingRunnable;
+import org.jboss.netty.util.Timer;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.log.SLog;
 import org.xmodel.net.execution.ExecutionPrivilege;
@@ -111,7 +112,6 @@ public class XioServer
     NioServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossExecutor, workerExecutor);
     bootstrap = new ServerBootstrap( channelFactory);
     bootstrap.setOption( "child.tcpNoDelay", true);
-    bootstrap.setOption( "child.keepAlive", true);
     
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
@@ -125,6 +125,9 @@ public class XioServer
           //engine.setNeedClientAuth( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
+
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( timer, 40, 10, 40));
+        pipeline.addLast( "heartbeatHandler", new Heartbeat( true));
         
         XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
         handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
@@ -301,6 +304,8 @@ public class XioServer
   
   private static Executor defaultBossExecutor = null;
   private static Executor defaultWorkerExecutor = null;
+
+  public static Timer timer = new HashedWheelTimer();
   
   private ServerBootstrap bootstrap;
   private Channel serverChannel;

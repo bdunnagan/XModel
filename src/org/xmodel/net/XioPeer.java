@@ -38,6 +38,16 @@ public class XioPeer
   }
   
   /**
+   * Send a heartbeat.
+   */
+  public void heartbeat() throws IOException
+  {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getEchoProtocol().requestProtocol.send( channel);
+  }
+  
+  /**
    * Register this peer under the specified name with the remote endpoint.
    * @param name The name to be associated with this peer.
    */
