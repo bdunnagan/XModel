@@ -16,6 +16,7 @@ public abstract class AsyncFuture<T>
   public AsyncFuture( T initiator)
   {
     this.status = Status.pending;
+    this.statusLock = new Object();
     this.initiator = initiator;
     this.listeners = new ArrayList<IListener<T>>();
     this.latch = new Semaphore( 0);
@@ -57,7 +58,7 @@ public abstract class AsyncFuture<T>
    */
   public boolean isSuccess()
   {
-    return status == Status.success;
+    synchronized( statusLock) { return status == Status.success;}
   }
   
   /**
@@ -65,7 +66,7 @@ public abstract class AsyncFuture<T>
    */
   public boolean isFailure()
   {
-    return status == Status.failure;
+    synchronized( statusLock) { return status == Status.failure;}
   }
   
   /**
@@ -89,7 +90,7 @@ public abstract class AsyncFuture<T>
    */
   public boolean isDone()
   {
-    return status != Status.pending;
+    synchronized( statusLock) { return status != Status.pending;}
   }
   
   /**
@@ -101,7 +102,7 @@ public abstract class AsyncFuture<T>
     log.debugf( "addListener( %x, %x)", hashCode(), listener.hashCode());
     
     Status status;
-    synchronized( this)
+    synchronized( statusLock)
     {
       status = this.status;
       if ( status == Status.pending)
@@ -133,7 +134,7 @@ public abstract class AsyncFuture<T>
   public void removeListener( IListener<T> listener)
   {
     log.debugf( "removeListener( %x, %x)", hashCode(), listener.hashCode());
-    synchronized( this)
+    synchronized( statusLock)
     {
       listeners.remove( listener);
     }
@@ -146,17 +147,22 @@ public abstract class AsyncFuture<T>
   {
     log.debugf( "notifySuccess( %x)", hashCode());
     
-    List<IListener<T>> listeners = null;
-    synchronized( this)
+    try
     {
-      status = Status.success;
-      listeners = new ArrayList<IListener<T>>( this.listeners);
+      List<IListener<T>> listeners = null;
+      synchronized( statusLock)
+      {
+        status = Status.success;
+        listeners = new ArrayList<IListener<T>>( this.listeners);
+      }
+      
+      for( int i=0; i<listeners.size(); i++)
+        notifyComplete( listeners.get( i));
     }
-    
-    for( int i=0; i<listeners.size(); i++)
-      notifyComplete( listeners.get( i));
-    
-    latch.release();
+    finally
+    {
+      latch.release();
+    }
   }
   
   /**
@@ -167,18 +173,23 @@ public abstract class AsyncFuture<T>
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), message);
 
-    List<IListener<T>> listeners = null;
-    synchronized( this)
+    try
     {
-      this.status = Status.failure;
-      this.message = message;
-      listeners = new ArrayList<IListener<T>>( this.listeners);
+      List<IListener<T>> listeners = null;
+      synchronized( statusLock)
+      {
+        this.status = Status.failure;
+        this.message = message;
+        listeners = new ArrayList<IListener<T>>( this.listeners);
+      }
+      
+      for( int i=0; i<listeners.size(); i++)
+        notifyComplete( listeners.get( i));
     }
-    
-    for( int i=0; i<listeners.size(); i++)
-      notifyComplete( listeners.get( i));
-    
-    latch.release();
+    finally
+    {
+      latch.release();
+    }
   }
   
   /**
@@ -189,18 +200,23 @@ public abstract class AsyncFuture<T>
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), throwable.toString());
     
-    List<IListener<T>> listeners = null;
-    synchronized( this)
+    try
     {
-      this.status = Status.failure;
-      this.throwable = throwable;
-      listeners = new ArrayList<IListener<T>>( this.listeners);
+      List<IListener<T>> listeners = null;
+      synchronized( statusLock)
+      {
+        this.status = Status.failure;
+        this.throwable = throwable;
+        listeners = new ArrayList<IListener<T>>( this.listeners);
+      }
+      
+      for( int i=0; i<listeners.size(); i++)
+        notifyComplete( listeners.get( i));
     }
-    
-    for( int i=0; i<listeners.size(); i++)
-      notifyComplete( listeners.get( i));
-    
-    latch.release();
+    finally
+    {
+      latch.release();
+    }
   }
   
   /**
@@ -232,7 +248,8 @@ public abstract class AsyncFuture<T>
   
   private T initiator;
   private List<IListener<T>> listeners;
-  private volatile Status status;
+  private Status status;
+  private Object statusLock;
   private String message;
   private Throwable throwable;
   private Semaphore latch;
