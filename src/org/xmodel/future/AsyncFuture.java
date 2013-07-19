@@ -13,6 +13,15 @@ public abstract class AsyncFuture<T>
 {
   public enum Status { pending, success, failure};
   
+  public interface IListener<T>
+  {
+    /**
+     * Called when the operation completes.
+     * @param future The future.
+     */
+    public void notifyComplete( AsyncFuture<T> future) throws Exception;
+  }
+  
   public AsyncFuture( T initiator)
   {
     this.status = Status.pending;
@@ -94,7 +103,8 @@ public abstract class AsyncFuture<T>
   }
   
   /**
-   * Add a listener to this future.
+   * Add a listener to this future. The listener will be notified immediately
+   * if the future has already completed.
    * @param listener The listener.
    */
   public void addListener( IListener<T> listener)
@@ -143,7 +153,7 @@ public abstract class AsyncFuture<T>
   /**
    * Notify listeners that the future is complete.
    */
-  public void notifySuccess() throws Exception
+  public void notifySuccess()
   {
     log.debugf( "notifySuccess( %x)", hashCode());
     
@@ -169,7 +179,7 @@ public abstract class AsyncFuture<T>
    * Notify listeners that the future is complete.
    * @param message The message.
    */
-  public void notifyFailure( String message) throws Exception
+  public void notifyFailure( String message)
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), message);
 
@@ -196,7 +206,7 @@ public abstract class AsyncFuture<T>
    * Notify listeners that the future is complete.
    * @param throwable The cause.
    */
-  public void notifyFailure( Throwable throwable) throws Exception
+  public void notifyFailure( Throwable throwable)
   {
     log.debugf( "notifyFailure( %x, %s)", hashCode(), throwable.toString());
     
@@ -223,7 +233,7 @@ public abstract class AsyncFuture<T>
    * Notify a listener that the future is complete.
    * @param listener The listener.
    */
-  public void notifyComplete( IListener<T> listener) throws Exception
+  public void notifyComplete( IListener<T> listener)
   {
     try
     {
@@ -235,15 +245,6 @@ public abstract class AsyncFuture<T>
     }
   }
 
-  public interface IListener<T>
-  {
-    /**
-     * Called when the operation completes.
-     * @param future The future.
-     */
-    public void notifyComplete( AsyncFuture<T> future) throws Exception;
-  }
-  
   private final static Log log = Log.getLog( AsyncFuture.class);
   
   private T initiator;

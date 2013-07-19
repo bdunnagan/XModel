@@ -14,7 +14,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   public UnionFuture( T initiator)
   {
     super( initiator);
-    tasks = new ArrayList<AsyncFuture<U>>();
+    this.tasks = new ArrayList<AsyncFuture<U>>();
   }
 
   /* (non-Javadoc)
@@ -38,6 +38,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   public void addTask( final AsyncFuture<U> future)
   {
     log.debugf( "addTask( %x, %x)", hashCode(), future.hashCode());
+    
     synchronized( this) { tasks.add( future);}
     future.addListener( this);
   }
@@ -83,18 +84,14 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   {
     if ( future.isFailure()) failed = true;
 
+    List<AsyncFuture<U>> tasksNow;
+    synchronized( this) { tasksNow = new ArrayList<AsyncFuture<U>>( tasks);}
+    
     boolean complete = true;
-    List<AsyncFuture<U>> tasksNow = new ArrayList<AsyncFuture<U>>();
-    synchronized( this) 
-    {
-      tasksNow.addAll( tasks);
-    }
     
     for( AsyncFuture<U> task: tasksNow)
-    {
       if ( !task.isDone())
         complete = false;
-    }
     
     if ( complete)
     {
@@ -110,7 +107,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   }
   
   private final static Log log = Log.getLog( UnionFuture.class);
-  
+
   private List<AsyncFuture<U>> tasks;
   private volatile boolean failed;
 }
