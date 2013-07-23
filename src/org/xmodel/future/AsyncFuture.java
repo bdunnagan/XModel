@@ -175,6 +175,19 @@ public abstract class AsyncFuture<T>
       }
     }
   }
+  
+  /**
+   * Remove all listeners from the future.
+   */
+  @SuppressWarnings("unchecked")
+  public void removeListeners()
+  {
+    log.debugf( "removeListeners( %x)", hashCode());
+    synchronized( this)
+    {
+      listeners = new IListener[ 0];
+    }
+  }
 
   /**
    * Notify listeners that the future is complete.
