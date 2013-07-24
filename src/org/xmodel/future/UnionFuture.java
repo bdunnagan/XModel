@@ -89,10 +89,14 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
     synchronized( tasksLock) { tasksNow = new ArrayList<AsyncFuture<U>>( tasks);}
     
     boolean complete = true;
-    
     for( AsyncFuture<U> task: tasksNow)
+    {
       if ( !task.isDone())
+      {
         complete = false;
+        break;
+      }
+    }
     
     if ( complete)
     {

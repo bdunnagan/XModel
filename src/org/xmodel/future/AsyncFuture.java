@@ -204,8 +204,11 @@ public abstract class AsyncFuture<T>
       this.listeners = null;
     }
     
-    for( int i=0; i<listeners.length; i++)
-      notifyComplete( listeners[ i]);
+    if ( listeners != null)
+    {
+      for( int i=0; i<listeners.length; i++)
+        notifyComplete( listeners[ i]);
+    }
   }
   
   /**
@@ -226,8 +229,11 @@ public abstract class AsyncFuture<T>
       this.listeners = null;
     }
     
-    for( int i=0; i<listeners.length; i++)
-      notifyComplete( listeners[ i]);
+    if ( listeners != null)
+    {
+      for( int i=0; i<listeners.length; i++)
+        notifyComplete( listeners[ i]);
+    }
   }
   
   /**
