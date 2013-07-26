@@ -4,10 +4,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.xmodel.log.Log;
 
-/**
- * An interface for an asynchronous load operation performed by IWebClient.
- */
-public abstract class AsyncFuture<T>
+public class AsyncFuture<T>
 {
   public interface IListener<T>
   {
@@ -18,12 +15,11 @@ public abstract class AsyncFuture<T>
     public void notifyComplete( AsyncFuture<T> future) throws Exception;
   }
   
-  @SuppressWarnings("unchecked")
   public AsyncFuture( T initiator)
   {
     this.result = this; // space-saving trick to indicate pending state
     this.initiator = initiator;
-    this.listeners = new IListener[ 1];
+    this.listeners = null;
   }
   
   /**
@@ -58,7 +54,10 @@ public abstract class AsyncFuture<T>
   /**
    * Cancel this operation.
    */
-  public abstract void cancel();
+  public void cancel()
+  {
+    notifyFailure( "cancelled");
+  }
   
   /**
    * @return Returns true if the operation was successful.
