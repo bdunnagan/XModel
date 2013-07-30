@@ -23,6 +23,15 @@ public class AsyncFuture<T>
   }
   
   /**
+   * Set the initiator.
+   * @param initiator The initiator.
+   */
+  public void setInitiator( T initiator)
+  {
+    this.initiator = initiator;
+  }
+  
+  /**
    * @return Returns the initiator of the operation.
    */
   public T getInitiator()
