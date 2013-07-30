@@ -71,6 +71,8 @@ public final class FormatSink extends MultiSink
    */
   private String getNameSuffix( String name)
   {
+    if ( name == null || name.length() == 0) return "";
+    
     char c = name.charAt( 0);
     if ( c == '"') return name;
     

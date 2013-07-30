@@ -1,23 +1,21 @@
 package org.xmodel.future;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
 
 /**
  * An implementation of AsyncFuture<T> that provides notification after its subordinate
- * AsyncFuture<T> tasks completes.  This future is always successful.
+ * AsyncFuture<T> tasks complete.
  */
 public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
 {
   public UnionFuture( T initiator)
   {
     super( initiator);
-    tasks = Collections.synchronizedList( new ArrayList<AsyncFuture<U>>());
-    completed = new AtomicInteger( 0);
+    this.tasks = new ArrayList<AsyncFuture<U>>();
+    this.tasksLock = new Object();
   }
 
   /* (non-Javadoc)
@@ -27,7 +25,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   public void cancel()
   {
     List<AsyncFuture<U>> list = new ArrayList<AsyncFuture<U>>();
-    synchronized( this) { list.addAll( tasks);}
+    synchronized( tasksLock) { list.addAll( tasks);}
     
     for( AsyncFuture<U> task: list)
       task.cancel();
@@ -41,7 +39,8 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   public void addTask( final AsyncFuture<U> future)
   {
     log.debugf( "addTask( %x, %x)", hashCode(), future.hashCode());
-    tasks.add( future);
+    
+    synchronized( tasksLock) { tasks.add( future);}
     future.addListener( this);
   }
   
@@ -52,8 +51,11 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
    */
   public void addTasks( final AsyncFuture<U> ... futures)
   {
-    for( AsyncFuture<U> future: futures)
-      tasks.add( future);
+    synchronized( tasksLock)
+    {
+      for( AsyncFuture<U> future: futures)
+        tasks.add( future);
+    }
     
     for( AsyncFuture<U> future: futures)
       future.addListener( this);
@@ -64,7 +66,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
    */
   public void removeTasks()
   {
-    tasks.clear();
+    synchronized( tasksLock) { tasks.clear();}
   }
   
   /**
@@ -72,7 +74,7 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
    */
   public List<AsyncFuture<U>> getTasks()
   {
-    return tasks;
+    synchronized( tasksLock) { return tasks;}
   }
 
   /* (non-Javadoc)
@@ -82,8 +84,21 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   public void notifyComplete( AsyncFuture<U> future) throws Exception
   {
     if ( future.isFailure()) failed = true;
+
+    List<AsyncFuture<U>> tasksNow;
+    synchronized( tasksLock) { tasksNow = new ArrayList<AsyncFuture<U>>( tasks);}
     
-    if ( completed.incrementAndGet() == tasks.size())
+    boolean complete = true;
+    for( AsyncFuture<U> task: tasksNow)
+    {
+      if ( !task.isDone())
+      {
+        complete = false;
+        break;
+      }
+    }
+    
+    if ( complete)
     {
       if ( failed)
       {
@@ -97,8 +112,8 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   }
   
   private final static Log log = Log.getLog( UnionFuture.class);
-  
+
   private List<AsyncFuture<U>> tasks;
-  private AtomicInteger completed;
+  private Object tasksLock;
   private volatile boolean failed;
 }

@@ -502,7 +502,7 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
@@ -522,7 +522,7 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
@@ -542,7 +542,7 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
