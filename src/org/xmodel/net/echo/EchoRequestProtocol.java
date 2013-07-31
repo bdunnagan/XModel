@@ -4,6 +4,7 @@ import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.log.Log;
+import org.xmodel.net.Heartbeat;
 import org.xmodel.net.XioChannelHandler.Type;
 
 public class EchoRequestProtocol
@@ -36,6 +37,9 @@ public class EchoRequestProtocol
    */
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
+    Heartbeat heartbeat = channel.getPipeline().get( Heartbeat.class);
+    if ( heartbeat != null) heartbeat.setEnabled( true);
+    
     RequestRunnable runnable = new RequestRunnable( channel);
     bundle.executor.execute( runnable);
   }
