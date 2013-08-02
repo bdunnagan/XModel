@@ -2,10 +2,11 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.SucceededChannelFuture;
+import org.jboss.netty.util.HashedWheelTimer;
+import org.jboss.netty.util.Timer;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.future.AsyncFuture;
@@ -369,6 +370,8 @@ public class XioPeer
     return channel.hashCode();
   }
 
+  public static Timer timer = new HashedWheelTimer();
+  
   private Channel channel;
   private boolean reconnect;
 }
