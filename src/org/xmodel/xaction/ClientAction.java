@@ -91,7 +91,7 @@ public class ClientAction extends GuardedAction
     ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
     ModelThreadFactory workThreadFactory = new ModelThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
     
-    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), threads, XioPeer.timer, ThreadNameDeterminer.CURRENT);
+    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, XioPeer.timer, ThreadNameDeterminer.CURRENT);
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
     ClientSocketChannelFactory channelFactory = new NioClientSocketChannelFactory( bossPool, workerPool);
     

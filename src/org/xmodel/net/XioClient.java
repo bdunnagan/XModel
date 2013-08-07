@@ -134,8 +134,8 @@ public class XioClient extends XioPeer
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
         
-        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 30, 20, 30));
-        pipeline.addLast( "heartbeatHandler", new Heartbeat( false));
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 60, 20, 60));
+        pipeline.addLast( "heartbeatHandler", new Heartbeat());
 
         XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
         handler.setClient( XioClient.this);

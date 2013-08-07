@@ -534,7 +534,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           otherKeys.add( columnName.toLowerCase());
       }
     }
-    catch( SQLException e)
+    catch( Exception e)
     {
       throw new CachingException( "Unable to get column names for table: "+tableName, e);
     }

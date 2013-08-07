@@ -103,7 +103,7 @@ public class ExecutionRequestProtocol
     ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)
     {
-      ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task), timeout, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task, correlation), timeout, TimeUnit.MILLISECONDS);
       task.setTimer( timer);
     }
     
@@ -296,9 +296,10 @@ public class ExecutionRequestProtocol
   
   private class ResponseTimeout implements Runnable
   {
-    public ResponseTimeout( ResponseTask task)
+    public ResponseTimeout( ResponseTask task, int correlation)
     {
       this.task = task;
+      this.correlation = correlation;
     }
     
     /* (non-Javadoc)
@@ -307,13 +308,11 @@ public class ExecutionRequestProtocol
     @Override
     public void run()
     {
-      log.debug( "Response timeout.");
-      task.setError( "timeout");
-      
-      bundle.executor.execute( task);
+      bundle.responseProtocol.handleTimeout( task, correlation);
     }
 
     private ResponseTask task;
+    private int correlation;
   }
   
   private final static Log log = Log.getLog( ExecutionRequestProtocol.class);

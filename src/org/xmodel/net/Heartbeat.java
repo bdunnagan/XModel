@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
 import org.jboss.netty.handler.timeout.IdleStateEvent;
@@ -10,27 +11,14 @@ import org.xmodel.log.Log;
 public class Heartbeat extends IdleStateAwareChannelHandler
 {
   /**
-   * Create a heartbeat handler.
-   * @param enabled True if hearbeat monitoring is initially enabled.
+   * @return Returns the Heartbeat instance for the specified channel.
+   * @param channel The channel.
    */
-  public Heartbeat( boolean enabled)
+  public static Heartbeat getInstance( Channel channel)
   {
-    this.enabled = enabled;
+    return channel.getPipeline().get( Heartbeat.class);
   }
-  
-  /**
-   * When enabled, this handler will close the connection when a heartbeat is not received.
-   * @param enable True if heartbeat monitoring should be enabled.
-   */
-  public void setEnabled( boolean enabled)
-  {
-    if ( this.enabled != enabled)
-    {
-      log.debugf( "Heartbeat monitoring is %s", enabled? "enabled": "disabled");
-      this.enabled = enabled;
-    }
-  }
-  
+    
   /* (non-Javadoc)
    * @see org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler#channelIdle(org.jboss.netty.channel.ChannelHandlerContext, 
    * org.jboss.netty.handler.timeout.IdleStateEvent)
@@ -45,22 +33,16 @@ public class Heartbeat extends IdleStateAwareChannelHandler
       {
         case READER_IDLE:
         {
-          if ( enabled) 
-          {
-            log.warnf( "Closing peer, %s", peer.getRemoteAddress());
-            peer.close(); 
-          }
+          log.warnf( "Closing peer, %s", peer.getRemoteAddress());
+          peer.close(); 
           break;
         }
           
         case ALL_IDLE:
         case WRITER_IDLE:
         {
-          if ( enabled)
-          {
-            log.debugf( "Sending idle heartbeat to %s", peer.getRemoteAddress());
-            peer.heartbeat();
-          }
+          log.debugf( "Sending idle heartbeat to %s", peer.getRemoteAddress());
+          peer.heartbeat();
           break;
         }
       }
@@ -72,5 +54,4 @@ public class Heartbeat extends IdleStateAwareChannelHandler
   private final static Log log = Log.getLog( Heartbeat.class);
   
   private XioPeer peer;
-  private boolean enabled;
 }

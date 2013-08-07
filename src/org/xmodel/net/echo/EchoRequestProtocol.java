@@ -3,8 +3,6 @@ package org.xmodel.net.echo;
 import java.io.IOException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
-import org.xmodel.log.Log;
-import org.xmodel.net.Heartbeat;
 import org.xmodel.net.XioChannelHandler.Type;
 
 public class EchoRequestProtocol
@@ -37,41 +35,9 @@ public class EchoRequestProtocol
    */
   public void handle( Channel channel, ChannelBuffer buffer) throws IOException
   {
-    Heartbeat heartbeat = channel.getPipeline().get( Heartbeat.class);
-    if ( heartbeat != null) heartbeat.setEnabled( true);
-    
-    RequestRunnable runnable = new RequestRunnable( channel);
-    bundle.executor.execute( runnable);
+    bundle.responseProtocol.send( channel);
   }
   
-  private class RequestRunnable implements Runnable
-  {
-    public RequestRunnable( Channel channel)
-    {
-      this.channel = channel;
-    }
-    
-    /* (non-Javadoc)
-     * @see java.lang.Runnable#run()
-     */
-    @Override
-    public void run()
-    {
-      try
-      {
-        bundle.responseProtocol.send( channel);
-      }
-      catch( IOException e)
-      {
-        log.warnf( "Unable to send echo response to %s", channel.getRemoteAddress());
-      }
-    }
-
-    private Channel channel;
-  }
-  
-  private final static Log log = Log.getLog( EchoRequestProtocol.class);
-
   private EchoProtocol bundle;
   protected long sentOn;
 }

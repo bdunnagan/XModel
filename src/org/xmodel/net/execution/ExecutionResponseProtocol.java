@@ -11,7 +11,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -152,6 +151,19 @@ public class ExecutionResponseProtocol
   }
   
   /**
+   * Handle an execution request timeout.
+   * @param task The response task for the request.
+   * @param correlation The request correlation number.
+   */
+  protected void handleTimeout( ResponseTask task, int correlation)
+  {
+    log.debug( "Response timeout.");
+    task.setError( "timeout");
+    tasks.remove( correlation);
+    bundle.executor.execute( task);
+  }
+  
+  /**
    * Allocates the next correlation without associating a queue or task.
    * @return Returns the allocated correlation number.
    */
@@ -200,6 +212,7 @@ public class ExecutionResponseProtocol
   protected Object[] waitForResponse( int correlation, IContext context, int timeout) throws InterruptedException, XioExecutionException
   {
     log.debugf( "waitForResponse: corr=%d", correlation);
+    
     try
     {
       BlockingQueue<IModelObject> queue = queues.get( correlation);

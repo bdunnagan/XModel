@@ -46,8 +46,6 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   public enum Type
   {
-    echoRequest,
-    echoResponse,
     executeRequest,
     executeResponse,
     cancelRequest,
@@ -62,7 +60,9 @@ public class XioChannelHandler extends SimpleChannelHandler
     clearAttribute,
     changeDirty,
     register,
-    unregister
+    unregister,
+    echoRequest,
+    echoResponse
   }
   
   public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler, IXioPeerRegistry registry)

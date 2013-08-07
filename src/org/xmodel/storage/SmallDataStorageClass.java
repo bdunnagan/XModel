@@ -18,15 +18,15 @@ public final class SmallDataStorageClass implements IStorageClass
     // Statistics.increment( this);
   }
   
-  /* (non-Javadoc)
-   * @see java.lang.Object#finalize()
-   */
-  @Override
-  protected void finalize() throws Throwable
-  {
-    super.finalize();
-    // Statistics.decrement( this);
-  }
+//  /* (non-Javadoc)
+//   * @see java.lang.Object#finalize()
+//   */
+//  @Override
+//  protected void finalize() throws Throwable
+//  {
+//    super.finalize();
+//    Statistics.decrement( this);
+//  }
 
   /**
    * Copy the data from the specified storage class.

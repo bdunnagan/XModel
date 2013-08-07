@@ -65,12 +65,12 @@ public class ServerAction extends GuardedAction
     String address = addressExpr.evaluateString( context);
     int port = (int)portExpr.evaluateNumber( context);
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
-    if ( threads == 0) threads = 16;
+    if ( threads == 0) threads = 2;
     
     ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-server-boss-%s:%d", address, port));
     ModelThreadFactory workThreadFactory = new ModelThreadFactory( String.format( "xio-server-work-%s:%d", address, port));
     
-    NioServerBossPool bossPool = new NioServerBossPool( Executors.newCachedThreadPool( bossThreadFactory), threads, ThreadNameDeterminer.CURRENT);
+    NioServerBossPool bossPool = new NioServerBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, ThreadNameDeterminer.CURRENT);
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
     ServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossPool, workerPool);
     
