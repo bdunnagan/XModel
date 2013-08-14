@@ -1,7 +1,6 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -225,10 +224,14 @@ public class ExecutionRequestProtocol
     // to hold the variables that will be passed to the script.
     //
     IContext context = new StatefulContext( bundle.context);
-    
-    // store remote address in context
-    InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    context.set( "remoteHost", address.getAddress().getHostAddress());
+
+//    // store local IP in context
+//    String localIP = ((InetSocketAddress)channel.getLocalAddress()).getAddress().getHostAddress();
+//    context.set( "localIP", localIP);
+//    
+//    // store remote IP in context
+//    String remoteIP = ((InetSocketAddress)channel.getRemoteAddress()).getAddress().getHostAddress();
+//    context.set( "remoteIP", remoteIP);
     
     try
     {

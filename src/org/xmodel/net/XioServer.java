@@ -117,7 +117,7 @@ public class XioServer
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
 
-        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 60, 20, 60));
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 300, 0, 300));
         pipeline.addLast( "heartbeatHandler", new Heartbeat());
         
         XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
