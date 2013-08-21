@@ -332,7 +332,8 @@ public class XPath extends AbstractPath implements IAxis
   
   public static void main( String[] args) throws Exception
   {
-    IExpression expr = XPath.createExpression( "120");
+    // & does not parse here
+    IExpression expr = XPath.createExpression( "if ($nv4 > 0) then avg( $report/agents/*[ region = $region]/v4/@avg) then -1");
     double x = expr.evaluateNumber();
     System.out.println( x == 120);
   }
