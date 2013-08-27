@@ -176,7 +176,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     fetchMetadata();
     
     // configure static attributes of SQLRowCachingPolicy
-    rowCachingPolicy.addStaticAttribute( primaryKey);
+    if ( primaryKey != null) rowCachingPolicy.addStaticAttribute( primaryKey);
     for( String otherKey: otherKeys) rowCachingPolicy.addStaticAttribute( otherKey);
     
     // sync
@@ -523,6 +523,13 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         
         primaryKey = name.toLowerCase();
+      }
+      
+      // views do not provide meta-data that reflects the backing tables
+      if ( primaryKey == null) 
+      {
+        if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
+        primaryKey = attributes.get( 0);
       }
       
       otherKeys = new ArrayList<String>( 1);
