@@ -202,8 +202,11 @@ public class ServerAction extends GuardedAction
         nested = new StatefulContext( context);
         notifyContexts.put( peer, nested);
         
-        InetSocketAddress address = peer.getRemoteAddress();
-        nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+        InetSocketAddress localAddress = peer.getLocalAddress();
+        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        
+        InetSocketAddress remoteAddress = peer.getRemoteAddress();
+        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
 
         String unique = getIdentityRegistration( peer);
         server.getPeerRegistry().register( peer, unique);

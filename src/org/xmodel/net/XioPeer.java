@@ -328,6 +328,14 @@ public class XioPeer
   /**
    * @return Returns the remote address to which this client is, or was last, connected.
    */
+  public synchronized InetSocketAddress getLocalAddress()
+  {
+    return (channel != null)? (InetSocketAddress)channel.getLocalAddress(): null;
+  }
+  
+  /**
+   * @return Returns the remote address to which this client is, or was last, connected.
+   */
   public synchronized InetSocketAddress getRemoteAddress()
   {
     return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;

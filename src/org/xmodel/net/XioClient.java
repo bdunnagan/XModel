@@ -360,9 +360,9 @@ public class XioClient extends XioPeer
     wrapperFuture.addTask( future);
     return wrapperFuture;
   }
-  
+
   /**
-   * @return Returns the address of the last connection attempt.
+   * @return Returns null or the address of the last connection attempt.
    */
   public InetSocketAddress getRemoteAddress()
   {

@@ -1,5 +1,6 @@
 package org.xmodel.xaction;
 
+import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -19,6 +20,7 @@ import org.xmodel.net.XioClient;
 import org.xmodel.net.XioPeer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * Create a client connection and register the client with the server with a peer name.
@@ -63,15 +65,23 @@ public class ClientAction extends GuardedAction
     final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
     final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    XioClient.IListener listener = new XioClient.IListener() {
+    class ClientListener implements XioClient.IListener
+    {
       public void notifyConnect( final XioClient client)
       {
+        nested = new StatefulContext( context);
+        
+        InetSocketAddress localAddress = client.getLocalAddress();
+        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        
+        InetSocketAddress remoteAddress = client.getRemoteAddress();
+        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+        
         context.getExecutor().execute( new Runnable() {
           public void run()
           {
-            if ( onConnect != null) onConnect.run( context);
-            
-            register( context, client, clientName, onError);
+            if ( onConnect != null) onConnect.run( nested);
+            register( nested, client, clientName, onError);
           }
         });
       }
@@ -80,12 +90,14 @@ public class ClientAction extends GuardedAction
         context.getExecutor().execute( new Runnable() {
           public void run()
           {
-            if ( onDisconnect != null) onDisconnect.run( context);
+            if ( onDisconnect != null) onDisconnect.run( nested);
           }
         });
       }
+      
+      private StatefulContext nested;
     };
-
+    
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
     
     ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
@@ -97,7 +109,7 @@ public class ClientAction extends GuardedAction
     
     XioClient client = new XioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
     client.setAutoReconnect( true);
-    client.addListener( listener);
+    client.addListener( new ClientListener());
     
     AsyncFuture<XioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
     future.addListener( new IListener<XioClient>() {
