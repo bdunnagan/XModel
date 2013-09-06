@@ -178,6 +178,16 @@ public class XioClient extends XioPeer
   }
   
   /**
+   * Bind to the specified local address.
+   * @param address The local address.
+   * @param port The local port.
+   */
+  public void bind( String address, int port)
+  {
+    bootstrap.setOption( "localAddress", new InetSocketAddress( address, port));
+  }
+  
+  /**
    * Connect this client to the specified server. A client may only be connected to one server.
    * @param address The address of the server.
    * @param port The port of the server.

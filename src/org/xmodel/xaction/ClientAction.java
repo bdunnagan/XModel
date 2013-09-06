@@ -42,6 +42,8 @@ public class ClientAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), true); 
     serverHostExpr = document.getExpression( "serverHost", true);
     serverPortExpr = document.getExpression( "serverPort", true);
+    localAddressExpr = document.getExpression( "localAddress", true);
+    localPortExpr = document.getExpression( "localPort", true);
     clientNameExpr = document.getExpression( "subscribe", true);
     threadsExpr = document.getExpression( "threads", true);
     
@@ -60,6 +62,8 @@ public class ClientAction extends GuardedAction
   {
     final String serverHost = serverHostExpr.evaluateString( context);
     final int serverPort = (int)serverPortExpr.evaluateNumber( context);
+    final String localAddress = (localAddressExpr != null)? localAddressExpr.evaluateString( context): "";
+    final int localPort = (localPortExpr != null)? (int)localPortExpr.evaluateNumber( context): 0;
     final String clientName = clientNameExpr.evaluateString( context);
     final IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
     final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
@@ -110,6 +114,8 @@ public class ClientAction extends GuardedAction
     XioClient client = new XioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
     client.setAutoReconnect( true);
     client.addListener( new ClientListener());
+    
+    if ( localAddress.length() > 0) client.bind( localAddress, localPort);
     
     AsyncFuture<XioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
     future.addListener( new IListener<XioClient>() {
@@ -194,6 +200,8 @@ public class ClientAction extends GuardedAction
   private String var;
   private IExpression serverHostExpr;
   private IExpression serverPortExpr;
+  private IExpression localAddressExpr;
+  private IExpression localPortExpr;
   private IExpression clientNameExpr;
   private IExpression threadsExpr;
   private IExpression sslExpr;
