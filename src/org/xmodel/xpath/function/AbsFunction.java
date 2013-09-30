@@ -27,16 +27,16 @@ import org.xmodel.xpath.expression.IExpression;
 
 
 /**
- * An implementation of the X-Path avg() function.
+ * An implementation of the X-Path abs() function.
  */
-public class AvgFunction extends Function
+public class AbsFunction extends Function
 {
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getName()
    */
   public String getName()
   {
-    return "avg";
+    return "abs";
   }
 
   /* (non-Javadoc)
@@ -53,32 +53,7 @@ public class AvgFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    double sum = 0;
-    int count = 0;
-    
-    for( IExpression argument: getArguments())
-    {
-      switch( argument.getType( context))
-      {
-        case NODES:
-          List<IModelObject> nodes = argument.evaluateNodes( context);
-          for( IModelObject node: nodes) sum += NumberFunction.numericValue( node);
-          count += nodes.size();
-          break;
-          
-        case NUMBER:
-        case STRING:
-        case BOOLEAN:
-          sum += argument.evaluateNumber( context);
-          count++;
-          break;
-          
-        case UNDEFINED:
-          break;
-      }
-    }
-    
-    return (count > 0)? (sum / count): 0;
+    return Math.abs( getArgument( 0).evaluateNumber( context));
   }
 
   /* (non-Javadoc)
