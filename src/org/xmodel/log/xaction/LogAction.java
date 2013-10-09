@@ -38,7 +38,7 @@ public class LogAction extends GuardedAction
   {
     IModelObject node = root;
     IModelObject parent = node.getParent();
-    while( parent != null && node.getAttribute( "xaction") != null)
+    while( parent != null && !(node.isType( "script") && node.getAttribute( "name") != null))
     {
       node = parent;
       parent = node.getParent();
@@ -47,7 +47,7 @@ public class LogAction extends GuardedAction
     String scriptName = Xlate.get( node, "name", (String)null);
     if ( scriptName != null)
     {
-      return "\""+scriptName+"\"";
+      return scriptName;
     }
     else
     {

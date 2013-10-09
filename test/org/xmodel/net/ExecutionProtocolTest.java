@@ -167,6 +167,9 @@ public class ExecutionProtocolTest
       public void onError( IContext context, String error)
       {
       }
+      public void onCancel( IContext context)
+      {
+      }
       
       public boolean success;
       public boolean complete;
@@ -199,6 +202,9 @@ public class ExecutionProtocolTest
       public void onError( IContext context, String message)
       {
         error.append( message);
+      }
+      public void onCancel( IContext context)
+      {
       }
     };
     
@@ -249,6 +255,9 @@ public class ExecutionProtocolTest
       expect++;
     }
     public void onError( IContext context, String error)
+    {
+    }
+    public void onCancel( IContext context)
     {
     }
     
