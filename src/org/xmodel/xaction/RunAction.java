@@ -233,6 +233,9 @@ public class RunAction extends GuardedAction
           if ( !client.isConnected())  // TODO: no longer necessary - remove and test
             client.connect( address, connectionRetries).await( timeout);
 
+          if ( !client.isConnected())
+            throw new RuntimeException( "Timeout");
+            
           try
           {
             Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
