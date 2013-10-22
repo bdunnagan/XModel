@@ -391,8 +391,9 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeText( DataOutputStream stream, String text) throws CompressorException, IOException
   {
-    writeValue( stream, text.length());
-    stream.write( text.getBytes());
+    byte[] bytes = text.getBytes();
+    writeValue( stream, bytes.length);
+    stream.write( bytes);
   }
   
   /**
