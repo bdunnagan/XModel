@@ -315,27 +315,37 @@ public class XioChannelHandler extends SimpleChannelHandler
   public final static String toString( String indent, ChannelBuffer buffer)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( indent);
+    sb.append( "\n");
     
-    int bpl = 64;
-    for( int i=0, n=0; i<buffer.readableBytes(); i++)
+    for( int i=0, n=0; i<buffer.readableBytes(); i++, n++)
     {
-      if ( n == 0)
-      {
-        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
-          sb.append( String.format( "|%-8d", i + j));
-        sb.append( String.format( "\n%s", indent));
-      }
-      
-      if ( (n % 4) == 0) sb.append( "|");
+      if ( i > 0 && (n % 64) == 0) sb.append( "\n");
       sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
-        
-      if ( ++n == bpl) 
-      { 
-        sb.append( String.format( "\n%s", indent));
-        n=0;
-      }
     }
+    
+    sb.append( "\n");
+    
+//    sb.append( indent);
+//    
+//    int bpl = 64;
+//    for( int i=0, n=0; i<buffer.readableBytes(); i++)
+//    {
+//      if ( n == 0)
+//      {
+//        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
+//          sb.append( String.format( "|%-8d", i + j));
+//        sb.append( String.format( "\n%s", indent));
+//      }
+//      
+//      if ( (n % 4) == 0) sb.append( "|");
+//      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
+//        
+//      if ( ++n == bpl) 
+//      { 
+//        sb.append( String.format( "\n%s", indent));
+//        n=0;
+//      }
+//    }
     
     return sb.toString();
   }

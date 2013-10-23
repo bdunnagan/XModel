@@ -90,7 +90,7 @@ public class UpdateProtocol
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] bytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes( "UTF-8");
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( new DataOutputStream( new ChannelBufferOutputStream( buffer2)), newValue);
@@ -115,7 +115,7 @@ public class UpdateProtocol
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] bytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes( "UTF-8");
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, 0);
     buffer.writeInt( netID);

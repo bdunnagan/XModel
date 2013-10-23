@@ -28,15 +28,14 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-
 import org.xml.sax.Attributes;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
@@ -362,10 +361,10 @@ public class XmlIO implements IXmlIO
       String attribute = root.getType();
       if ( attribute.charAt( 0) != '!')
       {
-        stream.write( at); stream.write( attribute.getBytes()); stream.write( equals);
+        stream.write( at); stream.write( attribute.getBytes( charset)); stream.write( equals);
         Object value = root.getValue();
         stream.write( doubleQuote);
-        if ( value != null) stream.write( value.toString().getBytes()); 
+        if ( value != null) stream.write( value.toString().getBytes( charset)); 
         stream.write( doubleQuote);
       }
       return;
@@ -382,14 +381,14 @@ public class XmlIO implements IXmlIO
     {
       if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
       stream.write( less);
-      stream.write( root.getType().getBytes());
+      stream.write( root.getType().getBytes( charset));
       String value = Xlate.get( root, "");
       if ( value.length() > 0)
       {
         stream.write( space);
         writeAttributes( root, stream);
         stream.write( space);
-        stream.write( value.getBytes());
+        stream.write( value.getBytes( charset));
       }
       else
       {
@@ -413,7 +412,7 @@ public class XmlIO implements IXmlIO
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
         String type = root.getType();
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         writeAttributes( root, stream);
         stream.write( greater);
   
@@ -423,7 +422,7 @@ public class XmlIO implements IXmlIO
         // end tag
         stream.write( less);
         stream.write( slash);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         stream.write( greater);
         if ( style != Style.compact) writeCR( stream);
         return;
@@ -451,7 +450,7 @@ public class XmlIO implements IXmlIO
         // start tag
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         writeAttributes( root, stream);
         stream.write( greater);
         
@@ -463,7 +462,7 @@ public class XmlIO implements IXmlIO
         if ( whitespace == Whitespace.trim)
         {
           // text
-          if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes());
+          if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes( charset));
           if ( style != Style.compact) writeCR( stream);
           
           // children
@@ -480,11 +479,11 @@ public class XmlIO implements IXmlIO
             {
               int index = Xlate.get( child, "!position", -1);
               if ( index < 0) index = value.length();
-              stream.write( value.substring( start, index).getBytes());
+              stream.write( value.substring( start, index).getBytes( charset));
               start = index;
               output( indent+2, child, stream);
             }
-            stream.write( value.substring( start).getBytes());
+            stream.write( value.substring( start).getBytes( charset));
           }
           else
           {
@@ -498,7 +497,7 @@ public class XmlIO implements IXmlIO
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
         stream.write( slash);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         stream.write( greater);
         if ( style != Style.compact) writeCR( stream);
       }
@@ -508,19 +507,19 @@ public class XmlIO implements IXmlIO
         // start tag
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         writeAttributes( root, stream);
         stream.write( greater);
         
         // value
-        if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes());
+        if ( value != null) stream.write( encodeEntityReferences( value, "\"\'").getBytes( charset));
         
         // end tag
         if ( value != null && value.length() > 0 && value.charAt( value.length() - 1) == '\n' && style != Style.compact) 
           for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
         stream.write( slash);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         stream.write( greater);
         if ( style != Style.compact) writeCR( stream);
       }
@@ -529,7 +528,7 @@ public class XmlIO implements IXmlIO
         // start tag
         if ( style != Style.compact) for ( int i=0; i<indent; i++) stream.write( space);
         stream.write( less);
-        stream.write( type.getBytes());
+        stream.write( type.getBytes( charset));
         writeAttributes( root, stream);
         stream.write( slash);
         stream.write( greater);
@@ -561,14 +560,14 @@ public class XmlIO implements IXmlIO
       else if ( c == '\"')
       {
         stream.write( singleQuote);
-        stream.write( encodeEntityReferences( value, "\'\"").getBytes());
+        stream.write( encodeEntityReferences( value, "\'\"").getBytes( charset));
         stream.write( singleQuote);
         return;
       }
     }
     
     stream.write( doubleQuote);
-    stream.write( encodeEntityReferences( value, "\'\"").getBytes());
+    stream.write( encodeEntityReferences( value, "\'\"").getBytes( charset));
     stream.write( doubleQuote);
   }    
   
@@ -605,7 +604,7 @@ public class XmlIO implements IXmlIO
       if ( attrValue != null)
       {
         stream.write( space);
-        stream.write( attrName.getBytes());
+        stream.write( attrName.getBytes( charset));
         stream.write( equals);
         writeInQuotes( stream, attrValue);
       }
@@ -810,20 +809,21 @@ public class XmlIO implements IXmlIO
     }
   };
   
-  public final static byte[] header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes();
-  public final static byte[] space = " ".getBytes();
-  public final static byte[] less = "<".getBytes();
-  public final static byte[] greater = ">".getBytes();
-  public final static byte[] singleQuote = "\'".getBytes();
-  public final static byte[] doubleQuote = "\"".getBytes();
-  public final static byte[] equals = "=".getBytes();
-  public final static byte[] slash = "/".getBytes();
-  public final static byte[] text= "text()".getBytes();
-  public final static byte[] at = "@".getBytes();
-  public final static byte[] qmark = "?".getBytes();
-  public final static byte[] cr = "\n".getBytes();
-  public final static byte[] ellipsis = "...".getBytes();
-  public final static byte[] unexpanded = "(unexpanded reference)".getBytes();
+  private final static Charset charset = Charset.forName( "UTF-8");
+  public final static byte[] header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes( charset);
+  public final static byte[] space = " ".getBytes( charset);
+  public final static byte[] less = "<".getBytes( charset);
+  public final static byte[] greater = ">".getBytes( charset);
+  public final static byte[] singleQuote = "\'".getBytes( charset);
+  public final static byte[] doubleQuote = "\"".getBytes( charset);
+  public final static byte[] equals = "=".getBytes( charset);
+  public final static byte[] slash = "/".getBytes( charset);
+  public final static byte[] text= "text()".getBytes( charset);
+  public final static byte[] at = "@".getBytes( charset);
+  public final static byte[] qmark = "?".getBytes( charset);
+  public final static byte[] cr = "\n".getBytes( charset);
+  public final static byte[] ellipsis = "...".getBytes( charset);
+  public final static byte[] unexpanded = "(unexpanded reference)".getBytes( charset);
   
   private SAXParser parser;
   private Whitespace whitespace;

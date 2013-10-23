@@ -37,7 +37,7 @@ public class FileSerializer extends AbstractSerializer
   {
     File file = (File)object;
     
-    byte[] bytes = file.getPath().getBytes();
+    byte[] bytes = file.getPath().getBytes( "UTF-8");
     int total = bytes.length;
     output.writeInt( bytes.length);
     output.write( bytes);
@@ -45,7 +45,7 @@ public class FileSerializer extends AbstractSerializer
     if ( !file.isAbsolute())
     {
       String basePath = System.getProperty( "user.dir");
-      bytes = basePath.getBytes();
+      bytes = basePath.getBytes( "UTF-8");
       total += bytes.length;
       output.writeInt( bytes.length);
       output.write( bytes);

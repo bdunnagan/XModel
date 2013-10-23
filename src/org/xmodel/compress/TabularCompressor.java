@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -71,6 +72,7 @@ public class TabularCompressor extends AbstractCompressor
     this.table = new ArrayList<String>();
     this.predefined = false;
     this.progressive = progressive;
+    this.charset = Charset.forName( "UTF-8");
   }
   
   /**
@@ -381,7 +383,7 @@ public class TabularCompressor extends AbstractCompressor
     int length = readValue( stream);
     byte[] bytes = new byte[ length];
     stream.readFully( bytes);
-    return new String( bytes);
+    return new String( bytes, charset);
   }
   
   /**
@@ -391,7 +393,7 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeText( DataOutputStream stream, String text) throws CompressorException, IOException
   {
-    byte[] bytes = text.getBytes();
+    byte[] bytes = text.getBytes( charset);
     writeValue( stream, bytes.length);
     stream.write( bytes);
   }
@@ -408,16 +410,27 @@ public class TabularCompressor extends AbstractCompressor
     int count = readValue( stream);
     
     // read entries
-    StringBuilder builder = new StringBuilder();
+    StringBuilder sb = new StringBuilder();
     for( int i=0; i<count; i++)
     {
-      builder.setLength( 0);
-      for( byte b = stream.readByte(); b != 0; b = stream.readByte())
+      sb.setLength( 0);
+      
+      int b = stream.read();
+      while( b != 0)
       {
-        builder.append( (char)b);
+        if ( (b & 0x80) == 0)
+        {
+          sb.append( (char)b);
+        }
+        else
+        {
+          throw new CompressorException( "UTF-8 encoded xml is not yet supported");
+        }
+        
+        b = stream.read();
       }
       
-      table.add( builder.toString());
+      table.add( sb.toString());
     }
   }
   
@@ -434,8 +447,8 @@ public class TabularCompressor extends AbstractCompressor
     // write entries
     for( String key: keys) 
     {
-      stream.write( key.getBytes());
-      stream.writeByte( 0);
+      stream.write( key.getBytes( charset));
+      stream.write( 0);
     }
   }
   
@@ -478,7 +491,7 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
-  
+ 
   /**
    * Dump the string table.
    * @return Returns a string containing the table dump.
@@ -494,10 +507,11 @@ public class TabularCompressor extends AbstractCompressor
   }
     
   private final static Log log = Log.getLog( TabularCompressor.class);
-  
+ 
   private List<String> table;
   private Map<String, Integer> map;
   private int hashIndex;
   private boolean predefined;
   private boolean progressive;
+  private Charset charset;
 }

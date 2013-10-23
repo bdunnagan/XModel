@@ -1,12 +1,12 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
@@ -68,7 +68,7 @@ public class BindRequestProtocol
     int correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
     
-    byte[] queryBytes = query.getBytes();
+    byte[] queryBytes = toBytes( query);
     
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 5 + queryBytes.length, Type.bindRequest, 0);
     buffer.writeInt( correlation);
@@ -103,6 +103,24 @@ public class BindRequestProtocol
     }
     
     return true;
+  }
+  
+  /**
+   * Convert strint to UTF-8.
+   * @param string The string.
+   * @return Returns the byte array.
+   */
+  private static byte[] toBytes( String string)
+  {
+    try
+    {
+      return string.getBytes( "UTF-8");
+    }
+    catch( UnsupportedEncodingException e)
+    {
+      log.exception( e);
+      return null;
+    }
   }
   
   /**

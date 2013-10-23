@@ -29,7 +29,7 @@ public class StringSerializer extends AbstractSerializer
   @Override
   public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
-    byte[] bytes = object.toString().getBytes();
+    byte[] bytes = object.toString().getBytes( "UTF-8");
     output.writeInt( bytes.length);
     output.write( bytes);
     return bytes.length;
