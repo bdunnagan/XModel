@@ -3,6 +3,7 @@ package org.xmodel.compress.serial;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import org.xmodel.compress.CompressorException;
 
 /**
@@ -20,7 +21,7 @@ public class StringSerializer extends AbstractSerializer
     int length = input.readInt();
     byte[] bytes = new byte[ length];
     input.readFully( bytes);
-    return new String( bytes);
+    return new String( bytes, charset);
   }
 
   /* (non-Javadoc)
@@ -29,9 +30,11 @@ public class StringSerializer extends AbstractSerializer
   @Override
   public int writeObject( DataOutput output, Object object) throws IOException, CompressorException
   {
-    byte[] bytes = object.toString().getBytes( "UTF-8");
+    byte[] bytes = object.toString().getBytes( charset);
     output.writeInt( bytes.length);
     output.write( bytes);
     return bytes.length;
   }
+  
+  private final static Charset charset = Charset.forName( "UTF-8");
 }

@@ -1,7 +1,7 @@
 package org.xmodel.net.bind;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +68,7 @@ public class BindRequestProtocol
     int correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
     
-    byte[] queryBytes = toBytes( query);
+    byte[] queryBytes = query.getBytes( charset);
     
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 5 + queryBytes.length, Type.bindRequest, 0);
     buffer.writeInt( correlation);
@@ -106,24 +106,6 @@ public class BindRequestProtocol
   }
   
   /**
-   * Convert strint to UTF-8.
-   * @param string The string.
-   * @return Returns the byte array.
-   */
-  private static byte[] toBytes( String string)
-  {
-    try
-    {
-      return string.getBytes( "UTF-8");
-    }
-    catch( UnsupportedEncodingException e)
-    {
-      log.exception( e);
-      return null;
-    }
-  }
-  
-  /**
    * Handle a bind request.
    * @param channel The channel.
    * @param buffer The buffer.
@@ -137,10 +119,10 @@ public class BindRequestProtocol
     byte[] queryBytes = new byte[ (int)length - 5];
     buffer.readBytes( queryBytes);
     
-    String query = new String( queryBytes);
+    String query = new String( queryBytes, charset);
     try
     {
-      IExpression queryExpr = XPath.compileExpression( new String( queryBytes));
+      IExpression queryExpr = XPath.compileExpression( new String( queryBytes, charset));
       Executor executor = bundle.context.getExecutor();
       executor.execute( new BindRunnable( channel, correlation, readonly, query, queryExpr));
     }
@@ -250,6 +232,7 @@ public class BindRequestProtocol
   }
   
   private final static Log log = Log.getLog( BindRequestProtocol.class);
+  private final static Charset charset = Charset.forName( "UTF-8");
 
   private BindProtocol bundle;
   private Map<IModelObject, UpdateListener> listeners;

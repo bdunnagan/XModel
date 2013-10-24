@@ -1,6 +1,7 @@
 package org.xmodel.net.register;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
@@ -58,13 +59,14 @@ public class RegisterRequestProtocol
     byte[] bytes = new byte[ length];
     buffer.readBytes( bytes);
     
-    String name = new String( bytes);
+    String name = new String( bytes, charset);
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
     bundle.registry.register( (XioPeer)channel.getAttachment(), name);
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);
+  private Charset charset = Charset.forName( "UTF-8");
 
   private RegisterProtocol bundle;
 }
