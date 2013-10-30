@@ -692,7 +692,7 @@ public class RunAction extends GuardedAction
   }
   
   private final static Log log = Log.getLog( RunAction.class);
-  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};  
+  private final static int[] connectionRetries = { 500, 1000, 3000, 5000};  
   private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
   private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
