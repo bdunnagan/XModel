@@ -26,9 +26,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.zip.CRC32;
-
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ICachingPolicy;
@@ -848,10 +848,11 @@ public class ModelAlgorithms implements IAxis
    * @param expression A PathExpression, FilterExpression or VariableExpression.
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
+   * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
    */
-  public static void createPathSubtree( IContext context, IExpression expression, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( IContext context, IExpression expression, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    expression.createSubtree( context, factory, undo);
+    expression.createSubtree( context, factory, undo, setter);
   }
   
   /**
@@ -862,10 +863,11 @@ public class ModelAlgorithms implements IAxis
    * @param path The path defining the nodes to be created.
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
+   * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
    */
-  public static void createPathSubtree( IModelObject object, IPath path, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( IModelObject object, IPath path, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    createPathSubtree( new Context( object), path, factory, undo);
+    createPathSubtree( new Context( object), path, factory, undo, setter);
   }
   
   /**
@@ -876,8 +878,9 @@ public class ModelAlgorithms implements IAxis
    * @param path The path defining the nodes to be created.
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
+   * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
    */
-  public static void createPathSubtree( IContext context, IPath path, IModelObjectFactory factory, IChangeSet undo)
+  public static void createPathSubtree( IContext context, IPath path, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
     if ( factory == null) factory = new ModelObjectFactory();
     
@@ -913,19 +916,27 @@ public class ModelAlgorithms implements IAxis
         for ( int j=0; j<currSize; j++)
         {
           IModelObject layerObject = currLayer.get( j);
-          if ( (element.axis() & IAxis.ATTRIBUTE) != 0)
+          try
           {
-            layerObject.setAttribute( element.type(), "");
-            nextLayer.add( layerObject.getAttributeNode( element.type()));
-            if ( undo != null) undo.removeAttribute( layerObject, element.type());
+            if ( (element.axis() & IAxis.ATTRIBUTE) != 0)
+            {
+              layerObject.setAttribute( element.type(), (setter != null)? ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter): "");
+              nextLayer.add( layerObject.getAttributeNode( element.type()));
+              if ( undo != null) undo.removeAttribute( layerObject, element.type());
+            }
+            else
+            {
+              if ( element.type() == null) return;
+              IModelObject newObject = factory.createObject( layerObject, element.type());
+              if ( setter != null) newObject.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
+              layerObject.addChild( newObject);
+              nextLayer.add( newObject);
+              if ( undo != null) undo.removeChild( layerObject, newObject);
+            }
           }
-          else
+          catch( Exception e)
           {
-            if ( element.type() == null) return;
-            IModelObject newObject = factory.createObject( layerObject, element.type());
-            layerObject.addChild( newObject);
-            nextLayer.add( newObject);
-            if ( undo != null) undo.removeChild( layerObject, newObject);
+            SLog.exception( ModelAlgorithms.class, e);
           }
         }
       }

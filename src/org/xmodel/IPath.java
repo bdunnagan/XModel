@@ -91,9 +91,10 @@ public interface IPath
    * Create the subtree represented by this path beneath the specified root. Only the elements
    * which do not already exist are created. The first leaf of the subtree is returned.
    * @param root The root of the new subtree.
+   * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
    * @return Returns the first leaf of the subtree.
    */
-  public IModelObject createSubtree( IModelObject root);
+  public IModelObject createSubtree( IModelObject root, Object setter);
 
   /**
    * Returns the variable source for this path.

@@ -101,7 +101,7 @@ public class RemoveChildRecord extends AbstractChangeRecord
     if ( path == null) return;
     
     // create the subtree
-    ModelAlgorithms.createPathSubtree( root, path, null, null);
+    ModelAlgorithms.createPathSubtree( root, path, null, null, null);
     
     // apply change
     IModelObject target = path.queryFirst( root); 

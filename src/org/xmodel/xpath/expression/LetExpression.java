@@ -137,14 +137,14 @@ public class LetExpression extends Expression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
     LocalContext local = new LocalContext( context);
     updateVariables( local, 0);
-    getArgument( 0).createSubtree( local, factory, undo);
+    getArgument( 0).createSubtree( local, factory, undo, setter);
   }
 
   /* (non-Javadoc)

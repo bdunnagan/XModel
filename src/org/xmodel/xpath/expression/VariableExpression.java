@@ -22,10 +22,11 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.concurrent.Callable;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.variable.IVariableListener;
 import org.xmodel.xpath.variable.IVariableScope;
 import org.xmodel.xpath.variable.IVariableSource;
@@ -195,16 +196,31 @@ public class VariableExpression extends Expression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
     if ( context instanceof StatefulContext)
     {
-      List<IModelObject> emptyList = Collections.emptyList();
-      ((StatefulContext)context).set( variable, emptyList);
+      if ( setter == null)
+      {
+        ((StatefulContext)context).set( variable, Collections.<IModelObject>emptyList());
+      }
+      else
+      {
+        try
+        {
+          Object value = ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter);
+          if ( value instanceof Number) ((StatefulContext)context).set( variable, (Number)value);
+          else if ( value instanceof Boolean) ((StatefulContext)context).set( variable, (Boolean)value);
+          else if ( value != null) ((StatefulContext)context).set( variable, value.toString());
+        }
+        catch( Exception e)
+        {
+          SLog.exception( this, e);
+        }
+      }
     }
   }
 

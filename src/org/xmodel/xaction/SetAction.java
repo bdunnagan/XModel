@@ -55,9 +55,6 @@ public class SetAction extends GuardedAction
    */
   protected Object[] doAction( IContext context)
   {
-    List<IModelObject> targets = targetExpr.query( context, null);
-    if ( targets.size() == 0) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
-
     // handle java.lang.Object transfer correctly
     Object value = null;
     if ( sourceExpr != null)
@@ -78,12 +75,20 @@ public class SetAction extends GuardedAction
       }
     }
     
-    targets = targetExpr.query( context, null);
-    for( IModelObject target: targets) target.setValue( value);
+    List<IModelObject> targets = targetExpr.query( context, null);
+    if ( targets.size() == 0) 
+    {
+      ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null, value);
+    }
+    else
+    {
+      for( IModelObject target: targets) 
+        target.setValue( value);
+    }
     
     return null;
   }
-  
+
   private IModelObjectFactory factory;
   private IExpression sourceExpr;
   private IExpression targetExpr;
