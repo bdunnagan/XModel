@@ -74,12 +74,11 @@ public class DeepEqualFunction extends Function
     if ( nodes1.size() == 0) return true;
     
     // unsure if these semantics exactly match
-    for( int i=0; i<nodes1.size(); i++)
-    {
-      if ( !differ.diff( nodes1.get( i), nodes2.get( i), null)) return false;
-    }
+    for( IModelObject node1: nodes1)
+      for( IModelObject node2: nodes2)
+        if ( differ.diff( node1, node2, null)) return true;
     
-    return true;
+    return false;
   }
   
   
