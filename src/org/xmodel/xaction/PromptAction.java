@@ -52,12 +52,12 @@ import org.xmodel.xpath.variable.IVariableScope;
  * be parsed as an XPath expression, then the XPath becomes the guard condition of the 
  * action.
  */
-public class BreakAction extends GuardedAction implements IBreakHandler
+public class PromptAction extends GuardedAction implements IBreakHandler
 {
-  public BreakAction()
+  public PromptAction()
   {
     xmlIO = new XmlIO();
-    xmlIO.skipOutputPrefix( "break");
+    xmlIO.skipOutputPrefix( "prompt");
     xmlIO.setOutputStyle( Style.printable);
     
     history = new ArrayList<String>( 1);
