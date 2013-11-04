@@ -63,8 +63,10 @@ public class ForAction extends GuardedAction
     
     // hookup continue actions
     for( IXAction action: script.getActions())
-      if ( action instanceof ContinueAction)
-        ((ContinueAction)action).setFor( this);
+    {
+      if ( action instanceof ContinueAction) ((ContinueAction)action).setFor( this);
+      if ( action instanceof BreakAction) ((BreakAction)action).setFor( this);
+    }
   }
 
   /* (non-Javadoc)
@@ -92,8 +94,9 @@ public class ForAction extends GuardedAction
         else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
         
         Object[] result = script.run( context);
-        if ( result != null && !continued) return result;
-        if ( continued) continued = false;
+        if ( result != null && !cont && !brk) return result;
+        if ( cont) cont = false;
+        if ( brk) break;
       }
     }
     
@@ -109,8 +112,9 @@ public class ForAction extends GuardedAction
         {
           scope.set( var, i);
           Object[] result = script.run( context);
-          if ( result != null && !continued) return result;
-          if ( continued) continued = false;
+          if ( result != null && !cont && !brk) return result;
+          if ( cont) cont = false;
+          if ( brk) break;
         }
       }
       else
@@ -119,8 +123,9 @@ public class ForAction extends GuardedAction
         {
           scope.set( var, i);
           Object[] result = script.run( context);
-          if ( result != null && !continued) return result;
-          if ( continued) continued = false;
+          if ( result != null && !cont && !brk) return result;
+          if ( cont) cont = false;
+          if ( brk) break;
         }
       }
     }
@@ -133,7 +138,15 @@ public class ForAction extends GuardedAction
    */
   protected final void doContinue()
   {
-    continued = true;
+    cont = true;
+  }
+  
+  /**
+   * Called from BreakAction.
+   */
+  protected final void doBreak()
+  {
+    brk = true;
   }
 
   private String var;
@@ -142,5 +155,6 @@ public class ForAction extends GuardedAction
   private IExpression toExpr;
   private IExpression byExpr;
   private ScriptAction script;
-  private boolean continued;
+  private boolean cont;
+  private boolean brk;
 }
