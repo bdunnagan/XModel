@@ -30,7 +30,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -87,12 +90,14 @@ public class RunAction extends GuardedAction
     clientsExpr = document.getExpression( "clients", true);
     
     timeoutExpr = document.getExpression( "timeout", true);
+    delayExpr = document.getExpression( "delay", true);
     
     onCompleteExpr = document.getExpression( "onComplete", true);
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
     executorExpr = document.getExpression( "executor", true);
+    schedulerExpr = document.getExpression( "scheduler", true);
   }
 
   /* (non-Javadoc)
@@ -131,6 +136,10 @@ public class RunAction extends GuardedAction
     else if ( executorExpr != null)
     {
       runLocalAsync( context);
+    }
+    else if ( schedulerExpr != null)
+    {
+      runLocalDelayed( context);
     }
     else
     {
@@ -201,6 +210,34 @@ public class RunAction extends GuardedAction
     runContext.getScope().copyFrom( context.getScope());
     runContext.setExecutor( executor);
     executor.execute( new ScriptRunnable( runContext, script));
+  }
+  
+  /**
+   * Execute the script with a specified delay.
+   * @param context The context.
+   */
+  private void runLocalDelayed( IContext context)
+  {
+    double delay = (delayExpr != null)? delayExpr.evaluateNumber( context): 0;
+    
+    IModelObject schedulerNode = schedulerExpr.queryFirst( context);
+    if ( schedulerNode == null)
+    {
+      log.warnf( "Scheduler not found, '%s'", schedulerExpr);
+      return;
+    }
+    
+    ScheduledExecutorService scheduler = (ScheduledExecutorService)schedulerNode.getValue();
+    IXAction script = getScript( getScriptNode( context));
+    
+    //
+    // Must create a new context here without the original context object, because otherwise the
+    // new dispatcher will end up using the original context object's model.
+    //
+    StatefulContext runContext = new StatefulContext( context.getObject());
+    runContext.getScope().copyFrom( context.getScope());
+    runContext.setExecutor( context.getExecutor());
+    scheduler.schedule( new ScriptRunnable( runContext, script), (int)delay, TimeUnit.MILLISECONDS);
   }
   
   /**
@@ -705,10 +742,12 @@ public class RunAction extends GuardedAction
   private IExpression serverExpr;
   private IExpression clientsExpr;
   private IExpression timeoutExpr;
+  private IExpression delayExpr;
   private IExpression scriptExpr;
   private IModelObject inline;
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
   private IExpression executorExpr;
+  private IExpression schedulerExpr;
 }

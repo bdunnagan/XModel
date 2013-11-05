@@ -60,7 +60,7 @@ public class RandomAction extends GuardedAction
     if ( minExpr != null) min = minExpr.evaluateNumber( context);
     if ( maxExpr != null) max = maxExpr.evaluateNumber( context);
     
-    Number number = random( min, max, decimal);
+    Number number = (min < max)? random( min, max, decimal): min;
     if ( radix != -1)
     {
       String value = convert( number, radix);
