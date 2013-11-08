@@ -4,8 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -186,7 +188,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     
     // xml columns
-    Set<String> xmlColumns = null;
+    Set<String> xmlColumns = Collections.emptySet();
     String xml = Xlate.childGet( annotation, "xml", (String)null);
     if ( xml != null)
     {
@@ -250,9 +252,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   {
     IModelObject prototype = new ModelObject( reference.getType());
 
+    Connection connection = provider.leaseConnection();
     try
     {
-      Connection connection = provider.leaseConnection();
       PreparedStatement statement = provider.createStatement( connection, query, limit, offset);
       ResultSet rowCursor = statement.executeQuery();
       
@@ -274,6 +276,10 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     {
       String message = String.format( "Unable to sync reference with query, '%s'", query);
       throw new CachingException( message, e);
+    }
+    finally
+    {
+      provider.releaseConnection( connection);
     }
     
     update( reference, prototype);

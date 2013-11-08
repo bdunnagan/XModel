@@ -237,21 +237,20 @@ public class EqualityExpression extends AbstractBinaryBooleanExpression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    // create assignee node
-    getArgument( 0).createSubtree( context, factory, undo);
-    
-    // if operator is equals then evaluate rhs and assign to first lhs node
-    if ( operator == Operator.EQ)
-    {
-      IModelObject lhs = queryFirst( context);
-      if ( lhs != null) lhs.setValue( getArgument( 1).evaluateString( context));
-    }
+//    // create assignee node
+//    getArgument( 0).createSubtree( context, factory, undo, setter);
+//    
+//    // if operator is equals then evaluate rhs and assign to first lhs node
+//    if ( operator == Operator.EQ)
+//    {
+//      IModelObject lhs = queryFirst( context);
+//      if ( lhs != null) lhs.setValue( getArgument( 1).evaluateString( context));
+//    }
   }
 
   /* (non-Javadoc)

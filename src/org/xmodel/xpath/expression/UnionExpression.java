@@ -94,14 +94,13 @@ public class UnionExpression extends Expression
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    getArgument( 0).createSubtree( context, factory, undo);
-    getArgument( 1).createSubtree( context, factory, undo);
+    getArgument( 0).createSubtree( context, factory, undo, setter);
+    getArgument( 1).createSubtree( context, factory, undo, setter);
   }
 
   /* (non-Javadoc)

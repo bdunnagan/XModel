@@ -78,9 +78,9 @@ public class PathExpression extends Expression implements IPathListener
    * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    ModelAlgorithms.createPathSubtree( context, path, factory, undo);
+    ModelAlgorithms.createPathSubtree( context, path, factory, undo, setter);
   }
 
   /* (non-Javadoc)

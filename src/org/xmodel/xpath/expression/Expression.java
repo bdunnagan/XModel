@@ -49,6 +49,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IFunction#addArgument(
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public void addArgument( IExpression argument)
   {
     if ( arguments == null) arguments = new ArrayList<IExpression>( 1);
@@ -60,6 +61,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#removeArgument(
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public void removeArgument( IExpression argument)
   {
     if ( arguments != null) 
@@ -73,6 +75,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#internal_setParent(
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public void internal_setParent( IExpression parent)
   {
     this.parent = parent;
@@ -81,6 +84,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getParent()
    */
+  @Override
   public IExpression getParent()
   {
     return parent;
@@ -89,6 +93,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getRoot()
    */
+  @Override
   public IExpression getRoot()
   {
     IExpression parent = getParent();
@@ -100,6 +105,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#isAncestor(
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public boolean isAncestor( IExpression ancestor)
   {
     IExpression parent = this;
@@ -114,6 +120,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#isAbsolute()
    */
+  @Override
   public boolean isAbsolute( IContext context)
   {
     if ( arguments != null)
@@ -126,6 +133,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getArguments()
    */
+  @Override
   public List<IExpression> getArguments()
   {
     if ( arguments == null) return Collections.emptyList();
@@ -135,6 +143,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getArgument(int)
    */
+  @Override
   public IExpression getArgument( int index)
   {
     if ( arguments == null || arguments.size() <= index) return null;
@@ -144,6 +153,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, java.lang.Boolean)
    */
+  @Override
   public void setVariable( String name, Boolean value)
   {
     getLocalScope().set( name, value);
@@ -152,6 +162,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, java.lang.Number)
    */
+  @Override
   public void setVariable( String name, Number value)
   {
     getLocalScope().set( name, value);
@@ -160,6 +171,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, java.lang.String)
    */
+  @Override
   public void setVariable( String name, String value)
   {
     getLocalScope().set( name, value);
@@ -169,6 +181,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, 
    * org.xmodel.IModelObject)
    */
+  @Override
   public void setVariable( String name, IModelObject node)
   {
     getLocalScope().set( name, node);
@@ -177,6 +190,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, java.util.List)
    */
+  @Override
   public void setVariable( String name, List<IModelObject> nodes)
   {
     getLocalScope().set( name, nodes);
@@ -186,6 +200,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#setVariable(java.lang.String, 
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public void setVariable( String name, IExpression expression)
   {
     getLocalScope().define( name, expression);
@@ -203,6 +218,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getVariableSource()
    */
+  @Override
   public IVariableSource getVariableSource()
   {
     IExpression root = getRoot();
@@ -213,6 +229,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getType(org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public ResultType getType( IContext context)
   {
     // the type of most expressions does not depend on the context scope
@@ -276,6 +293,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#requiresContext()
    */
+  @Override
   public boolean requiresOrdinalContext()
   {
     if ( arguments != null)
@@ -287,6 +305,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateBoolean()
    */
+  @Override
   public boolean evaluateBoolean() throws ExpressionException
   {
     return evaluateBoolean( new Context( new NullObject()));
@@ -295,6 +314,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes()
    */
+  @Override
   public List<IModelObject> evaluateNodes() throws ExpressionException
   {
     return evaluateNodes( new Context( new NullObject()));
@@ -303,6 +323,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateNumber()
    */
+  @Override
   public double evaluateNumber() throws ExpressionException
   {
     return evaluateNumber( new Context( new NullObject()));
@@ -311,6 +332,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateString()
    */
+  @Override
   public String evaluateString() throws ExpressionException
   {
     return evaluateString( new Context( new NullObject()));
@@ -320,6 +342,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException
   {
     throw new ExpressionException( this, "Expression does not return node-set.");
@@ -329,6 +352,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNumber(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public double evaluateNumber( IContext context) throws ExpressionException
   {
     switch( getType( context))
@@ -344,6 +368,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateString(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public String evaluateString( IContext context) throws ExpressionException
   {
     switch( getType( context))
@@ -359,6 +384,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateBoolean(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public boolean evaluateBoolean( IContext context) throws ExpressionException
   {
     switch( getType( context))
@@ -374,6 +400,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext, java.util.List)
    */
+  @Override
   public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult)
   {
     try
@@ -390,6 +417,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateNumber(
    * org.xmodel.xpath.expression.IContext, double)
    */
+  @Override
   public double evaluateNumber( IContext context, double defaultResult)
   {
     try
@@ -406,6 +434,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateString(
    * org.xmodel.xpath.expression.IContext, java.lang.String)
    */
+  @Override
   public String evaluateString( IContext context, String defaultResult)
   {
     try
@@ -422,6 +451,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#evaluateBoolean(
    * org.xmodel.xpath.expression.IContext, boolean)
    */
+  @Override
   public boolean evaluateBoolean( IContext context, boolean defaultResult)
   {
     try
@@ -435,16 +465,17 @@ public abstract class Expression implements IExpression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.IExpression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  @Override
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
   }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(java.util.List)
    */
+  @Override
   public List<IModelObject> query( List<IModelObject> result)
   {
     return query( new Context( new NullObject()), result);
@@ -453,6 +484,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst()
    */
+  @Override
   public IModelObject queryFirst()
   {
     return queryFirst( new Context( new NullObject()));
@@ -461,6 +493,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.IModelObject, java.util.List)
    */
+  @Override
   public List<IModelObject> query( IModelObject object, List<IModelObject> result)
   {
     try 
@@ -480,6 +513,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.IModelObject)
    */
+  @Override
   public IModelObject queryFirst( IModelObject object)
   {
     try
@@ -497,6 +531,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.xpath.expression.IContext, java.util.List)
    */
+  @Override
   public List<IModelObject> query( IContext context, List<IModelObject> result)
   {
     try
@@ -516,6 +551,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public IModelObject queryFirst( IContext context)
   {
     try
@@ -534,6 +570,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#bind(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public void bind( IContext context)
   {
     if ( arguments != null)
@@ -545,6 +582,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#unbind(
    * org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public void unbind( IContext context)
   {
     if ( arguments != null)
@@ -571,6 +609,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#addListener(
    * org.xmodel.xpath.expression.IContext, org.xmodel.xpath.expression.IExpressionListener)
    */
+  @Override
   public void addListener( IContext context, IExpressionListener listener)
   {
     throw new UnsupportedOperationException();
@@ -580,6 +619,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#removeListener(
    * org.xmodel.xpath.expression.IContext, org.xmodel.xpath.expression.IExpressionListener)
    */
+  @Override
   public void removeListener( IContext context, IExpressionListener listener)
   {
     throw new UnsupportedOperationException();
@@ -589,6 +629,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#addNotifyListener(
    * org.xmodel.xpath.expression.IContext, org.xmodel.xpath.expression.IExpressionListener)
    */
+  @Override
   public void addNotifyListener( IContext context, IExpressionListener listener)
   {
     throw new UnsupportedOperationException();
@@ -598,6 +639,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#removeNotifyListener(
    * org.xmodel.xpath.expression.IContext, org.xmodel.xpath.expression.IExpressionListener)
    */
+  @Override
   public void removeNotifyListener( IContext context, IExpressionListener listener)
   {
     throw new UnsupportedOperationException();
@@ -606,6 +648,7 @@ public abstract class Expression implements IExpression
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getListeners()
    */
+  @Override
   public ExpressionListenerList getListeners()
   {
     return null;
@@ -616,6 +659,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
+  @Override
   public void notifyAdd( IExpression expression, IContext context, List<IModelObject> nodes)
   {
   }
@@ -625,6 +669,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.util.List)
    */
+  @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
   {
   }
@@ -633,6 +678,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpressionListener#notifyChange(
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, boolean)
    */
+  @Override
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
   }
@@ -641,6 +687,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpressionListener#notifyChange(
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, double, double)
    */
+  @Override
   public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
   {
   }
@@ -650,6 +697,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.lang.String, java.lang.String)
    */
+  @Override
   public void notifyChange( IExpression expression, IContext context, String newValue, String oldValue)
   {
   }
@@ -658,6 +706,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#notifyChange(
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public void notifyChange( IExpression expression, IContext context)
   {
     if ( parent != null) parent.notifyChange( this, context);
@@ -668,6 +717,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * java.lang.Exception)
    */
+  @Override
   public void handleException( IExpression expression, IContext context, Exception e)
   {
     if ( parent != null) parent.handleException( expression, context, e);
@@ -677,6 +727,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#requiresValueNotification(
    * org.xmodel.xpath.expression.IExpression)
    */
+  @Override
   public boolean requiresValueNotification( IExpression argument)
   {
     return true;
@@ -687,6 +738,7 @@ public abstract class Expression implements IExpression
    * org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, 
    * org.xmodel.IModelObject, java.lang.Object, java.lang.Object)
    */
+  @Override
   public void notifyValue( IExpression expression, IContext[] contexts, IModelObject object, Object newValue, Object oldValue)
   {
     if ( parent != null) parent.notifyValue( this, contexts, object, newValue, oldValue);

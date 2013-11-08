@@ -103,11 +103,10 @@ public class ForExpression extends Expression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
@@ -115,7 +114,7 @@ public class ForExpression extends Expression
     for( int i=0; i<nodes.size(); i++)
     {
       ReturnContext returnContext = new ReturnContext( context, variable, nodes.get( i));
-      arg1.createSubtree( returnContext, factory, undo);
+      arg1.createSubtree( returnContext, factory, undo, setter);
     }
   }
 
