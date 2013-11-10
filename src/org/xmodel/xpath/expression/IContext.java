@@ -26,19 +26,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.Update;
 import org.xmodel.xpath.variable.IVariableScope;
 
-/**
- * An interface for the context of an X-Path expression.  The context includes:
- * <ul>
- * <li>context node
- * <li>context position
- * <li>context size
- * </ul>
- * <p>
- * The official X-Path specification includes several other parameters in the
- * context, but they have been omitted here because they were unnecessary.
- * <p>
- * Note that the context position begins at 1.
- */
 public interface IContext
 {
   /**
@@ -54,9 +41,9 @@ public interface IContext
   public IContext getRoot();
 
   /**
-   * @return Returns the ordered list of context nodes.
+   * @return Returns the order list of context objects.
    */
-  public List<IModelObject> getNodes();
+  public List<Object> getObjects();
   
   /**
    * Set the specified variable. This method has no effect if the context does not have

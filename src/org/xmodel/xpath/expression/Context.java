@@ -47,39 +47,39 @@ public class Context implements IContext
 {
   public Context()
   {
-    this( Collections.<IModelObject>emptyList());
+    this( Collections.emptyList());
   }
   
   /**
-   * Create a context for the given list of nodes.
-   * @param nodes The nodes.
+   * Create a context for the given list of objects.
+   * @param objects The objets.
    */
-  public Context( List<IModelObject> nodes)
+  public Context( List<Object> objects)
   {
-    this.nodes = nodes;
+    this.objects = objects;
     this.updates = new HashMap<IExpression, Update>( 1);
   }
     
   /**
    * Create a context for the given list of nodes, which used the specified variable scope.
    * @param scope The scope to associate with this context.
-   * @param nodes The nodes.
+   * @param objects The objects.
    */
-  protected Context( IVariableScope scope, List<IModelObject> nodes)
+  protected Context( IVariableScope scope, List<Object> objects)
   {
-    this.nodes = nodes;
+    this.objects = objects;
     this.updates = new HashMap<IExpression, Update>( 1);
     this.scope = scope;
   }
     
   /**
-   * Create a context for the given context node with position and size equal to one.
+   * Create a context for the given list of nodes, which used the specified variable scope.
    * @pram scope The context from which the scope will be taken.
-   * @param nodes The nodes.
+   * @param objects The objects.
    */
-  public Context( IContext scope, List<IModelObject> nodes)
+  public Context( IContext scope, List<Object> objects)
   {
-    this( (scope != null)? scope.getScope(): null, nodes);
+    this( (scope != null)? scope.getScope(): null, objects);
   }
   
   /* (non-Javadoc)
@@ -123,12 +123,12 @@ public class Context implements IContext
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getNodes()
+   * @see org.xmodel.xpath.expression.IContext#getObjects()
    */
   @Override
-  public List<IModelObject> getNodes()
+  public List<Object> getObjects()
   {
-    return nodes;
+    return objects;
   }
 
   /* (non-Javadoc)
@@ -300,7 +300,7 @@ public class Context implements IContext
     return super.toString();
   }
   
-  private List<IModelObject> nodes;
+  private List<Object> objects;
   private Map<IExpression, Update> updates;
   protected IVariableScope scope;
 }

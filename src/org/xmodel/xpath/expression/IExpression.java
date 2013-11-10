@@ -196,42 +196,6 @@ public interface IExpression
   public boolean evaluateBoolean( IContext context) throws ExpressionException;
   
   /**
-   * Returns the node-set result of this expression for the specified context. If an ExpressionException
-   * is caught then the default return value is returned.
-   * @param context The context in which to evaluate the expression.
-   * @param defaultResult The return value if an ExpressionException is caught.
-   * @return Returns the node-set result of the expression.
-   */
-  public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult);
-
-  /**
-   * Returns the string result of this expression for the specified context. If an ExpressionException
-   * is caught then the default return value is returned.
-   * @param context The context in which to evaluate the expression.
-   * @param defaultResult The return value if an ExpressionException is caught.
-   * @return Returns the string result of the expression.
-   */
-  public String evaluateString( IContext context, String defaultResult);
-  
-  /**
-   * Returns the numeric result of this expression for the specified context. If an ExpressionException
-   * is caught then the default return value is returned.
-   * @param context The context in which to evaluate the expression.
-   * @param defaultResult The return value if an ExpressionException is caught.
-   * @return Returns the numeric result of the expression.
-   */
-  public double evaluateNumber( IContext context, double defaultResult);
-  
-  /**
-   * Returns the boolean result of this expression for the specified context. If an ExpressionException
-   * is caught then the default return value is returned.
-   * @param context The context in which to evaluate the expression.
-   * @param defaultResult The return value if an ExpressionException is caught.
-   * @return Returns the boolean result of the expression.
-   */
-  public boolean evaluateBoolean( IContext context, boolean defaultResult);
-
-  /**
    * (Optional) Create a subtree relative to the specified context which completes this expression.
    * @param context The context where the subtree will be created.
    * @param factory Null or the factory for creating the subtree elements.
@@ -239,55 +203,6 @@ public interface IExpression
    * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
    */
   public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter);
-  
-  /**
-   * This method is provided as a convenience for performing simple path queries using this expression.
-   * If the expression does not return a node-set, then this method will return an empty list.
-   * @param object The context object.
-   * @param result An optional location to store the result.
-   * @return Returns a new list or the result argument if it is non-null.
-   */
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result);
-
-  /**
-   * This method is provided as a convenience for performing simple path queries using this expression.
-   * If the expression does not return a node-set, then this method will return null.
-   * @param object The context object.
-   * @return Returns null or the first node in the node-set.
-   */
-  public IModelObject queryFirst( IModelObject object);
-  
-  /**
-   * Evaluate the expression with an empty context (only expressions that begin with
-   * the collection function will return nodes).
-   * @param result Null or the list to populate.
-   * @return Returns the argument or a new list if the argument is null.
-   */  
-  public List<IModelObject> query( List<IModelObject> result);
-  
-  /**
-   * Evaluate the expression with an empty context (only expressions that begin with
-   * the collection function will return nodes) and return the first node.
-   * @return Returns the first node in the node-set.
-   */
-  public IModelObject queryFirst();
-  
-  /**
-   * This method is provided as a convenience for performing simple path queries using this expression.
-   * If the expression does not return a node-set, then this method will return an empty list.
-   * @param context The context.
-   * @param result An optional location to store the result.
-   * @return Returns a new list or the result argument if it is non-null.
-   */
-  public List<IModelObject> query( IContext context, List<IModelObject> result);
-
-  /**
-   * This method is provided as a convenience for performing simple path queries using this expression.
-   * If the expression does not return a node-set, then this method will return null.
-   * @param context The context.
-   * @return Returns null or the first node in the node-set.
-   */
-  public IModelObject queryFirst( IContext context);
   
   /**
    * Add an IExpressionListener to this expression for the specified context.

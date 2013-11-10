@@ -22,13 +22,11 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
-import org.xmodel.NullObject;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.function.BooleanFunction;
 import org.xmodel.xpath.function.NumberFunction;
@@ -364,175 +362,13 @@ public abstract class Expression implements IExpression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
-   * org.xmodel.xpath.expression.IContext, java.util.List)
-   */
-  @Override
-  public List<IModelObject> evaluateNodes( IContext context, List<IModelObject> defaultResult)
-  {
-    try
-    {
-      return evaluateNodes( context);
-    }
-    catch( ExpressionException e)
-    {
-      return defaultResult;
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateNumber(
-   * org.xmodel.xpath.expression.IContext, double)
-   */
-  @Override
-  public double evaluateNumber( IContext context, double defaultResult)
-  {
-    try
-    {
-      return evaluateNumber( context);
-    }
-    catch( ExpressionException e)
-    {
-      return defaultResult;
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateString(
-   * org.xmodel.xpath.expression.IContext, java.lang.String)
-   */
-  @Override
-  public String evaluateString( IContext context, String defaultResult)
-  {
-    try
-    {
-      return evaluateString( context);
-    }
-    catch( ExpressionException e)
-    {
-      return defaultResult;
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateBoolean(
-   * org.xmodel.xpath.expression.IContext, boolean)
-   */
-  @Override
-  public boolean evaluateBoolean( IContext context, boolean defaultResult)
-  {
-    try
-    {
-      return evaluateBoolean( context);
-    }
-    catch( ExpressionException e)
-    {      log.exception( e);
-      return defaultResult;
-    }
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
   public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#query(java.util.List)
-   */
-  @Override
-  public List<IModelObject> query( List<IModelObject> result)
-  {
-    return query( new Context(), result);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#queryFirst()
-   */
-  @Override
-  public IModelObject queryFirst()
-  {
-    return queryFirst( new Context());
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.IModelObject, java.util.List)
-   */
-  @Override
-  public List<IModelObject> query( IModelObject object, List<IModelObject> result)
-  {
-    try 
-    {
-      List<IModelObject> nodes = evaluateNodes( new Context( object));
-      if ( nodes == null) return Collections.emptyList();
-      if ( result == null) return nodes;
-      result.addAll( nodes);
-      return result;
-    }
-    catch( ExpressionException e)
-    {
-      throw new IllegalStateException( e.getMessage());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.IModelObject)
-   */
-  @Override
-  public IModelObject queryFirst( IModelObject object)
-  {
-    try
-    {
-      List<IModelObject> nodes = evaluateNodes( new Context( object));
-      if ( nodes == null || nodes.size() == 0) return null;
-      return nodes.get( 0);
-    }
-    catch( ExpressionException e)
-    {
-      throw new IllegalStateException( e.getMessage());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#query(org.xmodel.xpath.expression.IContext, java.util.List)
-   */
-  @Override
-  public List<IModelObject> query( IContext context, List<IModelObject> result)
-  {
-    try
-    {
-      List<IModelObject> nodes = evaluateNodes( context);
-      if ( nodes == null) return Collections.emptyList();
-      if ( result == null) return nodes;
-      result.addAll( nodes);
-      return result;
-    }
-    catch( ExpressionException e)
-    {
-      throw new IllegalStateException( e.getMessage());
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#queryFirst(org.xmodel.xpath.expression.IContext)
-   */
-  @Override
-  public IModelObject queryFirst( IContext context)
-  {
-    try
-    {
-      List<IModelObject> nodes = evaluateNodes( context);
-      if ( nodes == null || nodes.size() == 0) return null;
-      return nodes.get( 0);
-    }
-    catch( ExpressionException e)
-    {
-      throw new IllegalStateException( e.getMessage());
-    }
-  }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#bind(
    * org.xmodel.xpath.expression.IContext)

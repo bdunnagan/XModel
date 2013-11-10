@@ -40,32 +40,21 @@ public class SubContext implements IContext
    */
   public SubContext( IContext parent, IContext context)
   {
-    this( parent, context.getObject(), context.getPosition(), context.getSize());
+    this( parent, context.getObjects());
   }
   
   /**
-   * Create a context for the given context node.
+   * Create a context for the given context objects.
    * @param parent The parent of this context.
-   * @param object The context node.
+   * @param objects The context objects.
    */
-  public SubContext( IContext parent, IModelObject object, int position, int size)
+  public SubContext( IContext parent, List<Object> objects)
   {
     if ( parent == null) throw new IllegalArgumentException( "SubContext must have parent.");
     this.parent = parent;
-    this.object = object;
-    this.position = position;
-    this.size = size;
+    this.objects = objects;
   }
   
-//  /* (non-Javadoc)
-//   * @see org.xmodel.xpath.expression.IContext#getModel()
-//   */
-//  @Override
-//  public IModel getModel()
-//  {
-//    return GlobalSettings.getInstance().getModel();
-//  }
-
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IContext#getParent()
    */
@@ -88,27 +77,12 @@ public class SubContext implements IContext
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getContextNode()
+   * @see org.xmodel.xpath.expression.IContext#getObjects()
    */
-  public IModelObject getObject()
+  @Override
+  public List<Object> getObjects()
   {
-    return object;
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getPosition()
-   */
-  public int getPosition()
-  {
-    return position;
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getSize()
-   */
-  public int getSize()
-  {
-    return size;
+    return objects;
   }
 
   /* (non-Javadoc)
@@ -282,7 +256,7 @@ public class SubContext implements IContext
    */
   public IContext cloneOne()
   {
-    return new Context( object, position, size);
+    return new Context( objects);
   }
 
   /* (non-Javadoc)
@@ -290,7 +264,7 @@ public class SubContext implements IContext
    */
   public IContext cloneTree()
   {
-    return new SubContext( parent, object, position, size);
+    return new SubContext( parent, objects);
   }
 
   /* (non-Javadoc)
@@ -299,16 +273,9 @@ public class SubContext implements IContext
   @Override
   public String toString()
   {
-    StringBuilder sb = new StringBuilder();
-    sb.append( "sub:( "); sb.append( position);
-    sb.append( ", "); sb.append( size);
-    sb.append( ", "); sb.append( object);
-    sb.append( ")");
-    return sb.toString();
+    return super.toString();
   }
 
   private IContext parent;
-  private IModelObject object;
-  private int position;
-  private int size;
+  private List<Object> objects;
 }

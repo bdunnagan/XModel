@@ -22,7 +22,6 @@ package org.xmodel.xpath.expression;
 import java.util.*;
 import org.xmodel.*;
 
-
 /**
  * An implementation of IExpression which represents an X-Path 1.0 filtered expression.
  * FilteredExpression will forward update notifications from its primary expression or from any
@@ -134,7 +133,7 @@ public class FilteredExpression extends Expression
   @Override
   public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    List<IModelObject> nodes = getArgument( 0).query( context, null);
+    List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
     for( int i=0; i<nodes.size(); i++)
     {
       getArgument( 1).createSubtree( new SubContext( context, nodes.get( i), i+1, nodes.size()), factory, undo, setter);
