@@ -19,10 +19,12 @@
  */
 package org.xmodel.xpath.expression;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.Update;
@@ -43,67 +45,43 @@ import org.xmodel.xpath.variable.Precedences;
  */
 public class Context implements IContext
 {
-  /**
-   * Create a context for the given context node with position and size equal to one.
-   * @param object The context node.
-   */
-  public Context( IModelObject object)
+  public Context()
   {
-    this( object, 1, 1);
+    this( Collections.<IModelObject>emptyList());
   }
   
   /**
-   * Create a context for the given context node.
-   * @param scope The scope to associate with this context.
-   * @param object The context node.
-   * @param position The context position.
-   * @param size The context size.
+   * Create a context for the given list of nodes.
+   * @param nodes The nodes.
    */
-  public Context( IModelObject object, int position, int size)
+  public Context( List<IModelObject> nodes)
   {
-    this.object = object;
-    this.position = position;
-    this.size = size;
+    this.nodes = nodes;
     this.updates = new HashMap<IExpression, Update>( 1);
   }
     
   /**
-   * Create a context for the given context node.
+   * Create a context for the given list of nodes, which used the specified variable scope.
    * @param scope The scope to associate with this context.
-   * @param object The context node.
-   * @param position The context position.
-   * @param size The context size.
+   * @param nodes The nodes.
    */
-  protected Context( IVariableScope scope, IModelObject object, int position, int size)
+  protected Context( IVariableScope scope, List<IModelObject> nodes)
   {
-    this.object = object;
-    this.position = position;
-    this.size = size;
+    this.nodes = nodes;
     this.updates = new HashMap<IExpression, Update>( 1);
     this.scope = scope;
   }
     
   /**
    * Create a context for the given context node with position and size equal to one.
-   * @param object The context node.
+   * @pram scope The context from which the scope will be taken.
+   * @param nodes The nodes.
    */
-  public Context( IContext scope, IModelObject object)
+  public Context( IContext scope, List<IModelObject> nodes)
   {
-    this( (scope != null)? scope.getScope(): null, object, 1, 1);
+    this( (scope != null)? scope.getScope(): null, nodes);
   }
   
-  /**
-   * Create a context for the given context node.
-   * @param scope The scope to associate with this context.
-   * @param object The context node.
-   * @param position The context position.
-   * @param size The context size.
-   */
-  public Context( IContext scope, IModelObject object, int position, int size)
-  {
-    this( (scope != null)? scope.getScope(): null, object, position, size);
-  }
-    
   /* (non-Javadoc)
    * @see org.xmodel.xpath.variable.IVariableScope#getName()
    */
@@ -145,27 +123,12 @@ public class Context implements IContext
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getContextNode()
+   * @see org.xmodel.xpath.expression.IContext#getNodes()
    */
-  public IModelObject getObject()
+  @Override
+  public List<IModelObject> getNodes()
   {
-    return object;
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getPosition()
-   */
-  public int getPosition()
-  {
-    return position;
-  }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IContext#getSize()
-   */
-  public int getSize()
-  {
-    return size;
+    return nodes;
   }
 
   /* (non-Javadoc)
@@ -334,17 +297,10 @@ public class Context implements IContext
   @Override
   public String toString()
   {
-    StringBuilder sb = new StringBuilder();
-    sb.append( "[ "); sb.append( position);
-    sb.append( ", "); sb.append( size);
-    sb.append( ", "); sb.append( object);
-    sb.append( "]");
-    return sb.toString();
+    return super.toString();
   }
   
-  private IModelObject object;
-  private int position;
-  private int size;
+  private List<IModelObject> nodes;
   private Map<IExpression, Update> updates;
   protected IVariableScope scope;
 }

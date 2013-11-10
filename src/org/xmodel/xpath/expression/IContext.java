@@ -52,29 +52,11 @@ public interface IContext
    * @return Returns the root of this context.
    */
   public IContext getRoot();
-  
+
   /**
-   * Returns the context node.  The context node is the object which is the context of an
-   * IExpression evaluation.  Not all IExpression sub-classes use the context node.  Some
-   * expressions merely pass the context unchanged to their sub-expressions.
-   * @return Returns the context node.
+   * @return Returns the ordered list of context nodes.
    */
-  public IModelObject getObject();
-  
-  /**
-   * Returns the proximity position of the context node.  The proximity position of an
-   * object is the position of the object in the parent context's node-set.  Note that
-   * that the ordering of objects in the node-set depends on which axis applies.  See
-   * the X-Path 1.0 specification for details.
-   * @return Returns the proximity position of the context node.
-   */
-  public int getPosition();
-  
-  /**
-   * Returns the size of the node-set to which the context node belongs.
-   * @return Returns the size of the node-set to which the context node belongs.
-   */
-  public int getSize();
+  public List<IModelObject> getNodes();
   
   /**
    * Set the specified variable. This method has no effect if the context does not have

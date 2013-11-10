@@ -300,11 +300,10 @@ public class FilteredExpression extends Expression
   @Override
   public void notifyChange( IExpression expression, IContext context, boolean newValue)
   {
-    List<IModelObject> list = Collections.singletonList( context.getObject());
     if ( newValue)
-      parent.notifyAdd( this, context.getParent(), list);
+      parent.notifyAdd( this, context.getParent(), context.getNodes());
     else
-      parent.notifyRemove( this, context.getParent(), list);
+      parent.notifyRemove( this, context.getParent(), context.getNodes());
   }
 
   /* (non-Javadoc)

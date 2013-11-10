@@ -172,34 +172,6 @@ public interface IExpression
    * @param context The context in which to evaluate the expression.
    * @return Returns the node-set result of the expression.
    */
-  public List<IModelObject> evaluateNodes() throws ExpressionException;
-
-  /**
-   * Returns the string result of this expression for the specified context.
-   * @param context The context in which to evaluate the expression.
-   * @return Returns the string result of the expression.
-   */
-  public String evaluateString() throws ExpressionException;
-  
-  /**
-   * Returns the numeric result of this expression for the specified context.
-   * @param context The context in which to evaluate the expression.
-   * @return Returns the numeric result of the expression.
-   */
-  public double evaluateNumber() throws ExpressionException;
-  
-  /**
-   * Returns the boolean result of this expression for the specified context.
-   * @param context The context in which to evaluate the expression.
-   * @return Returns the boolean result of the expression.
-   */
-  public boolean evaluateBoolean() throws ExpressionException;
-  
-  /**
-   * Returns the node-set result of this expression for the specified context.
-   * @param context The context in which to evaluate the expression.
-   * @return Returns the node-set result of the expression.
-   */
   public List<IModelObject> evaluateNodes( IContext context) throws ExpressionException;
 
   /**

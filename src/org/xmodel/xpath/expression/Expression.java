@@ -22,6 +22,7 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.GlobalSettings;
 import org.xmodel.IChangeSet;
 import org.xmodel.IModel;
@@ -303,42 +304,6 @@ public abstract class Expression implements IExpression
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateBoolean()
-   */
-  @Override
-  public boolean evaluateBoolean() throws ExpressionException
-  {
-    return evaluateBoolean( new Context( new NullObject()));
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateNodes()
-   */
-  @Override
-  public List<IModelObject> evaluateNodes() throws ExpressionException
-  {
-    return evaluateNodes( new Context( new NullObject()));
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateNumber()
-   */
-  @Override
-  public double evaluateNumber() throws ExpressionException
-  {
-    return evaluateNumber( new Context( new NullObject()));
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.IExpression#evaluateString()
-   */
-  @Override
-  public String evaluateString() throws ExpressionException
-  {
-    return evaluateString( new Context( new NullObject()));
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#evaluateNodes(
    * org.xmodel.xpath.expression.IContext)
    */
@@ -360,6 +325,7 @@ public abstract class Expression implements IExpression
       case NODES:   return NumberFunction.numericValue( evaluateNodes( context));
       case STRING:  return NumberFunction.numericValue( evaluateString( context));
       case BOOLEAN: return NumberFunction.numericValue( evaluateBoolean( context));
+      default: break;
     }
     throw new ExpressionException( this, "Expression implementation error.");
   }
@@ -376,6 +342,7 @@ public abstract class Expression implements IExpression
       case NODES:   return StringFunction.stringValue( evaluateNodes( context));
       case NUMBER:  return StringFunction.stringValue( evaluateNumber( context));
       case BOOLEAN: return StringFunction.stringValue( evaluateBoolean( context));
+      default: break;
     }
     throw new UnsupportedOperationException();
   }
@@ -478,7 +445,7 @@ public abstract class Expression implements IExpression
   @Override
   public List<IModelObject> query( List<IModelObject> result)
   {
-    return query( new Context( new NullObject()), result);
+    return query( new Context(), result);
   }
 
   /* (non-Javadoc)
@@ -487,7 +454,7 @@ public abstract class Expression implements IExpression
   @Override
   public IModelObject queryFirst()
   {
-    return queryFirst( new Context( new NullObject()));
+    return queryFirst( new Context());
   }
 
   /* (non-Javadoc)
