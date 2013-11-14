@@ -21,9 +21,10 @@ public class SchedulerAction extends XAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    var = Conventions.getVarName( document.getRoot(), true);
+    var = Conventions.getVarName( document.getRoot(), false);
     nameExpr = document.getExpression( "name", true);
     threadsExpr = document.getExpression( "threads", true);
+    targetExpr = document.getExpression( "target", true);
   }
 
   /* (non-Javadoc)
@@ -33,13 +34,15 @@ public class SchedulerAction extends XAction
   public Object[] doRun( IContext context)
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
-    String name = (nameExpr != null)? nameExpr.evaluateString( context): "model-timer";
+    
+    IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
+    String name = (nameExpr != null)? nameExpr.evaluateString( context): ((target != null)? target.getType(): "model-timer");
     
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( threads, new ModelThreadFactory( name));
     
-    IModelObject holder = new ModelObject( "executor");
-    holder.setValue( scheduler);
-    context.set( var, holder);
+    if ( target == null) target = new ModelObject( "scheduler");
+    target.setValue( scheduler);
+    if ( var != null) context.set( var, target);
     
     return null;
   }
@@ -47,4 +50,5 @@ public class SchedulerAction extends XAction
   private String var;
   private IExpression nameExpr;
   private IExpression threadsExpr;
+  private IExpression targetExpr;
 }

@@ -237,6 +237,8 @@ public class AsyncFuture<T>
       this.listeners = null;
     }
     
+    if ( log.verbose()) log.verbose( result);
+    
     if ( listeners != null)
     {
       for( int i=0; i<listeners.length; i++)

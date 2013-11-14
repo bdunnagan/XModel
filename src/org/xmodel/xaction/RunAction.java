@@ -195,7 +195,7 @@ public class RunAction extends GuardedAction
     IModelObject executorNode = executorExpr.queryFirst( context);
     if ( executorNode == null)
     {
-      log.warnf( "Executor not found, '%s'", executorExpr);
+      log.severef( "Executor not found, '%s'", executorExpr);
       return;
     }
     
