@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.xmodel.xpath.function;
+package org.xmodel.xpath.function.custom;
 
 import java.util.List;
 
@@ -25,18 +25,20 @@ import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.function.Function;
 
 /**
- * An implementation of the X-Path sum() function.
+ * A custom XPath function, similar to the sum-over() function, except it multiplies each result.
  */
-public class SumFunction extends Function
+public class MulOverFunction extends Function
 {
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getName()
    */
   public String getName()
   {
-    return "sum";
+    return "mul-over";
   }
 
   /* (non-Javadoc)
@@ -53,28 +55,19 @@ public class SumFunction extends Function
    */
   public double evaluateNumber( IContext context) throws ExpressionException
   {
-    double sum = 0;
+    assertArgs( 2, 2);
     
-    for( IExpression argument: getArguments())
+    double sum = 1;
+    
+    IExpression arg0 = getArgument( 0);
+    IExpression arg1 = getArgument( 1);
+    
+    for( IModelObject node: arg0.evaluateNodes( context))
     {
-      switch( argument.getType( context))
-      {
-        case NODES:
-          List<IModelObject> nodes = argument.evaluateNodes( context);
-          for( IModelObject node: nodes) sum += NumberFunction.numericValue( node);
-          break;
-          
-        case NUMBER:
-        case STRING:
-        case BOOLEAN:
-          sum += argument.evaluateNumber( context);
-          break;
-          
-        default:
-          break;
-      }
+      StatefulContext context2 = new StatefulContext( context, node);
+      sum *= arg1.evaluateNumber( context2);
     }
-    
+            
     return sum;
   }
 
