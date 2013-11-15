@@ -2,35 +2,40 @@ package org.xmodel.caching.sql.transform;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.AbstractSequentialList;
 import java.util.ListIterator;
+
+import org.xmodel.IModelObject;
+import org.xmodel.log.SLog;
 
 /**
  * An implementation of java.util.List that uses a JDBC ResultSet in "cursor mode" to efficiently 
  * visit each row in a large result set.  This class discards the previous element when a new element
- * is visited.
+ * is visited.  Note that it is the responsibility of the client to insure that the ResultSet is
+ * configured for streaming/cursor use.
  */
-public class SQLCursorList<E> extends AbstractSequentialList<E>
+public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
 {
-  public SQLCursorList( ResultSet cursor) throws SQLException
+  protected SQLCursorList( ResultSet cursor) throws SQLException
   {
     this.cursor = cursor;
-    
-    Statement statement = cursor.getStatement();
-    if ( statement == null) throw new IllegalArgumentException( "ResultSet does not have an associated Statement.");
-    
-    statement.setFetchSize( 1);
   }
   
   /* (non-Javadoc)
    * @see java.util.AbstractSequentialList#listIterator(int)
    */
   @Override
-  public ListIterator<E> listIterator( int index)
+  public ListIterator<IModelObject> listIterator( int index)
   {
-    return null;
+    return new SQLCursorIterator( this);
   }
+  
+  /**
+   * Transform the current row from the specified cursor.
+   * @param cursor The cursor.
+   * @return Returns null or the transformed row.
+   */
+  protected abstract IModelObject transform( ResultSet cursor);
 
   /* (non-Javadoc)
    * @see java.util.AbstractCollection#size()
@@ -38,8 +43,120 @@ public class SQLCursorList<E> extends AbstractSequentialList<E>
   @Override
   public int size()
   {
-    return 0;
+    throw new UnsupportedOperationException();
   }
 
   private ResultSet cursor;
+  
+  private class SQLCursorIterator implements ListIterator<IModelObject>
+  {
+    public SQLCursorIterator( SQLCursorList list)
+    {
+      try
+      {
+        this.list = list;
+        hasNext = list.cursor.next();
+      }
+      catch( SQLException e)
+      {
+        throw new RuntimeException( "Iteration interrupted", e);
+      }
+    }
+    
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#hasNext()
+     */
+    @Override
+    public boolean hasNext()
+    {
+      return hasNext;
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#hasPrevious()
+     */
+    @Override
+    public boolean hasPrevious()
+    {
+      return false;
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#next()
+     */
+    @Override
+    public IModelObject next()
+    {
+      try
+      {
+        IModelObject row = list.transform( cursor);
+        hasNext = list.cursor.next();
+        return row;
+      }
+      catch( SQLException e)
+      {
+        throw new RuntimeException( "Iteration interrupted", e);
+      }
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#nextIndex()
+     */
+    @Override
+    public int nextIndex()
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#previous()
+     */
+    @Override
+    public IModelObject previous()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#previousIndex()
+     */
+    @Override
+    public int previousIndex()
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#add(java.lang.Object)
+     */
+    @Override
+    public void add( IModelObject arg0)
+    {
+      throw new UnsupportedOperationException();
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#remove()
+     */
+    @Override
+    public void remove()
+    {
+      throw new UnsupportedOperationException();
+    }
+
+    /* (non-Javadoc)
+     * @see java.util.ListIterator#set(java.lang.Object)
+     */
+    @Override
+    public void set( IModelObject arg0)
+    {
+      throw new UnsupportedOperationException();
+    }
+
+    private SQLCursorList list;
+    private boolean hasNext;
+  }
 }

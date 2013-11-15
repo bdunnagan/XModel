@@ -22,6 +22,7 @@ package org.xmodel.caching.sql;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -111,14 +112,24 @@ public class MySQLProvider implements ISQLProvider
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long)
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long, boolean, boolean)
    */
   @Override
-  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset) throws SQLException
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException
   {
-    if ( limit < 0) return connection.prepareStatement( query);
-    if ( offset < 0) return connection.prepareStatement( String.format( "%s LIMIT %d", query, limit));
-    return connection.prepareStatement( String.format( "%s LIMIT %d OFFSET %d", query, limit, offset));
+    if ( limit >= 0) 
+    {
+      query = (offset < 0)? 
+        String.format( "%s LIMIT %d", query, limit):
+        String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
+    }
+    
+    int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
+    PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+    
+    if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+    
+    return statement;
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
