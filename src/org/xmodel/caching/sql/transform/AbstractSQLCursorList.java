@@ -6,7 +6,6 @@ import java.util.AbstractSequentialList;
 import java.util.ListIterator;
 
 import org.xmodel.IModelObject;
-import org.xmodel.log.SLog;
 
 /**
  * An implementation of java.util.List that uses a JDBC ResultSet in "cursor mode" to efficiently 
@@ -14,9 +13,9 @@ import org.xmodel.log.SLog;
  * is visited.  Note that it is the responsibility of the client to insure that the ResultSet is
  * configured for streaming/cursor use.
  */
-public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
+public abstract class AbstractSQLCursorList extends AbstractSequentialList<IModelObject>
 {
-  protected SQLCursorList( ResultSet cursor) throws SQLException
+  protected AbstractSQLCursorList( ResultSet cursor) throws SQLException
   {
     this.cursor = cursor;
   }
@@ -35,7 +34,7 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
    * @param cursor The cursor.
    * @return Returns null or the transformed row.
    */
-  protected abstract IModelObject transform( ResultSet cursor);
+  protected abstract IModelObject transform( ResultSet cursor) throws SQLException;
 
   /* (non-Javadoc)
    * @see java.util.AbstractCollection#size()
@@ -50,11 +49,12 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
   
   private class SQLCursorIterator implements ListIterator<IModelObject>
   {
-    public SQLCursorIterator( SQLCursorList list)
+    public SQLCursorIterator( AbstractSQLCursorList list)
     {
       try
       {
         this.list = list;
+        this.index = 0;
         hasNext = list.cursor.next();
       }
       catch( SQLException e)
@@ -91,6 +91,7 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
       {
         IModelObject row = list.transform( cursor);
         hasNext = list.cursor.next();
+        index++;
         return row;
       }
       catch( SQLException e)
@@ -105,8 +106,7 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
     @Override
     public int nextIndex()
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return index;
     }
 
     /* (non-Javadoc)
@@ -115,7 +115,6 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
     @Override
     public IModelObject previous()
     {
-      // TODO Auto-generated method stub
       return null;
     }
 
@@ -125,8 +124,7 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
     @Override
     public int previousIndex()
     {
-      // TODO Auto-generated method stub
-      return 0;
+      return -1;
     }
 
     /* (non-Javadoc)
@@ -156,7 +154,8 @@ public abstract class SQLCursorList extends AbstractSequentialList<IModelObject>
       throw new UnsupportedOperationException();
     }
 
-    private SQLCursorList list;
+    private AbstractSQLCursorList list;
     private boolean hasNext;
+    private int index;
   }
 }

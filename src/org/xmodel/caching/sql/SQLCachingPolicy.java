@@ -11,6 +11,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.caching.sql.transform.AbstractSQLCursorList;
 import org.xmodel.caching.sql.transform.DefaultSQLRowTransform;
 import org.xmodel.caching.sql.transform.ISQLColumnTransform;
 import org.xmodel.caching.sql.transform.SQLColumnMetaData;
@@ -130,6 +131,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
+    IExpression streamExpr = Xlate.childGet( annotation, "stream", (IExpression)null);
+    stream = (streamExpr != null)? streamExpr.evaluateBoolean( context): false;
+    
     parser = new SimpleSQLParser( query);
     configureProvider( context, annotation);
     configureRowTransform( annotation, shallow);
@@ -232,7 +236,14 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     
     if ( reference == tableReference) 
     {
-      syncTable( reference); 
+      if ( stream)
+      {
+        syncTableStream( reference);
+      }
+      else
+      {
+        syncTable( reference);
+      }
     }
     else if ( reference.getParent() == tableReference) 
     { 
@@ -286,6 +297,39 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   }
   
   /**
+   * Synchronize a table reference in streaming mode.
+   * @param reference The reference.
+   */
+  protected void syncTableStream( IExternalReference reference) throws CachingException
+  {
+    Connection connection = provider.leaseConnection();
+    try
+    {
+      PreparedStatement statement = provider.createStatement( connection, query, limit, offset, true, true);
+      ResultSet rowCursor = statement.executeQuery();
+      
+      if ( !metadataReady) 
+      {
+        metadata.setColumnTypes( rowCursor.getMetaData());
+        metadataReady = true;
+      }
+      
+      // reference.setStorageClass( new SQLCursorStorageClass( reference.getStorageClass(), new SQLCursorList( resultSet)));  
+      
+      statement.close();
+    }
+    catch( SQLException e)
+    {
+      String message = String.format( "Unable to sync reference with query, '%s'", query);
+      throw new CachingException( message, e);
+    }
+    finally
+    {
+      provider.releaseConnection( connection);
+    }
+  }
+  
+  /**
    * Synchronize a table reference.
    * @param reference The reference.
    */
@@ -321,6 +365,23 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   public ITransaction transaction()
   {
     return null;
+  }
+  
+  private class SQLCursorList extends AbstractSQLCursorList
+  {
+    public SQLCursorList( ResultSet cursor) throws SQLException
+    {
+      super( cursor);
+    }
+    
+    /* (non-Javadoc)
+     * @see org.xmodel.caching.sql.transform.AbstractSQLCursorList#transform(java.sql.ResultSet)
+     */
+    @Override
+    protected IModelObject transform( ResultSet cursor) throws SQLException
+    {
+      return transform.importRow( cursor);
+    }
   }
 
   public static void main( String[] args) throws Exception
@@ -364,4 +425,5 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   protected IExternalReference tableReference;
   protected long limit;
   protected long offset;
+  protected boolean stream;
 }

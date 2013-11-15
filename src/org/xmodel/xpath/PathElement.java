@@ -186,12 +186,7 @@ public class PathElement implements IPathElement, IAxis
   public List<IModelObject> query( IContext context, List<IModelObject> list, List<IModelObject> result)
   {
     if ( result == null) result = new ArrayList<IModelObject>();
-    int size = list.size();
-    for ( int i=0; i<size; i++)
-    {
-      IModelObject object = (IModelObject)list.get( i);
-      query( context, object, result);
-    }
+    for( IModelObject object: list) query( context, object, result);
     return result;
   }
 

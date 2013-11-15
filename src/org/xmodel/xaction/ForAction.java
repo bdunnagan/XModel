@@ -87,11 +87,12 @@ public class ForAction extends GuardedAction
     if ( inExpr != null)
     {
       List<IModelObject> nodes = inExpr.evaluateNodes( context);
-      for( int i=0; i<nodes.size(); i++)
+      int i=1;
+      for( IModelObject node: nodes)
       {
         // store the current element in either a variable or the context
-        if ( var != null) scope.set( var, nodes.get( i));
-        else context = new StatefulContext( context, nodes.get( i), i+1, nodes.size());
+        if ( var != null) scope.set( var, node);
+        else context = new StatefulContext( context, node, i++, nodes.size());
         
         Object[] result = script.run( context);
         if ( result != null && !cont && !brk) return result;
