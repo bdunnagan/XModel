@@ -1186,5 +1186,5 @@ public class ModelObject implements IModelObject
   protected String type;
   protected IStorageClass storageClass;
   
-  private static Log log = Log.getLog( "org.xmodel");
+  private static Log log = Log.getLog( ModelObject.class);
 }

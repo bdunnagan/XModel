@@ -20,6 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
@@ -67,6 +68,9 @@ public class SumFunction extends Function
         case STRING:
         case BOOLEAN:
           sum += argument.evaluateNumber( context);
+          break;
+          
+        default:
           break;
       }
     }

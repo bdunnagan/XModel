@@ -23,8 +23,9 @@ public class SQLProviderFactory
   {
     String id = Xlate.get( annotation, "provider", Xlate.childGet( annotation, "provider", (String)null));
     String host = Xlate.get( annotation, "host", Xlate.childGet( annotation, "host", (String)null));
+    String db = Xlate.get( annotation, "database", Xlate.childGet( annotation, "database", (String)null));
     
-    String key = String.format( "%s+%s", id, host);
+    String key = String.format( "%s+%s+%s", id, host, db);
     ISQLProvider provider = providers.get( key);
     if ( provider == null)
     {

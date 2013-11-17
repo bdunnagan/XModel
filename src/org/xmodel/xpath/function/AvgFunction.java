@@ -72,6 +72,9 @@ public class AvgFunction extends Function
           sum += argument.evaluateNumber( context);
           count++;
           break;
+          
+        case UNDEFINED:
+          break;
       }
     }
     
@@ -96,6 +99,15 @@ public class AvgFunction extends Function
    */
   @Override
   public void notifyRemove( IExpression expression, IContext context, List<IModelObject> nodes)
+  {
+    if ( getParent() != null) notifyChange( this, context);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#notifyChange(org.xmodel.xpath.expression.IExpression, org.xmodel.xpath.expression.IContext, double, double)
+   */
+  @Override
+  public void notifyChange( IExpression expression, IContext context, double newValue, double oldValue)
   {
     if ( getParent() != null) notifyChange( this, context);
   }

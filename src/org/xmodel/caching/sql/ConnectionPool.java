@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.caching.sql.mbean.ConnectionPools;
 import org.xmodel.log.Log;
@@ -19,7 +21,7 @@ public class ConnectionPool
   public ConnectionPool( ISQLProvider provider, int size)
   {
     this.validateAfter = 60000;
-    
+    this.count = new AtomicInteger( size); 
     this.provider = provider;
     this.leased = new ConcurrentHashMap<Connection, Item>();
     this.queue = new LinkedBlockingQueue<Item>();
@@ -34,12 +36,19 @@ public class ConnectionPool
   {
     try
     {
-      Item item = queue.take();
+      Item item = queue.poll( 1000, TimeUnit.MILLISECONDS);
+      if ( item == null)
+      {
+        int id = count.incrementAndGet();
+        log.infof( "Expand JDBC connection pool: count=%d", id);
+        item = new Item( id);
+      }
+      
       if ( item.connection == null) 
       {
         ConnectionPools.getInstance().incrementConnectionCount();
         item.connection = provider.newConnection();
-        log.debugf( "Created JDBC connection, %d", item.id);
+        log.debugf( "Created JDBC connection: id=%d", item.id);
       }
       
       long now = System.currentTimeMillis();
@@ -58,6 +67,7 @@ public class ConnectionPool
       }
   
       log.verbosef( "Leasing JDBC connection, %d", item.id);
+//      new Throwable().printStackTrace();
       leased.put( item.connection, item);
       
       ConnectionPools.getInstance().incrementLeasedCount();
@@ -84,7 +94,8 @@ public class ConnectionPool
     log.verbosef( "Returning JDBC connection, %d", item.id);
     item.validated = System.currentTimeMillis();
     
-    queue.offer( item);
+    if ( !queue.offer( item))
+      log.errorf( "Failed to enqueue released connection: id=%d", item.id);
   }
   
   private boolean validate( Connection connection)
@@ -126,6 +137,7 @@ public class ConnectionPool
   private final static Log log = Log.getLog( ConnectionPool.class);
   
   private ISQLProvider provider;
+  private AtomicInteger count;
   private BlockingQueue<Item> queue;
   private Map<Connection, Item> leased;
   private int validateAfter;

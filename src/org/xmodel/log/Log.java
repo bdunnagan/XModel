@@ -144,10 +144,19 @@ public final class Log
     defaultSink.set( sink);
   }
   
-  protected Log()
+  protected Log( String name)
   {
+    this.name = name;
     this.mask = new AtomicInteger( problems | info);
     this.sink = null;
+  }
+  
+  /**
+   * @return Returns the name of the log.
+   */
+  public String getName()
+  {
+    return name;
   }
   
   /**
@@ -493,7 +502,7 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
@@ -513,7 +522,7 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
@@ -533,13 +542,14 @@ public final class Log
     }
     catch( Exception e)
     {
-      log( error, e.toString());
+      e.printStackTrace( System.err);
     }
   }
   
   protected static LogMap map = LogMap.getInstance();
   private static AtomicReference<ILogSink> defaultSink = new AtomicReference<ILogSink>( new FormatSink( new ConsoleSink()));
     
+  private final String name;
   private AtomicInteger mask;
   private ILogSink sink;
 }

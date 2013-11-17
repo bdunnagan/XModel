@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -17,8 +15,10 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
+import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
@@ -78,14 +78,7 @@ public class XioClient extends XioPeer
   }
   
   /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
-   * for optional arguments. The following table shows defaults used for each optional argument:
-   * <ul>
-   *   <li>context - Required for remote execution from the server</li>
-   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
-   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
-   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
-   * </ul>
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
    * @param contextExecutor
@@ -96,49 +89,35 @@ public class XioClient extends XioPeer
   }
   
   /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
-   * for optional arguments. The following table shows defaults used for each optional argument:
-   * <ul>
-   *   <li>context - Required for remote execution from the server</li>
-   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
-   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
-   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
-   * </ul>
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
    * @param channelFactory User-supplied channel factory.
    * @param contextExecutor
    */
-  public XioClient( final IContext context, final ScheduledExecutorService scheduler, NioClientSocketChannelFactory channelFactory, final Executor contextExecutor)
+  public XioClient( final IContext context, final ScheduledExecutorService scheduler, ClientSocketChannelFactory channelFactory, final Executor contextExecutor)
   {
     this( context, scheduler, channelFactory, null, contextExecutor);
   }
   
   /**
-   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive. Null may be passed
-   * for optional arguments. The following table shows defaults used for each optional argument:
-   * <ul>
-   *   <li>context - Required for remote execution from the server</li>
-   *   <li>scheduler - GlobalSettings.getInstance().getScheduler()</li>
-   *   <li>bossExecutor - Static ExecutorService.newCachedThreadPool</li>
-   *   <li>workerExecutor - Static ExecutorService.newCachedThreadPool</li>
-   * </ul>
+   * Create a client that uses an NioClientSocketChannelFactory configured with tcp-no-delay and keep-alive.
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
-   * @param channelFactory User-supplied channel factory.
-   * @param sslContext An SSLContext.
-   * @param contextExecutor
+   * @param channelFactory The channel factory.
+   * @param sslContext The SSLContext.
+   * @param contextExecutor An executor
    */
   public XioClient( 
       final IContext context, 
       final ScheduledExecutorService scheduler, 
-      final NioClientSocketChannelFactory channelFactory, 
+      final ClientSocketChannelFactory channelFactory, 
       final SSLContext sslContext, 
       final Executor contextExecutor)
   {
     this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
     this.listeners = new ArrayList<IListener>( 1);
-    
+
     bootstrap = new ClientBootstrap( channelFactory);
     bootstrap.setOption( "tcpNoDelay", true);
     bootstrap.setOption( "keepAlive", true);
@@ -154,6 +133,9 @@ public class XioClient extends XioPeer
           engine.setUseClientMode( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
+        
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 90, 30, 90));
+        pipeline.addLast( "heartbeatHandler", new Heartbeat());
 
         XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
         handler.setClient( XioClient.this);
@@ -193,6 +175,16 @@ public class XioClient extends XioPeer
   public void removeListener( IListener listener)
   {
     listeners.remove( listener);
+  }
+  
+  /**
+   * Bind to the specified local address.
+   * @param address The local address.
+   * @param port The local port.
+   */
+  public void bind( String address, int port)
+  {
+    bootstrap.setOption( "localAddress", new InetSocketAddress( address, port));
   }
   
   /**
@@ -378,34 +370,27 @@ public class XioClient extends XioPeer
     wrapperFuture.addTask( future);
     return wrapperFuture;
   }
-  
+
   /**
-   * @return Returns the address of the last connection attempt.
+   * @return Returns null or the address of the last connection attempt.
    */
   public InetSocketAddress getRemoteAddress()
   {
     return lastAddress;
   }
   
-  private static synchronized NioClientSocketChannelFactory getDefaultChannelFactory()
+  /**
+   * @return Returns the default ClientSocketChannelFactory.
+   */
+  private static synchronized ClientSocketChannelFactory getDefaultChannelFactory()
   {
     if ( defaultChannelFactory == null)
-      defaultChannelFactory = new NioClientSocketChannelFactory( getDefaultBossExecutor(), getDefaultWorkerExecutor());
+    {
+      defaultChannelFactory = new NioClientSocketChannelFactory(
+        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-boss")),
+        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-worker")));
+    }
     return defaultChannelFactory;
-  }
-
-  private static synchronized Executor getDefaultBossExecutor()
-  {
-    if ( defaultBossExecutor == null)
-      defaultBossExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-boss"));
-    return defaultBossExecutor;
-  }
-  
-  private static synchronized Executor getDefaultWorkerExecutor()
-  {
-    if ( defaultWorkerExecutor == null)
-      defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-worker"));
-    return defaultWorkerExecutor;
   }
 
   /**
@@ -477,9 +462,7 @@ public class XioClient extends XioPeer
     }
   };
   
-  private static NioClientSocketChannelFactory defaultChannelFactory = null;
-  private static Executor defaultBossExecutor = null;
-  private static Executor defaultWorkerExecutor = null;
+  private static ClientSocketChannelFactory defaultChannelFactory = null;
   
   private ClientBootstrap bootstrap;
   private ScheduledExecutorService scheduler;

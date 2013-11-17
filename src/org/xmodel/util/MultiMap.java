@@ -39,7 +39,10 @@
 
 package org.xmodel.util;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 /**
   This interface is similar to a Map except that it allows multiple entries
@@ -133,6 +136,13 @@ public interface MultiMap<K, T>
   */
   public boolean remove( K key, T value);
 
+  /**
+   * Remove the first value for the specified key and return it.
+   * @param key The key.
+   * @return Returns null or the value.
+   */
+  public T removeFirst( K key);
+  
   /**
    * Removes all the mappings for key.
    * @param key The key whose mappings will be removed.

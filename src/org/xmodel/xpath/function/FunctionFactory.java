@@ -40,6 +40,7 @@ public class FunctionFactory implements IFunctionFactory
   private void addBaseFunctions()
   {
     Class[] classes = {
+      AbsFunction.class,
       AvgFunction.class,
       BooleanFunction.class,
       CallFunction.class,
@@ -61,11 +62,15 @@ public class FunctionFactory implements IFunctionFactory
       IDFunction.class,
       HashCodeFunction.class,
       IndexOfFunction.class,
+      IsDefinedFunction.class,
       LastFunction.class,
       LowercaseFunction.class,
       MatchesFunction.class,
       MinFunction.class,
       MaxFunction.class,
+      MinimizeFunction.class,
+      MaximizeFunction.class,
+      MulOverFunction.class,
       NotFunction.class,
       NumberFunction.class,
       NameFunction.class,
@@ -89,6 +94,7 @@ public class FunctionFactory implements IFunctionFactory
       SubstringFunction.class,
       SumFunction.class,
       SumMulFunction.class,
+      SumOverFunction.class,
       TranslateFunction.class,
       TraceFunction.class,
       TrueFunction.class,

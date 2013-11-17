@@ -1,6 +1,7 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -17,6 +18,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
+import org.xmodel.NullObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.log.Log;
@@ -42,8 +44,28 @@ public class ExecutionResponseProtocol
    */
   public void reset()
   {
-    queues.clear();
-    tasks.clear();
+    Iterator< Map.Entry<Integer, BlockingQueue<IModelObject>>> iter = queues.entrySet().iterator();
+    while( iter.hasNext())
+    {
+      Map.Entry<Integer, BlockingQueue<IModelObject>> entry = iter.next();
+      iter.remove();
+      if ( entry.getValue() != null) entry.getValue().offer( closedQueueIndicator);
+    }
+    
+    Iterator< Map.Entry<Integer, ResponseTask>> taskIter = tasks.entrySet().iterator();
+    while( iter.hasNext())
+    {
+      Map.Entry<Integer, ResponseTask> entry = taskIter.next();
+      taskIter.remove();
+      
+      ResponseTask task = entry.getValue();
+      if ( task != null) 
+      {
+        task.setError( "Protocol interrupted because connection was closed.");
+        Executor executor = task.context.getExecutor();
+        executor.execute( task);
+      }
+    }
   }
   
   /**
@@ -129,6 +151,19 @@ public class ExecutionResponseProtocol
   }
   
   /**
+   * Handle an execution request timeout.
+   * @param task The response task for the request.
+   * @param correlation The request correlation number.
+   */
+  protected void handleTimeout( ResponseTask task, int correlation)
+  {
+    log.debug( "Response timeout.");
+    task.setError( "timeout");
+    tasks.remove( correlation);
+    bundle.executor.execute( task);
+  }
+  
+  /**
    * Allocates the next correlation without associating a queue or task.
    * @return Returns the allocated correlation number.
    */
@@ -176,12 +211,25 @@ public class ExecutionResponseProtocol
    */
   protected Object[] waitForResponse( int correlation, IContext context, int timeout) throws InterruptedException, XioExecutionException
   {
+    log.debugf( "waitForResponse: corr=%d", correlation);
+    
     try
     {
       BlockingQueue<IModelObject> queue = queues.get( correlation);
       IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
-      if ( response == null) return null;
       
+      if ( response == null) 
+      {
+        log.debugf( "Response is null: corr=%s", correlation);
+        return null;
+      }
+      
+      if ( response == closedQueueIndicator)
+      {
+        log.debugf( "Response interrupted: corr=%s", correlation);
+        throw new XioExecutionException( "Protocol interrupted by closed connection.");
+      }
+        
       Throwable throwable = ExecutionSerializer.readResponseException( response);
       if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
       
@@ -293,6 +341,7 @@ public class ExecutionResponseProtocol
   }
   
   private final static Log log = Log.getLog( ExecutionResponseProtocol.class);
+  private final static IModelObject closedQueueIndicator = new NullObject();
 
   private ExecutionProtocol bundle;
   private AtomicInteger counter;

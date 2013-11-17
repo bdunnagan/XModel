@@ -19,9 +19,10 @@ public class ExecutorAction extends XAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    var = Conventions.getVarName( document.getRoot(), true);
+    var = Conventions.getVarName( document.getRoot(), false);
     nameExpr = document.getExpression( "name", true);
     threadsExpr = document.getExpression( "threads", true);
+    targetExpr = document.getExpression( "target", true);
   }
 
   /* (non-Javadoc)
@@ -31,12 +32,15 @@ public class ExecutorAction extends XAction
   public Object[] doRun( IContext context)
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
-    String name = (nameExpr != null)? nameExpr.evaluateString( context): "model";
+    
+    IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
+    String name = (nameExpr != null)? nameExpr.evaluateString( context): ((target != null)? target.getType(): "model");
+    
     Executor executor = new ThreadPoolExecutor( name, threads);
     
-    IModelObject holder = new ModelObject( "executor");
-    holder.setValue( executor);
-    context.set( var, holder);
+    if ( target == null) target = new ModelObject( "executor");
+    target.setValue( executor);
+    if ( var != null) context.set( var, target);
     
     return null;
   }
@@ -44,4 +48,5 @@ public class ExecutorAction extends XAction
   private String var;
   private IExpression nameExpr;
   private IExpression threadsExpr;
+  private IExpression targetExpr;
 }

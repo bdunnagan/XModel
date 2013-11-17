@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -19,6 +18,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.bind.BindProtocol;
+import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
@@ -60,7 +60,9 @@ public class XioChannelHandler extends SimpleChannelHandler
     clearAttribute,
     changeDirty,
     register,
-    unregister
+    unregister,
+    echoRequest,
+    echoResponse
   }
   
   public XioChannelHandler( IContext context, Executor executor, ScheduledExecutorService scheduler, IXioPeerRegistry registry)
@@ -69,6 +71,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     this.listeners = new ArrayList<IListener>( 1);
     
     headerProtocol = new HeaderProtocol();
+    echoProtocol = new EchoProtocol( headerProtocol, executor);
     registerProtocol = new RegisterProtocol( registry, headerProtocol);
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler);
@@ -87,7 +90,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    */
   public void setClient( XioClient client)
   {
-    this.peer = client;
+    this.client = client;
   }
   
   /**
@@ -107,6 +110,14 @@ public class XioChannelHandler extends SimpleChannelHandler
   public void removeListener( IListener listener)
   {
     listeners.remove( listener);
+  }
+  
+  /**
+   * @return Returns the protocol that implements echo.
+   */
+  public EchoProtocol getEchoProtocol()
+  {
+    return echoProtocol;
   }
   
   /**
@@ -147,7 +158,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
-    XioPeer peer = this.peer;
+    XioPeer peer = this.client;
     if ( peer == null) peer = new XioServerPeer( event.getChannel());
     event.getChannel().setAttachment( peer);
     
@@ -174,6 +185,7 @@ public class XioChannelHandler extends SimpleChannelHandler
     {
       try
       {
+        XioPeer peer = (XioPeer)event.getChannel().getAttachment();
         listener.notifyDisconnect( peer);
       }
       catch( Exception e)
@@ -249,6 +261,9 @@ public class XioChannelHandler extends SimpleChannelHandler
     
     switch( type)
     {
+      case echoRequest:     echoProtocol.requestProtocol.handle( channel, buffer); return true;
+      case echoResponse:    echoProtocol.responseProtocol.handle( channel, buffer); return true;
+      
       case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
       case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
       case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
@@ -300,27 +315,37 @@ public class XioChannelHandler extends SimpleChannelHandler
   public final static String toString( String indent, ChannelBuffer buffer)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( indent);
+    sb.append( "\n");
     
-    int bpl = 64;
-    for( int i=0, n=0; i<buffer.readableBytes(); i++)
+    for( int i=0, n=0; i<buffer.readableBytes(); i++, n++)
     {
-      if ( n == 0)
-      {
-        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
-          sb.append( String.format( "|%-8d", i + j));
-        sb.append( String.format( "\n%s", indent));
-      }
-      
-      if ( (n % 4) == 0) sb.append( "|");
+      if ( i > 0 && (n % 64) == 0) sb.append( "\n");
       sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
-        
-      if ( ++n == bpl) 
-      { 
-        sb.append( String.format( "\n%s", indent));
-        n=0;
-      }
     }
+    
+    sb.append( "\n");
+    
+//    sb.append( indent);
+//    
+//    int bpl = 64;
+//    for( int i=0, n=0; i<buffer.readableBytes(); i++)
+//    {
+//      if ( n == 0)
+//      {
+//        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
+//          sb.append( String.format( "|%-8d", i + j));
+//        sb.append( String.format( "\n%s", indent));
+//      }
+//      
+//      if ( (n % 4) == 0) sb.append( "|");
+//      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
+//        
+//      if ( ++n == bpl) 
+//      { 
+//        sb.append( String.format( "\n%s", indent));
+//        n=0;
+//      }
+//    }
     
     return sb.toString();
   }
@@ -329,11 +354,12 @@ public class XioChannelHandler extends SimpleChannelHandler
   
   private ChannelBuffer buffer;
   private HeaderProtocol headerProtocol;
+  private EchoProtocol echoProtocol;
   private RegisterProtocol registerProtocol;
   private ExecutionProtocol executionProtocol;
   private BindProtocol bindProtocol;
   private IXioPeerRegistry registry;
   private ChannelFuture sslHandshakeFuture;
-  private XioPeer peer;
+  private XioPeer client;
   private List<IListener> listeners;
 }

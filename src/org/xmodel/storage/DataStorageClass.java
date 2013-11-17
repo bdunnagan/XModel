@@ -2,7 +2,7 @@ package org.xmodel.storage;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.xmodel.IModelObject;
@@ -23,7 +23,7 @@ public final class DataStorageClass implements IStorageClass
   {
     // Statistics.increment( this);
     
-    attributes = new HashMap<String, Object>();
+    attributes = new LinkedHashMap<String, Object>();
     attributes.put( storageClass.name1, storageClass.value1);
     attributes.put( storageClass.name2, storageClass.value2);
     attributes.put( storageClass.name3, storageClass.value3);
@@ -37,22 +37,22 @@ public final class DataStorageClass implements IStorageClass
   {
     // Statistics.increment( this);
     
-    attributes = new HashMap<String, Object>();
+    attributes = new LinkedHashMap<String, Object>();
     attributes.put( storageClass.name1, storageClass.value1);
     attributes.put( storageClass.name2, storageClass.value2);
     attributes.put( storageClass.name3, storageClass.value3);
     children = storageClass.children;
   }
   
-  /* (non-Javadoc)
-   * @see java.lang.Object#finalize()
-   */
-  @Override
-  protected void finalize() throws Throwable
-  {
-    super.finalize();
-    // Statistics.decrement( this);
-  }
+//  /* (non-Javadoc)
+//   * @see java.lang.Object#finalize()
+//   */
+//  @Override
+//  protected void finalize() throws Throwable
+//  {
+//    super.finalize();
+//    Statistics.decrement( this);
+//  }
 
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
@@ -153,7 +153,7 @@ public final class DataStorageClass implements IStorageClass
   public Object setAttribute( String name, Object value)
   {
     if ( value == null) return (attributes != null)? attributes.remove( name): null;
-    if ( attributes == null) attributes = new HashMap<String, Object>();
+    if ( attributes == null) attributes = new LinkedHashMap<String, Object>();
     return attributes.put( name, value);
   }
 

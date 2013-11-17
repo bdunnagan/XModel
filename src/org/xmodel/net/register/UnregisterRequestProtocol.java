@@ -1,6 +1,7 @@
 package org.xmodel.net.register;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
@@ -41,7 +42,7 @@ public class UnregisterRequestProtocol
   {
     log.debugf( "UnregisterRequestProtocol.send: name='%s'", name);
     
-    byte[] bytes = name.getBytes();
+    byte[] bytes = name.getBytes( "UTF-8");
     
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 1 + bytes.length, Type.unregister, 0);
     buffer.writeByte( bytes.length);
@@ -64,7 +65,7 @@ public class UnregisterRequestProtocol
     byte[] bytes = new byte[ length];
     buffer.readBytes( bytes);
     
-    String name = new String( bytes);
+    String name = new String( bytes, charset);
     log.debugf( "UnregisterRequestProtocol.handle: name='%s'", name);
     
     if ( name.length() > 0)
@@ -78,6 +79,7 @@ public class UnregisterRequestProtocol
   }
   
   private final static Log log = Log.getLog( UnregisterRequestProtocol.class);
+  private Charset charset = Charset.forName( "UTF-8");
 
   private RegisterProtocol bundle;
 }

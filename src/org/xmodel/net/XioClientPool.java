@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -138,9 +139,11 @@ public class XioClientPool
    * @param address The address.
    * @return Returns a consistent string representation of the specified address.
    */
-  private static String toString( InetSocketAddress address)
+  private static String toString( InetSocketAddress socketAddress)
   {
-    return address.getAddress().getHostAddress() + ":" + address.getPort();
+    InetAddress address = socketAddress.getAddress();
+    if ( address == null) return "";
+    return address.getHostAddress() + ":" + socketAddress.getPort();
   }
   
   private class TimeoutTask implements Runnable

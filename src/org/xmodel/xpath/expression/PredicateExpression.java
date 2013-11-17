@@ -136,14 +136,13 @@ public class PredicateExpression extends Expression implements IPredicate
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, 
-   * org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
     for( IExpression argument: getArguments())
-      argument.createSubtree( context, factory, undo);
+      argument.createSubtree( context, factory, undo, setter);
   }
 
   /* (non-Javadoc)

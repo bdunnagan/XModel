@@ -1,5 +1,6 @@
 package org.xmodel.log.xaction;
 
+import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
@@ -19,7 +20,8 @@ public class LogdAction extends GuardedAction
   {
     super.configure( document);
     
-    String logName = LogAction.createLogName( document.getRoot());
+    String logName = Xlate.get( document.getRoot(), "name", (String)null);
+    if ( logName == null) logName = LogAction.createLogName( document.getRoot());
     log = Log.getLog( logName);
     
     level = Log.debug;

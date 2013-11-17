@@ -96,12 +96,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowInserts = new HashMap<IModelObject, List<IModelObject>>();
     rowDeletes = new HashMap<IModelObject, List<IModelObject>>();
     rowUpdates = new HashMap<IModelObject, List<String>>();
-    
-    if ( providers == null)
-    {
-      providers = new HashMap<String, Class<? extends ISQLProvider>>();
-      providers.put( "mysql", MySQLProvider.class);
-    }
   }
   
   /* (non-Javadoc)
@@ -182,7 +176,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     fetchMetadata();
     
     // configure static attributes of SQLRowCachingPolicy
-    rowCachingPolicy.addStaticAttribute( primaryKey);
+    if ( primaryKey != null) rowCachingPolicy.addStaticAttribute( primaryKey);
     for( String otherKey: otherKeys) rowCachingPolicy.addStaticAttribute( otherKey);
     
     // sync
@@ -531,6 +525,13 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         primaryKey = name.toLowerCase();
       }
       
+      // views do not provide meta-data that reflects the backing tables
+      if ( primaryKey == null) 
+      {
+        if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
+        primaryKey = attributes.get( 0);
+      }
+      
       otherKeys = new ArrayList<String>( 1);
       result = meta.getIndexInfo( null, null, tableName, false, false);
       while( result.next())
@@ -540,7 +541,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
           otherKeys.add( columnName.toLowerCase());
       }
     }
-    catch( SQLException e)
+    catch( Exception e)
     {
       throw new CachingException( "Unable to get column names for table: "+tableName, e);
     }
@@ -1126,7 +1127,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   }
     
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
-  private static Map<String, Class<? extends ISQLProvider>> providers;
 
   protected ISQLProvider provider;
   protected boolean stub;

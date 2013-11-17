@@ -25,10 +25,13 @@
 package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.IModelObject;
@@ -83,17 +86,18 @@ public class RunAction extends GuardedAction
     
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
-    
     serverExpr = document.getExpression( "server", true);
     clientsExpr = document.getExpression( "clients", true);
     
     timeoutExpr = document.getExpression( "timeout", true);
+    delayExpr = document.getExpression( "delay", true);
     
     onCompleteExpr = document.getExpression( "onComplete", true);
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
     executorExpr = document.getExpression( "executor", true);
+    schedulerExpr = document.getExpression( "scheduler", true);
   }
 
   /* (non-Javadoc)
@@ -102,24 +106,40 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( hostExpr != null)
-    {
-      runRemote( context, getRemoteAddresses( context));
-    }
-    else if ( serverExpr != null)
+    if ( serverExpr != null)
     {
       if ( clientsExpr != null)
       {
-        runRemote( context, getClients( context));
+        String[] clients = getClients( context);
+        if ( clients.length > 0)
+        {
+          runRemote( context, getClients( context));
+        }
+        else if ( hostExpr != null)
+        {
+          runRemote( context, getRemoteAddresses( context));
+        }
+        else
+        {
+          SLog.warnf( this, "No clients specified.");
+        }
       }
       else
       {
         SLog.warnf( this, "Client expression not specified.");
       }
     }
+    else if ( hostExpr != null)
+    {
+      runRemote( context, getRemoteAddresses( context));
+    }
     else if ( executorExpr != null)
     {
       runLocalAsync( context);
+    }
+    else if ( schedulerExpr != null)
+    {
+      runLocalDelayed( context);
     }
     else
     {
@@ -175,7 +195,7 @@ public class RunAction extends GuardedAction
     IModelObject executorNode = executorExpr.queryFirst( context);
     if ( executorNode == null)
     {
-      log.warnf( "Executor not found, '%s'", executorExpr);
+      log.severef( "Executor not found, '%s'", executorExpr);
       return;
     }
     
@@ -190,6 +210,34 @@ public class RunAction extends GuardedAction
     runContext.getScope().copyFrom( context.getScope());
     runContext.setExecutor( executor);
     executor.execute( new ScriptRunnable( runContext, script));
+  }
+  
+  /**
+   * Execute the script with a specified delay.
+   * @param context The context.
+   */
+  private void runLocalDelayed( IContext context)
+  {
+    double delay = (delayExpr != null)? delayExpr.evaluateNumber( context): 0;
+    
+    IModelObject schedulerNode = schedulerExpr.queryFirst( context);
+    if ( schedulerNode == null)
+    {
+      log.warnf( "Scheduler not found, '%s'", schedulerExpr);
+      return;
+    }
+    
+    ScheduledExecutorService scheduler = (ScheduledExecutorService)schedulerNode.getValue();
+    IXAction script = getScript( getScriptNode( context));
+    
+    //
+    // Must create a new context here without the original context object, because otherwise the
+    // new dispatcher will end up using the original context object's model.
+    //
+    StatefulContext runContext = new StatefulContext( context.getObject());
+    runContext.getScope().copyFrom( context.getScope());
+    runContext.setExecutor( context.getExecutor());
+    scheduler.schedule( new ScriptRunnable( runContext, script), (int)delay, TimeUnit.MILLISECONDS);
   }
   
   /**
@@ -222,6 +270,9 @@ public class RunAction extends GuardedAction
           if ( !client.isConnected())  // TODO: no longer necessary - remove and test
             client.connect( address, connectionRetries).await( timeout);
 
+          if ( !client.isConnected())
+            throw new RuntimeException( "Timeout");
+            
           try
           {
             Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
@@ -433,15 +484,19 @@ public class RunAction extends GuardedAction
     if ( clientsExpr.getType( context) == ResultType.NODES)
     {
       List<IModelObject> nodes = clientsExpr.evaluateNodes( context);
-      String[] clients = new String[ nodes.size()];
-      for( int i=0; i<clients.length; i++)
-        clients[ i] = Xlate.get( nodes.get( i), (String)null);
-      return clients;
+      List<String> clients = new ArrayList<String>( nodes.size());
+      for( IModelObject node: nodes)
+      {
+        String client = Xlate.get( node, (String)null);
+        if ( client.length() > 0) clients.add( client);
+      }
+      return clients.toArray( new String[ 0]);
     }
     else
     {
       String name = clientsExpr.evaluateString( context);
-      return new String[] { name};
+      if ( name.length() > 0) return new String[] { name};
+      return new String[ 0];
     }
   }
   
@@ -674,7 +729,7 @@ public class RunAction extends GuardedAction
   }
   
   private final static Log log = Log.getLog( RunAction.class);
-  private final static int[] connectionRetries = { 250, 500, 1000, 2000, 3000, 5000};  
+  private final static int[] connectionRetries = { 500, 1000, 3000, 5000};  
   private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
   private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
@@ -687,10 +742,12 @@ public class RunAction extends GuardedAction
   private IExpression serverExpr;
   private IExpression clientsExpr;
   private IExpression timeoutExpr;
+  private IExpression delayExpr;
   private IExpression scriptExpr;
   private IModelObject inline;
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
   private IExpression executorExpr;
+  private IExpression schedulerExpr;
 }

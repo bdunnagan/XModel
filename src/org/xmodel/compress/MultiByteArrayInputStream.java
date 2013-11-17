@@ -79,7 +79,7 @@ public class MultiByteArrayInputStream extends InputStream
       bufferIndex = 0;
     }
     
-    return buffer[ bufferIndex++];
+    return (int)buffer[ bufferIndex++] & 0xFF;
   }
 
   protected List<byte[]> segments;

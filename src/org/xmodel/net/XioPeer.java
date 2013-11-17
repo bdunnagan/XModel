@@ -2,10 +2,11 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.SucceededChannelFuture;
+import org.jboss.netty.util.HashedWheelTimer;
+import org.jboss.netty.util.Timer;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.future.AsyncFuture;
@@ -35,6 +36,16 @@ public class XioPeer
   public void setReconnect( boolean reconnect)
   {
     this.reconnect = reconnect;
+  }
+  
+  /**
+   * Send a heartbeat.
+   */
+  public void heartbeat() throws IOException
+  {
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
+    handler.getEchoProtocol().requestProtocol.send( channel);
   }
   
   /**
@@ -317,6 +328,14 @@ public class XioPeer
   /**
    * @return Returns the remote address to which this client is, or was last, connected.
    */
+  public synchronized InetSocketAddress getLocalAddress()
+  {
+    return (channel != null)? (InetSocketAddress)channel.getLocalAddress(): null;
+  }
+  
+  /**
+   * @return Returns the remote address to which this client is, or was last, connected.
+   */
   public synchronized InetSocketAddress getRemoteAddress()
   {
     return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
@@ -359,6 +378,8 @@ public class XioPeer
     return channel.hashCode();
   }
 
+  public static Timer timer = new HashedWheelTimer();
+  
   private Channel channel;
   private boolean reconnect;
 }

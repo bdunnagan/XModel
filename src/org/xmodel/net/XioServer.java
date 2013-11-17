@@ -3,13 +3,10 @@ package org.xmodel.net;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -17,10 +14,10 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
-import org.jboss.netty.util.ThreadNameDeterminer;
-import org.jboss.netty.util.ThreadRenamingRunnable;
+import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.log.SLog;
 import org.xmodel.net.execution.ExecutionPrivilege;
@@ -67,7 +64,7 @@ public class XioServer
    */
   public XioServer( IContext context)
   {
-    this( null, context, null, null, null);
+    this( null, context, null, null);
   }
   
   /**
@@ -78,7 +75,7 @@ public class XioServer
    */
   public XioServer( SSLContext sslContext, IContext context)
   {
-    this( sslContext, context, null, null, null);
+    this( sslContext, context, null, null);
   }
   
   /**
@@ -93,25 +90,19 @@ public class XioServer
    * @param SSLContext Optional SSLContext.
    * @param context Optional context.
    * @param scheduler Optional scheduler used for protocol timers.
-   * @param bossExecutor Optional NioClientSocketChannelFactory boss executor.
-   * @param workerExecutor Optional oClientSocketChannelFactory worker executor.
+   * @param bossExecutor Optional The channel factory.
    */
-  public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, Executor bossExecutor, Executor workerExecutor)
+  public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, ServerSocketChannelFactory channelFactory)
   {
     this.listeners = new ArrayList<IListener>( 1);
     
     this.registry = new MemoryXioPeerRegistry( this);
     this.registry.addListener( registryListener);
     
-    ThreadRenamingRunnable.setThreadNameDeterminer( ThreadNameDeterminer.CURRENT);    
+    if ( channelFactory == null) channelFactory = getDefaultChannelFactory();
     
-    if ( bossExecutor == null) bossExecutor = getDefaultBossExecutor();
-    if ( workerExecutor == null) workerExecutor = getDefaultWorkerExecutor();
-    
-    NioServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossExecutor, workerExecutor);
     bootstrap = new ServerBootstrap( channelFactory);
     bootstrap.setOption( "child.tcpNoDelay", true);
-    bootstrap.setOption( "child.keepAlive", true);
     
     bootstrap.setPipelineFactory( new ChannelPipelineFactory() {
       public ChannelPipeline getPipeline() throws Exception
@@ -125,13 +116,15 @@ public class XioServer
           //engine.setNeedClientAuth( true);
           pipeline.addLast( "ssl", new SslHandler( engine));
         }
+
+        pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 60, 15, 60));
+        pipeline.addLast( "heartbeatHandler", new Heartbeat());
         
         XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
         handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
         pipeline.addLast( "xio", handler);
         
-        if ( sslContext == null)
-          handler.addListener( channelConnectionListener);
+        handler.addListener( channelConnectionListener);
         
         return pipeline;
       }
@@ -234,20 +227,20 @@ public class XioServer
     }
   };
   
-  private static synchronized Executor getDefaultBossExecutor()
+  /**
+   * @return Returns the default ServerSocketChannelFactory.
+   */
+  private static synchronized ServerSocketChannelFactory getDefaultChannelFactory()
   {
-    if ( defaultBossExecutor == null)
-      defaultBossExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-boss"));
-    return defaultBossExecutor;
+    if ( defaultChannelFactory == null)
+    {
+      defaultChannelFactory = new NioServerSocketChannelFactory(
+        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-boss")),
+        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work")));
+    }
+    return defaultChannelFactory;
   }
-  
-  private static synchronized Executor getDefaultWorkerExecutor()
-  {
-    if ( defaultWorkerExecutor == null)
-      defaultWorkerExecutor = Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work"));
-    return defaultWorkerExecutor;
-  }
-  
+    
   /**
    * Notify listeners that a connection was established.
    * @param peer The peer that connected.
@@ -291,8 +284,8 @@ public class XioServer
   private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
     public void notifyConnect( XioPeer peer)
     {
-      if ( !peer.getChannel().getPipeline().getNames().contains( "ssl"))
-        notifyChannelConnected( peer);
+      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      if ( sslHandler == null) notifyChannelConnected( peer);
     }      
     public void notifyDisconnect( XioPeer peer)
     {
@@ -300,9 +293,8 @@ public class XioServer
     }
   };
   
-  private static Executor defaultBossExecutor = null;
-  private static Executor defaultWorkerExecutor = null;
-  
+  private static ServerSocketChannelFactory defaultChannelFactory = null;
+
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
   private IXioPeerRegistry registry;

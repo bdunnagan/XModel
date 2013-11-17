@@ -86,8 +86,9 @@ public class ChangeAttributeRecord extends AbstractChangeRecord
     if ( path == null) return;
     
     // create the subtree
-    ModelAlgorithms.createPathSubtree( root, path, null, null);
+    ModelAlgorithms.createPathSubtree( root, path, null, null, null);
 
+    // TODO: combine with subtree creation above?
     // apply change
     IModelObject target = path.queryFirst( root); 
     target.setAttribute( attrName, attrValue);

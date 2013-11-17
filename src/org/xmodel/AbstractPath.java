@@ -239,11 +239,11 @@ public abstract class AbstractPath implements IPath, IAxis
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IPath#createSubtree(org.xmodel.IModelObject)
+   * @see org.xmodel.IPath#createSubtree(org.xmodel.IModelObject, java.lang.Object)
    */
-  public IModelObject createSubtree( IModelObject root)
+  public IModelObject createSubtree( IModelObject root, Object setter)
   {
-    ModelAlgorithms.createPathSubtree( root, this, null, null);
+    ModelAlgorithms.createPathSubtree( root, this, null, null, setter);
     return queryFirst( root);
   }
 

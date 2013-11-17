@@ -1,7 +1,6 @@
 package org.xmodel.net.execution;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +51,11 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
+    for( Map.Entry<Integer, RequestRunnable> entry: requests.entrySet())
+    {
+      RequestRunnable runnable = entry.getValue();
+      runnable.cancel();
+    }
     requests.clear();
   }
   
@@ -103,7 +107,7 @@ public class ExecutionRequestProtocol
     ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)
     {
-      ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task), timeout, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> timer = bundle.scheduler.schedule( new ResponseTimeout( task, correlation), timeout, TimeUnit.MILLISECONDS);
       task.setTimer( timer);
     }
     
@@ -183,7 +187,7 @@ public class ExecutionRequestProtocol
     log.debugf( "ExecutionRequestProtocol.handleCancel: corr=%d", correlation);
     
     RequestRunnable runnable = requests.remove( correlation);
-    if ( runnable != null) runnable.interrupt();
+    if ( runnable != null) runnable.cancel();
   }
   
   /**
@@ -217,19 +221,10 @@ public class ExecutionRequestProtocol
    * @param channel The channel.
    * @param correlation The correlation.
    * @param request The request.
+   * @param context The execution context.
    */
-  private void execute( Channel channel, int correlation, IModelObject request)
+  private void execute( Channel channel, int correlation, IModelObject request, IContext context)
   {
-    //
-    // Model locking is left to the script for finer granularity.  A private context is created
-    // to hold the variables that will be passed to the script.
-    //
-    IContext context = new StatefulContext( bundle.context);
-    
-    // store remote address in context
-    InetSocketAddress address = (InetSocketAddress)channel.getRemoteAddress();
-    context.set( "remoteHost", address.getAddress().getHostAddress());
-    
     try
     {
       IModelObject element = ExecutionSerializer.readRequest( request, context);
@@ -254,6 +249,27 @@ public class ExecutionRequestProtocol
     }
   }
   
+  /**
+   * Execute the <i>onCancel</i> script defined in the context, if present.
+   * @param context The execution context.
+   */
+  private void executeCancel( IContext context)
+  {
+    List<?> list = (List<?>)context.get( "onCancel");
+    if ( list == null || list.size() == 0) return;
+    
+    try
+    {
+      IModelObject element = (IModelObject)list.get( 0);
+      IXAction script = compile( element);
+      script.run( context);
+    }
+    catch( IOException e)
+    {
+      SLog.exception( this, e);
+    }
+  }
+  
   private class RequestRunnable implements Runnable
   {
     public RequestRunnable( Channel channel, int correlation, IModelObject request)
@@ -262,13 +278,24 @@ public class ExecutionRequestProtocol
       this.correlation = correlation;
       this.request = request;
     }
-    
+
     /**
-     * Interrupt the thread currently processing this request.
+     * Invoke the cancellation script, if it exists.
      */
-    public void interrupt()
+    public void cancel()
     {
-      if ( thread != null) thread.interrupt();
+      synchronized( this)
+      {
+        cancelled = true;
+        
+        if ( context != null) 
+        {
+          synchronized( context)
+          {
+            executeCancel( context);
+          }
+        }
+      }
     }
     
     /* (non-Javadoc)
@@ -279,8 +306,13 @@ public class ExecutionRequestProtocol
     {
       try
       {
-        thread = Thread.currentThread();
-        execute( channel, correlation, request);
+        synchronized( this)
+        {
+          if ( cancelled) return;
+          context = new StatefulContext( bundle.context);
+        }
+        
+        execute( channel, correlation, request, context);
       }
       finally
       {
@@ -291,14 +323,16 @@ public class ExecutionRequestProtocol
     private Channel channel;
     private int correlation;
     private IModelObject request;
-    private Thread thread;
+    private IContext context;
+    private boolean cancelled;
   }
   
   private class ResponseTimeout implements Runnable
   {
-    public ResponseTimeout( ResponseTask task)
+    public ResponseTimeout( ResponseTask task, int correlation)
     {
       this.task = task;
+      this.correlation = correlation;
     }
     
     /* (non-Javadoc)
@@ -307,13 +341,11 @@ public class ExecutionRequestProtocol
     @Override
     public void run()
     {
-      log.debug( "Response timeout.");
-      task.setError( "timeout");
-      
-      bundle.executor.execute( task);
+      bundle.responseProtocol.handleTimeout( task, correlation);
     }
 
     private ResponseTask task;
+    private int correlation;
   }
   
   private final static Log log = Log.getLog( ExecutionRequestProtocol.class);

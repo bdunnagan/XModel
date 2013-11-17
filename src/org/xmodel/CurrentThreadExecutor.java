@@ -15,6 +15,7 @@ public class CurrentThreadExecutor implements Executor
   {
     queue = new LinkedBlockingQueue<Runnable>();
     statistics = new Statistics( log);
+    lastProcessTime = System.nanoTime();
   }
   
   /* (non-Javadoc)

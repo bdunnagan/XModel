@@ -86,7 +86,7 @@ public class LogMap
    */
   private synchronized Log newLog( String name)
   {
-    Log log = new Log();
+    Log log = new Log( name);
     map.put( name, log);
     
     for( Entry<String, Config> entry: configs.entrySet())

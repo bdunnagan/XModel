@@ -1,18 +1,26 @@
 package org.xmodel.xaction;
 
+import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.List;
-
+import java.util.concurrent.Executors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-
+import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioClientBossPool;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioWorkerPool;
+import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
+import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.net.OpenTrustStore;
 import org.xmodel.net.XioClient;
+import org.xmodel.net.XioPeer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * Create a client connection and register the client with the server with a peer name.
@@ -34,7 +42,10 @@ public class ClientAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), true); 
     serverHostExpr = document.getExpression( "serverHost", true);
     serverPortExpr = document.getExpression( "serverPort", true);
+    localAddressExpr = document.getExpression( "localAddress", true);
+    localPortExpr = document.getExpression( "localPort", true);
     clientNameExpr = document.getExpression( "subscribe", true);
+    threadsExpr = document.getExpression( "threads", true);
     
     sslExpr = document.getExpression( "ssl", true);
     
@@ -51,20 +62,30 @@ public class ClientAction extends GuardedAction
   {
     final String serverHost = serverHostExpr.evaluateString( context);
     final int serverPort = (int)serverPortExpr.evaluateNumber( context);
+    final String localAddress = (localAddressExpr != null)? localAddressExpr.evaluateString( context): "";
+    final int localPort = (localPortExpr != null)? (int)localPortExpr.evaluateNumber( context): 0;
     final String clientName = clientNameExpr.evaluateString( context);
     final IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
     final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
     final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    XioClient.IListener listener = new XioClient.IListener() {
+    class ClientListener implements XioClient.IListener
+    {
       public void notifyConnect( final XioClient client)
       {
+        nested = new StatefulContext( context);
+        
+        InetSocketAddress localAddress = client.getLocalAddress();
+        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        
+        InetSocketAddress remoteAddress = client.getRemoteAddress();
+        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+        
         context.getExecutor().execute( new Runnable() {
           public void run()
           {
-            if ( onConnect != null) onConnect.run( context);
-            
-            register( context, client, clientName, onError);
+            if ( onConnect != null) onConnect.run( nested);
+            register( nested, client, clientName, onError);
           }
         });
       }
@@ -73,15 +94,28 @@ public class ClientAction extends GuardedAction
         context.getExecutor().execute( new Runnable() {
           public void run()
           {
-            if ( onDisconnect != null) onDisconnect.run( context);
+            if ( onDisconnect != null) onDisconnect.run( nested);
           }
         });
       }
+      
+      private StatefulContext nested;
     };
     
-    XioClient client = new XioClient( getSSLContext( context), context);
+    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
+    
+    ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
+    ModelThreadFactory workThreadFactory = new ModelThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
+    
+    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, XioPeer.timer, ThreadNameDeterminer.CURRENT);
+    NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
+    ClientSocketChannelFactory channelFactory = new NioClientSocketChannelFactory( bossPool, workerPool);
+    
+    XioClient client = new XioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
     client.setAutoReconnect( true);
-    client.addListener( listener);
+    client.addListener( new ClientListener());
+    
+    if ( localAddress.length() > 0) client.bind( localAddress, localPort);
     
     AsyncFuture<XioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
     future.addListener( new IListener<XioClient>() {
@@ -166,7 +200,10 @@ public class ClientAction extends GuardedAction
   private String var;
   private IExpression serverHostExpr;
   private IExpression serverPortExpr;
+  private IExpression localAddressExpr;
+  private IExpression localPortExpr;
   private IExpression clientNameExpr;
+  private IExpression threadsExpr;
   private IExpression sslExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;

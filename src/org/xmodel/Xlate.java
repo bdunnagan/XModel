@@ -1443,7 +1443,7 @@ public class Xlate
    */
   public static boolean pathSet( IModelObject parent, String path, boolean value)
   {
-    return set( evaluate( parent, path), value);
+    return (Boolean)pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1456,7 +1456,8 @@ public class Xlate
    */
   public static short pathSet( IModelObject parent, String path, short value)
   {
-    return set( evaluate( parent, path), value);
+    Number old = (Number)pathSetImpl( parent, path, value);
+    return (old != null)? old.shortValue(): 0;
   }
 
   /**
@@ -1469,7 +1470,8 @@ public class Xlate
    */
   public static int pathSet( IModelObject parent, String path, int value)
   {
-    return set( evaluate( parent, path), value);
+    Number old = (Number)pathSetImpl( parent, path, value);
+    return (old != null)? old.intValue(): 0;
   }
 
   /**
@@ -1482,7 +1484,8 @@ public class Xlate
    */
   public static long pathSet( IModelObject parent, String path, long value)
   {
-    return set( evaluate( parent, path), value);
+    Number old = (Number)pathSetImpl( parent, path, value);
+    return (old != null)? old.longValue(): 0;
   }
 
   /**
@@ -1495,7 +1498,8 @@ public class Xlate
    */
   public static float pathSet( IModelObject parent, String path, float value)
   {
-    return set( evaluate( parent, path), value);
+    Number old = (Number)pathSetImpl( parent, path, value);
+    return (old != null)? old.floatValue(): 0;
   }
 
   /**
@@ -1508,7 +1512,8 @@ public class Xlate
    */
   public static double pathSet( IModelObject parent, String path, double value)
   {
-    return set( evaluate( parent, path), value);
+    Number old = (Number)pathSetImpl( parent, path, value);
+    return (old != null)? old.doubleValue(): 0;
   }
 
   /**
@@ -1521,7 +1526,7 @@ public class Xlate
    */
   public static byte pathSet( IModelObject parent, String path, byte value)
   {
-    return set( evaluate( parent, path), value);
+    return (Byte)pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1534,7 +1539,7 @@ public class Xlate
    */
   public static byte[] pathSet( IModelObject parent, String path, byte[] value)
   {
-    return set( evaluate( parent, path), value);
+    return (byte[])pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1547,9 +1552,7 @@ public class Xlate
    */
   public static char pathSet( IModelObject parent, String path, char value)
   {
-    IPath xpath = XPath.createPath( path);
-    xpath.createSubtree( parent);
-    return set( evaluate( parent, path), value);
+    return (Character)pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1562,7 +1565,7 @@ public class Xlate
    */
   public static char[] pathSet( IModelObject parent, String path, char[] value)
   {
-    return set( evaluate( parent, path), value);
+    return (char[])pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1575,7 +1578,8 @@ public class Xlate
    */
   public static String pathSet( IModelObject parent, String path, String value)
   {
-    return set( evaluate( parent, path), value);
+    Object old = pathSetImpl( parent, path, value);
+    return (old != null)? old.toString(): null;
   }
 
   /**
@@ -1588,7 +1592,7 @@ public class Xlate
    */
   public static IExpression pathSet( IModelObject parent, String path, IExpression value)
   {
-    return set( evaluate( parent, path), value);
+    return (IExpression)pathSetImpl( parent, path, value);
   }
 
   /**
@@ -1601,7 +1605,24 @@ public class Xlate
    */
   public static <T extends Object> T pathSet( IModelObject parent, String path, T value)
   {
-    return set( evaluate( parent, path), value);
+    return (T)pathSetImpl( parent, path, value);
+  }
+  
+  /**
+   * Set the value of the specified child of the specified parent. The previous value is returned.
+   * If the child does not exist, then it is created.
+   * @param parent The parent element.
+   * @param path A simple, relative path (only child axes, no predicates).
+   * @param value The value to set on the path once it's created.
+   * @return Returns null or the previous value.
+   */
+  private static Object pathSetImpl( IModelObject parent, String path, Object value)
+  {
+    IPath xpath = XPath.createPath( path);
+    IModelObject node = xpath.queryFirst( parent);
+    Object old = (node != null)? node.getValue(): null;
+    xpath.createSubtree( parent, value);
+    return old;
   }
   
   /**
@@ -1613,7 +1634,7 @@ public class Xlate
   private static IModelObject evaluate( IModelObject parent, String path)
   {
     IPath xpath = XPath.createPath( path);
-    xpath.createSubtree( parent);
+    xpath.createSubtree( parent, null);
     return xpath.queryFirst( parent);
-  }
+  }  
 }

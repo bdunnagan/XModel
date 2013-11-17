@@ -2,11 +2,18 @@ package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
+import java.util.concurrent.Executors;
 import javax.net.ssl.SSLContext;
-
+import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioServerBossPool;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioWorkerPool;
+import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
+import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.XioServer;
 import org.xmodel.xpath.expression.IContext;
@@ -18,6 +25,11 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class ServerAction extends GuardedAction
 {
+  public ServerAction()
+  {
+    notifyContexts = new HashMap<XioPeer, StatefulContext>();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -30,8 +42,8 @@ public class ServerAction extends GuardedAction
     
     addressExpr = document.getExpression( "address", true);
     portExpr = document.getExpression( "port", true);
-    
     sslExpr = document.getExpression( "ssl", true);
+    threadsExpr = document.getExpression( "threads", true);
     
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
@@ -50,7 +62,19 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    XioServer server = new XioServer( getSSLContext( context), context);
+    String address = addressExpr.evaluateString( context);
+    int port = (int)portExpr.evaluateNumber( context);
+    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
+    if ( threads == 0) threads = 2;
+    
+    ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-server-boss-%s:%d", address, port));
+    ModelThreadFactory workThreadFactory = new ModelThreadFactory( String.format( "xio-server-work-%s:%d", address, port));
+    
+    NioServerBossPool bossPool = new NioServerBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, ThreadNameDeterminer.CURRENT);
+    NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
+    ServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossPool, workerPool);
+    
+    final XioServer server = new XioServer( getSSLContext( context), context, null, channelFactory);
     
     if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
     {
@@ -62,9 +86,7 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
+                StatefulContext nested = getNotifyContext( context, server, peer);
                 onConnect.run( nested);
               }
             });
@@ -77,12 +99,8 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                onDisconnect.run( nested);
+                StatefulContext nested = getNotifyContext( context, server, peer);
+                if ( nested != null) onDisconnect.run( nested);
               }
             });
           }
@@ -91,36 +109,38 @@ public class ServerAction extends GuardedAction
         {
           if ( onRegister != null) 
           {
+            if ( name.equals( getIdentityRegistration( peer)))
+              return;
+            
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                nested.set( "name", (name != null)? name: "");
-                
-                onRegister.run( nested);
+                StatefulContext nested = getNotifyContext( context, server, peer);
+                if ( nested != null)
+                {
+                  nested.set( "name", (name != null)? name: "");
+                  onRegister.run( nested);
+                }
               }
             });
           }
         }
         public void notifyUnregister( final XioPeer peer, final String name)
         {
+          if ( name.equals( getIdentityRegistration( peer)))
+            return;
+          
           if ( onUnregister != null) 
           {
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = new StatefulContext( context);
-                
-                InetSocketAddress address = peer.getRemoteAddress();
-                nested.set( "address", String.format( "%s:%d", address.getAddress().getHostAddress(), address.getPort()));
-                
-                nested.set( "name", (name != null)? name: "");
-                
-                onUnregister.run( nested);
+                StatefulContext nested = getNotifyContext( context, server, peer);
+                if ( nested != null) 
+                {
+                  nested.set( "name", (name != null)? name: "");
+                  onUnregister.run( nested);
+                }
               }
             });
           }
@@ -134,8 +154,6 @@ public class ServerAction extends GuardedAction
     if ( var != null) Conventions.putCache( context, var, server);
     
     // bind server
-    String address = addressExpr.evaluateString( context);
-    int port = (int)portExpr.evaluateNumber( context);
     server.start( address, port);
     
     return null;
@@ -174,13 +192,44 @@ public class ServerAction extends GuardedAction
     }
   }
   
+  private StatefulContext getNotifyContext( IContext context, XioServer server, XioPeer peer)
+  {
+    synchronized( notifyContexts)
+    {
+      StatefulContext nested = notifyContexts.get( peer);
+      if ( nested == null)
+      {
+        nested = new StatefulContext( context);
+        notifyContexts.put( peer, nested);
+        
+        InetSocketAddress localAddress = peer.getLocalAddress();
+        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        
+        InetSocketAddress remoteAddress = peer.getRemoteAddress();
+        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+
+        String unique = getIdentityRegistration( peer);
+        server.getPeerRegistry().register( peer, unique);
+        nested.set( "peer", unique);
+      }
+      return nested;
+    }
+  }
+  
+  private String getIdentityRegistration( XioPeer peer)
+  {
+    return String.format( "%X", System.identityHashCode( peer));
+  }
+  
   private String var;
   
   private IExpression addressExpr;
   private IExpression portExpr;
   private IExpression sslExpr;
+  private IExpression threadsExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;
   private IExpression onUnregisterExpr;
+  private Map<XioPeer, StatefulContext> notifyContexts;
 }

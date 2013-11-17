@@ -3,6 +3,7 @@ package org.xmodel.net.bind;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
@@ -90,7 +91,7 @@ public class UpdateProtocol
   public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] bytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes( charset);
     
     ChannelBuffer buffer2 = ChannelBuffers.dynamicBuffer( attrLengthEstimate);
     int attrLength = protocol.serializer.writeObject( new DataOutputStream( new ChannelBufferOutputStream( buffer2)), newValue);
@@ -115,7 +116,7 @@ public class UpdateProtocol
   public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
-    byte[] bytes = attrName.getBytes();
+    byte[] bytes = attrName.getBytes( charset);
     
     ChannelBuffer buffer = protocol.headerProtocol.writeHeader( 5 + 1 + bytes.length, Type.changeAttribute, 0);
     buffer.writeInt( netID);
@@ -197,7 +198,7 @@ public class UpdateProtocol
     
     byte[] bytes = new byte[ buffer.readUnsignedByte()];
     buffer.readBytes( bytes);
-    String attrName = new String( bytes);
+    String attrName = new String( bytes, charset);
     
     Object newValue = protocol.serializer.readObject( new DataInputStream( new ChannelBufferInputStream( buffer)));
   
@@ -220,7 +221,7 @@ public class UpdateProtocol
     
     byte[] bytes = new byte[ buffer.readUnsignedByte()];
     buffer.readBytes( bytes);
-    String attrName = new String( bytes);
+    String attrName = new String( bytes, charset);
   
     log.debugf( "UpdateProtocol.handleClearAttribute: element=%X, attrName=%s", netID, attrName);
     
@@ -339,6 +340,7 @@ public class UpdateProtocol
   }
   
   private final static Log log = Log.getLog( UpdateProtocol.class);
+  private static Charset charset = Charset.forName( "UTF-8");
   
   private BindProtocol protocol;
   private int attrLengthEstimate;

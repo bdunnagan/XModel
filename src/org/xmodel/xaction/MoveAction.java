@@ -65,7 +65,7 @@ public class MoveAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     // create target if requested
-    if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null);
+    if ( create) ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null, null);
     
     // source
     List<IModelObject> sources = sourceExpr.query( context, null);
