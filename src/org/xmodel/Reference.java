@@ -28,6 +28,7 @@ import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
 import org.xmodel.memento.SetParentMemento;
+import org.xmodel.storage.IStorageClass;
 
 
 /**
@@ -52,6 +53,24 @@ public class Reference implements IModelObject
   public Reference( String type, IModelObject referent)
   {
     this.referent = referent;
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setStorageClass(org.xmodel.storage.IStorageClass)
+   */
+  @Override
+  public void setStorageClass( IStorageClass storageClass)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getStorageClass()
+   */
+  @Override
+  public IStorageClass getStorageClass()
+  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)

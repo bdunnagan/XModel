@@ -27,6 +27,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
+import org.xmodel.storage.IStorageClass;
 
 /**
  * The interface for objects in a hierarchical data model suitable for representing the content of
@@ -50,6 +51,17 @@ import org.xmodel.memento.IMemento;
  */
 public interface IModelObject
 {
+  /**
+   * Set the IStorageClass instance.
+   * @param storageClass The storage class.
+   */
+  public void setStorageClass( IStorageClass storageClass);
+  
+  /**
+   * @return Returns the instance of IStorageClass.
+   */
+  public IStorageClass getStorageClass();
+  
   /**
    * Get the type of this object.
    * @return Returns the type of this object.

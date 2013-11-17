@@ -15,15 +15,16 @@ import org.xmodel.caching.sql.transform.AbstractSQLCursorList;
 import org.xmodel.caching.sql.transform.DefaultSQLRowTransform;
 import org.xmodel.caching.sql.transform.ISQLColumnTransform;
 import org.xmodel.caching.sql.transform.SQLColumnMetaData;
+import org.xmodel.caching.sql.transform.SQLCursorStorageClass;
 import org.xmodel.caching.sql.transform.SQLDirectColumnTransform;
 import org.xmodel.caching.sql.transform.SQLXmlColumnTransform;
 import org.xmodel.caching.sql.transform.SimpleSQLParser;
-import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
+import org.xmodel.log.SLog;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
@@ -214,7 +215,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
       {
         if ( xmlColumns.contains( column))
         {
-          ISQLColumnTransform columnTransform = new SQLXmlColumnTransform( metadata, column, column, new TabularCompressor());
+          ISQLColumnTransform columnTransform = new SQLXmlColumnTransform( metadata, column, column, null);
           transform.defineColumn( column, columnTransform);
         }
         else
@@ -314,9 +315,10 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         metadataReady = true;
       }
       
-      // reference.setStorageClass( new SQLCursorStorageClass( reference.getStorageClass(), new SQLCursorList( resultSet)));  
+      reference.setStorageClass( new SQLCursorStorageClass( reference.getStorageClass(), new SQLCursorList( rowCursor)));  
       
-      statement.close();
+      SLog.warnf( this, "Statement not closed!!!");
+      //statement.close();
     }
     catch( SQLException e)
     {

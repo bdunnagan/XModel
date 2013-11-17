@@ -25,6 +25,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
+import org.xmodel.storage.IStorageClass;
 
 
 /**
@@ -44,25 +45,21 @@ public class TextHistoryNode implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
+   * @see org.xmodel.IModelObject#setStorageClass(org.xmodel.storage.IStorageClass)
    */
-  public String getID()
+  @Override
+  public void setStorageClass( IStorageClass storageClass)
   {
     throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
+   * @see org.xmodel.IModelObject#getStorageClass()
    */
-  public void setID( String id)
+  @Override
+  public IStorageClass getStorageClass()
   {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -99,20 +96,6 @@ public class TextHistoryNode implements IModelObject
    * @see org.xmodel.IModelObject#addModelListener(org.xmodel.IModelListener)
    */
   public void addModelListener( IModelListener listener)
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addModelListener(int, org.xmodel.IModelListener)
-   */
-  public void addModelListener( int priority, IModelListener listener)
-  {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addPathListener(org.xmodel.IPath, org.xmodel.IPathListener)
-   */
-  public void addPathListener( IPath path, IPathListener listener)
   {
   }
 
@@ -220,14 +203,6 @@ public class TextHistoryNode implements IModelObject
   public Object getValue()
   {
     return oldValue;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getValueNode()
-   */
-  public IModelObject getValueNode()
-  {
-    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -384,13 +359,6 @@ public class TextHistoryNode implements IModelObject
   public boolean isType( String type)
   {
     return type.equals( "text()");
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
   }
 
   /* (non-Javadoc)

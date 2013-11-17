@@ -1,9 +1,7 @@
 package org.xmodel.caching.sql.transform;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
@@ -15,8 +13,9 @@ import org.xmodel.storage.PathListenerStorageClass;
 
 public class SQLCursorStorageClass implements IStorageClass
 {
-  public SQLCursorStorageClass( AbstractSQLCursorList children)
+  public SQLCursorStorageClass( IStorageClass storageClass, AbstractSQLCursorList children)
   {
+    this.storageClass = storageClass;
     this.children = children;
   }
   
@@ -116,9 +115,7 @@ public class SQLCursorStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
-    if ( value == null) return (attributes != null)? attributes.remove( name): null;
-    if ( attributes == null) attributes = new LinkedHashMap<String, Object>();
-    return attributes.put( name, value);
+    return storageClass.setAttribute( name, value);
   }
 
   /* (non-Javadoc)
@@ -127,8 +124,7 @@ public class SQLCursorStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String name)
   {
-    if ( attributes == null) return null;
-    return attributes.get( name);
+    return storageClass.getAttribute( name);
   }
 
   /* (non-Javadoc)
@@ -137,7 +133,7 @@ public class SQLCursorStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return attributes.keySet();
+    return storageClass.getAttributeNames();
   }
 
   /* (non-Javadoc)
@@ -158,7 +154,7 @@ public class SQLCursorStorageClass implements IStorageClass
     return null;
   }
 
-  protected Map<String, Object> attributes;
+  protected IStorageClass storageClass;
   protected AbstractSQLCursorList children;
   protected ICachingPolicy cachingPolicy;
   protected boolean dirty;

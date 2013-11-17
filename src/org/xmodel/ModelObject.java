@@ -91,6 +91,24 @@ public class ModelObject implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setStorageClass(org.xmodel.storage.IStorageClass)
+   */
+  @Override
+  public void setStorageClass( IStorageClass storageClass)
+  {
+    this.storageClass = storageClass;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getStorageClass()
+   */
+  @Override
+  public IStorageClass getStorageClass()
+  {
+    return storageClass;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getType()
    */
   public String getType()

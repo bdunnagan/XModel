@@ -61,7 +61,7 @@ public class SQLXmlColumnTransform implements ISQLColumnTransform
       try
       {
         IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
-        ModelAlgorithms.moveChildren( superroot, rowElement.getFirstChild( elementName));
+        ModelAlgorithms.moveChildren( superroot, rowElement.getCreateChild( elementName));
       }
       catch( Exception e)
       {
@@ -76,7 +76,7 @@ public class SQLXmlColumnTransform implements ISQLColumnTransform
         if ( xml.length() > 0)
         {
           IModelObject superroot = new XmlIO().read( xml);
-          ModelAlgorithms.moveChildren( superroot, rowElement.getFirstChild( elementName));
+          ModelAlgorithms.moveChildren( superroot, rowElement.getCreateChild( elementName));
         }
       }
       catch( XmlException e)

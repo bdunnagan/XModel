@@ -28,6 +28,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
+import org.xmodel.storage.IStorageClass;
 
 public class NullObject implements IModelObject
 {
@@ -36,18 +37,29 @@ public class NullObject implements IModelObject
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#setStorageClass(org.xmodel.storage.IStorageClass)
+   */
+  @Override
+  public void setStorageClass( IStorageClass storageClass)
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModelObject#getStorageClass()
+   */
+  @Override
+  public IStorageClass getStorageClass()
+  {
+    throw new UnsupportedOperationException();
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#isDirty()
    */
   public boolean isDirty()
   {
     return false;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
   }
 
   /* (non-Javadoc)
@@ -209,14 +221,6 @@ public class NullObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
-   */
-  public String getID()
-  {
-    return "";
-  }
-  
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#getModelListeners()
    */
   public ModelListenerList getModelListeners()
@@ -353,13 +357,6 @@ public class NullObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeAttribute(java.lang.String)
    */
   public Object removeAttribute( String attrName)
@@ -436,14 +433,6 @@ public class NullObject implements IModelObject
    * @see org.xmodel.IModelObject#setAttribute(java.lang.String, java.lang.Object)
    */
   public Object setAttribute( String attrName, Object attrValue)
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
-   */
-  public void setID( String id)
   {
     throw new UnsupportedOperationException();
   }

@@ -25,6 +25,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.ITransaction;
 import org.xmodel.memento.IMemento;
+import org.xmodel.storage.IStorageClass;
 
 
 /**
@@ -42,25 +43,21 @@ public class TextNode implements IModelObject
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#getID()
+   * @see org.xmodel.IModelObject#setStorageClass(org.xmodel.storage.IStorageClass)
    */
-  public String getID()
+  @Override
+  public void setStorageClass( IStorageClass storageClass)
   {
     throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#setID(java.lang.String)
+   * @see org.xmodel.IModelObject#getStorageClass()
    */
-  public void setID( String id)
+  @Override
+  public IStorageClass getStorageClass()
   {
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void addAncestorListener( IAncestorListener listener)
-  {
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
@@ -99,13 +96,6 @@ public class TextNode implements IModelObject
   public void addModelListener( IModelListener listener)
   {
     source.addModelListener( new TextListener( this, listener));
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#addPathListener(org.xmodel.IPath, org.xmodel.IPathListener)
-   */
-  public void addPathListener( IPath path, IPathListener listener)
-  {
   }
 
   /* (non-Javadoc)
@@ -390,13 +380,6 @@ public class TextNode implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removeAncestorListener(org.xmodel.IAncestorListener)
-   */
-  public void removeAncestorListener( IAncestorListener listener)
-  {
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.IModelObject#removeAttribute(java.lang.String)
    */
   public Object removeAttribute( String attrName)
@@ -441,13 +424,6 @@ public class TextNode implements IModelObject
   public void removeModelListener( IModelListener listener)
   {
     source.removeModelListener( new TextListener( this, listener));
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.IModelObject#removePathListener(org.xmodel.IPath, org.xmodel.IPathListener)
-   */
-  public void removePathListener( IPath path, IPathListener listener)
-  {
   }
 
   /* (non-Javadoc)
