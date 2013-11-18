@@ -84,7 +84,7 @@ public class BasicDatabaseTests
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key, 0);
+      byte[] content = db.search( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -112,7 +112,7 @@ public class BasicDatabaseTests
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key, 0);
+      byte[] content = db.search( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -135,20 +135,20 @@ public class BasicDatabaseTests
     db.storeIndex();
     
     db.delete( "A", 0);
-    assertTrue( "Record not deleted", db.query( "A", 0) == null);
+    assertTrue( "Record not deleted", db.search( "A", 0) == null);
     
     db.storeIndex();
     
     btree = new BTree<String>( 2, true, storageController);
     db = new Database<String>( Collections.singletonList( btree), storageController);
     
-    assertTrue( "Record not deleted", db.query( "A", 0) == null);
+    assertTrue( "Record not deleted", db.search( "A", 0) == null);
     
     for( int i=1; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key, 0);
+      byte[] content = db.search( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -171,18 +171,18 @@ public class BasicDatabaseTests
     db.storeIndex();
     
     db.delete( "A", 0);
-    assertTrue( "Record not deleted", db.query( "A", 0) == null);
+    assertTrue( "Record not deleted", db.search( "A", 0) == null);
 
     btree = new BTree<String>( 2, true, storageController);
     db = new Database<String>( Collections.singletonList( btree), storageController);
     
-    assertTrue( "Record not deleted", db.query( "A", 0) == null);
+    assertTrue( "Record not deleted", db.search( "A", 0) == null);
     
     for( int i=1; i<7; i++)
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", i+65);
-      byte[] content = db.query( key, 0);
+      byte[] content = db.search( key, 0);
       assertTrue( "Invalid record", Arrays.equals( record, content));
     }
   }
@@ -261,8 +261,8 @@ public class BasicDatabaseTests
     {
       record[ 0] = 1; record[ 1] = (byte)(i + 65); record[ 2] = '#';
       String key = String.format( "%c", 65 + i);
-      if ( i < 12) assertTrue( db.query( key, 0) == null);
-      else assertTrue( db.query( key, 0) != null);
+      if ( i < 12) assertTrue( db.search( key, 0) == null);
+      else assertTrue( db.search( key, 0) != null);
     }
   }
   

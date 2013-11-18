@@ -3,6 +3,8 @@ package org.xmodel.lss;
 import java.io.IOException;
 import java.util.List;
 
+import org.xmodel.lss.BNode.Entry;
+
 /**
  * Experimental implementation of a log-structured database.
  */
@@ -73,12 +75,12 @@ public class Database<K>
   }
   
   /**
-   * Query a record from the database with one unique key.
+   * Search for a record from the database with one unique key.
    * @param key The key.
    * @param index The index of the b+tree to which the key belongs.
    * @return Returns null or the record.
    */
-  public byte[] query( K key, int index) throws IOException
+  public byte[] search( K key, int index) throws IOException
   {
     BTree<K> btree = indexes.get( index);
     long position = btree.get( key);
@@ -96,6 +98,36 @@ public class Database<K>
       return record.getContent();
     }
     return null;
+  }
+
+  /**
+   * Create a cursor beginning with the key that is nearest to the specified key.  Note that
+   * the nearest key may be less than or greater than the specified key. 
+   * @param key The target key.
+   * @param index The index of the b+tree to which the key belongs.
+   * @return Returns a cursor at the nearest record.
+   */
+  public Cursor<K> cursor( K key, int index) throws IOException
+  {
+    BTree<K> btree = indexes.get( index);
+    Cursor<K> cursor = btree.getCursorNonUnique( key);
+    
+    // TODO: Is this correct???
+    Entry<K> entry = cursor.get();
+    if ( entry != null)
+    {
+      long position = entry.getPointer();
+      storageController.readRecord( position, record);
+      
+      // b+tree may not be up-to-date with deletes after restart
+      if ( record.isGarbage())
+      {
+        btree.delete( key);
+        return null;
+      }
+    }
+    
+    return cursor;
   }
   
   /**
