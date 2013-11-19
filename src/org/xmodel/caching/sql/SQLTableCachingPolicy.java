@@ -89,7 +89,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   public SQLTableCachingPolicy( ICache cache)
   {
     super( cache);
-    
+   
+    primaryKeys = new ArrayList<String>( 1);
     rowCachingPolicy = new SQLRowCachingPolicy( this, cache);
     updateMonitor = new SQLEntityListener();
     
@@ -176,7 +177,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     fetchMetadata();
     
     // configure static attributes of SQLRowCachingPolicy
-    if ( primaryKey != null) rowCachingPolicy.addStaticAttribute( primaryKey);
+    for( String primaryKey: primaryKeys) rowCachingPolicy.addStaticAttribute( primaryKey);
     for( String otherKey: otherKeys) rowCachingPolicy.addStaticAttribute( otherKey);
     
     // sync
@@ -220,9 +221,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         IModelObject row = getFactory().createObject( reference, rowElementName);
         if ( stub)
         {
-          row.setAttribute( primaryKey, result.getString( 1));
-          for( int i=0; i<otherKeys.size(); i++) 
-            row.setAttribute( otherKeys.get( i), result.getObject( i+2));
+          int k=1;
+          for( String primaryKey: primaryKeys) row.setAttribute( primaryKey, result.getObject( k++));
+          for( String otherKey: otherKeys) row.setAttribute( otherKey, result.getObject( k++));
         }
         else
         {
@@ -289,7 +290,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       String columnName = columnNames.get( i);
 
       Object value = result.getObject( i+1);
-      if ( (primaryKey != null && primaryKey.equals( columnName)) || otherKeys.contains( columnName) || attributes.contains( columnName))
+      if ( primaryKeys.contains( columnName) || otherKeys.contains( columnName) || attributes.contains( columnName))
       {
         object.setAttribute( columnName, value);
       }
@@ -516,20 +517,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
             "Primary key columns cannot be excluded."));
         }
         
-        if ( primaryKey != null) 
-        {
-          throw new CachingException( String.format(
-              "Composite primary keys not supported in table, %s", tableName));
-        }
-        
-        primaryKey = name.toLowerCase();
+        primaryKeys.add( name.toLowerCase());
       }
       
       // views do not provide meta-data that reflects the backing tables
-      if ( primaryKey == null) 
+      if ( primaryKeys.size() == 0) 
       {
         if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
-        primaryKey = attributes.get( 0);
+        primaryKeys.add( attributes.get( 0));
       }
       
       otherKeys = new ArrayList<String>( 1);
@@ -564,12 +559,19 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
 
     if ( stub)
     {
-      sb.append( primaryKey);
+      for( String primaryKey: primaryKeys)
+      {
+        sb.append( primaryKey);
+        sb.append( ",");
+      }
+      
       for( String otherKey: otherKeys)
       {
-        sb.append( ",");
         sb.append( otherKey);
+        sb.append( ",");
       }
+      
+      sb.setLength( sb.length() - 1);
     }
     else
     {
@@ -611,8 +613,13 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private PreparedStatement createRowSelectStatement( IExternalReference reference) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
-    sb.append( "SELECT "); sb.append( queryColumns); sb.append( " FROM "); sb.append( tableName);
-    sb.append( " WHERE "); sb.append( primaryKey); sb.append( "=?");
+    
+    sb.append( "SELECT "); 
+    sb.append( queryColumns); sb.append( " FROM "); sb.append( tableName);
+    
+    sb.append( " WHERE "); 
+    for( String primaryKey: primaryKeys) { sb.append( primaryKey); sb.append( "=? AND ");}
+    sb.setLength( sb.length() - 5);
     
     Connection connection = provider.leaseConnection();
 //    connection.setCatalog( catalog);
@@ -620,7 +627,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     log.debugf( "row query: %s", sb);
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
-    statement.setString( 1, Xlate.get( reference, primaryKey, (String)null));
+    int k=1;
+    for( String primaryKey: primaryKeys)
+      statement.setObject( k++, reference.getAttribute( primaryKey));
     return statement;
   }
   
@@ -696,9 +705,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( "=?");
     }
     
-    sb.append(" WHERE ");
-    sb.append( primaryKey);
-    sb.append( "=?");
+    sb.append( " WHERE ");
+    for( String primaryKey: primaryKeys) { sb.append( primaryKey); sb.append( "=? AND ");}
+    sb.setLength( sb.length() - 5);
     
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     for( int i=0; i<columns.size(); i++)
@@ -723,7 +732,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
     }
     
-    statement.setString( columns.size() + 1, Xlate.get( reference, primaryKey, (String)null));
+    int k = columns.size() + 1;
+    for( String primaryKey: primaryKeys)
+      statement.setObject( k++, reference.getAttribute( primaryKey));
     
     return statement;
   }
@@ -738,15 +749,20 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
+    
     sb.append( "DELETE FROM "); sb.append( tableName);
-    sb.append( " WHERE "); sb.append( primaryKey);
-    sb.append( "=?");
+    
+    sb.append( " WHERE ");
+    for( String primaryKey: primaryKeys) { sb.append( primaryKey); sb.append( "=? AND ");}
+    sb.setLength( sb.length() - 5);
 
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
+    int k=1;
     for( IModelObject node: nodes)
     {
-      statement.setString( 1, Xlate.get( node, primaryKey, (String)null));
+      for( String primaryKey: primaryKeys)   
+        statement.setObject( k++, node.getAttribute( primaryKey));
       statement.addBatch();
     }
     
@@ -1142,7 +1158,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected List<String> columnNames;
   protected List<Integer> columnTypes;
   protected String queryColumns;
-  protected String primaryKey;
+  protected List<String> primaryKeys;
   protected List<String> otherKeys;
   protected String rowElementName;
   protected Set<String> xmlColumns;
