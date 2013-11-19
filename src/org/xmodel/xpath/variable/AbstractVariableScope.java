@@ -377,6 +377,7 @@ public abstract class AbstractVariableScope implements IVariableScope
           case NUMBER:  return expression.evaluateNumber( context);
           case STRING:  return expression.evaluateString( context);
           case BOOLEAN: return expression.evaluateBoolean( context);
+          default:      return null;
         }
       }
     }

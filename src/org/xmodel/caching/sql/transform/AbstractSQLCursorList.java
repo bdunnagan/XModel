@@ -1,5 +1,6 @@
 package org.xmodel.caching.sql.transform;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.AbstractSequentialList;
@@ -51,10 +52,23 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
   {
     public SQLCursorIterator( AbstractSQLCursorList list)
     {
+      this.list = list;
+      this.index = 0;
+      
       try
       {
-        this.list = list;
-        this.index = 0;
+        if ( !list.cursor.isBeforeFirst())
+        {
+          list.cursor = ((PreparedStatement)list.cursor.getStatement()).executeQuery();
+        }
+      }
+      catch( SQLException e)
+      {
+        throw new RuntimeException( "Iteration interrupted", e);
+      }
+      
+      try
+      {
         hasNext = list.cursor.next();
       }
       catch( SQLException e)
