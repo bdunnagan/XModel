@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.xmodel.lss.BNode.SearchMode;
+
 /**
  * A B+Tree implementation that supports arbitrary keys and uses an instance of IRandomAccessStore to load and store nodes.
  */
@@ -91,33 +93,26 @@ public class BTree<K>
   
   /**
    * Get a cursor for navigating keys in order.
+   * @param mode The search mode.
    * @param key The unique starting key.
+   * @param unique True if key is unique.
    * @return Returns a cursor.
    */
-  public Cursor<K> getCursorUnique( K key) throws IOException
+  public BTreeIterator<K> getCursor( SearchMode mode, K key, boolean unique) throws IOException
   {
-    return root.getCursorUnique( key);
+    return root.getCursor( null, mode, key, unique? -1: 0);
   }
   
   /**
    * Get a cursor for navigating keys in order.
-   * @param key The unique starting key.
-   * @return Returns a cursor.
-   */
-  public Cursor<K> getCursorNonUnique( K key) throws IOException
-  {
-    return root.getCursorNonUnique( key);
-  }
-  
-  /**
-   * Get a cursor for navigating keys in order.
+   * @param mode The search mode.
    * @param key The starting key.
    * @param value The value (-1 for unique keys).
    * @return Returns a cursor.
    */
-  public Cursor<K> getCursor( K key, long value) throws IOException
+  public BTreeIterator<K> getCursor( SearchMode mode, K key, long value) throws IOException
   {
-    return root.getCursor( key, value);
+    return root.getCursor( null, mode, key, value);
   }
   
   /**
@@ -170,7 +165,7 @@ public class BTree<K>
       }
     });
 
-    String s = "AFSHZ3UCY6RVLXDN7Q4MEP5BL2G89BW1I";
+    String s = "AFSH3UCY6RVLXDNQ4ME5PBL2G89BW1I";
 
     for( int i=0; i<s.length(); i++)
     {
@@ -181,7 +176,7 @@ public class BTree<K>
       System.out.println( "------------------------------------------------------------");
     }
     
-    Cursor<String> cursor = tree.root.getCursorUnique( "5");
+    BTreeIterator<String> cursor = tree.getCursor( SearchMode.gte, "0", false);
     while( cursor.hasPrevious())
     {
       System.out.printf( "Traverse: %s\n", cursor.get().getKey());

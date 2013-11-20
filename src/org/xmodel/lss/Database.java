@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.xmodel.lss.BNode.Entry;
+import org.xmodel.lss.BNode.SearchMode;
 
 /**
  * Experimental implementation of a log-structured database.
@@ -101,16 +102,17 @@ public class Database<K>
   }
 
   /**
-   * Create a cursor beginning with the key that is nearest to the specified key.  Note that
-   * the nearest key may be less than or greater than the specified key. 
+   * Create a cursor beginning with the key that matches the specified search mode.
+   * @param mode The search mode. 
    * @param key The target key.
    * @param index The index of the b+tree to which the key belongs.
+   * @param unique True if the key is unique.
    * @return Returns a cursor at the nearest record.
    */
-  public Cursor<K> cursor( K key, int index) throws IOException
+  public BTreeIterator<K> cursor( SearchMode mode, K key, int index, boolean unique) throws IOException
   {
     BTree<K> btree = indexes.get( index);
-    Cursor<K> cursor = btree.getCursorNonUnique( key);
+    BTreeIterator<K> cursor = btree.getCursor( mode, key, unique);
     
     // TODO: Is this correct???
     Entry<K> entry = cursor.get();

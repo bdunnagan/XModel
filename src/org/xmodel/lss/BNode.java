@@ -9,6 +9,8 @@ import java.util.List;
 
 public class BNode<K>
 {
+  public enum SearchMode { eq, lte, gte};
+  
   /**
    * A BNode consists of an ordered list of Entry objects that associate a key with a pointer into the IRandomAccessStore.
    */
@@ -349,52 +351,31 @@ public class BNode<K>
   }
   
   /**
-   * Get a cursor for navigating keys in order.
-   * @param key The unique starting key.
-   * @return Returns a cursor.
-   */
-  public Cursor<K> getCursorUnique( K key) throws IOException
-  {
-    return getCursor( null, key, -1);
-  }
-  
-  /**
-   * Get a cursor for navigating keys in order.
-   * @param key The unique starting key.
-   * @return Returns a cursor.
-   */
-  public Cursor<K> getCursorNonUnique( K key) throws IOException
-  {
-    return getCursor( null, key, 0);
-  }
-  
-  /**
-   * Get a cursor for navigating keys in order.
-   * @param key The starting key.
-   * @param value The value (-1 for unique keys).
-   * @return Returns a cursor.
-   */
-  public Cursor<K> getCursor( K key, long value) throws IOException
-  {
-    return getCursor( null, key, value);
-  }
-  
-  /**
    * Get a nested cursor for navigating keys in order.
    * @param cursor The parent node cursor.
+   * @param mode The search mode.
    * @param key The starting key.
    * @param value The value (-1 for unique keys).
    * @return Returns a cursor.
    */
-  protected Cursor<K> getCursor( Cursor<K> parent, K key, long value) throws IOException
+  protected BTreeIterator<K> getCursor( BTreeIterator<K> parent, SearchMode mode, K key, long value) throws IOException
   {
     if ( !loaded) load();
     
     int i = search( key, value);
-    if ( i >= 0) return new Cursor<K>( parent, this, i);
+    if ( i >= 0) return new BTreeIterator<K>( parent, this, i);
     
-    if ( children.size() == 0) return null;
-    return children.get( -i - 1).getCursor( new Cursor<K>( parent, this, -i - 1), key, value);
+    if ( children.size() == 0) 
+    {
+      switch( mode)
+      {
+        case eq:  return null;
+        case gte: return new BTreeIterator<K>( parent, this, -i - 1);
+        case lte: return new BTreeIterator<K>( parent, this, -i - 2);
+      }
+    }
+    
+    return children.get( -i - 1).getCursor( new BTreeIterator<K>( parent, this, -i - 1), mode, key, value);
   }
   
   /**
