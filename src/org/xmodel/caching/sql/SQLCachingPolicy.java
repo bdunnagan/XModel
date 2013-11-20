@@ -98,12 +98,47 @@ import org.xmodel.xpath.expression.StatefulContext;
  *   &lt;/table&gt;
  * &lt;create&gt;
  * </pre>
+ * 
+ * <p>Warning: This caching policy must be unique per element because of the semantics of streaming mode.</p>
  */
 public class SQLCachingPolicy extends ConfiguredCachingPolicy
 {
   public SQLCachingPolicy( ICache cache)
   {
     super( cache);
+  }
+  
+  /**
+   * Enable/disable streaming mode.
+   * @param enabled True if streaming should be enabled.
+   */
+  public void setStreamingEnabled( boolean enabled)
+  {
+    this.stream = enabled;
+  }
+  
+  /**
+   * Close the current streamed statement and release the connection back to the connection pool.
+   */
+  public void closeStreamedStatement()
+  {
+    if ( streamedStatement != null) 
+    {
+      Connection connection = null;
+      try
+      {
+        connection = streamedStatement.getConnection();
+        streamedStatement.close();
+      }
+      catch( SQLException e)
+      {
+        SLog.exception( this, e);
+        return;
+      }
+      
+      provider.releaseConnection( connection);
+      streamedStatement = null;
+    }
   }
   
   /* (non-Javadoc)
@@ -131,9 +166,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
-    
-    IExpression streamExpr = Xlate.childGet( annotation, "stream", (IExpression)null);
-    stream = (streamExpr != null)? streamExpr.evaluateBoolean( context): false;
     
     parser = new SimpleSQLParser( query);
     configureProvider( context, annotation);
@@ -306,28 +338,27 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
+      SLog.info( this, "Create statement ...");
       PreparedStatement statement = provider.createStatement( connection, query, limit, offset, true, true);
+      SLog.info( this, "Execute query ...");
       ResultSet rowCursor = statement.executeQuery();
       
+      SLog.info( this, "Fetch metadata ...");
       if ( !metadataReady) 
       {
         metadata.setColumnTypes( rowCursor.getMetaData());
         metadataReady = true;
       }
       
+      SLog.info( this, "Set storage class ...");
       reference.setStorageClass( new SQLCursorStorageClass( reference.getStorageClass(), new SQLCursorList( rowCursor)));  
-      
-      SLog.warnf( this, "Statement not closed!!!");
-      //statement.close();
+
+      streamedStatement = statement;
     }
     catch( SQLException e)
     {
       String message = String.format( "Unable to sync reference with query, '%s'", query);
       throw new CachingException( message, e);
-    }
-    finally
-    {
-      provider.releaseConnection( connection);
     }
   }
   
@@ -428,4 +459,5 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   protected long limit;
   protected long offset;
   protected boolean stream;
+  protected PreparedStatement streamedStatement;
 }
