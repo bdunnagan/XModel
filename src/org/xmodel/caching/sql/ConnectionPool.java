@@ -20,7 +20,8 @@ public class ConnectionPool
 {
   public ConnectionPool( ISQLProvider provider, int size)
   {
-    this.validateAfter = 60000;
+    // Make sure MySQL connect_timeout is larger than validateAfter!!
+    this.validateAfter = 30000;
     this.count = new AtomicInteger( size); 
     this.provider = provider;
     this.leased = new ConcurrentHashMap<Connection, Item>();

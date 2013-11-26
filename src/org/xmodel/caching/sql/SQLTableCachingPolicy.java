@@ -600,7 +600,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "table query: %s", sb);
     
-    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, true, true);
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true);
     if ( limit > 0) statement.setMaxRows( limit);
     return statement;
   }

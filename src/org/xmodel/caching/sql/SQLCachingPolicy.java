@@ -299,7 +299,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     Connection connection = provider.leaseConnection();
     try
     {
-      PreparedStatement statement = provider.createStatement( connection, query, limit, offset, true, true);
+      PreparedStatement statement = provider.createStatement( connection, query, limit, offset, false, true);
       ResultSet rowCursor = statement.executeQuery();
       
       if ( !metadataReady) 
