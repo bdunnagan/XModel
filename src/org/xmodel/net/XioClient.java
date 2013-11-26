@@ -445,6 +445,10 @@ public class XioClient extends XioPeer
   private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
     public void notifyConnect( XioPeer peer)
     {
+      if ( peer == null) throw new IllegalStateException( "Connection incomplete: peer is null");
+      if ( peer.getChannel() == null) throw new IllegalStateException( "Connection incomplete: channel is null");
+      if ( peer.getChannel().getPipeline() == null) throw new IllegalStateException( "Connection incomplete: pipeline is null");
+      
       SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
       if ( sslHandler != null)
       {
