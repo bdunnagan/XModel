@@ -284,17 +284,24 @@ public class ExecutionRequestProtocol
      */
     public void cancel()
     {
-      synchronized( this)
+      try
       {
-        cancelled = true;
-        
-        if ( context != null) 
+        synchronized( this)
         {
-          synchronized( context)
+          cancelled = true;
+          
+          if ( context != null) 
           {
-            executeCancel( context);
+            synchronized( context)
+            {
+              executeCancel( context);
+            }
           }
         }
+      }
+      finally
+      {
+        requests.remove( correlation);
       }
     }
     
