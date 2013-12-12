@@ -18,15 +18,18 @@ import org.xmodel.log.SLog;
  */
 public class ConnectionPool
 {
-  public ConnectionPool( ISQLProvider provider, int size)
+  public ConnectionPool( ISQLProvider provider, int minSize, int maxSize, int minWait, int maxWait)
   {
     // Make sure MySQL connect_timeout is larger than validateAfter!!
     this.validateAfter = 30000;
-    this.count = new AtomicInteger( size); 
+    this.maxSize = maxSize;
+    this.minWait = minWait;
+    this.maxWait = maxWait;
+    this.count = new AtomicInteger( minSize);
     this.provider = provider;
     this.leased = new ConcurrentHashMap<Connection, Item>();
     this.queue = new LinkedBlockingQueue<Item>();
-    for( int i=0; i<size; i++) queue.offer( new Item( i));
+    for( int i=0; i<minSize; i++) queue.offer( new Item( i));
   }
 
   /**
@@ -37,12 +40,25 @@ public class ConnectionPool
   {
     try
     {
-      Item item = queue.poll( 1000, TimeUnit.MILLISECONDS);
+      Item item = queue.poll( minWait, TimeUnit.MILLISECONDS);
       if ( item == null)
       {
-        int id = count.incrementAndGet();
-        log.infof( "Expand JDBC connection pool: count=%d", id);
-        item = new Item( id);
+        if ( count.get() < maxSize)
+        {
+          int id = count.incrementAndGet();
+          log.infof( "Expand JDBC connection pool: count=%d", id);
+          item = new Item( id);
+        }
+        else
+        {
+          item = queue.poll( maxWait, TimeUnit.MILLISECONDS);
+          while( item == null)
+          {
+            log.severe( "No available db connections in pool after waiting 30 seconds. Performing disaster recovery...");
+            disasterRecovery();
+            item = queue.poll( maxWait, TimeUnit.MILLISECONDS);
+          }
+        }
       }
       
       if ( item.connection == null) 
@@ -72,6 +88,8 @@ public class ConnectionPool
       leased.put( item.connection, item);
       
       ConnectionPools.getInstance().incrementLeasedCount();
+      
+      item.leasedOn = System.currentTimeMillis();
       return item.connection;
     }
     catch( InterruptedException e)
@@ -95,8 +113,48 @@ public class ConnectionPool
     log.verbosef( "Returning JDBC connection, %d", item.id);
     item.validated = System.currentTimeMillis();
     
+    item.leasedOn = 0;
     if ( !queue.offer( item))
       log.errorf( "Failed to enqueue released connection: id=%d", item.id);
+  }
+  
+  /**
+   * This method should never be called.  It is provided as a stop-gap to diagnose problems and hopefully
+   * return the connection pool to a working state.
+   */
+  private void disasterRecovery()
+  {
+    log.info( "Turning on ConnectionPool debugging...");
+    log.setLevel( Log.all);
+    
+    int nTotal = count.get();
+    int nAvailable = queue.size();
+    int nLeased = leased.size();
+    
+    log.infof( "total=%d, leased=%d, avail=%d", nTotal, nLeased, nAvailable);
+    
+    long ageLimit = System.currentTimeMillis() - 1 * 60 * 1000;
+    for( Map.Entry<Connection, Item> entry: leased.entrySet())
+    {
+      Item item = entry.getValue();
+      if ( item.leasedOn > 0 && item.leasedOn < ageLimit)
+      {
+        log.warnf( "Disaster recovery is closing connection [%X] that has been leased longer than 10 minutes!", item.connection.hashCode());
+        
+        try
+        {
+          item.connection.close();
+        }
+        catch( SQLException e)
+        {
+          log.errorf( "Disaster recovery failed to close connection: %s", e.toString());
+        }
+        
+        item.leasedOn = 0;
+        if ( !queue.offer( item))
+          log.errorf( "Failed to enqueue released connection: id=%d", item.id);
+      }
+    }
   }
   
   private boolean validate( Connection connection)
@@ -132,12 +190,16 @@ public class ConnectionPool
     
     public int id;
     public long validated;
+    public long leasedOn;
     public Connection connection;
   }
 
-  private final static Log log = Log.getLog( ConnectionPool.class);
+  public final static Log log = Log.getLog( ConnectionPool.class);
   
   private ISQLProvider provider;
+  private int maxSize;
+  private int minWait;
+  private int maxWait;
   private AtomicInteger count;
   private BlockingQueue<Item> queue;
   private Map<Connection, Item> leased;

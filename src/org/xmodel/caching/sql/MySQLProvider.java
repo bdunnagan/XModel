@@ -55,7 +55,12 @@ public class MySQLProvider implements ISQLProvider
     
     database = Xlate.childGet( annotation, "database", (String)null);
     
-    pool = new ConnectionPool( this, 20);
+    int minPoolSize = Xlate.childGet( annotation, "minPoolSize", 20);
+    int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", 80);
+    int minPoolWait = Xlate.childGet( annotation, "minPoolWait", 5000);
+    int maxPoolWait = Xlate.childGet( annotation, "maxPoolWait", 30000);
+    
+    pool = new ConnectionPool( this, minPoolSize, maxPoolSize, minPoolWait, maxPoolWait);
   }
 
   /* (non-Javadoc)
@@ -128,6 +133,8 @@ public class MySQLProvider implements ISQLProvider
     PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
     
     if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+    
+    ConnectionPool.log.debugf( "ConnectionPool [%X] -> %s", connection.hashCode(), statement.toString());
     
     return statement;
   }
