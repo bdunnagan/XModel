@@ -53,7 +53,7 @@ public class AsyncFuture<T>
    */
   public boolean await( int timeout) throws InterruptedException
   {
-    log.debugf( "await( %x, %d)", hashCode(), timeout);
+    log.debugf( "[%X] await: timeout=%d, object=%s", hashCode(), timeout, initiator);
     
     AwaitListener<T> listener = new AwaitListener<T>();
     addListener( listener);
@@ -115,7 +115,7 @@ public class AsyncFuture<T>
    */
   public void addListener( IListener<T> listener)
   {
-    log.debugf( "addListener( %x, %x)", hashCode(), listener.hashCode());
+    log.debugf( "[%X] addListener: listener=%X, object=%s", hashCode(), listener.hashCode(), initiator);
     
     Object result;
     synchronized( this)
@@ -170,7 +170,8 @@ public class AsyncFuture<T>
    */
   public void removeListener( IListener<T> listener)
   {
-    log.debugf( "removeListener( %x, %x)", hashCode(), listener.hashCode());
+    log.debugf( "[%X] removeListener: listener=%X, object=%s", hashCode(), listener.hashCode(), initiator);
+    
     synchronized( this)
     {
       for( int i=0; i<listeners.length; i++)
@@ -190,7 +191,8 @@ public class AsyncFuture<T>
   @SuppressWarnings("unchecked")
   public void removeListeners()
   {
-    log.debugf( "removeListeners( %x)", hashCode());
+    log.debugf( "[%X] removeListeners: object=%s", hashCode(), initiator);
+    
     synchronized( this)
     {
       listeners = new IListener[ 0];
@@ -202,7 +204,7 @@ public class AsyncFuture<T>
    */
   public void notifySuccess()
   {
-    log.debugf( "notifySuccess( %x)", hashCode());
+    log.debugf( "[%X] notifySuccess: object=%s", hashCode(), initiator);
     
     IListener<T>[] listeners = null;
     synchronized( this)
@@ -227,7 +229,7 @@ public class AsyncFuture<T>
   {
     if ( result == null) throw new IllegalArgumentException();
     
-    log.debugf( "notifyFailure( %x, %s)", hashCode(), result.toString());
+    log.debugf( "[%X] notifyFailure: result=%s, object=%s", hashCode(), result, initiator);
 
     IListener<T>[] listeners = null;
     synchronized( this)
