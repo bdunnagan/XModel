@@ -96,6 +96,7 @@ public class RunAction extends GuardedAction
     onSuccessExpr = document.getExpression( "onSuccess", true);
     onErrorExpr = document.getExpression( "onError", true);
     
+    futureVar = Xlate.get( document.getRoot(), "future", (String)null);
     executorExpr = document.getExpression( "executor", true);
     schedulerExpr = document.getExpression( "scheduler", true);
   }
@@ -202,6 +203,13 @@ public class RunAction extends GuardedAction
     Executor executor = (Executor)executorNode.getValue();
     IXAction script = getScript( getScriptNode( context));
     
+    AsyncFuture<Object[]> future = null;
+    if ( futureVar != null)
+    {
+      future = new AsyncFuture<Object[]>( new Object[ 0]);
+      Conventions.putCache( context, futureVar, future);
+    }
+    
     //
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
@@ -209,7 +217,7 @@ public class RunAction extends GuardedAction
     StatefulContext runContext = new StatefulContext( context.getObject());
     runContext.getScope().copyFrom( context.getScope());
     runContext.setExecutor( executor);
-    executor.execute( new ScriptRunnable( runContext, script));
+    executor.execute( new ScriptRunnable( runContext, script, future));
   }
   
   /**
@@ -230,6 +238,13 @@ public class RunAction extends GuardedAction
     ScheduledExecutorService scheduler = (ScheduledExecutorService)schedulerNode.getValue();
     IXAction script = getScript( getScriptNode( context));
     
+    AsyncFuture<Object[]> future = null;
+    if ( futureVar != null)
+    {
+      future = new AsyncFuture<Object[]>( new Object[ 0]);
+      Conventions.putCache( context, futureVar, future);
+    }
+    
     //
     // Must create a new context here without the original context object, because otherwise the
     // new dispatcher will end up using the original context object's model.
@@ -237,7 +252,7 @@ public class RunAction extends GuardedAction
     StatefulContext runContext = new StatefulContext( context.getObject());
     runContext.getScope().copyFrom( context.getScope());
     runContext.setExecutor( context.getExecutor());
-    scheduler.schedule( new ScriptRunnable( runContext, script), (int)delay, TimeUnit.MILLISECONDS);
+    scheduler.schedule( new ScriptRunnable( runContext, script, future), (int)delay, TimeUnit.MILLISECONDS);
   }
   
   /**
@@ -651,20 +666,34 @@ public class RunAction extends GuardedAction
   
   private final static class ScriptRunnable implements Runnable
   {
-    public ScriptRunnable( IContext context, IXAction script)
+    public ScriptRunnable( IContext context, IXAction script, AsyncFuture<Object[]> future)
     {
       this.context = context;
       this.script = script;
+      this.future = future;
     }
     
     @Override
     public void run()
     {
-      script.run( context);
+      try
+      {
+        Object[] result = script.run( context);
+        if ( future != null)
+        {
+          future.setInitiator( result);
+          future.notifySuccess();
+        }
+      }
+      catch( Exception e)
+      {
+        future.notifyFailure( e);
+      }
     }
-    
+
     private IContext context;
     private IXAction script;
+    private AsyncFuture<Object[]> future;
   }
   
   private final class AsyncCallback implements IXioCallback
@@ -748,6 +777,7 @@ public class RunAction extends GuardedAction
   private IExpression onCompleteExpr;
   private IExpression onSuccessExpr;
   private IExpression onErrorExpr;
+  private String futureVar;
   private IExpression executorExpr;
   private IExpression schedulerExpr;
 }
