@@ -77,14 +77,13 @@ public class StringFunction extends Function
         case BOOLEAN: return stringValue( arg0.evaluateBoolean( context));
         case NUMBER:  return stringValue( arg0.evaluateNumber( context));
         case STRING:  return arg0.evaluateString( context);
+        default:      return "";
       }
     }
     else
     {
       return stringValue( context.getObject());
     }
-    
-    return "";
   }
 
   /**
@@ -101,7 +100,7 @@ public class StringFunction extends Function
   public static String stringValue( IModelObject object)
   {
     Object value = object.getValue();
-    if ( value instanceof Number) return stringValue( ((Number)value).doubleValue());
+    if ( value instanceof Number) return value.toString();
     if ( value instanceof Boolean) return stringValue( (Boolean)value);
     if ( value != null) return value.toString();
     return "";

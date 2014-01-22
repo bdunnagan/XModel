@@ -24,6 +24,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
@@ -36,7 +37,7 @@ public class MySQLProvider implements ISQLProvider
 {
   public MySQLProvider() throws ClassNotFoundException
   {
-    Class.forName( driverClassName);    
+    Class.forName( driverClassName);
   }
   
   /* (non-Javadoc)

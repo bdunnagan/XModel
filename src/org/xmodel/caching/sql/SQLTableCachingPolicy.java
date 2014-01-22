@@ -629,7 +629,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     int k=1;
     for( String primaryKey: primaryKeys)
-      statement.setObject( k++, reference.getAttribute( primaryKey));
+    {
+      Object keyValue = reference.getAttribute( primaryKey);
+      statement.setObject( k++, keyValue);
+    }
     return statement;
   }
   
@@ -713,7 +716,13 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     for( int i=0; i<columns.size(); i++)
     {
       String column = columns.get( i);
-      Object value = exportColumn( reference, column, columnTypes.get( columnNames.indexOf( column)));
+      
+      int columnNameIndex = columnNames.indexOf( column);
+      if ( columnNameIndex == -1)
+        throw new IllegalArgumentException( 
+            String.format( "Column '%s' is not defined on table '%s'!", column, tableName));
+      
+      Object value = exportColumn( reference, column, columnTypes.get( columnNameIndex));
       if ( value != null)
       {
         if ( value instanceof InputStream)

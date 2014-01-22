@@ -118,8 +118,12 @@ public class CreateAction extends GuardedAction
       {
         IExternalReference pRef = (IExternalReference)parent;
         int index = parent.getNumberOfChildren();
-        for( IModelObject element: elements)
-          pRef.getCachingPolicy().insert( pRef, element, index++, false);
+        for( int i=0; i<elements.size(); i++)
+        {
+          pRef.getCachingPolicy().insert( pRef, elements.get( i), index, false);
+          elements.set( i, pRef.getChild( index));
+          index++;
+        }
       }
       else
       {
