@@ -134,9 +134,9 @@ public class StringFunction extends Function
    */
   public static String stringValue( double value)
   {
-    String result = Double.toString( value);
-    if ( result.endsWith( ".0")) result = result.substring( 0, result.length()-2);
-    return result;
+    return (value % 1 == 0)? 
+      Long.toString( (long)value): 
+      Double.toString( value);
   }
   
   /**
