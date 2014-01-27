@@ -29,6 +29,10 @@ public class Logging implements LoggingMBean
    */
   public static Logging getInstance()
   {
+    synchronized( Logging.class)
+    {
+      if ( instance == null) instance = new Logging();
+    }
     return instance;
   }
   
@@ -54,5 +58,5 @@ public class Logging implements LoggingMBean
     }
   }
   
-  private final static Logging instance = new Logging();
+  private static Logging instance = null;
 }

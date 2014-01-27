@@ -213,7 +213,7 @@ public class ScriptAction extends GuardedAction
       }
       catch( RuntimeException e)
       {
-        SLog.errorf( this, "Caught next exception at %s ...", e.toString());
+        SLog.errorf( this, "Caught next exception at %s ...", Xlate.get( getDocument().getRoot(), "name", "?"));
         throw e;
       }
       finally
