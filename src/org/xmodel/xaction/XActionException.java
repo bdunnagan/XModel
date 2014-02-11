@@ -37,9 +37,10 @@ import org.xmodel.log.Log;
  * rethrown, and exceptions which were not caught.  A caught, but unhandled exception, is always rethrown
  * as an XActionException.
  */
-@SuppressWarnings("serial")
 public class XActionException extends RuntimeException
 {
+  private static final long serialVersionUID = 7005399261390108936L;
+
   public XActionException()
   {
     super();
