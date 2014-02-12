@@ -160,7 +160,7 @@ public class ExecutionResponseProtocol
     log.debug( "Response timeout.");
     task.setError( "timeout");
     tasks.remove( correlation);
-    bundle.executor.execute( task);
+    task.context.getExecutor().execute( task);
   }
   
   /**
@@ -269,6 +269,7 @@ public class ExecutionResponseProtocol
      */
     public void setTimer( ScheduledFuture<?> timer)
     {
+      log.info( "Execution timer set");
       this.timer = timer;
     }
     
@@ -278,6 +279,7 @@ public class ExecutionResponseProtocol
      */
     public boolean cancelTimer()
     {
+      log.info( "Execution timer cancelled");
       return timer == null || timer.cancel( false);
     }
     

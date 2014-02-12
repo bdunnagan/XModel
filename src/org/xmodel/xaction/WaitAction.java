@@ -21,6 +21,7 @@ public class WaitAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), true);
     futureExpr = document.getExpression();
     timeoutExpr = document.getExpression( "timeout", true);
+    onTimeoutExpr = document.getExpression( "onTimeout", true);
   }
   
   /* (non-Javadoc)
@@ -36,15 +37,26 @@ public class WaitAction extends GuardedAction
       AsyncFuture<?> future = (AsyncFuture<?>)Conventions.getCache( context, futureExpr);
       if ( future != null) future.await( timeout); else SLog.warnf( this, "Future not found.");
       
-      if ( future.isSuccess())
+      if ( future.isDone())
       {
-        Object[] result = (Object[])future.getInitiator();
-        if ( result != null) context.getScope().set( var, result[ 0]);
+        if ( future.isSuccess())
+        {
+          Object[] result = (Object[])future.getInitiator();
+          if ( result != null) context.getScope().set( var, result[ 0]);
+        }
+        else
+        {
+          Throwable t = future.getFailureCause();
+          
+          if ( t != null) SLog.exception( this, t); else SLog.error( this, future.getFailureMessage());
+          
+          throw new XActionException( t);
+        }
       }
       else
       {
-        Throwable t = future.getFailureCause();
-        throw new XActionException( t);
+        IXAction onTimeout = Conventions.getScript( getDocument(), context, onTimeoutExpr);
+        if ( onTimeout != null) onTimeout.run( context); else SLog.warn( this, "No timeout script.");
       }
       
       return null;
@@ -58,4 +70,5 @@ public class WaitAction extends GuardedAction
   private String var;
   private IExpression futureExpr;
   private IExpression timeoutExpr;
+  private IExpression onTimeoutExpr;
 }

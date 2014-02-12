@@ -2,6 +2,7 @@ package org.xmodel.xaction;
 
 import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.IPath;
@@ -189,5 +190,46 @@ public class Conventions
     sb.append( path);
     
     return new XActionException( sb.toString());
+  }
+  
+  /**
+   * Get the script from the specified expression.
+   * @param document Typically the document of the XAction creating the script.
+   * @param context The context.
+   * @param expression The script expression.
+   * @return Returns null or the script.
+   */
+  public static IXAction getScript( XActionDocument document, IContext context, IExpression expression)
+  {
+    IXAction script = null;
+    if ( expression != null)
+    {
+      IModelObject scriptNode = expression.queryFirst( context);
+      CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+      if ( attribute != null) script = attribute.script;
+      if ( script == null)
+      {
+        script = document.createScript( scriptNode);
+        if ( script != null)
+        {
+          scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
+        }
+        else
+        {
+          SLog.warnf( Conventions.class, "Script not found: %s", expression);
+        }
+      }
+    }
+    return script;
+  }
+  
+  private final static class CompiledAttribute
+  {
+    public CompiledAttribute( IXAction script)
+    {
+      this.script = script;
+    }
+    
+    public IXAction script;
   }
 }
