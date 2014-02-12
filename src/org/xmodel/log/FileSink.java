@@ -172,12 +172,8 @@ public final class FileSink implements ILogSink
           currentFileSize += bytes.length;
           if ( currentFileSize > maxFileSize) roll();
         }
-        
-        stream.flush();
-        
-        // refresh if current file was moved or deleted
-//        if ( queue.isEmpty() && !currentFile.exists())
-//          roll();
+
+        flush();
       }
     }
     catch( InterruptedException e)
@@ -185,7 +181,7 @@ public final class FileSink implements ILogSink
       try
       {
         stream.write( "\n** Logging Thread Interrupted **\n".getBytes());
-        stream.flush();
+        flush();
       }
       catch( Exception e2)
       {
@@ -196,9 +192,9 @@ public final class FileSink implements ILogSink
     {
       try
       {
-        stream.write( "\n** Logging Thread Caught Exception **\n".getBytes());
+        stream.write( "\n** Logging Thread Exception **\n".getBytes());
         stream.write( e.getMessage().getBytes());
-        stream.flush();
+        flush();
       }
       catch( Exception e2)
       {
@@ -215,7 +211,8 @@ public final class FileSink implements ILogSink
     if ( stream != null)
     {
       currentFileSize = 0;
-      stream.close();
+      flush();
+      try { stream.close();} catch( IOException e) {}
       stream = null;
       
       compress();
@@ -228,6 +225,26 @@ public final class FileSink implements ILogSink
     currentFile = new File( logFolder, name);
     stream = new FileOutputStream( currentFile);
     files.add( name);
+  }
+
+  /**
+   * Flush output stream.
+   */
+  private void flush()
+  {
+    for( int i=0; i<100; i++)
+    {
+      try 
+      {
+        stream.flush();
+        return;
+      }
+      catch( Exception e)
+      {
+      }
+      
+      try { Thread.sleep( 100);} catch( Exception e) {}
+    }
   }
   
   /**
