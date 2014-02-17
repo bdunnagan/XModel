@@ -2,8 +2,8 @@ package org.xmodel.concurrent;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.xmodel.log.Log;
+import org.xmodel.util.CountingThreadPoolExecutor;
 
 /**
  * An implementation of Executor that delegates to another Executor and collects and logs statistics.
@@ -22,16 +22,6 @@ public class ThreadPoolExecutor implements Executor
   }
     
   /**
-   * Create with the specified parameters.
-   * @param executor The ExecutorService that will process dispatched Runnables.
-   */
-  public ThreadPoolExecutor( Executor executor)
-  {
-    this.executor = executor;
-    this.statistics = new Statistics( log);
-  }
-  
-  /**
    * Create the ExecutorService.
    * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
@@ -39,8 +29,9 @@ public class ThreadPoolExecutor implements Executor
    */
   private ExecutorService createExecutor( String name, int threadCount)
   {
-    ModelThreadFactory factory = new ModelThreadFactory( name);
-    return (threadCount == 0)? Executors.newCachedThreadPool( factory): Executors.newFixedThreadPool( threadCount, factory);
+    return (threadCount == 0)?
+        new CountingThreadPoolExecutor( name, 0, Integer.MAX_VALUE, 60):
+        new CountingThreadPoolExecutor( name, threadCount, threadCount, 60);
   }
   
   /* (non-Javadoc)

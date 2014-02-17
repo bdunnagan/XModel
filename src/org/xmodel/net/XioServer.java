@@ -18,9 +18,9 @@ import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
-import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.log.SLog;
 import org.xmodel.net.execution.ExecutionPrivilege;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -235,8 +235,8 @@ public class XioServer
     if ( defaultChannelFactory == null)
     {
       defaultChannelFactory = new NioServerSocketChannelFactory(
-        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-boss")),
-        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-server-work")));
+        Executors.newCachedThreadPool( new PrefixThreadFactory( "xio-server-boss")),
+        Executors.newCachedThreadPool( new PrefixThreadFactory( "xio-server-work")));
     }
     return defaultChannelFactory;
   }

@@ -20,10 +20,10 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.GlobalSettings;
-import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -387,8 +387,8 @@ public class XioClient extends XioPeer
     if ( defaultChannelFactory == null)
     {
       defaultChannelFactory = new NioClientSocketChannelFactory(
-        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-boss")),
-        Executors.newCachedThreadPool( new ModelThreadFactory( "xio-client-worker")));
+        Executors.newCachedThreadPool( new PrefixThreadFactory( "xio-client-boss")),
+        Executors.newCachedThreadPool( new PrefixThreadFactory( "xio-client-worker")));
     }
     return defaultChannelFactory;
   }

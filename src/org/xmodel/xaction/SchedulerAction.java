@@ -2,10 +2,9 @@ package org.xmodel.xaction;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.concurrent.ModelThreadFactory;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -38,7 +37,7 @@ public class SchedulerAction extends XAction
     IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
     String name = (nameExpr != null)? nameExpr.evaluateString( context): ((target != null)? target.getType(): "model-timer");
     
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( threads, new ModelThreadFactory( name));
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( threads, new PrefixThreadFactory( name));
     
     if ( target == null) target = new ModelObject( "scheduler");
     target.setValue( scheduler);

@@ -12,12 +12,12 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
-import org.xmodel.concurrent.ModelThreadFactory;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.net.OpenTrustStore;
 import org.xmodel.net.XioClient;
 import org.xmodel.net.XioPeer;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -104,8 +104,8 @@ public class ClientAction extends GuardedAction
     
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
     
-    ModelThreadFactory bossThreadFactory = new ModelThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
-    ModelThreadFactory workThreadFactory = new ModelThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
+    PrefixThreadFactory bossThreadFactory = new PrefixThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
+    PrefixThreadFactory workThreadFactory = new PrefixThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
     
     NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, XioPeer.timer, ThreadNameDeterminer.CURRENT);
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
