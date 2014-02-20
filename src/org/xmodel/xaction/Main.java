@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.xmodel.CurrentThreadExecutor;
 import org.xmodel.IModelObject;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
@@ -97,6 +99,8 @@ public class Main
   public static void run( String[] args) throws Exception
   {
     IContext context = new StatefulContext();
+    context.setExecutor( new CurrentThreadExecutor());
+    
     variables( args, context);
     
     IModelObject root = new XmlIO().read( new FileInputStream( new File( args[ 0])));
@@ -104,6 +108,9 @@ public class Main
     IXAction script = doc.createScript( root);
     
     script.run( context);
+    
+    CurrentThreadExecutor executor = (CurrentThreadExecutor)context.getExecutor();
+    while( true) executor.process();
   }
   
   private static Pattern assignRegex = Pattern.compile( "(\\w++)\\s*+=\\s*+[\"]([^\"]++)[\"]");

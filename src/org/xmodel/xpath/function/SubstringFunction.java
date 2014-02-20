@@ -76,6 +76,8 @@ public class SubstringFunction extends Function
    */
   private String substring( String string, int start, int end)
   {
+    if ( start < 0) return string;
+    
     if ( end < 0)
     {
       return string.substring( start);

@@ -22,14 +22,17 @@ package org.xmodel.net.bind;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.channel.Channel;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.ICachingPolicy;
@@ -223,16 +226,16 @@ public class BindCompressor extends TabularCompressor
     {
       // read static attributes
       int count = readValue( stream);
-      String[] attrNames = new String[ count];
+      String[] staticNames = new String[ count];
       for( int i=0; i<count; i++)
       {
         String attrName = readHash( stream);
-        attrNames[ i] = attrName;
+        staticNames[ i] = attrName;
       }
       
       // create element
       IExternalReference reference = factory.createExternalObject( null, type);
-      NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( protocol, channel, netID, timeout, attrNames);
+      NetKeyCachingPolicy cachingPolicy = new NetKeyCachingPolicy( protocol, channel, netID, timeout, staticNames);
       reference.setCachingPolicy( cachingPolicy);
       reference.setDirty( (flags & 0x02) != 0);
       
@@ -283,6 +286,7 @@ public class BindCompressor extends TabularCompressor
   protected void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
   {
     IExternalReference reference = (element instanceof IExternalReference)? (IExternalReference)element: null;
+    ICachingPolicy cachingPolicy = (reference != null)? reference.getCachingPolicy(): null;
     
     // write network id
     int netID = System.identityHashCode( element);
@@ -298,24 +302,26 @@ public class BindCompressor extends TabularCompressor
     if ( element.isDirty()) flags |= 0x02;
     stream.writeByte( flags);
     
-    // write static attributes
-    if ( reference != null)
+    // write static attribute names
+    if ( cachingPolicy != null)
     {
-      ICachingPolicy cachingPolicy = reference.getCachingPolicy();
-      if ( cachingPolicy != null)
-      {
-        String[] attrNames = cachingPolicy.getStaticAttributes();
-        writeValue( stream, attrNames.length);
-        for( String attrName: attrNames) writeHash( stream, attrName);
-      }
+      String[] staticNames = cachingPolicy.getStaticAttributes();
+      writeValue( stream, staticNames.length);
+      for( String staticName: staticNames) writeHash( stream, staticName);
     }
    
     // write attributes and children
     if ( element.isDirty())
     {
-      ICachingPolicy cachingPolicy = reference.getCachingPolicy();
-      String[] staticNames = (cachingPolicy != null)? cachingPolicy.getStaticAttributes(): new String[ 0];
-      writeAttributes( stream, element, Arrays.asList( staticNames));
+      String[] staticNames = cachingPolicy.getStaticAttributes();
+      List<String> attrNames = new ArrayList<String>( staticNames.length);
+      
+      for( String staticName: staticNames) 
+        if ( element.getAttribute( staticName) != null) 
+          attrNames.add( staticName);
+      
+      writeAttributes( stream, element, attrNames);
+      writeChildren( stream, new ModelObject( "dummy"));
     }
     else
     {

@@ -26,12 +26,12 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
 /**
- * An implementation of the XPath 2.0 index-of function. This function may operate on node-sets
+ * An implementation of the XPath 2.0 last-index-of function. This function may operate on node-sets
  * or strings depending on the type of the first argument.
  */
-public class IndexOfFunction extends Function
+public class LastIndexOfFunction extends Function
 {
-  public static final String name = "index-of";
+  public static final String name = "last-index-of";
   
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.IExpression#getName()
@@ -64,14 +64,14 @@ public class IndexOfFunction extends Function
       {
         List<IModelObject> list = arg0.evaluateNodes( context);
         IModelObject node = getArgument( 1).queryFirst( context);
-        return list.indexOf( node) + 1;
+        return list.lastIndexOf( node) + 1;
       }
       
       case STRING:
       {
         String string = arg0.evaluateString( context);
         String pattern = getArgument( 1).evaluateString( context);
-        return string.indexOf( pattern);
+        return string.lastIndexOf( pattern);
       }
       
       default:
