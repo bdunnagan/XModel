@@ -6,13 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+
 import javax.net.ssl.SSLContext;
+
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerBossPool;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
+import org.xmodel.log.Log;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.XioServer;
 import org.xmodel.util.PrefixThreadFactory;
@@ -101,6 +104,7 @@ public class ServerAction extends GuardedAction
               {
                 StatefulContext nested = getNotifyContext( context, server, peer);
                 if ( nested != null) onDisconnect.run( nested);
+                removeNotifyContext( peer);
               }
             });
           }
@@ -201,6 +205,7 @@ public class ServerAction extends GuardedAction
       {
         nested = new StatefulContext( context);
         notifyContexts.put( peer, nested);
+        log.debugf( "Added notification context, map size=%d", notifyContexts.size());
         
         InetSocketAddress localAddress = peer.getLocalAddress();
         nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
@@ -216,10 +221,21 @@ public class ServerAction extends GuardedAction
     }
   }
   
+  private void removeNotifyContext( XioPeer peer)
+  {
+    synchronized( notifyContexts)
+    {
+      notifyContexts.remove( peer);
+      log.debugf( "Removed notification context, map size=%d", notifyContexts.size());
+    }    
+  }
+  
   private String getIdentityRegistration( XioPeer peer)
   {
     return String.format( "%X", System.identityHashCode( peer));
   }
+
+  private final static Log log = Log.getLog( ServerAction.class);
   
   private String var;
   
