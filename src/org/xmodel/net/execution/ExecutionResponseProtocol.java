@@ -15,16 +15,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioExecutionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -250,8 +249,8 @@ public class ExecutionResponseProtocol
       this.context = context;
       this.callback = callback;
       
-      closeListener = new ChannelFutureListener() {
-        public void operationComplete( ChannelFuture future) throws Exception
+      closeListener = new AsyncFuture.IListener<IXioChannel>() {
+        public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception
         {
           if ( cancelTimer())
           {
@@ -335,7 +334,7 @@ public class ExecutionResponseProtocol
     }
 
     private IXioChannel channel;
-    private ChannelFutureListener closeListener;
+    private AsyncFuture.IListener<IXioChannel> closeListener;
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;

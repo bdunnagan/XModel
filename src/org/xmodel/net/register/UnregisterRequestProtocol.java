@@ -5,9 +5,8 @@ import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
-import org.xmodel.net.XioPeer;
 
 public class UnregisterRequestProtocol
 {
@@ -70,11 +69,11 @@ public class UnregisterRequestProtocol
     
     if ( name.length() > 0)
     {
-      bundle.registry.unregister( (XioPeer)channel.getAttachment(), name);
+      bundle.registry.unregister( channel.getPeer(), name);
     }
     else
     {
-      bundle.registry.unregisterAll( (XioPeer)channel.getAttachment());
+      bundle.registry.unregisterAll( channel.getPeer());
     }
   }
   

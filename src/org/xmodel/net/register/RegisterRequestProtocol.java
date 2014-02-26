@@ -5,9 +5,8 @@ import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
-import org.xmodel.net.XioPeer;
 
 public class RegisterRequestProtocol
 {
@@ -62,7 +61,7 @@ public class RegisterRequestProtocol
     String name = new String( bytes, charset);
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
-    bundle.registry.register( (XioPeer)channel.getAttachment(), name);
+    bundle.registry.register( channel.getPeer(), name);
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);

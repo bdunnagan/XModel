@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -23,6 +25,7 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
+import org.xmodel.net.transport.netty.NettyXioChannel;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
@@ -311,7 +314,7 @@ public class XioClient extends XioPeer
         if ( retryFuture.isSuccess()) 
         {
           // ChannelFutureListener is called before XioChannelHandler.channelConnected???
-          setChannel( retryFuture.getChannel());
+          setChannel( new NettyXioChannel( retryFuture.getChannel()));
           
           XioChannelHandler xioHandler = retryFuture.getChannel().getPipeline().get( XioChannelHandler.class);
           ChannelFuture handshakeFuture = xioHandler.getSSLHandshakeFuture();
@@ -447,9 +450,8 @@ public class XioClient extends XioPeer
     {
       if ( peer == null) throw new IllegalStateException( "Connection incomplete: peer is null");
       if ( peer.getChannel() == null) throw new IllegalStateException( "Connection incomplete: channel is null");
-      if ( peer.getChannel().getPipeline() == null) throw new IllegalStateException( "Connection incomplete: pipeline is null");
       
-      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      SslHandler sslHandler = peer.getChannel().getSslHandler();
       if ( sslHandler != null)
       {
         ChannelFuture future = sslHandler.handshake();

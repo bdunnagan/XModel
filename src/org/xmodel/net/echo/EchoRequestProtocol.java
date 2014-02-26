@@ -3,8 +3,8 @@ package org.xmodel.net.echo;
 import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
 
 public class EchoRequestProtocol
 {

@@ -4,8 +4,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioException;
 
 public class UnbindRequestProtocol

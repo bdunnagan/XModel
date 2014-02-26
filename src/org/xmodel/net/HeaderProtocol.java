@@ -2,10 +2,30 @@ package org.xmodel.net;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.net.XioChannelHandler.Type;
 
 public class HeaderProtocol
 {
+  public enum Type
+  {
+    executeRequest,
+    executeResponse,
+    cancelRequest,
+    bindRequest,
+    bindResponse,
+    unbindRequest,
+    syncRequest,
+    syncResponse,
+    addChild,
+    removeChild,
+    changeAttribute,
+    clearAttribute,
+    changeDirty,
+    register,
+    unregister,
+    echoRequest,
+    echoResponse
+  }
+  
   /**
    * Reset this instance by releasing internal resources.  This method should be called after 
    * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.

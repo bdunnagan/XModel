@@ -284,7 +284,7 @@ public class XioServer
   private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
     public void notifyConnect( XioPeer peer)
     {
-      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      SslHandler sslHandler = peer.getChannel().getSslHandler();
       if ( sslHandler == null) notifyChannelConnected( peer);
     }      
     public void notifyDisconnect( XioPeer peer)

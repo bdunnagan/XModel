@@ -14,8 +14,8 @@ import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
-import org.xmodel.net.XioChannelHandler.Type;
 
 public class SyncResponseProtocol
 {

@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.net.InetSocketAddress;
 
-import org.jboss.netty.channel.Channel;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.future.FailureAsyncFuture;
@@ -10,7 +9,7 @@ import org.xmodel.log.SLog;
 
 public class XioServerPeer extends XioPeer
 {
-  public XioServerPeer( Channel channel)
+  public XioServerPeer( IXioChannel channel)
   {
     setChannel( channel);
   }
@@ -58,10 +57,10 @@ public class XioServerPeer extends XioPeer
    * @see org.xmodel.net.XioPeer#setChannel(org.jboss.netty.channel.Channel)
    */
   @Override
-  protected synchronized void setChannel( Channel channel)
+  protected synchronized void setChannel( IXioChannel channel)
   {
     super.setChannel( channel);
-    server = (XioServer)channel.getParent().getAttachment();
+    server = (XioServer)channel.getServer();
   }
 
   /**
@@ -70,7 +69,7 @@ public class XioServerPeer extends XioPeer
   public synchronized InetSocketAddress getRemoteAddress()
   {
     if ( address != null) return address;
-    Channel channel = getChannel();
+    IXioChannel channel = getChannel();
     address = (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
     return address;
   }
