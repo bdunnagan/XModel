@@ -11,10 +11,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
@@ -23,6 +23,7 @@ import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioCallback;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioExecutionException;
 import org.xmodel.xpath.expression.IContext;
@@ -75,7 +76,7 @@ public class ExecutionResponseProtocol
    * @param context The execution context.
    * @param results The execution results.
    */
-  public void send( Channel channel, int correlation, IContext context, Object[] results) throws IOException
+  public void send( IXioChannel channel, int correlation, IContext context, Object[] results) throws IOException
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
@@ -101,7 +102,7 @@ public class ExecutionResponseProtocol
    * @param context The execution context.
    * @param throwable An exception thrown during remote execution.
    */
-  public void send( Channel channel, int correlation, IContext context, Throwable throwable) throws IOException, InterruptedException
+  public void send( IXioChannel channel, int correlation, IContext context, Throwable throwable) throws IOException, InterruptedException
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
@@ -125,7 +126,7 @@ public class ExecutionResponseProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
     
@@ -243,7 +244,7 @@ public class ExecutionResponseProtocol
 
   public static class ResponseTask implements Runnable
   {
-    public ResponseTask( Channel channel, IContext context, IXioCallback callback)
+    public ResponseTask( IXioChannel channel, IContext context, IXioCallback callback)
     {
       this.channel = channel;
       this.context = context;
@@ -333,7 +334,7 @@ public class ExecutionResponseProtocol
       }
     }
 
-    private Channel channel;
+    private IXioChannel channel;
     private ChannelFutureListener closeListener;
     private IContext context;
     private IXioCallback callback;

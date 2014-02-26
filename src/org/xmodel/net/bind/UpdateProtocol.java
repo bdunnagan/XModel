@@ -5,14 +5,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioException;
 
@@ -42,7 +43,7 @@ public class UpdateProtocol
    * @param child The child.
    * @param index The insertion index.
    */
-  public void sendAddChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
+  public void sendAddChild( IXioChannel channel, IModelObject parent, IModelObject child, int index) throws IOException
   {
     int parentNetID = protocol.responseCompressor.getLocalID( parent);
         
@@ -66,7 +67,7 @@ public class UpdateProtocol
    * @param child The child that was removed.
    * @param index The index of the child.
    */
-  public void sendRemoveChild( Channel channel, IModelObject parent, IModelObject child, int index) throws IOException
+  public void sendRemoveChild( IXioChannel channel, IModelObject parent, IModelObject child, int index) throws IOException
   {
     int parentNetID = protocol.responseCompressor.getLocalID( parent);
     protocol.responseCompressor.freeLocal( child);
@@ -88,7 +89,7 @@ public class UpdateProtocol
    * @param attrName The name of the attribute.
    * @param newValue The new value of the attribute.
    */
-  public void sendChangeAttribute( Channel channel, IModelObject element, String attrName, Object newValue) throws IOException
+  public void sendChangeAttribute( IXioChannel channel, IModelObject element, String attrName, Object newValue) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
     byte[] bytes = attrName.getBytes( charset);
@@ -113,7 +114,7 @@ public class UpdateProtocol
    * @param element The element.
    * @param attrName The name of the attribute.
    */
-  public void sendClearAttribute( Channel channel, IModelObject element, String attrName) throws IOException
+  public void sendClearAttribute( IXioChannel channel, IModelObject element, String attrName) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
     byte[] bytes = attrName.getBytes( charset);
@@ -136,7 +137,7 @@ public class UpdateProtocol
    * @param element The element.
    * @param dirty The dirty state.
    */
-  public void sendChangeDirty( Channel channel, IModelObject element, boolean dirty) throws IOException
+  public void sendChangeDirty( IXioChannel channel, IModelObject element, boolean dirty) throws IOException
   {
     int netID = protocol.responseCompressor.getLocalID( element);
     
@@ -155,7 +156,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleAddChild( Channel channel, ChannelBuffer buffer) throws IOException, XioException
+  public void handleAddChild( IXioChannel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
@@ -174,7 +175,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleRemoveChild( Channel channel, ChannelBuffer buffer) throws IOException, XioException
+  public void handleRemoveChild( IXioChannel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int parentNetID = buffer.readInt();
     int index = buffer.readInt();
@@ -192,7 +193,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeAttribute( Channel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, XioException
+  public void handleChangeAttribute( IXioChannel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, XioException
   {
     int netID = buffer.readInt();
     
@@ -215,7 +216,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleClearAttribute( Channel channel, ChannelBuffer buffer) throws IOException, XioException
+  public void handleClearAttribute( IXioChannel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
     
@@ -236,7 +237,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeDirty( Channel channel, ChannelBuffer buffer) throws IOException, XioException
+  public void handleChangeDirty( IXioChannel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
     boolean dirty = buffer.readByte() != 0;

@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.log.Log;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioChannelHandler.Type;
 import org.xmodel.net.XioPeer;
 
@@ -28,7 +28,7 @@ public class UnregisterRequestProtocol
    * Send an asynchronous request to unregister all names via the specified channel.
    * @param channel The channel.
    */
-  public void send( Channel channel) throws IOException, InterruptedException
+  public void send( IXioChannel channel) throws IOException, InterruptedException
   {
     send( channel, "");
   }
@@ -38,7 +38,7 @@ public class UnregisterRequestProtocol
    * @param channel The channel.
    * @param name The name to associate with this peer.
    */
-  public void send( Channel channel, String name) throws IOException, InterruptedException
+  public void send( IXioChannel channel, String name) throws IOException, InterruptedException
   {
     log.debugf( "UnregisterRequestProtocol.send: name='%s'", name);
     
@@ -57,7 +57,7 @@ public class UnregisterRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int length = buffer.readByte();
     if ( length < 0) length += 256;

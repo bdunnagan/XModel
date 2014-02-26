@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -246,7 +247,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns true if a message was read.
    */
-  private boolean handleMessage( Channel channel, ChannelBuffer buffer) throws Exception
+  private boolean handleMessage( IXioChannel channel, ChannelBuffer buffer) throws Exception
   {
     if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
     

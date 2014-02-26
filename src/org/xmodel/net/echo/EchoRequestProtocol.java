@@ -1,8 +1,9 @@
 package org.xmodel.net.echo;
 
 import java.io.IOException;
+
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioChannelHandler.Type;
 
 public class EchoRequestProtocol
@@ -21,7 +22,7 @@ public class EchoRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public void send( Channel channel) throws IOException
+  public void send( IXioChannel channel) throws IOException
   {
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.echoRequest, 0);
     channel.write( buffer);
@@ -33,7 +34,7 @@ public class EchoRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     bundle.responseProtocol.send( channel);
   }

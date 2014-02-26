@@ -23,7 +23,7 @@ public class XioPeer
   {
   }
   
-  protected XioPeer( Channel channel)
+  protected XioPeer( IXioChannel channel)
   {
     this.channel = channel;
   }
@@ -64,7 +64,7 @@ public class XioPeer
         {
           if ( future.isSuccess())
           {
-            Channel channel = future.getInitiator().getChannel();
+            IXioChannel channel = future.getInitiator().getChannel();
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getRegisterProtocol().registerRequestProtocol.send( channel, name);
           }
@@ -95,7 +95,7 @@ public class XioPeer
         {
           if ( future.isSuccess())
           {
-            Channel channel = future.getInitiator().getChannel();
+            IXioChannel channel = future.getInitiator().getChannel();
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getRegisterProtocol().unregisterRequestProtocol.send( channel);
           }
@@ -126,7 +126,7 @@ public class XioPeer
         {
           if ( future.isSuccess())
           {
-            Channel channel = future.getInitiator().getChannel();
+            IXioChannel channel = future.getInitiator().getChannel();
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getRegisterProtocol().unregisterRequestProtocol.send( channel, name);
           }
@@ -179,7 +179,7 @@ public class XioPeer
         {
           if ( future.isSuccess())
           {
-            Channel channel = future.getInitiator().getChannel();
+            IXioChannel channel = future.getInitiator().getChannel();
             XioChannelHandler handler = (XioChannelHandler)channel.getPipeline().get( "xio");
             handler.getBindProtocol().unbindRequestProtocol.send( channel, netID);
           }
@@ -250,7 +250,7 @@ public class XioPeer
                        final IXioCallback callback, 
                        final int timeout) throws IOException, InterruptedException
   {
-    Channel channel = getChannel();
+    IXioChannel channel = getChannel();
     if ( reconnect && (channel == null || !channel.isConnected()))
     {
       // TODO: timeout needed here for reconnect
@@ -311,7 +311,7 @@ public class XioPeer
    * Set the underlying channel.
    * @param channel The channel.
    */
-  protected synchronized void setChannel( Channel channel)
+  protected synchronized void setChannel( IXioChannel channel)
   {
     this.channel = channel;
     getRemoteAddress();
@@ -320,7 +320,7 @@ public class XioPeer
   /**
    * @return Returns null or the underlying channel.
    */
-  protected synchronized Channel getChannel()
+  protected synchronized IXioChannel getChannel()
   {
     return channel;
   }
@@ -352,7 +352,7 @@ public class XioPeer
   /**
    * Close the connection.
    */
-  public ChannelFuture close()
+  public AsyncFuture<XioPeer> close()
   {
     return isConnected()? channel.close(): new SucceededChannelFuture( channel);
   }
@@ -380,6 +380,6 @@ public class XioPeer
 
   public static Timer timer = new HashedWheelTimer();
   
-  private Channel channel;
+  private IXioChannel channel;
   private boolean reconnect;
 }
