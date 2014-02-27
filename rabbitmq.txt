@@ -1,0 +1,13 @@
+Rabbit MQ Integration
+
+. Clients are always created with ClientAction.
+. Change NetworkCachingPolicy to use previously defined client.
+. Client pools should be configured by ClientAction.
+. Move code that delays connection notification until SSL handshake.
+. Refactor auto-reconnect behavior for Netty impl
+
+
+
+IXioChannel - abstraction of channel
+XioPeer - high-level protocol interface / endpoint
+NettyXioClient - netty protocol interface / endpoint
