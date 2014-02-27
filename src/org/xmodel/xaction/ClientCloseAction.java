@@ -26,7 +26,7 @@ public class ClientCloseAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    XioClient client = (XioClient)Conventions.getCache( context, clientExpr);
+    NettyXioClient client = (NettyXioClient)Conventions.getCache( context, clientExpr);
     if ( client != null) 
     {
       try { client.unregisterAll();} catch( Exception e) { SLog.exception( this, e);}

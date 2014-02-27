@@ -295,7 +295,7 @@ public class XioPeer
    * Set the underlying channel.
    * @param channel The channel.
    */
-  protected synchronized void setChannel( IXioChannel channel)
+  public synchronized void setChannel( IXioChannel channel)
   {
     this.channel = channel;
     getRemoteAddress();
@@ -304,7 +304,7 @@ public class XioPeer
   /**
    * @return Returns null or the underlying channel.
    */
-  protected synchronized IXioChannel getChannel()
+  public synchronized IXioChannel getChannel()
   {
     return channel;
   }

@@ -13,5 +13,5 @@ public interface IXioClientFactory
    * @param address The address.
    * @return Returns a new XioClient.
    */
-  public XioClient newInstance( InetSocketAddress address);
+  public NettyXioClient newInstance( InetSocketAddress address);
 }

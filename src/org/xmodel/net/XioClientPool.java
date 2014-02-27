@@ -27,8 +27,8 @@ public class XioClientPool
   {
     this.factory = factory;
     this.scheduler = scheduler;
-    this.clients = new HashMap<String, Queue<XioClient>>();
-    this.timers = new ConcurrentHashMap<XioClient, ScheduledFuture<?>>();
+    this.clients = new HashMap<String, Queue<NettyXioClient>>();
+    this.timers = new ConcurrentHashMap<NettyXioClient, ScheduledFuture<?>>();
     this.idleTimeout = defaultIdleTimeout;
   }
   
@@ -46,11 +46,11 @@ public class XioClientPool
    * @param address The host address.
    * @return Returns a connected client.
    */
-  public XioClient lease( InetSocketAddress address)
+  public NettyXioClient lease( InetSocketAddress address)
   {
-    Queue<XioClient> queue = getClients( address);
+    Queue<NettyXioClient> queue = getClients( address);
     
-    XioClient client = queue.poll();
+    NettyXioClient client = queue.poll();
     if ( client == null || !client.isConnected())
     {
       client = factory.newInstance( address);
@@ -73,7 +73,7 @@ public class XioClientPool
    * Return a client connection to the pool.
    * @param client The XIO client connection.
    */
-  public void release( XioClient client)
+  public void release( NettyXioClient client)
   {
     log.debugf( "Releasing XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
 
@@ -88,7 +88,7 @@ public class XioClientPool
       // 
       // Put client in reuse queue.
       //
-      Queue<XioClient> queue = getClients( client.getRemoteAddress());
+      Queue<NettyXioClient> queue = getClients( client.getRemoteAddress());
       queue.offer( client);
     }
   }
@@ -98,16 +98,16 @@ public class XioClientPool
    * @param socketAddress The remote address.
    * @return Returns the queue containing clients connected to the specified address.
    */
-  private Queue<XioClient> getClients( InetSocketAddress socketAddress)
+  private Queue<NettyXioClient> getClients( InetSocketAddress socketAddress)
   {
     String address = toString( socketAddress);
     synchronized( clients)
     {
-      Queue<XioClient> queue = clients.get( address);
+      Queue<NettyXioClient> queue = clients.get( address);
       if ( queue == null)
       {
         log.debugf( "Creating new queue for address, %s", address);
-        queue = new ConcurrentLinkedQueue<XioClient>();
+        queue = new ConcurrentLinkedQueue<NettyXioClient>();
         clients.put( address, queue);
       }
       return queue;
@@ -118,13 +118,13 @@ public class XioClientPool
    * Remove the specified client.
    * @param client The client.
    */
-  private void removeClient( XioClient client)
+  private void removeClient( NettyXioClient client)
   {
     log.debugf( "Deleting XioClient %X, state=%s", client.hashCode(), client.isConnected()? "connected": "disconnected");
     
     InetSocketAddress address = client.getRemoteAddress();
     
-    Queue<XioClient> queue = getClients( client.getRemoteAddress());
+    Queue<NettyXioClient> queue = getClients( client.getRemoteAddress());
     synchronized( clients)
     {
       queue.remove( client);
@@ -148,7 +148,7 @@ public class XioClientPool
   
   private class TimeoutTask implements Runnable
   {
-    public TimeoutTask( XioClient client)
+    public TimeoutTask( NettyXioClient client)
     {
       this.client = client;
     }
@@ -163,14 +163,14 @@ public class XioClientPool
       client.close();
     }
     
-    private XioClient client;
+    private NettyXioClient client;
   }
   
   private final static Log log = Log.getLog( XioClientPool.class);
 
   private IXioClientFactory factory;
   private ScheduledExecutorService scheduler;
-  private Map<String, Queue<XioClient>> clients;
-  private Map<XioClient, ScheduledFuture<?>> timers;
+  private Map<String, Queue<NettyXioClient>> clients;
+  private Map<NettyXioClient, ScheduledFuture<?>> timers;
   private int idleTimeout;
 }

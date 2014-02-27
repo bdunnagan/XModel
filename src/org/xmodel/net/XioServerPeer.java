@@ -57,7 +57,7 @@ public class XioServerPeer extends XioPeer
    * @see org.xmodel.net.XioPeer#setChannel(org.jboss.netty.channel.Channel)
    */
   @Override
-  protected synchronized void setChannel( IXioChannel channel)
+  public synchronized void setChannel( IXioChannel channel)
   {
     super.setChannel( channel);
     server = (XioServer)channel.getServer();

@@ -152,7 +152,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
       if ( client == null || !client.isConnected())
       {
         // context shouldn't be passed here
-        client = new XioClient( context);
+        client = new NettyXioClient( context);
         client.connect( host, port, retryCount, retryDelays).await();
       }
 
@@ -165,7 +165,7 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     }
   }
 
-  private XioClient client;
+  private NettyXioClient client;
   private String host;
   private int port;
   private IContext context;

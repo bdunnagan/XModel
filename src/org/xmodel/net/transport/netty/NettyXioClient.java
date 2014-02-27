@@ -1,4 +1,4 @@
-package org.xmodel.net;
+package org.xmodel.net.transport.netty;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -25,7 +25,9 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
-import org.xmodel.net.transport.netty.NettyXioChannel;
+import org.xmodel.net.ConnectionRetryFuture;
+import org.xmodel.net.Heartbeat;
+import org.xmodel.net.XioPeer;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
@@ -33,7 +35,7 @@ import org.xmodel.xpath.expression.IContext;
  * This class provides an interface for the client-side of the protocol.
  * (thread-safe)
  */
-public class XioClient extends XioPeer
+public class NettyXioClient extends XioPeer
 {
   public interface IListener
   {
@@ -41,13 +43,13 @@ public class XioClient extends XioPeer
      * Called when the client connects.
      * @param client The client.
      */
-    public void notifyConnect( XioClient client);
+    public void notifyConnect( NettyXioClient client);
     
     /**
      * Called when the client connects.
      * @param client The client.
      */
-    public void notifyDisconnect( XioClient client);
+    public void notifyDisconnect( NettyXioClient client);
   }    
   
   /**
@@ -55,7 +57,7 @@ public class XioClient extends XioPeer
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param executor The executor that dispatches from the worker thread.
    */
-  public XioClient( Executor executor)
+  public NettyXioClient( Executor executor)
   {
     this( null, null, executor);
   }
@@ -65,7 +67,7 @@ public class XioClient extends XioPeer
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param context The context.
    */
-  public XioClient( IContext context)
+  public NettyXioClient( IContext context)
   {
     this( context, null, context.getExecutor());
   }
@@ -75,7 +77,7 @@ public class XioClient extends XioPeer
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param context The context.
    */
-  public XioClient( SSLContext sslContext, IContext context)
+  public NettyXioClient( SSLContext sslContext, IContext context)
   {
     this( context, null, getDefaultChannelFactory(), sslContext, context.getExecutor());
   }
@@ -86,7 +88,7 @@ public class XioClient extends XioPeer
    * @param scheduler Optional scheduler used for protocol timers.
    * @param contextExecutor
    */
-  public XioClient( final IContext context, final ScheduledExecutorService scheduler, final Executor contextExecutor)
+  public NettyXioClient( final IContext context, final ScheduledExecutorService scheduler, final Executor contextExecutor)
   {
     this( context, scheduler, getDefaultChannelFactory(), contextExecutor);
   }
@@ -98,7 +100,7 @@ public class XioClient extends XioPeer
    * @param channelFactory User-supplied channel factory.
    * @param contextExecutor
    */
-  public XioClient( final IContext context, final ScheduledExecutorService scheduler, ClientSocketChannelFactory channelFactory, final Executor contextExecutor)
+  public NettyXioClient( final IContext context, final ScheduledExecutorService scheduler, ClientSocketChannelFactory channelFactory, final Executor contextExecutor)
   {
     this( context, scheduler, channelFactory, null, contextExecutor);
   }
@@ -111,7 +113,7 @@ public class XioClient extends XioPeer
    * @param sslContext The SSLContext.
    * @param contextExecutor An executor
    */
-  public XioClient( 
+  public NettyXioClient( 
       final IContext context, 
       final ScheduledExecutorService scheduler, 
       final ClientSocketChannelFactory channelFactory, 
@@ -141,7 +143,7 @@ public class XioClient extends XioPeer
         pipeline.addLast( "heartbeatHandler", new Heartbeat());
 
         XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
-        handler.setClient( XioClient.this);
+        handler.setClient( NettyXioClient.this);
         pipeline.addLast( "xio", handler);
         
         handler.addListener( channelConnectionListener);
@@ -156,9 +158,9 @@ public class XioClient extends XioPeer
    * @param channel The channel.
    * @return Returns the XioClient associated with this channel.
    */
-  public static XioClient getChannelPeer( Channel channel)
+  public static NettyXioClient getChannelPeer( Channel channel)
   {
-    return (XioClient)channel.getAttachment();
+    return (NettyXioClient)channel.getAttachment();
   }
   
   /**
@@ -196,7 +198,7 @@ public class XioClient extends XioPeer
    * @param port The port of the server.
    * @return Returns true if the connection was established.
    */
-  public AsyncFuture<XioClient> connect( String address, int port)
+  public AsyncFuture<NettyXioClient> connect( String address, int port)
   {
     return connect( new InetSocketAddress( address, port));
   }
@@ -218,7 +220,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( String address, int port, int retries, int delay)
+  public AsyncFuture<NettyXioClient> connect( String address, int port, int retries, int delay)
   {
     return connect( new InetSocketAddress( address, port), retries, new int[] { delay});
   }
@@ -230,7 +232,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( String address, int port, int[] delays)
+  public AsyncFuture<NettyXioClient> connect( String address, int port, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), delays.length, delays);
   }
@@ -243,7 +245,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( String address, int port, int retries, int[] delays)
+  public AsyncFuture<NettyXioClient> connect( String address, int port, int retries, int[] delays)
   {
     return connect( new InetSocketAddress( address, port), retries, delays);
   }
@@ -253,7 +255,7 @@ public class XioClient extends XioPeer
    * @param address The address of the server.
    * @return Returns true if the connection was established.
    */
-  public AsyncFuture<XioClient> connect( InetSocketAddress address)
+  public AsyncFuture<NettyXioClient> connect( InetSocketAddress address)
   {
     return connect( address, 3, 1000);
   }
@@ -266,7 +268,7 @@ public class XioClient extends XioPeer
    * @param delay The delay between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( InetSocketAddress address, int retries, int delay)
+  public AsyncFuture<NettyXioClient> connect( InetSocketAddress address, int retries, int delay)
   {
     return connect( address, retries, new int[] { delay});
   }
@@ -278,7 +280,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( InetSocketAddress address, int[] delays)
+  public AsyncFuture<NettyXioClient> connect( InetSocketAddress address, int[] delays)
   {
     return connect( address, delays.length, delays);
   }
@@ -290,7 +292,7 @@ public class XioClient extends XioPeer
    * @param delays An array of delays between retries in milliseconds.
    * @return Returns a future that is retry-aware.
    */
-  public AsyncFuture<XioClient> connect( InetSocketAddress address, int retries, int[] delays)
+  public AsyncFuture<NettyXioClient> connect( InetSocketAddress address, int retries, int[] delays)
   {
     synchronized( this)
     {
@@ -301,7 +303,7 @@ public class XioClient extends XioPeer
     
     final ConnectionRetryFuture retryFuture = new ConnectionRetryFuture( bootstrap, address, scheduler, retries, delays);
     
-    final AsyncFuture<XioClient> asyncFuture = new AsyncFuture<XioClient>( this) {
+    final AsyncFuture<NettyXioClient> asyncFuture = new AsyncFuture<NettyXioClient>( this) {
       public void cancel()
       {
         retryFuture.cancel();
@@ -366,10 +368,10 @@ public class XioClient extends XioPeer
       delays = lastDelays;
     }
     
-    AsyncFuture<XioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
+    AsyncFuture<NettyXioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
     if ( future == null) return null;
     
-    UnionFuture<XioPeer, XioClient> wrapperFuture = new UnionFuture<XioPeer, XioClient>( this);
+    UnionFuture<XioPeer, NettyXioClient> wrapperFuture = new UnionFuture<XioPeer, NettyXioClient>( this);
     wrapperFuture.addTask( future);
     return wrapperFuture;
   }
@@ -405,7 +407,7 @@ public class XioClient extends XioPeer
     {
       for( IListener listener: listeners)
       {
-        try { listener.notifyConnect( XioClient.this); }
+        try { listener.notifyConnect( NettyXioClient.this); }
         catch( Exception e)
         {
           SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());
@@ -423,7 +425,7 @@ public class XioClient extends XioPeer
     {
       for( IListener listener: listeners)
       {
-        try { listener.notifyDisconnect( XioClient.this); }
+        try { listener.notifyDisconnect( NettyXioClient.this); }
         catch( Exception e)
         {
           SLog.errorf( this, "Exception was thrown by listener: %s", e.toString());

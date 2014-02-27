@@ -69,9 +69,9 @@ public class ClientAction extends GuardedAction
     final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
     final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    class ClientListener implements XioClient.IListener
+    class ClientListener implements NettyXioClient.IListener
     {
-      public void notifyConnect( final XioClient client)
+      public void notifyConnect( final NettyXioClient client)
       {
         nested = new StatefulContext( context);
         
@@ -89,7 +89,7 @@ public class ClientAction extends GuardedAction
           }
         });
       }
-      public void notifyDisconnect( final XioClient client)
+      public void notifyDisconnect( final NettyXioClient client)
       {
         context.getExecutor().execute( new Runnable() {
           public void run()
@@ -111,15 +111,15 @@ public class ClientAction extends GuardedAction
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
     ClientSocketChannelFactory channelFactory = new NioClientSocketChannelFactory( bossPool, workerPool);
     
-    XioClient client = new XioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
+    NettyXioClient client = new NettyXioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
     client.setAutoReconnect( true);
     client.addListener( new ClientListener());
     
     if ( localAddress.length() > 0) client.bind( localAddress, localPort);
     
-    AsyncFuture<XioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
-    future.addListener( new IListener<XioClient>() {
-      public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
+    AsyncFuture<NettyXioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
+    future.addListener( new IListener<NettyXioClient>() {
+      public void notifyComplete( AsyncFuture<NettyXioClient> future) throws Exception
       {
         if ( !future.isSuccess())
         {
@@ -145,7 +145,7 @@ public class ClientAction extends GuardedAction
    * @param name The client registration name.
    * @param onError The error handler.
    */
-  private void register( final IContext context, XioClient client, String name, final IXAction onError)
+  private void register( final IContext context, NettyXioClient client, String name, final IXAction onError)
   {
     try
     {

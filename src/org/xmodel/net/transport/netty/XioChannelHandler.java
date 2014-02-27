@@ -22,7 +22,6 @@ import org.xmodel.net.HeaderProtocol;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
-import org.xmodel.net.XioClient;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.XioServerPeer;
 import org.xmodel.net.bind.BindProtocol;
@@ -75,7 +74,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    * If this handler is being used by a client, specify the client instance.
    * @param client The client instance.
    */
-  public void setClient( XioClient client)
+  public void setClient( NettyXioClient client)
   {
     this.client = client;
   }

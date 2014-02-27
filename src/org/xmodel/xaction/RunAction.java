@@ -278,7 +278,7 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote execution at %s, @name=%s ...", address.toString(), Xlate.get( scriptNode, "name", "?"));
   
         final XioClientPool clientPool = getClientPool( context);
-        final XioClient client = clientPool.lease( address);
+        final NettyXioClient client = clientPool.lease( address);
         
         if ( onComplete == null && onSuccess == null && onError == null)
         {
@@ -317,9 +317,9 @@ public class RunAction extends GuardedAction
           
           if ( !client.isConnected())
           {
-            AsyncFuture<XioClient> future = client.connect( address, connectionRetries);
-            future.addListener( new IListener<XioClient>() {
-              public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
+            AsyncFuture<NettyXioClient> future = client.connect( address, connectionRetries);
+            future.addListener( new IListener<NettyXioClient>() {
+              public void notifyComplete( AsyncFuture<NettyXioClient> future) throws Exception
               {
                 if ( future.isSuccess())
                 {
@@ -570,9 +570,9 @@ public class RunAction extends GuardedAction
     if ( clientPool == null)
     {
       clientPool = new XioClientPool( new IXioClientFactory() {
-        public XioClient newInstance( InetSocketAddress address)
+        public NettyXioClient newInstance( InetSocketAddress address)
         {
-          return new XioClient( context.getExecutor());
+          return new NettyXioClient( context.getExecutor());
         }
       });
       // TODO: potential memory leak!!
@@ -747,13 +747,13 @@ public class RunAction extends GuardedAction
   
   protected class AsyncInvocation
   {
-    public AsyncInvocation( XioClient client, int correlation)
+    public AsyncInvocation( NettyXioClient client, int correlation)
     {
       this.client = client;
       this.correlation = correlation;
     }
     
-    public XioClient client;
+    public NettyXioClient client;
     public int correlation;
   }
   
