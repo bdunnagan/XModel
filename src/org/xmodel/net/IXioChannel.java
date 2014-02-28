@@ -21,11 +21,6 @@ public interface IXioChannel
   public XioPeer getPeer();
   
   /**
-   * @return Returns null or the server that created this channel.
-   */
-  public XioServer getServer();
-  
-  /**
    * @return Returns true if the channel is connected.
    */
   public boolean isConnected();

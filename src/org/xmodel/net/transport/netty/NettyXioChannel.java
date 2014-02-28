@@ -1,7 +1,6 @@
 package org.xmodel.net.transport.netty;
 
 import java.net.SocketAddress;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -10,7 +9,6 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.XioServer;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
@@ -30,15 +28,6 @@ public final class NettyXioChannel implements IXioChannel
   public XioPeer getPeer()
   {
     return (XioPeer)channel.getAttachment();
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioChannel#getServer()
-   */
-  @Override
-  public XioServer getServer()
-  {
-    return (XioServer)channel.getParent().getAttachment();
   }
 
   /* (non-Javadoc)

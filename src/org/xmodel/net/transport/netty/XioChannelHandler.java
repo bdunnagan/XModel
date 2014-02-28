@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -23,7 +22,6 @@ import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.XioServerPeer;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
@@ -145,7 +143,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
     XioPeer peer = this.client;
-    if ( peer == null) peer = new XioServerPeer( new NettyXioChannel( event.getChannel()));
+    if ( peer == null) peer = new NettyXioServerPeer( new NettyXioChannel( event.getChannel()));
     event.getChannel().setAttachment( peer);
     
     for( IListener listener: listeners)

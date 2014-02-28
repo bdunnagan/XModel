@@ -1,15 +1,16 @@
-package org.xmodel.net;
+package org.xmodel.net.transport.netty;
 
 import java.net.InetSocketAddress;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.log.SLog;
+import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioPeer;
 
-public class XioServerPeer extends XioPeer
+public class NettyXioServerPeer extends XioPeer
 {
-  public XioServerPeer( IXioChannel channel)
+  public NettyXioServerPeer( IXioChannel channel)
   {
     setChannel( channel);
   }
@@ -60,7 +61,7 @@ public class XioServerPeer extends XioPeer
   public synchronized void setChannel( IXioChannel channel)
   {
     super.setChannel( channel);
-    server = (XioServer)channel.getServer();
+    server = (NettyXioServer)channel.getServer();
   }
 
   /**
@@ -91,7 +92,7 @@ public class XioServerPeer extends XioPeer
     return name;
   }
 
-  private XioServer server;
+  private NettyXioServer server;
   private InetSocketAddress address;
   private String name;
 }

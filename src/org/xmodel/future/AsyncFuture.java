@@ -252,11 +252,12 @@ public class AsyncFuture<T>
    * Notify a listener that the future is complete.
    * @param listener The listener.
    */
-  public void notifyComplete( IListener<T> listener)
+  private void notifyComplete( IListener<T> listener)
   {
     try
     {
-      listener.notifyComplete( this);
+      if ( listener != null)
+        listener.notifyComplete( this);
     }
     catch( Exception e)
     {

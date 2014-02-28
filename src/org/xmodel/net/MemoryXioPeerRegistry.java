@@ -15,7 +15,7 @@ import org.xmodel.log.SLog;
 
 public class MemoryXioPeerRegistry implements IXioPeerRegistry
 {
-  public MemoryXioPeerRegistry( XioServer server)
+  public MemoryXioPeerRegistry()
   {
     peersByName = new HashMap<String, Set<XioPeer>>();
     namesByPeer = new HashMap<XioPeer, Set<String>>();

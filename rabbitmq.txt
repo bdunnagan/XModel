@@ -11,3 +11,8 @@ Rabbit MQ Integration
 IXioChannel - abstraction of channel
 XioPeer - high-level protocol interface / endpoint
 NettyXioClient - netty protocol interface / endpoint
+
+
+IXioPeerRegistry can be created explicitly in script, or it can be created on-demand by an XioPeer.
+
+. Server peer onDisconnect occurs when hearbeat fails. 
