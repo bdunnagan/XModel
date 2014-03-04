@@ -6,9 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-
 import javax.net.ssl.SSLContext;
-
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerBossPool;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
@@ -16,8 +14,9 @@ import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.XioServer;
+import org.xmodel.net.transport.netty.NettyXioServer;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -77,11 +76,11 @@ public class ServerAction extends GuardedAction
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
     ServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossPool, workerPool);
     
-    final XioServer server = new XioServer( getSSLContext( context), context, null, channelFactory);
+    final NettyXioServer server = new NettyXioServer( getSSLContext( context), context, null, channelFactory);
     
     if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
     {
-      XioServer.IListener listener = new XioServer.IListener() {
+      NettyXioServer.IListener listener = new NettyXioServer.IListener() {
         public void notifyConnect( final XioPeer peer)
         {
           if ( onConnect != null) 
@@ -196,7 +195,7 @@ public class ServerAction extends GuardedAction
     }
   }
   
-  private StatefulContext getNotifyContext( IContext context, XioServer server, XioPeer peer)
+  private StatefulContext getNotifyContext( IContext context, NettyXioServer server, XioPeer peer)
   {
     synchronized( notifyContexts)
     {
@@ -214,7 +213,7 @@ public class ServerAction extends GuardedAction
         nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
 
         String unique = getIdentityRegistration( peer);
-        server.getPeerRegistry().register( peer, unique);
+        server.getFeature( IXioPeerRegistry.class).register( peer, unique);
         nested.set( "peer", unique);
       }
       return nested;

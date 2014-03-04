@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -27,6 +25,7 @@ import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.ConnectionRetryFuture;
 import org.xmodel.net.Heartbeat;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -374,6 +373,16 @@ public class NettyXioClient extends XioPeer
     UnionFuture<XioPeer, NettyXioClient> wrapperFuture = new UnionFuture<XioPeer, NettyXioClient>( this);
     wrapperFuture.addTask( future);
     return wrapperFuture;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.XioPeer#close()
+   */
+  @Override
+  public AsyncFuture<IXioChannel> close()
+  {
+    setAutoReconnect( false);
+    return super.close();
   }
 
   /**

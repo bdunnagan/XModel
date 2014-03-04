@@ -1,35 +1,32 @@
 package org.xmodel.xaction;
 
-import java.net.InetSocketAddress;
-import java.security.SecureRandom;
 import java.util.List;
-import java.util.concurrent.Executors;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioClientBossPool;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioWorkerPool;
-import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
-import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.AsyncFuture.IListener;
-import org.xmodel.net.OpenTrustStore;
-import org.xmodel.net.XioClient;
 import org.xmodel.net.XioPeer;
-import org.xmodel.util.PrefixThreadFactory;
+import org.xmodel.net.transport.netty.NettyClientTransport;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * Create a client connection and register the client with the server with a peer name.
- * Client connections allow the server to use services of the client on demand.
+ * An XAction that creates a network client using one of the available IPC transports.  
+ * Examples of ICP transports include TCP and AMPQ.
  */
 public class ClientAction extends GuardedAction
 {
-  public final static int defaultRetries = Integer.MAX_VALUE;
-  public final static int[] defaultDelays = { 250, 500, 1000, 2000, 3000, 4000, 5000, 5000, 5000, 5000, 10000};
+  public static interface IClientTransport
+  {
+    /**
+     * Configure from the specified element.
+     * @param config The configuration element.
+     */
+    public void configure( IModelObject config);
+    
+    /**
+     * Run the action implementation.
+     * @param context The execution context.
+     */
+    public XioPeer run( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError);
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
@@ -39,19 +36,16 @@ public class ClientAction extends GuardedAction
   {
     super.configure( document);
     
-    var = Conventions.getVarName( document.getRoot(), true); 
-    serverHostExpr = document.getExpression( "serverHost", true);
-    serverPortExpr = document.getExpression( "serverPort", true);
-    localAddressExpr = document.getExpression( "localAddress", true);
-    localPortExpr = document.getExpression( "localPort", true);
+    var = Conventions.getVarName( document.getRoot(), true);
     clientNameExpr = document.getExpression( "subscribe", true);
-    threadsExpr = document.getExpression( "threads", true);
-    
-    sslExpr = document.getExpression( "ssl", true);
-    
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onErrorExpr = document.getExpression( "onError", true);
+    
+    IModelObject transport = document.getRoot().getFirstChild( "tcp");
+    if ( transport == null) transport = document.getRoot().getFirstChild( "ampq");
+    
+    createTransport( transport);
   }
 
   /* (non-Javadoc)
@@ -60,106 +54,17 @@ public class ClientAction extends GuardedAction
   @Override
   protected Object[] doAction( final IContext context)
   {
-    final String serverHost = serverHostExpr.evaluateString( context);
-    final int serverPort = (int)serverPortExpr.evaluateNumber( context);
-    final String localAddress = (localAddressExpr != null)? localAddressExpr.evaluateString( context): "";
-    final int localPort = (localPortExpr != null)? (int)localPortExpr.evaluateNumber( context): 0;
-    final String clientName = clientNameExpr.evaluateString( context);
-    final IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
-    final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
-    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    String clientName = clientNameExpr.evaluateString( context);
     
-    class ClientListener implements NettyXioClient.IListener
-    {
-      public void notifyConnect( final NettyXioClient client)
-      {
-        nested = new StatefulContext( context);
-        
-        InetSocketAddress localAddress = client.getLocalAddress();
-        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
-        
-        InetSocketAddress remoteAddress = client.getRemoteAddress();
-        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
-        
-        context.getExecutor().execute( new Runnable() {
-          public void run()
-          {
-            if ( onConnect != null) onConnect.run( nested);
-            register( nested, client, clientName, onError);
-          }
-        });
-      }
-      public void notifyDisconnect( final NettyXioClient client)
-      {
-        context.getExecutor().execute( new Runnable() {
-          public void run()
-          {
-            if ( onDisconnect != null) onDisconnect.run( nested);
-          }
-        });
-      }
-      
-      private StatefulContext nested;
-    };
+    IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
+    IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
+    IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
     
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
-    
-    PrefixThreadFactory bossThreadFactory = new PrefixThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
-    PrefixThreadFactory workThreadFactory = new PrefixThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
-    
-    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, XioPeer.timer, ThreadNameDeterminer.CURRENT);
-    NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
-    ClientSocketChannelFactory channelFactory = new NioClientSocketChannelFactory( bossPool, workerPool);
-    
-    NettyXioClient client = new NettyXioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
-    client.setAutoReconnect( true);
-    client.addListener( new ClientListener());
-    
-    if ( localAddress.length() > 0) client.bind( localAddress, localPort);
-    
-    AsyncFuture<NettyXioClient> future = client.connect( serverHost, serverPort, defaultRetries, defaultDelays);
-    future.addListener( new IListener<NettyXioClient>() {
-      public void notifyComplete( AsyncFuture<NettyXioClient> future) throws Exception
-      {
-        if ( !future.isSuccess())
-        {
-          context.getExecutor().execute( new Runnable() {
-            public void run()
-            {
-              if ( onError != null) onError.run( context);
-            }
-          });
-        }
-      }
-    });
+    XioPeer client = transport.run( context, clientName, onConnect, onDisconnect, onError);
     
     Conventions.putCache( context, var, client);
     
     return null;
-  }
-  
-  /**
-   * Register the client.
-   * @param context The context.
-   * @param client The client.
-   * @param name The client registration name.
-   * @param onError The error handler.
-   */
-  private void register( final IContext context, NettyXioClient client, String name, final IXAction onError)
-  {
-    try
-    {
-      client.register( name);
-    }
-    catch( Exception e)
-    {
-      context.getExecutor().execute( new Runnable() {
-        public void run()
-        {
-          if ( onError != null) onError.run( context);
-        }
-      });
-    }
   }
   
   /**
@@ -176,36 +81,24 @@ public class ClientAction extends GuardedAction
   }
   
   /**
-   * Get the SSLContext if ssl is requested.
-   * @param context The context.
-   * @return Returns null or the SSLContext.
+   * Create transport.
+   * @param config The configuration element.
+   * @return Returns null or the transport.
    */
-  private SSLContext getSSLContext( IContext context)
+  private IClientTransport createTransport( IModelObject config)
   {
-    boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false; 
-    if ( !ssl) return null;
-    
-    try
+    switch( config.getType())
     {
-      SSLContext sslContext = SSLContext.getInstance( "TLS");
-      sslContext.init( null, new TrustManager[] { new OpenTrustStore()}, new SecureRandom());
-      return sslContext;
-    }
-    catch( Exception e)
-    {
-      throw new XActionException( e);
+      case "tcp": return new NettyClientTransport();
+      case "ampq":
+      default: return null;
     }
   }
   
   private String var;
-  private IExpression serverHostExpr;
-  private IExpression serverPortExpr;
-  private IExpression localAddressExpr;
-  private IExpression localPortExpr;
   private IExpression clientNameExpr;
-  private IExpression threadsExpr;
-  private IExpression sslExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onErrorExpr;
+  private IClientTransport transport;
 }

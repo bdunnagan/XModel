@@ -28,12 +28,10 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -43,11 +41,10 @@ import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.IXioCallback;
-import org.xmodel.net.IXioClientFactory;
-import org.xmodel.net.XioClient;
-import org.xmodel.net.XioClientPool;
+import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.XioServer;
+import org.xmodel.net.transport.netty.NettyXioClient;
+import org.xmodel.util.IFeatured;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -86,7 +83,9 @@ public class RunAction extends GuardedAction
     
     hostExpr = document.getExpression( "host", true);
     portExpr = document.getExpression( "port", true);
-    serverExpr = document.getExpression( "server", true);
+    
+    registryExpr = document.getExpression( "registry", true);
+    if ( registryExpr == null) registryExpr = document.getExpression( "server", true);
     clientsExpr = document.getExpression( "clients", true);
     
     timeoutExpr = document.getExpression( "timeout", true);
@@ -107,7 +106,7 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( serverExpr != null)
+    if ( registryExpr != null)
     {
       if ( clientsExpr != null)
       {
@@ -159,7 +158,7 @@ public class RunAction extends GuardedAction
   {
     Object[] results = null;
 
-    IXAction script = getScript( context, scriptExpr);
+    IXAction script = Conventions.getScript( getDocument(), context, scriptExpr);
     if ( script == null) return;
     
     if ( contextExpr != null)
@@ -201,7 +200,7 @@ public class RunAction extends GuardedAction
     }
     
     Executor executor = (Executor)executorNode.getValue();
-    IXAction script = getScript( getScriptNode( context));
+    IXAction script = Conventions.getScript( getDocument(), getScriptNode( context));
     
     AsyncFuture<Object[]> future = null;
     if ( futureVar != null)
@@ -236,7 +235,7 @@ public class RunAction extends GuardedAction
     }
     
     ScheduledExecutorService scheduler = (ScheduledExecutorService)schedulerNode.getValue();
-    IXAction script = getScript( getScriptNode( context));
+    IXAction script = Conventions.getScript( getDocument(), getScriptNode( context));
     
     AsyncFuture<Object[]> future = null;
     if ( futureVar != null)
@@ -263,9 +262,9 @@ public class RunAction extends GuardedAction
   {
     final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
 
-    final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
-    final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
-    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    final IXAction onComplete = (onCompleteExpr != null)? Conventions.getScript( getDocument(), context, onCompleteExpr): null;
+    final IXAction onSuccess = (onSuccessExpr != null)? Conventions.getScript( getDocument(), context, onSuccessExpr): null;
+    final IXAction onError = (onErrorExpr != null)? Conventions.getScript( getDocument(), context, onErrorExpr): null;
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     final String[] varArray = vars.split( "\\s*,\\s*");
@@ -277,17 +276,12 @@ public class RunAction extends GuardedAction
       {
         log.debugf( "Remote execution at %s, @name=%s ...", address.toString(), Xlate.get( scriptNode, "name", "?"));
   
-        final XioClientPool clientPool = getClientPool( context);
-        final NettyXioClient client = clientPool.lease( address);
+        final NettyXioClient client = new NettyXioClient( context);
+        client.connect( address, connectionRetries).await( timeout);
+        if ( !client.isConnected()) throw new RuntimeException( "Timeout");
         
         if ( onComplete == null && onSuccess == null && onError == null)
         {
-          if ( !client.isConnected())  // TODO: no longer necessary - remove and test
-            client.connect( address, connectionRetries).await( timeout);
-
-          if ( !client.isConnected())
-            throw new RuntimeException( "Timeout");
-            
           try
           {
             Object[] result = client.execute( (StatefulContext)context, varArray, scriptNode, timeout);
@@ -295,7 +289,7 @@ public class RunAction extends GuardedAction
           }
           finally
           {
-            clientPool.release( client);
+            client.close();
           }
         }
         else
@@ -341,7 +335,7 @@ public class RunAction extends GuardedAction
                   }
                   finally
                   {
-                    if ( client != null) clientPool.release( client);
+                    if ( client != null) client.close();
                   }
                 }
                 else
@@ -367,7 +361,7 @@ public class RunAction extends GuardedAction
             }
             finally
             {
-              if ( client != null) clientPool.release( client);
+              if ( client != null) client.close();
             }
           }
         }
@@ -390,9 +384,9 @@ public class RunAction extends GuardedAction
   {
     final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
 
-    final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
-    final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
-    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    final IXAction onComplete = (onCompleteExpr != null)? Conventions.getScript( getDocument(), context, onCompleteExpr): null;
+    final IXAction onSuccess = (onSuccessExpr != null)? Conventions.getScript( getDocument(), context, onSuccessExpr): null;
+    final IXAction onError = (onErrorExpr != null)? Conventions.getScript( getDocument(), context, onErrorExpr): null;
     
     String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
     final String[] varArray = vars.split( "\\s*,\\s*");
@@ -400,10 +394,17 @@ public class RunAction extends GuardedAction
 
     try
     {
-      XioServer server = (XioServer)Conventions.getCache( context, serverExpr);
-      if ( server == null)
+      IFeatured featured = (IFeatured)Conventions.getCache( context, registryExpr);
+      if ( featured == null)
       {
-        log.warnf( "No server specified in server-initiated remote execution: %s", serverExpr);
+        log.warnf( "No server/registry specified in remote execution: %s", registryExpr);
+        return;
+      }
+      
+      IXioPeerRegistry registry = featured.getFeature( IXioPeerRegistry.class);
+      if ( registry == null)
+      {
+        log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
         return;
       }
       
@@ -413,7 +414,7 @@ public class RunAction extends GuardedAction
         
         log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
         
-        Iterator<XioPeer> iterator = server.getPeerRegistry().lookupByName( client);
+        Iterator<XioPeer> iterator = registry.lookupByName( client);
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();
@@ -560,28 +561,6 @@ public class RunAction extends GuardedAction
   }
   
   /**
-   * Returns the XioClientPool associated with the specified context.
-   * @param context The context.
-   * @return Returns the XioClientPool associated with the specified context.
-   */
-  private XioClientPool getClientPool( final IContext context)
-  {
-    XioClientPool clientPool = clientPools.get( context.getExecutor());
-    if ( clientPool == null)
-    {
-      clientPool = new XioClientPool( new IXioClientFactory() {
-        public NettyXioClient newInstance( InetSocketAddress address)
-        {
-          return new NettyXioClient( context.getExecutor());
-        }
-      });
-      // TODO: potential memory leak!!
-      clientPools.put( context.getExecutor(), clientPool);
-    }
-    return clientPool;
-  }
-  
-  /**
    * Get the script node to be executed.
    * @param context The context.
    * @return Returns null or the script node.
@@ -596,40 +575,6 @@ public class RunAction extends GuardedAction
       ModelAlgorithms.copyChildren( document.getRoot(), inline, null);
     }
     return inline;
-  }
-  
-  /**
-   * Get the script from the specified expression.
-   * @param context The context.
-   * @param expression The script expression.
-   * @return Returns null or the script.
-   */
-  private IXAction getScript( IContext context, IExpression expression)
-  {
-    IXAction script = null;
-    if ( expression != null)
-    {
-      script = getScript( expression.queryFirst( context));
-      if ( script == null) log.warnf( "Script not found for expression, %s", expression);
-    }
-    return script;
-  }
-
-  /**
-   * Compile, or get the already compiled, script for the specified node.
-   * @param scriptNode The script node.
-   * @return Returns null or the script.
-   */
-  private IXAction getScript( IModelObject scriptNode)
-  {
-    if ( scriptNode == null) return null;
-    
-    CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
-    if ( attribute != null) return attribute.script;
-    
-    IXAction script = document.createScript( scriptNode);
-    if ( script != null) scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
-    return script;
   }
   
   /**
@@ -651,17 +596,6 @@ public class RunAction extends GuardedAction
     {
       throw new XActionException( t);
     }
-  }
-  
-  // TODO: Move this mechanism to GlobalSettings or IModel
-  private final static class CompiledAttribute
-  {
-    public CompiledAttribute( IXAction script)
-    {
-      this.script = script;
-    }
-    
-    public IXAction script;
   }
   
   private final static class ScriptRunnable implements Runnable
@@ -747,19 +681,18 @@ public class RunAction extends GuardedAction
   
   protected class AsyncInvocation
   {
-    public AsyncInvocation( NettyXioClient client, int correlation)
+    public AsyncInvocation( XioPeer client, int correlation)
     {
       this.client = client;
       this.correlation = correlation;
     }
     
-    public NettyXioClient client;
+    public XioPeer client;
     public int correlation;
   }
   
   private final static Log log = Log.getLog( RunAction.class);
   private final static int[] connectionRetries = { 500, 1000, 3000, 5000};  
-  private final static ConcurrentHashMap<Executor, XioClientPool> clientPools = new ConcurrentHashMap<Executor, XioClientPool>();
   private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
   private String var;
@@ -768,7 +701,7 @@ public class RunAction extends GuardedAction
   private IExpression contextExpr;
   private IExpression hostExpr;
   private IExpression portExpr;
-  private IExpression serverExpr;
+  private IExpression registryExpr;
   private IExpression clientsExpr;
   private IExpression timeoutExpr;
   private IExpression delayExpr;

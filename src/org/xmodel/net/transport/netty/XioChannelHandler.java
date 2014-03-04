@@ -142,9 +142,16 @@ public class XioChannelHandler extends SimpleChannelHandler
   @Override
   public void channelConnected( ChannelHandlerContext ctx, ChannelStateEvent event) throws Exception
   {
+    Channel channel = event.getChannel();
+    
     XioPeer peer = this.client;
-    if ( peer == null) peer = new NettyXioServerPeer( new NettyXioChannel( event.getChannel()));
-    event.getChannel().setAttachment( peer);
+    if ( peer == null) 
+    {
+      NettyXioServer server = (NettyXioServer)channel.getParent().getAttachment();
+      peer = server.createConnectionPeer( channel);
+    }
+    
+    channel.setAttachment( peer);
     
     for( IListener listener: listeners)
     {

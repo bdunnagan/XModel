@@ -2,7 +2,7 @@ package org.xmodel.xaction.debug;
 
 import java.util.concurrent.Semaphore;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioServer;
+import org.xmodel.net.transport.netty.NettyXioServer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -22,7 +22,7 @@ public class RemoteBreakHandler implements IBreakHandler
       int port = Integer.parseInt( System.getProperty( debuggerPortProperty));
       
       IContext context = new StatefulContext();
-      server = new XioServer( context);
+      server = new NettyXioServer( context);
       server.start( "localhost", port);
     }
     catch( Exception e)
@@ -58,5 +58,5 @@ public class RemoteBreakHandler implements IBreakHandler
   }
 
   private Semaphore lock;
-  private XioServer server;
+  private NettyXioServer server;
 }

@@ -6,13 +6,14 @@ import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.IXioChannel;
+import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 
 public class NettyXioServerPeer extends XioPeer
 {
-  public NettyXioServerPeer( IXioChannel channel)
+  public NettyXioServerPeer( IXioChannel channel, IXioPeerRegistry registry)
   {
-    setChannel( channel);
+    super( channel, registry);
   }
 
   /* (non-Javadoc)
@@ -23,7 +24,6 @@ public class NettyXioServerPeer extends XioPeer
   {
     String name = getRegisteredName();
     if ( name == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected - name is null.");
-    if ( server == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected - server is null.");
     
     final AsyncFuture<XioPeer> reconnectFuture = new AsyncFuture<XioPeer>( this) {
       public void cancel()
@@ -32,7 +32,7 @@ public class NettyXioServerPeer extends XioPeer
       }
     };
 
-    AsyncFuture<XioPeer> future = server.getPeerRegistry().getRegistrationFuture( name);
+    AsyncFuture<XioPeer> future = getPeerRegistry().getRegistrationFuture( name);
     future.addListener( new IListener<XioPeer>() {
       public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
       {
@@ -52,16 +52,6 @@ public class NettyXioServerPeer extends XioPeer
     });
     
     return reconnectFuture;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.XioPeer#setChannel(org.jboss.netty.channel.Channel)
-   */
-  @Override
-  public synchronized void setChannel( IXioChannel channel)
-  {
-    super.setChannel( channel);
-    server = (NettyXioServer)channel.getServer();
   }
 
   /**
@@ -92,7 +82,6 @@ public class NettyXioServerPeer extends XioPeer
     return name;
   }
 
-  private NettyXioServer server;
   private InetSocketAddress address;
   private String name;
 }

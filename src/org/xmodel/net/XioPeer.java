@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.Timer;
 import org.xmodel.IModelObject;
@@ -20,11 +19,18 @@ public class XioPeer
 {
   protected XioPeer()
   {
+    this( null, null);
   }
   
   protected XioPeer( IXioChannel channel)
   {
+    this( channel, null);
+  }
+  
+  protected XioPeer( IXioChannel channel, IXioPeerRegistry registry)
+  {
     this.channel = channel;
+    this.registry = registry;
   }
 
   /**
@@ -341,6 +347,14 @@ public class XioPeer
     return isConnected()? channel.close(): new SuccessAsyncFuture<IXioChannel>( channel);
   }
 
+  /**
+   * @return Returns null or the peer registry.
+   */
+  public IXioPeerRegistry getPeerRegistry()
+  {
+    return registry;
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
    */
@@ -365,5 +379,6 @@ public class XioPeer
   public static Timer timer = new HashedWheelTimer();
   
   private IXioChannel channel;
+  private IXioPeerRegistry registry;
   private boolean reconnect;
 }

@@ -2,7 +2,6 @@ package org.xmodel.xaction;
 
 import java.util.Collections;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.IPath;
@@ -220,6 +219,24 @@ public class Conventions
         }
       }
     }
+    return script;
+  }
+  
+  /**
+   * Compile, or get the already compiled, script for the specified node.
+   * @param document Typically the document of the XAction creating the script.
+   * @param scriptNode The script node.
+   * @return Returns null or the script.
+   */
+  public static IXAction getScript( XActionDocument document, IModelObject scriptNode)
+  {
+    if ( scriptNode == null) return null;
+    
+    CompiledAttribute attribute = (scriptNode != null)? (CompiledAttribute)scriptNode.getAttribute( "compiled"): null;
+    if ( attribute != null) return attribute.script;
+    
+    IXAction script = document.createScript( scriptNode);
+    if ( script != null) scriptNode.setAttribute( "compiled", new CompiledAttribute( script));
     return script;
   }
   

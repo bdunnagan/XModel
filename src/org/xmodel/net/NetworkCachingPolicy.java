@@ -2,7 +2,6 @@ package org.xmodel.net;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
 import org.xmodel.Xlate;
@@ -13,6 +12,7 @@ import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.SLog;
+import org.xmodel.net.transport.netty.NettyXioClient;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 
