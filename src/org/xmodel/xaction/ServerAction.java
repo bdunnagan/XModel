@@ -83,8 +83,9 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                onConnect.run( nested);
+                StatefulContext eventContext = getNotifyContext( context, server, peer);
+                configureEventContext( eventContext);
+                onConnect.run( eventContext);
               }
             });
           }
@@ -96,7 +97,7 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, server, peer);
+                StatefulContext nested = peer.getNetworkEventContext();
                 if ( nested != null) onDisconnect.run( nested);
                 removeNotifyContext( peer);
               }
@@ -192,6 +193,8 @@ public class ServerAction extends GuardedAction
   
   private StatefulContext getNotifyContext( IContext context, NettyXioServer server, XioPeer peer)
   {
+    
+    
     synchronized( notifyContexts)
     {
       StatefulContext nested = peer.getNetworkEventContext();
