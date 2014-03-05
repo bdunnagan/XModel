@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -21,6 +23,8 @@ import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
+
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -55,12 +59,12 @@ public class AmqpClientTransport implements IClientTransport
   @Override
   public XioPeer connect( 
       final IContext context, 
-      String clientName, 
-      IXAction onConnect, 
-      IXAction onDisconnect, 
-      IXAction onError, 
-      IXAction onRegister, 
-      IXAction onUnregister)
+      final String clientName, 
+      final IXAction onConnect, 
+      final IXAction onDisconnect, 
+      final IXAction onError, 
+      final IXAction onRegister, 
+      final IXAction onUnregister)
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
@@ -77,7 +81,20 @@ public class AmqpClientTransport implements IClientTransport
     registry.addListener( new IXioPeerRegistryListener() {
       public void onRegister( XioPeer peer, String name)
       {
+        if ( name.equals( getIdentityRegistration( peer)))
+          return;
         
+        context.getExecutor().execute( new Runnable() {
+          public void run() 
+          {
+            StatefulContext nested = getNotifyContext( context, server, peer);
+            if ( nested != null)
+            {
+              nested.set( "name", (name != null)? name: "");
+              onRegister.run( nested);
+            }
+          }
+        });
       }
       public void onUnregister( XioPeer peer, String name)
       {

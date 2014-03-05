@@ -27,11 +27,6 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class ServerAction extends GuardedAction
 {
-  public ServerAction()
-  {
-    notifyContexts = new HashMap<XioPeer, StatefulContext>();
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -199,7 +194,7 @@ public class ServerAction extends GuardedAction
   {
     synchronized( notifyContexts)
     {
-      StatefulContext nested = notifyContexts.get( peer);
+      StatefulContext nested = peer.getNetworkEventContext();
       if ( nested == null)
       {
         nested = new StatefulContext( context);
@@ -220,22 +215,11 @@ public class ServerAction extends GuardedAction
     }
   }
   
-  private void removeNotifyContext( XioPeer peer)
-  {
-    synchronized( notifyContexts)
-    {
-      notifyContexts.remove( peer);
-      log.debugf( "Removed notification context, map size=%d", notifyContexts.size());
-    }    
-  }
-  
   private String getIdentityRegistration( XioPeer peer)
   {
     return String.format( "%X", System.identityHashCode( peer));
   }
 
-  private final static Log log = Log.getLog( ServerAction.class);
-  
   private String var;
   
   private IExpression addressExpr;
@@ -246,5 +230,4 @@ public class ServerAction extends GuardedAction
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;
   private IExpression onUnregisterExpr;
-  private Map<XioPeer, StatefulContext> notifyContexts;
 }

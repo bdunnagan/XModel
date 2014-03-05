@@ -42,7 +42,7 @@ public class ExecutionProtocolTest
   {
     if ( clients != null)
     {
-      for( XioClient client: clients)
+      for( NettyXioClient client: clients)
       {
         client.close();
         client = null;
@@ -64,7 +64,7 @@ public class ExecutionProtocolTest
     
     createClients( 1);
 
-    final XioClient client = clients.get( 0);
+    final NettyXioClient client = clients.get( 0);
     client.connect( address, port).await();
     
     final int count = 10000;
@@ -128,7 +128,7 @@ public class ExecutionProtocolTest
     StatefulContext context = new StatefulContext();
     context.set( "payload", payload);
     
-    XioClient client = clients.get( 0);
+    NettyXioClient client = clients.get( 0);
     client.connect( address, port).await();
     
     IModelObject script = new XmlIO().read( scriptXml);
@@ -151,7 +151,7 @@ public class ExecutionProtocolTest
     
     IModelObject element = new XmlIO().read( xml);
     
-    XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
+    NettyXioClient client = new NettyXioClient( GlobalSettings.getInstance().getDefaultExecutor());
     assertTrue( "Failed to connect", client.connect( "localhost", port).await( 1000));
 
     class Callback implements IXioCallback
@@ -188,7 +188,7 @@ public class ExecutionProtocolTest
   @Test
   public void disconnectDuringExecution() throws Exception
   {
-    XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
+    NettyXioClient client = new NettyXioClient( GlobalSettings.getInstance().getDefaultExecutor());
     client.connect( "localhost", port).await();
 
     final StringBuilder error = new StringBuilder();
@@ -220,10 +220,10 @@ public class ExecutionProtocolTest
   
   private void createClients( int count) throws IOException
   {
-    clients = new ArrayList<XioClient>();
+    clients = new ArrayList<NettyXioClient>();
     for( int i=0; i<count; i++)
     {
-      XioClient client = new XioClient( GlobalSettings.getInstance().getDefaultExecutor());
+      NettyXioClient client = new NettyXioClient( GlobalSettings.getInstance().getDefaultExecutor());
       clients.add( client);
     }
   }
@@ -269,5 +269,5 @@ public class ExecutionProtocolTest
 
   private StatefulContext serverContext;
   private XioServer server;
-  private List<XioClient> clients;
+  private List<NettyXioClient> clients;
 }

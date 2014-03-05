@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
@@ -18,6 +19,7 @@ import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * This class represents an XIO protocol end-point.
@@ -44,6 +46,7 @@ public class XioPeer
   {
     this.channel = channel;
     this.registry = registry;
+    this.eventContext = new StatefulContext( context);
     
     if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
     
@@ -304,7 +307,14 @@ public class XioPeer
   {
     return registry;
   }
-  
+
+  /**
+   * @return Returns the context used during connect, disconnect, register and unregister callbacks.
+   */
+  public StatefulContext getNetworkEventContext()
+  {
+    return eventContext;
+  }
   
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
@@ -375,6 +385,7 @@ public class XioPeer
   
   private IXioChannel channel;
   private IXioPeerRegistry registry;
+  private StatefulContext eventContext;
   private HeaderProtocol headerProtocol;
   private EchoProtocol echoProtocol;
   private BindProtocol bindProtocol;

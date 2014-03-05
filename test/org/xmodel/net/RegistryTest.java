@@ -40,7 +40,7 @@ public class RegistryTest
 
     StatefulContext clientContext = new StatefulContext();
     clientContext.set( "name", "Client");
-    XioClient client = new XioClient( clientContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool());
+    NettyXioClient client = new NettyXioClient( clientContext, GlobalSettings.getInstance().getScheduler(), Executors.newCachedThreadPool());
     client.connect( "localhost", 10000).await();
     
     final Semaphore s4 = new Semaphore( 0);
