@@ -31,18 +31,10 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class ExecutionRequestProtocol
 {
-  public ExecutionRequestProtocol( ExecutionProtocol bundle)
+  public ExecutionRequestProtocol( ExecutionProtocol bundle, ExecutionPrivilege privilege)
   {
     this.bundle = bundle;
     this.requests = new ConcurrentHashMap<Integer, RequestRunnable>();
-  }
-  
-  /**
-   * Set the execution privileges.
-   * @param privilege The object that defines the privileges.
-   */
-  public void setPrivilege( ExecutionPrivilege privilege)
-  {
     this.privilege = privilege;
   }
   
@@ -88,7 +80,7 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     
     return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
   }
@@ -127,7 +119,7 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -173,7 +165,7 @@ public class ExecutionRequestProtocol
 
     // send cancel
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.cancelRequest, 4, correlation);
-    channel.write( buffer);
+    channel.writeRequest( buffer);
   }
   
   /**

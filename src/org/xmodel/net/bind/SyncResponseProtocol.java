@@ -7,8 +7,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -22,7 +20,6 @@ public class SyncResponseProtocol
   public SyncResponseProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
   }
   
@@ -51,7 +48,7 @@ public class SyncResponseProtocol
     buffer1.writeInt( correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -76,7 +73,7 @@ public class SyncResponseProtocol
    */
   protected int nextCorrelation()
   {
-    int correlation = counter.getAndIncrement();
+    int correlation = bundle.headerProtocol.correlation();
     queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
@@ -103,6 +100,5 @@ public class SyncResponseProtocol
   private final static Log log = Log.getLog( SyncResponseProtocol.class);
 
   private BindProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BlockingQueue<IModelObject>> queues;
 }

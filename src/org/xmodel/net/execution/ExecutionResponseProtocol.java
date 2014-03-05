@@ -10,8 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -33,7 +31,6 @@ public class ExecutionResponseProtocol
   public ExecutionResponseProtocol( ExecutionProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
     this.tasks = new ConcurrentHashMap<Integer, ResponseTask>();
   }
@@ -91,7 +88,7 @@ public class ExecutionResponseProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -117,7 +114,7 @@ public class ExecutionResponseProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -164,21 +161,12 @@ public class ExecutionResponseProtocol
   }
   
   /**
-   * Allocates the next correlation without associating a queue or task.
-   * @return Returns the allocated correlation number.
-   */
-  public int allocCorrelation()
-  {
-    return counter.incrementAndGet();
-  }
-  
-  /**
    * Allocates the next correlation number for a synchronous execution.
    * @return Returns the correlation number.
    */
   protected int nextCorrelation()
   {
-    int correlation = counter.incrementAndGet();
+    int correlation = bundle.headerProtocol.correlation();
     queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
@@ -346,7 +334,6 @@ public class ExecutionResponseProtocol
   private final static IModelObject closedQueueIndicator = new NullObject();
 
   private ExecutionProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BlockingQueue<IModelObject>> queues;
   private Map<Integer, ResponseTask> tasks;
 }

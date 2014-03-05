@@ -1,6 +1,8 @@
 package org.xmodel.net;
 
-public class XioException extends Exception
+import java.io.IOException;
+
+public class XioException extends IOException
 {
   private static final long serialVersionUID = 4445010712712665029L;
 

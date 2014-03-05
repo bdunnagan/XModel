@@ -57,7 +57,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendAddChild: parent=%s/%X, child=%s/%X, index=%d", parent.getType(), parentNetID, child.getType(), childNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -79,7 +79,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendRemoveChild: parent=%s/%X, index=%d", parent.getType(), parentNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.writeRequest( buffer);
   }
 
   /**
@@ -105,7 +105,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendChangeAttribute: parent=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
 
   /**
@@ -128,7 +128,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendClearAttribute: parent=%X, attrName=%s", netID, attrName);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.writeRequest( buffer);
   }
 
   /**
@@ -148,7 +148,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendChangeDirty: element=%X, dirty=%s", netID, dirty);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.writeRequest( buffer);
   }
   
   /**
@@ -193,7 +193,7 @@ public class UpdateProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handleChangeAttribute( IXioChannel channel, ChannelBuffer buffer) throws IOException, ClassNotFoundException, XioException
+  public void handleChangeAttribute( IXioChannel channel, ChannelBuffer buffer) throws IOException, XioException
   {
     int netID = buffer.readInt();
     
@@ -201,14 +201,21 @@ public class UpdateProtocol
     buffer.readBytes( bytes);
     String attrName = new String( bytes, charset);
     
-    Object newValue = protocol.serializer.readObject( new DataInputStream( new ChannelBufferInputStream( buffer)));
-  
-    log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
+    try
+    {
+      Object newValue = protocol.serializer.readObject( new DataInputStream( new ChannelBufferInputStream( buffer)));
     
-    IModelObject element = protocol.requestCompressor.findRemote( netID);
-    if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
-    
-    protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
+      log.debugf( "UpdateProtocol.handleChangeAttribute: element=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
+      
+      IModelObject element = protocol.requestCompressor.findRemote( netID);
+      if ( element == null) throw new XioException( String.format( "Element %X not found", netID));
+      
+      protocol.executor.execute( new ChangeAttributeEvent( element, attrName, newValue));
+    }
+    catch( ClassNotFoundException e)
+    {
+      throw new XioException( e);
+    }
   }
 
   /**

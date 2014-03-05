@@ -25,7 +25,7 @@ public class EchoRequestProtocol
   public void send( IXioChannel channel) throws IOException
   {
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.echoRequest, 0);
-    channel.write( buffer);
+    channel.writeRequest( buffer);
     sentOn = System.currentTimeMillis();
   }
   

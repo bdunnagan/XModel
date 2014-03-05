@@ -1,14 +1,9 @@
 package org.xmodel.net;
 
 import java.net.SocketAddress;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.bind.BindProtocol;
-import org.xmodel.net.echo.EchoProtocol;
-import org.xmodel.net.execution.ExecutionProtocol;
-import org.xmodel.net.register.RegisterProtocol;
 
 /**
  * An abstraction of a communications channel.
@@ -26,10 +21,19 @@ public interface IXioChannel
   public boolean isConnected();
   
   /**
-   * Send the content of the specified buffer.
+   * Send a buffer containing the content of the specified buffer. This method
+   * may also be used when a response is not expected.
    * @param buffer The buffer.
    */
-  public void write( ChannelBuffer buffer);
+  public void writeRequest( ChannelBuffer buffer);
+  
+  /**
+   * Send a response containing the content of the specified buffer. This method
+   * is distinguished from <code>writeRequest</code> when the transport is a 
+   * message bus and the response will travel over a different queue.
+   * @param buffer The buffer.
+   */
+  public void writeResponse( ChannelBuffer buffer);
   
   /**
    * Close this channel.
@@ -56,24 +60,4 @@ public interface IXioChannel
    * @return Returns the future that will be notified when the channel is closed.
    */
   public AsyncFuture<IXioChannel> getCloseFuture();
-  
-  /**
-   * @return Returns the specified protocol.
-   */
-  public EchoProtocol getEchoProtocol();
-  
-  /**
-   * @return Returns the specified protocol.
-   */
-  public BindProtocol getBindProtocol();
-  
-  /**
-   * @return Returns the specified protocol.
-   */
-  public ExecutionProtocol getExecuteProtocol();
-  
-  /**
-   * @return Returns the specified protocol.
-   */
-  public RegisterProtocol getRegisterProtocol();
 }

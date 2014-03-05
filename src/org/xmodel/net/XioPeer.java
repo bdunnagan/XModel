@@ -2,13 +2,21 @@ package org.xmodel.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import org.jboss.netty.util.HashedWheelTimer;
-import org.jboss.netty.util.Timer;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.future.SuccessAsyncFuture;
+import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
+import org.xmodel.net.bind.BindProtocol;
+import org.xmodel.net.echo.EchoProtocol;
+import org.xmodel.net.execution.ExecutionPrivilege;
+import org.xmodel.net.execution.ExecutionProtocol;
+import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -17,20 +25,33 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class XioPeer
 {
-  protected XioPeer()
-  {
-    this( null, null);
-  }
-  
-  protected XioPeer( IXioChannel channel)
-  {
-    this( channel, null);
-  }
-  
-  protected XioPeer( IXioChannel channel, IXioPeerRegistry registry)
+  /**
+   * Create an XioPeer with the specified parameters.
+   * @param channel Null or the transport channel.
+   * @param registry Null or the local peer registry.
+   * @param context The context for the protocol.
+   * @param executor The executor.
+   * @param scheduler The scheduler.
+   * @param privilege The execution privilege manager.
+   */
+  protected XioPeer( 
+      IXioChannel channel, 
+      IXioPeerRegistry registry, 
+      IContext context, 
+      Executor executor, 
+      ScheduledExecutorService scheduler, 
+      ExecutionPrivilege privilege)
   {
     this.channel = channel;
     this.registry = registry;
+    
+    if ( scheduler == null) scheduler = GlobalSettings.getInstance().getScheduler();
+    
+    headerProtocol = new HeaderProtocol();
+    echoProtocol = new EchoProtocol( headerProtocol, executor);
+    registerProtocol = new RegisterProtocol( registry, headerProtocol);
+    bindProtocol = new BindProtocol( headerProtocol, context, executor);
+    executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler, privilege);
   }
 
   /**
@@ -40,16 +61,16 @@ public class XioPeer
    */
   public void setReconnect( boolean reconnect)
   {
-    this.reconnect = reconnect;
+    // TODO: add reconnect behavior to NettyXioChannel
   }
-  
+
   /**
    * Send a heartbeat.
    */
   public void heartbeat() throws IOException
   {
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    channel.getEchoProtocol().requestProtocol.send( channel);
+    echoProtocol.requestProtocol.send( channel);
   }
   
   /**
@@ -58,27 +79,8 @@ public class XioPeer
    */
   public void register( final String name) throws IOException, InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      
-      future.addListener( new IListener<XioPeer>() {
-        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-        {
-          if ( future.isSuccess())
-          {
-            IXioChannel channel = future.getInitiator().getChannel();
-            channel.getRegisterProtocol().registerRequestProtocol.send( channel, name);
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getRegisterProtocol().registerRequestProtocol.send( channel, name);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    registerProtocol.registerRequestProtocol.send( channel, name);
   }
   
   /**
@@ -87,27 +89,8 @@ public class XioPeer
    */
   public void unregisterAll() throws IOException, InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      
-      future.addListener( new IListener<XioPeer>() {
-        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-        {
-          if ( future.isSuccess())
-          {
-            IXioChannel channel = future.getInitiator().getChannel();
-            channel.getRegisterProtocol().unregisterRequestProtocol.send( channel);
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getRegisterProtocol().unregisterRequestProtocol.send( channel);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    registerProtocol.unregisterRequestProtocol.send( channel);
   }
   
   /**
@@ -116,27 +99,8 @@ public class XioPeer
    */
   public void unregister( final String name) throws IOException, InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      
-      future.addListener( new IListener<XioPeer>() {
-        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-        {
-          if ( future.isSuccess())
-          {
-            IXioChannel channel = future.getInitiator().getChannel();
-            channel.getRegisterProtocol().unregisterRequestProtocol.send( channel, name);
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getRegisterProtocol().unregisterRequestProtocol.send( channel, name);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    registerProtocol.unregisterRequestProtocol.send( channel, name);
   }
   
   /**
@@ -148,16 +112,8 @@ public class XioPeer
    */
   public void bind( final IExternalReference reference, final boolean readonly, final String query, final int timeout) throws InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getBindProtocol().bindRequestProtocol.send( reference, channel, readonly, query, timeout);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    bindProtocol.bindRequestProtocol.send( reference, channel, readonly, query, timeout);
   }
   
   /**
@@ -166,27 +122,8 @@ public class XioPeer
    */
   public void unbind( final int netID) throws InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      
-      future.addListener( new IListener<XioPeer>() {
-        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-        {
-          if ( future.isSuccess())
-          {
-            IXioChannel channel = future.getInitiator().getChannel();
-            channel.getBindProtocol().unbindRequestProtocol.send( channel, netID);
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getBindProtocol().unbindRequestProtocol.send( channel, netID);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    bindProtocol.unbindRequestProtocol.send( channel, netID);
   }
   
   /**
@@ -197,14 +134,8 @@ public class XioPeer
    */
   public IModelObject sync( int netID, int timeout) throws InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-    }
-    
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return channel.getBindProtocol().syncRequestProtocol.send( channel, netID, timeout);
+    return bindProtocol.syncRequestProtocol.send( channel, netID, timeout);
   }
   
   /**
@@ -217,14 +148,8 @@ public class XioPeer
    */
   public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null || !future.await( timeout)) throw new IllegalStateException( "Peer is not connected.");
-    }
-    
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return channel.getExecuteProtocol().requestProtocol.send( channel, context, vars, element, timeout);
+    return executionProtocol.requestProtocol.send( channel, context, vars, element, timeout);
   }
   
   /**
@@ -244,38 +169,8 @@ public class XioPeer
                        final int timeout) throws IOException, InterruptedException
   {
     IXioChannel channel = getChannel();
-    if ( reconnect && (channel == null || !channel.isConnected()))
-    {
-      // TODO: timeout needed here for reconnect
-      AsyncFuture<XioPeer> future = reconnect();
-      if ( future == null) throw new IllegalStateException( "Peer is not connected.");
-      
-      future.addListener( new IListener<XioPeer>() {
-        public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-        {
-          if ( future.isSuccess())
-          {
-            IXioChannel channel = future.getInitiator().getChannel();
-            channel.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
-          }
-          else
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run()
-              {
-                callback.onError( context, "Peer is not connected.");
-                callback.onComplete( context);
-              }
-            });
-          }
-        }
-      });
-    }
-    else
-    {
-      if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-      channel.getExecuteProtocol().requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
-    }
+    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
+    executionProtocol.requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
   }
   
   /**
@@ -284,17 +179,53 @@ public class XioPeer
    */
   public void cancel( int correlation)
   {
-    channel.getExecuteProtocol().requestProtocol.cancel( channel, correlation);
+    executionProtocol.requestProtocol.cancel( channel, correlation);
   }
   
   /**
-   * This method is called when a message is sent but the underlying channel is closed.  
-   * Sub-classes may re-establish the connection.
-   * @return Returns null or the ChannelFuture for the connection.
+   * Read the next message from the buffer and pass it on for processing.
+   * @param channel The channel.
+   * @param buffer The buffer.
+   * @return Returns true if a message was read.
    */
-  protected AsyncFuture<XioPeer> reconnect()
+  public boolean handleMessage( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
-    return null;
+    if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
+    
+    if ( buffer.readableBytes() < 9) return false;
+    
+    Type type = headerProtocol.readType( buffer);
+    log.debugf( "Message Type: %s", type);
+    
+    long length = headerProtocol.readLength( buffer);
+    if ( buffer.readableBytes() < length) return false;
+    log.debugf( "Message Length: %d", length);
+    
+    switch( type)
+    {
+      case echoRequest:     echoProtocol.requestProtocol.handle( channel, buffer); return true;
+      case echoResponse:    echoProtocol.responseProtocol.handle( channel, buffer); return true;
+      
+      case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
+      case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
+      case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
+      
+      case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
+      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer, length); return true;
+      case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); return true;
+      case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); return true;
+      case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); return true;
+      case addChild:        bindProtocol.updateProtocol.handleAddChild( channel, buffer); return true;
+      case removeChild:     bindProtocol.updateProtocol.handleRemoveChild( channel, buffer); return true;
+      case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
+      case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
+      case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
+      
+      case register:        registerProtocol.registerRequestProtocol.handle( channel, buffer); return true;
+      case unregister:      registerProtocol.unregisterRequestProtocol.handle( channel, buffer); return true;
+    }
+    
+    return false;
   }
   
   /**
@@ -332,6 +263,14 @@ public class XioPeer
   }
   
   /**
+   * Connect this 
+   */
+  public void connect()
+  {
+    
+  }
+  
+  /**
    * @return Returns true if the connection to the server is established.
    */
   public synchronized boolean isConnected()
@@ -348,12 +287,24 @@ public class XioPeer
   }
 
   /**
+   * Reset the peer after it has been disconnected.
+   */
+  public void reset()
+  {
+    headerProtocol.reset();
+    bindProtocol.reset();
+    echoProtocol.reset();
+    executionProtocol.reset();
+  }
+  
+  /**
    * @return Returns null or the peer registry.
    */
   public IXioPeerRegistry getPeerRegistry()
   {
     return registry;
   }
+  
   
   /* (non-Javadoc)
    * @see java.lang.Object#equals(java.lang.Object)
@@ -376,9 +327,57 @@ public class XioPeer
     return channel.hashCode();
   }
 
-  public static Timer timer = new HashedWheelTimer();
+  /**
+   * Dump the content of the specified buffer.
+   * @param indent The indentation before each line.
+   * @param buffer The buffer.
+   * @return Returns a string containing the dump.
+   */
+  public final static String toString( String indent, ChannelBuffer buffer)
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append( "\n");
+    
+    for( int i=0, n=0; i<buffer.readableBytes(); i++, n++)
+    {
+      if ( i > 0 && (n % 64) == 0) sb.append( "\n");
+      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
+    }
+    
+    sb.append( "\n");
+    
+//    sb.append( indent);
+//    
+//    int bpl = 64;
+//    for( int i=0, n=0; i<buffer.readableBytes(); i++)
+//    {
+//      if ( n == 0)
+//      {
+//        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
+//          sb.append( String.format( "|%-8d", i + j));
+//        sb.append( String.format( "\n%s", indent));
+//      }
+//      
+//      if ( (n % 4) == 0) sb.append( "|");
+//      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
+//        
+//      if ( ++n == bpl) 
+//      { 
+//        sb.append( String.format( "\n%s", indent));
+//        n=0;
+//      }
+//    }
+    
+    return sb.toString();
+  }
+
+  private final static Log log = Log.getLog( XioPeer.class);
   
   private IXioChannel channel;
   private IXioPeerRegistry registry;
-  private boolean reconnect;
+  private HeaderProtocol headerProtocol;
+  private EchoProtocol echoProtocol;
+  private BindProtocol bindProtocol;
+  private ExecutionProtocol executionProtocol;
+  private RegisterProtocol registerProtocol;
 }

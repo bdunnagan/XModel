@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
@@ -77,7 +76,7 @@ public class BindRequestProtocol
     buffer.writeBytes( queryBytes);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.writeRequest( buffer);
     
     // wait for response from server
     IModelObject received = bundle.bindResponseProtocol.waitForResponse( correlation, timeout);

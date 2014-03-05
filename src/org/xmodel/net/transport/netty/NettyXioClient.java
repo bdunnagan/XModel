@@ -27,6 +27,7 @@ import org.xmodel.net.ConnectionRetryFuture;
 import org.xmodel.net.Heartbeat;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
@@ -78,7 +79,7 @@ public class NettyXioClient extends XioPeer
    */
   public NettyXioClient( SSLContext sslContext, IContext context)
   {
-    this( context, null, getDefaultChannelFactory(), sslContext, context.getExecutor());
+    this( context, null, getDefaultChannelFactory(), sslContext, context.getExecutor(), null);
   }
   
   /**
@@ -99,9 +100,13 @@ public class NettyXioClient extends XioPeer
    * @param channelFactory User-supplied channel factory.
    * @param contextExecutor
    */
-  public NettyXioClient( final IContext context, final ScheduledExecutorService scheduler, ClientSocketChannelFactory channelFactory, final Executor contextExecutor)
+  public NettyXioClient( 
+      final IContext context, 
+      final ScheduledExecutorService scheduler, 
+      ClientSocketChannelFactory channelFactory, 
+      final Executor contextExecutor)
   {
-    this( context, scheduler, channelFactory, null, contextExecutor);
+    this( context, scheduler, channelFactory, null, contextExecutor, null);
   }
   
   /**
@@ -110,15 +115,19 @@ public class NettyXioClient extends XioPeer
    * @param scheduler Optional scheduler used for protocol timers.
    * @param channelFactory The channel factory.
    * @param sslContext The SSLContext.
-   * @param contextExecutor An executor
+   * @param contextExecutor An executor.
+   * @param privilege Null or the execution privilege manager.
    */
   public NettyXioClient( 
       final IContext context, 
       final ScheduledExecutorService scheduler, 
       final ClientSocketChannelFactory channelFactory, 
       final SSLContext sslContext, 
-      final Executor contextExecutor)
+      final Executor contextExecutor,
+      ExecutionPrivilege privilege)
   {
+    super( null, null, context, contextExecutor, scheduler, privilege);
+    
     this.scheduler = (scheduler != null)? scheduler: GlobalSettings.getInstance().getScheduler();
     this.listeners = new ArrayList<IListener>( 1);
 
@@ -141,7 +150,7 @@ public class NettyXioClient extends XioPeer
         pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 90, 30, 90));
         pipeline.addLast( "heartbeatHandler", new Heartbeat());
 
-        XioChannelHandler handler = new XioChannelHandler( context, contextExecutor, scheduler, null);
+        XioChannelHandler handler = new XioChannelHandler();
         handler.setClient( NettyXioClient.this);
         pipeline.addLast( "xio", handler);
         
@@ -349,11 +358,11 @@ public class NettyXioClient extends XioPeer
     
     return asyncFuture;
   }
-    
-  /* (non-Javadoc)
-   * @see org.xmodel.net.XioPeer#reconnect()
+
+  /**
+   * Reconnect the client.
+   * @return Returns the future for the operation.
    */
-  @Override
   public AsyncFuture<XioPeer> reconnect()
   {
     InetSocketAddress address = null;

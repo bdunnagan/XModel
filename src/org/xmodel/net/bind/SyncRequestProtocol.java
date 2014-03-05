@@ -41,7 +41,7 @@ public class SyncRequestProtocol
     buffer.writeInt( netID);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.writeRequest( buffer);
     
     return bundle.syncResponseProtocol.waitForResponse( correlation, timeout);
   }

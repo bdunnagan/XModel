@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
@@ -21,7 +19,6 @@ public class BindResponseProtocol
   public BindResponseProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.pending = new ConcurrentHashMap<Integer, BindRecord>();
   }
   
@@ -54,7 +51,7 @@ public class BindResponseProtocol
       buffer1.writeInt( correlation);
       
       // ignoring write buffer overflow for this type of messaging
-      channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+      channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     }
     else
     {
@@ -62,7 +59,7 @@ public class BindResponseProtocol
       buffer.writeInt( correlation);
       
       // ignoring write buffer overflow for this type of messaging
-      channel.write( buffer);
+      channel.writeResponse( buffer);
     }
   }
   
@@ -93,7 +90,7 @@ public class BindResponseProtocol
    */
   protected synchronized int nextCorrelation( IExternalReference reference)
   {
-    int correlation = counter.incrementAndGet();
+    int correlation = bundle.headerProtocol.correlation();
     pending.put( correlation, new BindRecord( reference));
     return correlation;
   }
@@ -134,6 +131,5 @@ public class BindResponseProtocol
   private final static Log log = Log.getLog( BindResponseProtocol.class);
   
   private BindProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BindRecord> pending;
 }

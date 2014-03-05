@@ -9,7 +9,9 @@ import org.jboss.netty.channel.socket.ClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioClientBossPool;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioWorkerPool;
+import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.ThreadNameDeterminer;
+import org.jboss.netty.util.Timer;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
@@ -48,10 +50,18 @@ public class NettyClientTransport implements IClientTransport
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.ClientAction.IClientActionImpl#run(org.xmodel.xpath.expression.IContext, java.lang.String, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction)
+   * @see org.xmodel.xaction.ClientAction.IClientTransport#connect(org.xmodel.xpath.expression.IContext, java.lang.String, 
+   * org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction)
    */
   @Override
-  public XioPeer run( final IContext context, final String clientName, final IXAction onConnect, final IXAction onDisconnect, final IXAction onError)
+  public XioPeer connect( 
+      final IContext context, 
+      final String clientName, 
+      final IXAction onConnect, 
+      final IXAction onDisconnect, 
+      final IXAction onError, 
+      final IXAction onRegister, 
+      final IXAction onUnregister)
   {
     final String serverHost = serverHostExpr.evaluateString( context);
     final int serverPort = (int)serverPortExpr.evaluateNumber( context);
@@ -65,10 +75,10 @@ public class NettyClientTransport implements IClientTransport
         nested = new StatefulContext( context);
         
         InetSocketAddress localAddress = client.getLocalAddress();
-        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        if ( localAddress != null) nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
         
         InetSocketAddress remoteAddress = client.getRemoteAddress();
-        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+        if ( remoteAddress != null) nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
         
         context.getExecutor().execute( new Runnable() {
           public void run()
@@ -96,11 +106,11 @@ public class NettyClientTransport implements IClientTransport
     PrefixThreadFactory bossThreadFactory = new PrefixThreadFactory( String.format( "xio-client-boss-%s:%d", serverHost, serverPort));
     PrefixThreadFactory workThreadFactory = new PrefixThreadFactory( String.format( "xio-client-work-%s:%d", serverHost, serverPort));
     
-    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, XioPeer.timer, ThreadNameDeterminer.CURRENT);
+    NioClientBossPool bossPool = new NioClientBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, timer, ThreadNameDeterminer.CURRENT);
     NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
     ClientSocketChannelFactory channelFactory = new NioClientSocketChannelFactory( bossPool, workerPool);
     
-    NettyXioClient client = new NettyXioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor());
+    NettyXioClient client = new NettyXioClient( context, null, channelFactory, getSSLContext( context), context.getExecutor(), null);
     client.setAutoReconnect( true);
     client.addListener( new ClientListener());
     
@@ -128,15 +138,15 @@ public class NettyClientTransport implements IClientTransport
   /**
    * Register the client.
    * @param context The context.
-   * @param client The client.
+   * @param peer The client.
    * @param name The client registration name.
    * @param onError The error handler.
    */
-  private void register( final IContext context, NettyXioClient client, String name, final IXAction onError)
+  private void register( final IContext context, XioPeer peer, String name, final IXAction onError)
   {
     try
     {
-      client.register( name);
+      peer.register( name);
     }
     catch( Exception e)
     {
@@ -170,6 +180,8 @@ public class NettyClientTransport implements IClientTransport
       throw new XActionException( e);
     }
   }
+  
+  private final static Timer timer = new HashedWheelTimer();
   
   private IExpression serverHostExpr;
   private IExpression serverPortExpr;

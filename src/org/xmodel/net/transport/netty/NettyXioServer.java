@@ -105,6 +105,9 @@ public class NettyXioServer implements IFeatured
     this.registry = new MemoryXioPeerRegistry();
     this.registry.addListener( registryListener);
     
+    this.context = context;
+    this.scheduler = scheduler;
+    
     if ( channelFactory == null) channelFactory = getDefaultChannelFactory();
     
     bootstrap = new ServerBootstrap( channelFactory);
@@ -126,8 +129,7 @@ public class NettyXioServer implements IFeatured
         pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 60, 15, 60));
         pipeline.addLast( "heartbeatHandler", new Heartbeat());
         
-        XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
-        handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        XioChannelHandler handler = new XioChannelHandler();
         pipeline.addLast( "xio", handler);
         
         handler.addListener( channelConnectionListener);
@@ -201,7 +203,13 @@ public class NettyXioServer implements IFeatured
    */
   public XioPeer createConnectionPeer( Channel channel)
   {
-    return new NettyXioServerPeer( new NettyXioChannel( channel), registry);
+    return new NettyXioServerPeer( 
+      new NettyXioChannel( channel), 
+      registry, 
+      context, 
+      context.getExecutor(), 
+      scheduler, 
+      executionPrivilege);
   }
   
   /* (non-Javadoc)
@@ -317,6 +325,8 @@ public class NettyXioServer implements IFeatured
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
   private IXioPeerRegistry registry;
+  private IContext context;
+  private ScheduledExecutorService scheduler;
   private ExecutionPrivilege executionPrivilege;
   private List<IListener> listeners;
 }

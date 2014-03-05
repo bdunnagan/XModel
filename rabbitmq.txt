@@ -1,18 +1,11 @@
 Rabbit MQ Integration
 
-. Clients are always created with ClientAction.
-. Change NetworkCachingPolicy to use previously defined client.
-. Client pools should be configured by ClientAction.
-. Move code that delays connection notification until SSL handshake.
-. Refactor auto-reconnect behavior for Netty impl
++ Eliminate use of IFeatured interface because it places a hidden dependency on subclasses of XioPeer.
 
 
+AMQP Registration Flow
 
-IXioChannel - abstraction of channel
-XioPeer - high-level protocol interface / endpoint
-NettyXioClient - netty protocol interface / endpoint
-
-
-IXioPeerRegistry can be created explicitly in script, or it can be created on-demand by an XioPeer.
-
-. Server peer onDisconnect occurs when hearbeat fails. 
++ Agent creates queue with registration name
++ Agent sends registration request to server
++ Server registers agent
++ Server sends agent requests to agent queue

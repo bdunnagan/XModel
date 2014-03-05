@@ -1,5 +1,6 @@
 package org.xmodel.net;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
@@ -26,12 +27,26 @@ public class HeaderProtocol
     echoResponse
   }
   
+  public HeaderProtocol()
+  {
+    int seed = (int)System.nanoTime();
+    correlation = new AtomicInteger( seed);
+  }
+  
   /**
    * Reset this instance by releasing internal resources.  This method should be called after 
    * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
    */
   public void reset()
   {
+  }
+  
+  /**
+   * @return Returns the next request correlation number.
+   */
+  public int correlation()
+  {
+    return correlation.getAndIncrement();
   }
   
   /**
@@ -93,4 +108,6 @@ public class HeaderProtocol
     buffer.writeInt( correlation);
     return buffer;
   }
+  
+  private AtomicInteger correlation;
 }  

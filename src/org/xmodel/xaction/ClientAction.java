@@ -1,8 +1,12 @@
 package org.xmodel.xaction;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.xmodel.IModelObject;
 import org.xmodel.net.XioPeer;
+import org.xmodel.net.transport.amqp.AmqpClientTransport;
 import org.xmodel.net.transport.netty.NettyClientTransport;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -22,10 +26,25 @@ public class ClientAction extends GuardedAction
     public void configure( IModelObject config);
     
     /**
-     * Run the action implementation.
+     * Create an XioPeer that uses this transport.
      * @param context The execution context.
+     * @param clientName The subscription name for the client.
+     * @param onConnect Called when the connection is established.
+     * @param onDisconnect Called when the client is disconnected.
+     * @param onRegister Called when a peer registers with a specified name.
+     * @param onUnregister Called when a peer unregisters.
      */
-    public XioPeer run( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError);
+    public XioPeer connect( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError, IXAction onRegister, IXAction onUnregister);
+  }
+  
+  /**
+   * Register a new transport.
+   * @param name The name of the transport configuration element.
+   * @param transport The transport implementation.
+   */
+  public static void registerTransport( String name, IClientTransport transport)
+  {
+    transports.put( name, transport);
   }
   
   /* (non-Javadoc)
@@ -41,11 +60,16 @@ public class ClientAction extends GuardedAction
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onErrorExpr = document.getExpression( "onError", true);
+    onRegisterExpr = document.getExpression( "onRegister", true);
+    onUnregisterExpr = document.getExpression( "onUnregister", true);
     
-    IModelObject transport = document.getRoot().getFirstChild( "tcp");
-    if ( transport == null) transport = document.getRoot().getFirstChild( "ampq");
+    IModelObject transportConfig = document.getRoot().getFirstChild( "tcp");
+    if ( transportConfig == null) transportConfig = document.getRoot().getFirstChild( "amqp");
     
-    createTransport( transport);
+    transport = transports.get( transportConfig.getType());
+    if ( transport == null) throw new XActionException( "Transport not defined.");
+    
+    transport.configure( transportConfig);
   }
 
   /* (non-Javadoc)
@@ -54,17 +78,44 @@ public class ClientAction extends GuardedAction
   @Override
   protected Object[] doAction( final IContext context)
   {
-    String clientName = clientNameExpr.evaluateString( context);
+    String clientName = (clientNameExpr != null)? clientNameExpr.evaluateString( context): null;
     
-    IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
-    IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
-    IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    final IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
+    final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
+    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
+    final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    XioPeer client = transport.run( context, clientName, onConnect, onDisconnect, onError);
-    
+    XioPeer client = transport.connect( context, clientName, onConnect, onDisconnect, onError, onRegister, onUnregister);
     Conventions.putCache( context, var, client);
+
+    if ( clientName != null) register( context, client, clientName, onError);
     
     return null;
+  }
+
+  /**
+   * Register the client.
+   * @param context The context.
+   * @param peer The client.
+   * @param name The client registration name.
+   * @param onError The error handler.
+   */
+  private void register( final IContext context, XioPeer peer, String name, final IXAction onError)
+  {
+    try
+    {
+      peer.register( name);
+    }
+    catch( Exception e)
+    {
+      context.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          if ( onError != null) onError.run( context);
+        }
+      });
+    }
   }
   
   /**
@@ -80,19 +131,12 @@ public class ClientAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
-  /**
-   * Create transport.
-   * @param config The configuration element.
-   * @return Returns null or the transport.
-   */
-  private IClientTransport createTransport( IModelObject config)
+  private static Map<String, IClientTransport> transports = Collections.synchronizedMap( new HashMap<String, IClientTransport>());
+  
+  static
   {
-    switch( config.getType())
-    {
-      case "tcp": return new NettyClientTransport();
-      case "ampq":
-      default: return null;
-    }
+    registerTransport( "tcp", new NettyClientTransport());
+    registerTransport( "amqp", new AmqpClientTransport());
   }
   
   private String var;
@@ -100,5 +144,7 @@ public class ClientAction extends GuardedAction
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onErrorExpr;
+  private IExpression onRegisterExpr;
+  private IExpression onUnregisterExpr;
   private IClientTransport transport;
 }

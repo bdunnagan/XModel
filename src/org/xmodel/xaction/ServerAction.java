@@ -207,10 +207,10 @@ public class ServerAction extends GuardedAction
         log.debugf( "Added notification context, map size=%d", notifyContexts.size());
         
         InetSocketAddress localAddress = peer.getLocalAddress();
-        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+        if ( localAddress != null) nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
         
         InetSocketAddress remoteAddress = peer.getRemoteAddress();
-        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+        if ( remoteAddress != null) nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
 
         String unique = getIdentityRegistration( peer);
         server.getFeature( IXioPeerRegistry.class).register( peer, unique);

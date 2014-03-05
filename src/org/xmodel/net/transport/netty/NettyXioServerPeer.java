@@ -1,57 +1,25 @@
 package org.xmodel.net.transport.netty;
 
 import java.net.InetSocketAddress;
-import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.AsyncFuture.IListener;
-import org.xmodel.future.FailureAsyncFuture;
-import org.xmodel.log.SLog;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
+import org.xmodel.net.execution.ExecutionPrivilege;
+import org.xmodel.xpath.expression.IContext;
 
 public class NettyXioServerPeer extends XioPeer
 {
-  public NettyXioServerPeer( IXioChannel channel, IXioPeerRegistry registry)
+  public NettyXioServerPeer( 
+      IXioChannel channel, 
+      IXioPeerRegistry registry, 
+      IContext context, 
+      Executor executor, 
+      ScheduledExecutorService scheduler,
+      ExecutionPrivilege executionPrivilege)
   {
-    super( channel, registry);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.XioPeer#reconnect()
-   */
-  @Override
-  protected AsyncFuture<XioPeer> reconnect()
-  {
-    String name = getRegisteredName();
-    if ( name == null) return new FailureAsyncFuture<XioPeer>( this, "Channel cannot be reconnected - name is null.");
-    
-    final AsyncFuture<XioPeer> reconnectFuture = new AsyncFuture<XioPeer>( this) {
-      public void cancel()
-      {
-        throw new UnsupportedOperationException();
-      }
-    };
-
-    AsyncFuture<XioPeer> future = getPeerRegistry().getRegistrationFuture( name);
-    future.addListener( new IListener<XioPeer>() {
-      public void notifyComplete( AsyncFuture<XioPeer> future) throws Exception
-      {
-        if ( future.isSuccess())
-        {
-          try
-          {
-            setChannel( future.getInitiator().getChannel());        
-            reconnectFuture.notifySuccess();
-          }
-          catch( Exception e)
-          {
-            SLog.exception( this, e);
-          }
-        }
-      }
-    });
-    
-    return reconnectFuture;
+    super( channel, registry, context, executor, scheduler, executionPrivilege);
   }
 
   /**
