@@ -2,18 +2,17 @@ package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.Map;
+
 import javax.net.ssl.SSLContext;
-import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioServerBossPool;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioWorkerPool;
-import org.jboss.netty.util.ThreadNameDeterminer;
+
 import org.xmodel.IModelObject;
+import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.transport.netty.NettyXioServer;
-import org.xmodel.util.PrefixThreadFactory;
+import org.xmodel.net.transport.netty.NettyServerTransport;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -32,15 +31,24 @@ public class ServerAction extends GuardedAction
     public void configure( IModelObject config);
     
     /**
-     * Create an XioPeer that uses this transport.
+     * Start a server on the specified port and return its registry.
      * @param context The execution context.
-     * @param clientName The subscription name for the client.
      * @param onConnect Called when the connection is established.
      * @param onDisconnect Called when the client is disconnected.
      * @param onRegister Called when a peer registers with a specified name.
      * @param onUnregister Called when a peer unregisters.
      */
-    public XioPeer connect( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError, IXAction onRegister, IXAction onUnregister);
+    public IXioPeerRegistry listen( IContext context, IXAction onConnect, IXAction onDisconnect, IXAction onRegister, IXAction onUnregister);
+  }
+  
+  /**
+   * Register a new transport.
+   * @param name The name of the transport configuration element.
+   * @param transport The transport implementation.
+   */
+  public static void registerTransport( String name, IServerTransport transport)
+  {
+    transports.put( name, transport);
   }
   
   /* (non-Javadoc)
@@ -62,6 +70,18 @@ public class ServerAction extends GuardedAction
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onRegisterExpr = document.getExpression( "onRegister", true);
     onUnregisterExpr = document.getExpression( "onUnregister", true);
+    
+    for( IModelObject child: document.getRoot().getChildren())
+    {
+      IServerTransport transport = transports.get( child.getType());
+      if ( transport != null)
+      {
+        transport.configure( child);
+        this.transport = transport;
+      }
+    }
+    
+    if ( transport == null) throw new XActionException( "Transport not defined.");
   }
   
   /* (non-Javadoc)
@@ -75,9 +95,8 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    
-    // servers that support client registration must be accessible
-    if ( var != null) Conventions.putCache( context, var, server);
+    IXioPeerRegistry registry = transport.listen( context, onConnect, onDisconnect, onRegister, onUnregister);
+    if ( var != null) Conventions.putCache( context, var, registry);
     
     return null;
   }
@@ -95,49 +114,18 @@ public class ServerAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
-  /**
-   * Get the SSLContext if ssl is requested.
-   * @param context The context.
-   * @return Returns null or the SSLContext.
-   */
-  private SSLContext getSSLContext( IContext context)
+  private static Map<String, IServerTransport> transports = Collections.synchronizedMap( new HashMap<String, IServerTransport>());
+  
+  static
   {
-    boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false; 
-    if ( !ssl) return null;
-    
-    try
-    {
-      return SSLContext.getDefault();
-    }
-    catch( NoSuchAlgorithmException e)
-    {
-      throw new XActionException( e);
-    }
+    registerTransport( "tcp", new NettyServerTransport());
+    //registerTransport( "amqp", new AmqpClientTransport());
   }
 
-  /**
-   * Set default variables of new event context.
-   * @param context The event context.
-   */
-  private void configureEventContext( XioPeer peer)
-  {
-    StatefulContext context = peer.getNetworkEventContext();
-    
-    InetSocketAddress localAddress = peer.getLocalAddress();
-    if ( localAddress != null) context.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
-    
-    InetSocketAddress remoteAddress = peer.getRemoteAddress();
-    if ( remoteAddress != null) context.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
-  }
-  
   private String var;
-  
-  private IExpression addressExpr;
-  private IExpression portExpr;
-  private IExpression sslExpr;
-  private IExpression threadsExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;
   private IExpression onUnregisterExpr;
+  private IServerTransport transport;
 }

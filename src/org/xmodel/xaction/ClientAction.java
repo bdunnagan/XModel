@@ -63,13 +63,17 @@ public class ClientAction extends GuardedAction
     onRegisterExpr = document.getExpression( "onRegister", true);
     onUnregisterExpr = document.getExpression( "onUnregister", true);
     
-    IModelObject transportConfig = document.getRoot().getFirstChild( "tcp");
-    if ( transportConfig == null) transportConfig = document.getRoot().getFirstChild( "amqp");
+    for( IModelObject child: document.getRoot().getChildren())
+    {
+      IClientTransport transport = transports.get( child.getType());
+      if ( transport != null)
+      {
+        transport.configure( child);
+        this.transport = transport;
+      }
+    }
     
-    transport = transports.get( transportConfig.getType());
     if ( transport == null) throw new XActionException( "Transport not defined.");
-    
-    transport.configure( transportConfig);
   }
 
   /* (non-Javadoc)

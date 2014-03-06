@@ -2,9 +2,10 @@ package org.xmodel.net.transport.netty;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.concurrent.Executors;
+
 import javax.net.ssl.SSLContext;
+
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerBossPool;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
@@ -12,13 +13,11 @@ import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 import org.xmodel.util.PrefixThreadFactory;
-import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.IXAction;
-import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.ServerAction.IServerTransport;
-import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -39,15 +38,14 @@ public class NettyServerTransport implements IServerTransport
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.ServerAction.IServerTransport#connect(org.xmodel.xpath.expression.IContext, java.lang.String, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction)
+   * @see org.xmodel.xaction.ServerAction.IServerTransport#listen(org.xmodel.xpath.expression.IContext, org.xmodel.xaction.IXAction, 
+   * org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction)
    */
   @Override
-  public XioPeer connect( 
+  public IXioPeerRegistry listen( 
       final IContext context, 
-      final String clientName, 
       final IXAction onConnect, 
       final IXAction onDisconnect,
-      final IXAction onError, 
       final IXAction onRegister, 
       final IXAction onUnregister)
   {
@@ -133,13 +131,10 @@ public class NettyServerTransport implements IServerTransport
       server.addListener( listener);
     }
     
-    // servers that support client registration must be accessible
-    if ( var != null) Conventions.putCache( context, var, server);
-    
     // bind server
     server.start( address, port);
     
-    return null;
+    return server.getFeature( IXioPeerRegistry.class);
   }
 
   /**
@@ -176,8 +171,6 @@ public class NettyServerTransport implements IServerTransport
     InetSocketAddress remoteAddress = peer.getRemoteAddress();
     if ( remoteAddress != null) context.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
   }
-  
-  private String var;
   
   private IExpression addressExpr;
   private IExpression portExpr;
