@@ -4,9 +4,7 @@ import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.concurrent.Executors;
-
 import javax.net.ssl.SSLContext;
-
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerBossPool;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
@@ -25,6 +23,26 @@ import org.xmodel.xpath.expression.StatefulContext;
  */
 public class ServerAction extends GuardedAction
 {
+  public interface IServerTransport
+  {
+    /**
+     * Configure from the specified element.
+     * @param config The configuration element.
+     */
+    public void configure( IModelObject config);
+    
+    /**
+     * Create an XioPeer that uses this transport.
+     * @param context The execution context.
+     * @param clientName The subscription name for the client.
+     * @param onConnect Called when the connection is established.
+     * @param onDisconnect Called when the client is disconnected.
+     * @param onRegister Called when a peer registers with a specified name.
+     * @param onUnregister Called when a peer unregisters.
+     */
+    public XioPeer connect( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError, IXAction onRegister, IXAction onUnregister);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
    */
@@ -57,93 +75,9 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    String address = addressExpr.evaluateString( context);
-    int port = (int)portExpr.evaluateNumber( context);
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
-    if ( threads == 0) threads = 2;
-    
-    PrefixThreadFactory bossThreadFactory = new PrefixThreadFactory( String.format( "xio-server-boss-%s:%d", address, port));
-    PrefixThreadFactory workThreadFactory = new PrefixThreadFactory( String.format( "xio-server-work-%s:%d", address, port));
-    
-    NioServerBossPool bossPool = new NioServerBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, ThreadNameDeterminer.CURRENT);
-    NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
-    ServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossPool, workerPool);
-    
-    final NettyXioServer server = new NettyXioServer( getSSLContext( context), context, null, channelFactory);
-    
-    if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
-    {
-      NettyXioServer.IListener listener = new NettyXioServer.IListener() {
-        public void notifyConnect( final XioPeer peer)
-        {
-          if ( onConnect != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                configureEventContext( peer);
-                onConnect.run( peer.getNetworkEventContext());
-              }
-            });
-          }
-        }
-        public void notifyDisconnect( final XioPeer peer)
-        {
-          if ( onDisconnect != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext eventContext = peer.getNetworkEventContext(); 
-                if ( eventContext != null) onDisconnect.run( eventContext);
-              }
-            });
-          }
-        }
-        public void notifyRegister( final XioPeer peer, final String name)
-        {
-          if ( onRegister != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext eventContext = peer.getNetworkEventContext(); 
-                if ( eventContext != null)
-                {
-                  eventContext.set( "name", (name != null)? name: "");
-                  onRegister.run( eventContext);
-                }
-              }
-            });
-          }
-        }
-        public void notifyUnregister( final XioPeer peer, final String name)
-        {
-          if ( onUnregister != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext eventContext = peer.getNetworkEventContext(); 
-                if ( eventContext != null)
-                {
-                  eventContext.set( "name", (name != null)? name: "");
-                  onUnregister.run( eventContext);
-                }
-              }
-            });
-          }
-        }
-      };
-      
-      server.addListener( listener);
-    }
     
     // servers that support client registration must be accessible
     if ( var != null) Conventions.putCache( context, var, server);
-    
-    // bind server
-    server.start( address, port);
     
     return null;
   }
