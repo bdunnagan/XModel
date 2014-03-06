@@ -2,19 +2,17 @@ package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executors;
+
 import javax.net.ssl.SSLContext;
+
 import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerBossPool;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
-import org.xmodel.log.Log;
-import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.transport.netty.NettyXioServer;
 import org.xmodel.util.PrefixThreadFactory;
@@ -83,9 +81,8 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext eventContext = getNotifyContext( context, server, peer);
-                configureEventContext( eventContext);
-                onConnect.run( eventContext);
+                configureEventContext( peer);
+                onConnect.run( peer.getNetworkEventContext());
               }
             });
           }
@@ -97,9 +94,8 @@ public class ServerAction extends GuardedAction
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = peer.getNetworkEventContext();
-                if ( nested != null) onDisconnect.run( nested);
-                removeNotifyContext( peer);
+                StatefulContext eventContext = peer.getNetworkEventContext(); 
+                if ( eventContext != null) onDisconnect.run( eventContext);
               }
             });
           }
@@ -108,17 +104,14 @@ public class ServerAction extends GuardedAction
         {
           if ( onRegister != null) 
           {
-            if ( name.equals( getIdentityRegistration( peer)))
-              return;
-            
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                if ( nested != null)
+                StatefulContext eventContext = peer.getNetworkEventContext(); 
+                if ( eventContext != null)
                 {
-                  nested.set( "name", (name != null)? name: "");
-                  onRegister.run( nested);
+                  eventContext.set( "name", (name != null)? name: "");
+                  onRegister.run( eventContext);
                 }
               }
             });
@@ -126,19 +119,16 @@ public class ServerAction extends GuardedAction
         }
         public void notifyUnregister( final XioPeer peer, final String name)
         {
-          if ( name.equals( getIdentityRegistration( peer)))
-            return;
-          
           if ( onUnregister != null) 
           {
             context.getExecutor().execute( new Runnable() {
               public void run() 
               {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                if ( nested != null) 
+                StatefulContext eventContext = peer.getNetworkEventContext(); 
+                if ( eventContext != null)
                 {
-                  nested.set( "name", (name != null)? name: "");
-                  onUnregister.run( nested);
+                  eventContext.set( "name", (name != null)? name: "");
+                  onUnregister.run( eventContext);
                 }
               }
             });
@@ -190,39 +180,22 @@ public class ServerAction extends GuardedAction
       throw new XActionException( e);
     }
   }
-  
-  private StatefulContext getNotifyContext( IContext context, NettyXioServer server, XioPeer peer)
-  {
-    
-    
-    synchronized( notifyContexts)
-    {
-      StatefulContext nested = peer.getNetworkEventContext();
-      if ( nested == null)
-      {
-        nested = new StatefulContext( context);
-        notifyContexts.put( peer, nested);
-        log.debugf( "Added notification context, map size=%d", notifyContexts.size());
-        
-        InetSocketAddress localAddress = peer.getLocalAddress();
-        if ( localAddress != null) nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
-        
-        InetSocketAddress remoteAddress = peer.getRemoteAddress();
-        if ( remoteAddress != null) nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
 
-        String unique = getIdentityRegistration( peer);
-        server.getFeature( IXioPeerRegistry.class).register( peer, unique);
-        nested.set( "peer", unique);
-      }
-      return nested;
-    }
+  /**
+   * Set default variables of new event context.
+   * @param context The event context.
+   */
+  private void configureEventContext( XioPeer peer)
+  {
+    StatefulContext context = peer.getNetworkEventContext();
+    
+    InetSocketAddress localAddress = peer.getLocalAddress();
+    if ( localAddress != null) context.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+    
+    InetSocketAddress remoteAddress = peer.getRemoteAddress();
+    if ( remoteAddress != null) context.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
   }
   
-  private String getIdentityRegistration( XioPeer peer)
-  {
-    return String.format( "%X", System.identityHashCode( peer));
-  }
-
   private String var;
   
   private IExpression addressExpr;

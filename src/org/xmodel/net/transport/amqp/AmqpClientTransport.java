@@ -59,7 +59,7 @@ public class AmqpClientTransport implements IClientTransport
   @Override
   public XioPeer connect( 
       final IContext context, 
-      final String clientName, 
+      final String name, 
       final IXAction onConnect, 
       final IXAction onDisconnect, 
       final IXAction onError, 
@@ -79,25 +79,33 @@ public class AmqpClientTransport implements IClientTransport
     }
     
     registry.addListener( new IXioPeerRegistryListener() {
-      public void onRegister( XioPeer peer, String name)
+      public void onRegister( final XioPeer peer, final String name)
       {
-        if ( name.equals( getIdentityRegistration( peer)))
-          return;
-        
         context.getExecutor().execute( new Runnable() {
           public void run() 
           {
-            StatefulContext nested = getNotifyContext( context, server, peer);
-            if ( nested != null)
+            StatefulContext eventContext = peer.getNetworkEventContext(); 
+            if ( eventContext != null)
             {
-              nested.set( "name", (name != null)? name: "");
-              onRegister.run( nested);
+              eventContext.set( "name", (name != null)? name: "");
+              if ( onRegister != null) onRegister.run( eventContext);
             }
           }
         });
       }
-      public void onUnregister( XioPeer peer, String name)
+      public void onUnregister( final XioPeer peer, final String name)
       {
+        context.getExecutor().execute( new Runnable() {
+          public void run() 
+          {
+            StatefulContext eventContext = peer.getNetworkEventContext(); 
+            if ( eventContext != null)
+            {
+              eventContext.set( "name", (name != null)? name: "");
+              if ( onUnregister != null) onUnregister.run( eventContext);
+            }
+          }
+        });
       }
     });
     
@@ -113,7 +121,8 @@ public class AmqpClientTransport implements IClientTransport
       AmqpXioPeer peer = new AmqpXioPeer( channel, registry, context, context.getExecutor(), null, null);
       channel.setPeer( peer);
       
-      register( context, peer, clientName, onError);
+      channel.createServiceQueues( name);
+      register( context, peer, name, onError);
       
       return peer;
     }

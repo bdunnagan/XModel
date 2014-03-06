@@ -90,6 +90,7 @@ public class TryAction extends GuardedAction
     catch( XActionException e)
     {
       Throwable t = e.getCause();
+      if ( t == null) t = e;
       CatchBlock catchBlock = findCatchBlock( t);
       if ( catchBlock != null)
       {

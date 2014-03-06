@@ -152,6 +152,27 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     if ( closeFuture == null) closeFuture = new AsyncFuture<IXioChannel>( this);
     return closeFuture;
   }
+  
+  /**
+   * Create a non-durable, auto-delete in-bound queue by which the client will receive requests.
+   * Create a non-durable, auto-delete out-bound queue by appending "-reply" to the end of the
+   * client subscription name.
+   * Create a consumer on the in-bound queue.
+   * @param name The name by which the client is registering.
+   */
+  public void createServiceQueues( String name) throws IOException
+  {
+    Channel channel = getThreadChannel();
+    
+    // in-bound/requests
+    requestQueueName = name;
+    channel.queueDeclare( requestQueueName, false, false, false, null);
+    channel.basicConsume( requestQueueName, true, "inbound", this);
+    
+    // out-bound/responses
+    responseQueueName = name+"-reply"; 
+    channel.queueDeclare( responseQueueName, false, false, false, null);
+  }
 
   /* (non-Javadoc)
    * @see com.rabbitmq.client.Consumer#handleCancel(java.lang.String)
@@ -217,15 +238,6 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     if ( channel == null)
     {
       channel = connection.createChannel();
-      
-      // outbound queue
-      channel.queueDeclare( requestQueueName, false, false, false, null);
-      channel.basicConsume( requestQueueName, true, "request", this);
-      
-      // inbound queue
-      channel.queueDeclare( responseQueueName, false, false, false, null);
-      channel.basicConsume( responseQueueName, true, "response", this);
-      
       threadChannels.set( channel);
     }
     return channel;
