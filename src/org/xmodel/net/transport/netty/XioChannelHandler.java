@@ -93,9 +93,16 @@ public class XioChannelHandler extends SimpleChannelHandler
   {
     Channel channel = event.getChannel();
     
-    XioPeer peer = this.client;
-    if ( peer == null) 
+    XioPeer peer = null;
+    if ( this.client != null)
     {
+      // client-side connection
+      peer = this.client;
+      peer.setChannel( new NettyXioChannel( channel));
+    }
+    else
+    {
+      // server-side connection
       NettyXioServer server = (NettyXioServer)channel.getParent().getAttachment();
       peer = server.createConnectionPeer( channel);
     }
@@ -157,6 +164,7 @@ public class XioChannelHandler extends SimpleChannelHandler
   public void messageReceived( ChannelHandlerContext chc, MessageEvent event) throws Exception
   {
     Channel channel = event.getChannel();
+    XioPeer peer = (XioPeer)channel.getAttachment();
     
     // transfer receive buffer to the accumulation buffer
     buffer.writeBytes( (ChannelBuffer)event.getMessage());
@@ -168,7 +176,7 @@ public class XioChannelHandler extends SimpleChannelHandler
       int readerIndex = buffer.readerIndex();
 
       // process next message
-      if ( !handleMessage( new NettyXioChannel( channel), buffer))
+      if ( !handleMessage( peer.getChannel(), buffer))
       {
         buffer.readerIndex( readerIndex);
         break;
