@@ -117,7 +117,7 @@ public class AmqpTransport
       }
     });
     
-    ExecutorService ioExecutor = (threads == 0)? Executors.newCachedThreadPool(): Executors.newFixedThreadPool( threads);
+    final ExecutorService ioExecutor = (threads == 0)? Executors.newCachedThreadPool(): Executors.newFixedThreadPool( threads);
     Address[] brokers = getBrokers( context);
     Connection connection = (brokers == null)?
         connectionFactory.newConnection( ioExecutor):
@@ -145,8 +145,8 @@ public class AmqpTransport
     AmqpXioPeer peer = new AmqpXioPeer( channel, registry, context, context.getExecutor(), null, null);
     channel.setPeer( peer);
     
-    channel.startConsumer();
-    
+    channel.startConsumer( ioExecutor, 9000);
+   
     return peer;
   }
   

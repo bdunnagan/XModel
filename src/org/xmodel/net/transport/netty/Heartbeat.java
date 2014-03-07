@@ -1,4 +1,4 @@
-package org.xmodel.net;
+package org.xmodel.net.transport.netty;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -7,6 +7,7 @@ import org.jboss.netty.handler.timeout.IdleStateEvent;
 import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.Timer;
 import org.xmodel.log.Log;
+import org.xmodel.net.XioPeer;
 
 public class Heartbeat extends IdleStateAwareChannelHandler
 {

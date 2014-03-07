@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-
+import java.util.concurrent.Executor;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -12,7 +12,6 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -60,21 +59,26 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   
   /**
    * Start the consumer.
+   * @param executor The i/o executor (used for heartbeat timeouts).
+   * @param timeout The heartbeat timeout in milliseconds.
    */
-  public void startConsumer() throws IOException
+  public void startConsumer( Executor executor, int timeout) throws IOException
   {
     Channel channel = getThreadChannel();
     
     if ( inQueue != null)
     {
       channel.queueDeclare( inQueue, false, false, true, null);
-      channel.basicConsume( inQueue, true, "default", this);
+      channel.basicConsume( inQueue, true, inQueue, this);
     }
     
     if ( outQueue != null)
     {
       channel.queueDeclare( outQueue, false, false, true, null);
     }
+    
+    heartbeat = new Heartbeat( peer, timeout / 3, timeout, executor);
+    heartbeat.start();
   }
   
   /* (non-Javadoc)
@@ -218,6 +222,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
   {
     log.debugf( "handleDelivery: consumerTag=%s", consumerTag);
+    heartbeat.messageReceived();
     peer.handleMessage( this, ChannelBuffers.wrappedBuffer( body));
   }
 
@@ -253,7 +258,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return channel;
   }
   
-  private static Log log = Log.getLog( AmqpClientTransport.class);
+  private static Log log = Log.getLog( AmqpXioChannel.class);
   
   private XioPeer peer;
   private String exchangeName;
@@ -262,4 +267,5 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   private Connection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private ThreadLocal<Channel> threadChannels;
+  protected Heartbeat heartbeat;
 }

@@ -24,7 +24,6 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.ConnectionRetryFuture;
-import org.xmodel.net.Heartbeat;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.execution.ExecutionPrivilege;

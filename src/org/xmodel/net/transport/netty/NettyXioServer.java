@@ -19,7 +19,6 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.log.SLog;
-import org.xmodel.net.Heartbeat;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.MemoryXioPeerRegistry;
