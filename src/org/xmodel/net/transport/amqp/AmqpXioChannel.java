@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -11,6 +12,7 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
+
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -20,11 +22,11 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel, Consumer
 {
-  public AmqpXioChannel( Connection connection, String exchangeName, String requestQueueName, String responseQueueName)
+  public AmqpXioChannel( Connection connection, String exchangeName, String inQueue, String outQueue) throws IOException
   {
     this.connection = connection;
-    this.requestQueueName = requestQueueName;
-    this.responseQueueName = responseQueueName;
+    this.inQueue = inQueue;
+    this.outQueue = outQueue;
     this.exchangeName = exchangeName;
     this.threadChannels = new ThreadLocal<Channel>();
   }
@@ -47,6 +49,34 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return peer;
   }
 
+  /**
+   * Set the outgoing queue.
+   * @param name The name of the queue.
+   */
+  public void setReplyQueue( String name)
+  {
+    outQueue = name;
+  }
+  
+  /**
+   * Start the consumer.
+   */
+  public void startConsumer() throws IOException
+  {
+    Channel channel = getThreadChannel();
+    
+    if ( inQueue != null)
+    {
+      channel.queueDeclare( inQueue, false, false, true, null);
+      channel.basicConsume( inQueue, true, "default", this);
+    }
+    
+    if ( outQueue != null)
+    {
+      channel.queueDeclare( outQueue, false, false, true, null);
+    }
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.IXioChannel#isConnected()
    */
@@ -66,7 +96,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     {
       byte[] bytes = new byte[ buffer.readableBytes()];
       buffer.readBytes( bytes);
-      getThreadChannel().basicPublish( exchangeName, requestQueueName, null, bytes);
+      
+      getThreadChannel().basicPublish( exchangeName, outQueue, null, bytes);
     }
     catch( IOException e)
     {
@@ -85,7 +116,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     {
       byte[] bytes = new byte[ buffer.readableBytes()];
       buffer.readBytes( bytes);
-      getThreadChannel().basicPublish( exchangeName, responseQueueName, null, bytes);
+      getThreadChannel().basicPublish( exchangeName, inQueue, null, bytes);
     }
     catch( IOException e)
     {
@@ -153,27 +184,6 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return closeFuture;
   }
   
-  /**
-   * Create a non-durable, auto-delete in-bound queue by which the client will receive requests.
-   * Create a non-durable, auto-delete out-bound queue by appending "-reply" to the end of the
-   * client subscription name.
-   * Create a consumer on the in-bound queue.
-   * @param name The name by which the client is registering.
-   */
-  public void createServiceQueues( String name) throws IOException
-  {
-    Channel channel = getThreadChannel();
-    
-    // in-bound/requests
-    requestQueueName = name;
-    channel.queueDeclare( requestQueueName, false, false, false, null);
-    channel.basicConsume( requestQueueName, true, "inbound", this);
-    
-    // out-bound/responses
-    responseQueueName = name+"-reply"; 
-    channel.queueDeclare( responseQueueName, false, false, false, null);
-  }
-
   /* (non-Javadoc)
    * @see com.rabbitmq.client.Consumer#handleCancel(java.lang.String)
    */
@@ -247,8 +257,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   
   private XioPeer peer;
   private String exchangeName;
-  private String requestQueueName;
-  private String responseQueueName;
+  private String inQueue;
+  private String outQueue;
   private Connection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private ThreadLocal<Channel> threadChannels;

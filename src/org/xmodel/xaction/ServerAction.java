@@ -1,21 +1,17 @@
 package org.xmodel.xaction;
 
-import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.SSLContext;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.IXioPeerRegistry;
-import org.xmodel.net.XioPeer;
+import org.xmodel.net.transport.amqp.AmqpServerTransport;
 import org.xmodel.net.transport.netty.NettyServerTransport;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An XAction that creates an XIO server.
@@ -38,7 +34,8 @@ public class ServerAction extends GuardedAction
      * @param onRegister Called when a peer registers with a specified name.
      * @param onUnregister Called when a peer unregisters.
      */
-    public IXioPeerRegistry listen( IContext context, IXAction onConnect, IXAction onDisconnect, IXAction onRegister, IXAction onUnregister);
+    public IXioPeerRegistry listen( IContext context, IXAction onConnect, IXAction onDisconnect, IXAction onRegister, IXAction onUnregister)
+      throws IOException;
   }
   
   /**
@@ -60,11 +57,6 @@ public class ServerAction extends GuardedAction
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), false);
-    
-    addressExpr = document.getExpression( "address", true);
-    portExpr = document.getExpression( "port", true);
-    sslExpr = document.getExpression( "ssl", true);
-    threadsExpr = document.getExpression( "threads", true);
     
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
@@ -95,8 +87,15 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    IXioPeerRegistry registry = transport.listen( context, onConnect, onDisconnect, onRegister, onUnregister);
-    if ( var != null) Conventions.putCache( context, var, registry);
+    try
+    {
+      IXioPeerRegistry registry = transport.listen( context, onConnect, onDisconnect, onRegister, onUnregister);
+      if ( var != null) Conventions.putCache( context, var, registry);
+    }
+    catch( IOException e)
+    {
+      throw new XActionException( "Unable to create client: ", e);
+    }
     
     return null;
   }
@@ -119,7 +118,7 @@ public class ServerAction extends GuardedAction
   static
   {
     registerTransport( "tcp", new NettyServerTransport());
-    //registerTransport( "amqp", new AmqpClientTransport());
+    registerTransport( "amqp", new AmqpServerTransport());
   }
 
   private String var;

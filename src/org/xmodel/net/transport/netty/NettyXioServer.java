@@ -25,14 +25,13 @@ import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.MemoryXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.execution.ExecutionPrivilege;
-import org.xmodel.util.IFeatured;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 /**
  * This class provides an interface for the server-side of the protocol.
  */
-public class NettyXioServer implements IFeatured
+public class NettyXioServer
 {
   public interface IListener
   {
@@ -211,18 +210,15 @@ public class NettyXioServer implements IFeatured
       scheduler, 
       executionPrivilege);
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.util.IFeatured#getFeature(java.lang.Class)
-   */
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T> T getFeature( Class<T> clss)
-  {
-    if ( clss == IXioPeerRegistry.class) return (T)registry;
-    return null;
-  }
 
+  /**
+   * @return Returns the registry for this server.
+   */
+  public IXioPeerRegistry getPeerRegistry()
+  {
+    return registry;
+  }
+  
   private IXioPeerRegistryListener registryListener = new IXioPeerRegistryListener() {
     public void onRegister( XioPeer peer, String name)
     {

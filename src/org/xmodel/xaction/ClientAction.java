@@ -1,9 +1,11 @@
 package org.xmodel.xaction;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.transport.amqp.AmqpClientTransport;
@@ -34,7 +36,8 @@ public class ClientAction extends GuardedAction
      * @param onRegister Called when a peer registers with a specified name.
      * @param onUnregister Called when a peer unregisters.
      */
-    public XioPeer connect( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError, IXAction onRegister, IXAction onUnregister);
+    public XioPeer connect( IContext context, String clientName, IXAction onConnect, IXAction onDisconnect, IXAction onError, IXAction onRegister, IXAction onUnregister)
+      throws IOException;
   }
   
   /**
@@ -90,10 +93,17 @@ public class ClientAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    XioPeer client = transport.connect( context, clientName, onConnect, onDisconnect, onError, onRegister, onUnregister);
-    Conventions.putCache( context, var, client);
-
-    if ( clientName != null) register( context, client, clientName, onError);
+    try
+    {
+      XioPeer client = transport.connect( context, clientName, onConnect, onDisconnect, onError, onRegister, onUnregister);
+      Conventions.putCache( context, var, client);
+  
+      if ( clientName != null) register( context, client, clientName, onError);
+    }
+    catch( IOException e)
+    {
+      throw new XActionException( "Unable to create client: ", e);
+    }
     
     return null;
   }

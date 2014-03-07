@@ -48,7 +48,7 @@ public class UnregisterRequestProtocol
     buffer.writeBytes( bytes);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeResponse( buffer);
+    channel.writeRequest( buffer);
   }
   
   /**

@@ -134,7 +134,7 @@ public class NettyServerTransport implements IServerTransport
     // bind server
     server.start( address, port);
     
-    return server.getFeature( IXioPeerRegistry.class);
+    return server.getPeerRegistry();
   }
 
   /**

@@ -32,6 +32,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -44,7 +45,6 @@ import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.transport.netty.NettyXioClient;
-import org.xmodel.util.IFeatured;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -394,14 +394,7 @@ public class RunAction extends GuardedAction
 
     try
     {
-      IFeatured featured = (IFeatured)Conventions.getCache( context, registryExpr);
-      if ( featured == null)
-      {
-        log.warnf( "No server/registry specified in remote execution: %s", registryExpr);
-        return;
-      }
-      
-      IXioPeerRegistry registry = featured.getFeature( IXioPeerRegistry.class);
+      IXioPeerRegistry registry = (IXioPeerRegistry)Conventions.getCache( context, registryExpr);
       if ( registry == null)
       {
         log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
