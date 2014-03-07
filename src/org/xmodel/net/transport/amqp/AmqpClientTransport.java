@@ -1,19 +1,23 @@
 package org.xmodel.net.transport.amqp;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import javax.net.ssl.SSLContext;
+
+import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
 import org.xmodel.xaction.ClientAction.IClientTransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
+
+import com.rabbitmq.client.Address;
+import com.rabbitmq.client.Connection;
 
 public class AmqpClientTransport extends AmqpTransport implements IClientTransport
 {
-  public AmqpClientTransport()
-  {
-    super( Role.client);
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.ClientAction.IClientTransport#connect(org.xmodel.xpath.expression.IContext, java.lang.String, 
    * org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction, org.xmodel.xaction.IXAction)
@@ -28,8 +32,67 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
       final IXAction onRegister, 
       final IXAction onUnregister) throws IOException
   {
-    return connect( context, name, onRegister, onUnregister);
-  }
+    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
+    boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
+   
+    String queue = queueExpr.evaluateString( context);
+    
+    if ( ssl)
+    {
+      SSLContext sslContext = getSSLContext( context);
+      connectionFactory.useSslProtocol( sslContext);
+    }
+    
+    registry.addListener( new IXioPeerRegistryListener() {
+      public void onRegister( final XioPeer peer, final String name)
+      {
+        context.getExecutor().execute( new Runnable() {
+          public void run() 
+          {
+            StatefulContext eventContext = peer.getNetworkEventContext(); 
+            if ( eventContext != null)
+            {
+              eventContext.set( "name", (name != null)? name: "");
+              if ( onRegister != null) onRegister.run( eventContext);
+            }
+          }
+        });
+      }
+      public void onUnregister( final XioPeer peer, final String name)
+      {
+        context.getExecutor().execute( new Runnable() {
+          public void run() 
+          {
+            StatefulContext eventContext = peer.getNetworkEventContext(); 
+            if ( eventContext != null)
+            {
+              eventContext.set( "name", (name != null)? name: "");
+              if ( onUnregister != null) onUnregister.run( eventContext);
+            }
+          }
+        });
+      }
+    });
+    
+    final ExecutorService ioExecutor = (threads == 0)? Executors.newCachedThreadPool(): Executors.newFixedThreadPool( threads);
+    Address[] brokers = getBrokers( context);
+    Connection connection = (brokers == null)?
+        connectionFactory.newConnection( ioExecutor):
+        connectionFactory.newConnection( ioExecutor, brokers);
 
-//  private static Log log = Log.getLog( AmqpClientTransport.class);
+    AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", null, queue, ioExecutor);
+    AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
+    initChannel.setPeer( peer);
+    initChannel.startConsumer();
+    
+    AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", AmqpQueueNames.getRequestQueue( name), AmqpQueueNames.getResponseQueue( name), ioExecutor);
+    subscribeChannel.setPeer( peer);
+    peer.setSubscribeChannel( subscribeChannel);
+    subscribeChannel.startConsumer();
+
+    // TODO: insure registration complete before starting heartbeat
+    //subscribeChannel.startHeartbeat( 9000);
+    
+    return peer;
+  }
 }

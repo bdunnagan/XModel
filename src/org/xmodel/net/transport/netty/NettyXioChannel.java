@@ -64,19 +64,10 @@ public final class NettyXioChannel implements IXioChannel
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.IXioChannel#writeRequest(org.jboss.netty.buffer.ChannelBuffer)
+   * @see org.xmodel.net.IXioChannel#write(org.jboss.netty.buffer.ChannelBuffer)
    */
   @Override
-  public void writeRequest( ChannelBuffer buffer)
-  {
-    channel.write( buffer);
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioChannel#writeResponse(org.jboss.netty.buffer.ChannelBuffer)
-   */
-  @Override
-  public void writeResponse( ChannelBuffer buffer)
+  public void write( ChannelBuffer buffer)
   {
     channel.write( buffer);
   }

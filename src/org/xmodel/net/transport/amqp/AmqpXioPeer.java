@@ -21,6 +21,8 @@ public class AmqpXioPeer extends XioPeer
       ExecutionPrivilege privilege)
   {
     super( channel, registry, context, executor, scheduler, privilege);
+    
+    registerChannel = (AmqpXioChannel)channel;
 
     this.executor = executor;
     this.scheduler = scheduler;
@@ -37,18 +39,32 @@ public class AmqpXioPeer extends XioPeer
     AmqpXioChannel channel = (AmqpXioChannel)getChannel();
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel( AmqpQualifiedNames.parseRegistrationName( name));
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
+    newChannel.setPeer( peer);
+    newChannel.startConsumer();
+    newChannel.startHeartbeat( 9000);
     peer.qualifiedName = name;
     return peer;
   }
 
+  /**
+   * Set the subscription channel for this peer.
+   * @param channel The channel.
+   */
+  public void setSubscribeChannel( AmqpXioChannel channel)
+  {
+    super.setChannel( channel);
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.net.XioPeer#register(java.lang.String)
    */
   @Override
   public void register( String name) throws IOException, InterruptedException
   {
+    if ( registerChannel == null) throw new IllegalStateException( "Peer is not connected.");
+    
     // send qualified names to the server
-    super.register( AmqpQualifiedNames.createQualifiedName( name));
+    registerProtocol.registerRequestProtocol.send( registerChannel, AmqpQualifiedNames.createQualifiedName( name));
   }
 
   /* (non-Javadoc)
@@ -57,8 +73,10 @@ public class AmqpXioPeer extends XioPeer
   @Override
   public void unregister( String name) throws IOException, InterruptedException
   {
+    if ( registerChannel == null) throw new IllegalStateException( "Peer is not connected.");
+    
     // send qualified names to the server
-    super.unregister( AmqpQualifiedNames.createQualifiedName( name));
+    registerProtocol.unregisterRequestProtocol.send( registerChannel, AmqpQualifiedNames.createQualifiedName( name));
   }
 
   /* (non-Javadoc)
@@ -85,6 +103,7 @@ public class AmqpXioPeer extends XioPeer
     return (qualifiedName == null)? System.identityHashCode( this): qualifiedName.hashCode();
   }
 
+  private AmqpXioChannel registerChannel;
   private String qualifiedName;
   private Executor executor;
   private ScheduledExecutorService scheduler;

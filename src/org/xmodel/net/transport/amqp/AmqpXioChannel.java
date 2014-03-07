@@ -23,12 +23,13 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel, Consumer
 {
-  public AmqpXioChannel( Connection connection, String exchangeName, String inQueue, String outQueue) throws IOException
+  public AmqpXioChannel( Connection connection, String exchangeName, String inQueue, String outQueue, Executor executor) throws IOException
   {
     this.connection = connection;
     this.inQueue = inQueue;
     this.outQueue = outQueue;
     this.exchangeName = exchangeName;
+    this.executor = executor;
     this.threadChannels = new ThreadLocal<Channel>();
   }
 
@@ -51,44 +52,40 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   }
 
   /**
-   * Set the outgoing queue.
-   * @param name The name of the queue.
-   */
-  public void setReplyQueue( String name)
-  {
-    outQueue = name;
-  }
-  
-  /**
    * Create a new channel for the specified registration name.
    * @param name The name with which the endpoint registered.
    * @return Returns a new channel.
    */
   public AmqpXioChannel deriveRegisteredChannel( String name) throws IOException
   {
-    return new AmqpXioChannel( connection, exchangeName, AmqpQueueNames.getRequestQueue( name), AmqpQueueNames.getResponseQueue( name));
+    return new AmqpXioChannel( connection, exchangeName, AmqpQueueNames.getResponseQueue( name), AmqpQueueNames.getRequestQueue( name), executor);
   }
   
   /**
    * Start the consumer.
-   * @param executor The i/o executor (used for heartbeat timeouts).
-   * @param timeout The heartbeat timeout in milliseconds.
    */
-  public void startConsumer( Executor executor, int timeout) throws IOException
+  public void startConsumer() throws IOException
   {
     Channel channel = getThreadChannel();
     
     if ( inQueue != null)
     {
       channel.queueDeclare( inQueue, false, false, true, null);
-      channel.basicConsume( inQueue, true, inQueue, this);
+      channel.basicConsume( inQueue, true, inQueue+"[consumer]", this);
     }
     
     if ( outQueue != null)
     {
       channel.queueDeclare( outQueue, false, false, true, null);
     }
-    
+  }
+
+  /**
+   * Start a heartbeat schedule to detect remote connection loss.
+   * @param timeout The timeout in milliseconds.
+   */
+  public void startHeartbeat( int timeout)
+  {
     heartbeat = new Heartbeat( peer, timeout / 3, timeout, executor);
     heartbeat.start();
   }
@@ -103,36 +100,16 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.IXioChannel#writeRequest(org.jboss.netty.buffer.ChannelBuffer)
+   * @see org.xmodel.net.IXioChannel#write(org.jboss.netty.buffer.ChannelBuffer)
    */
   @Override
-  public void writeRequest( ChannelBuffer buffer)
+  public void write( ChannelBuffer buffer)
   {
     try
     {
       byte[] bytes = new byte[ buffer.readableBytes()];
       buffer.readBytes( bytes);
-      
       getThreadChannel().basicPublish( exchangeName, outQueue, null, bytes);
-    }
-    catch( IOException e)
-    {
-      log.exception( e);
-      // TODO:
-    }
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.IXioChannel#writeResponse(org.jboss.netty.buffer.ChannelBuffer)
-   */
-  @Override
-  public void writeResponse( ChannelBuffer buffer)
-  {
-    try
-    {
-      byte[] bytes = new byte[ buffer.readableBytes()];
-      buffer.readBytes( bytes);
-      getThreadChannel().basicPublish( exchangeName, inQueue, null, bytes);
     }
     catch( IOException e)
     {
@@ -206,7 +183,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleCancel( String consumerTag) throws IOException
   {
-    log.debugf( "handleCancel: consumerTag=%s", consumerTag);
+    log.debugf( "handleCancel: q=%s", this);
   }
 
   /* (non-Javadoc)
@@ -215,7 +192,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleCancelOk( String consumerTag)
   {
-    log.debugf( "handleCancelOk: consumerTag=%s", consumerTag);
+    log.debugf( "handleCancelOk: q=%s", this);
   }
 
   /* (non-Javadoc)
@@ -224,7 +201,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleConsumeOk( String consumerTag)
   {
-    log.debugf( "handleConsumeOk: consumerTag=%s", consumerTag);
+    log.debugf( "handleConsumeOk: q=%s", this);
   }
 
   /* (non-Javadoc)
@@ -233,8 +210,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
   {
-    log.debugf( "handleDelivery: consumerTag=%s", consumerTag);
-    heartbeat.messageReceived();
+    log.debugf( "handleDelivery: q=%s", this);
+    if ( heartbeat != null) heartbeat.messageReceived();
     peer.handleMessage( this, ChannelBuffers.wrappedBuffer( body));
   }
 
@@ -244,7 +221,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleRecoverOk( String consumerTag)
   {
-    log.debugf( "handleRecoverOk: consumerTag=%s", consumerTag);
+    log.debugf( "handleRecoverOk: q=%s", this);
   }
 
   /* (non-Javadoc)
@@ -253,7 +230,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void handleShutdownSignal( String consumerTag, ShutdownSignalException signal)
   {
-    log.debugf( "handleShutdownSignal: consumerTag=%s, signal=%s", consumerTag, signal);
+    log.debugf( "handleShutdownSignal: q=%s, signal=%s", this, signal);
+    if ( peer != null) peer.getPeerRegistry().unregisterAll( peer);
   }
 
   /**
@@ -270,6 +248,15 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return channel;
   }
   
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return inQueue+"<>"+outQueue;
+  }
+
   private static Log log = Log.getLog( AmqpXioChannel.class);
   
   private XioPeer peer;
@@ -278,6 +265,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   private String outQueue;
   private Connection connection;
   private AsyncFuture<IXioChannel> closeFuture;
+  private Executor executor;
   private ThreadLocal<Channel> threadChannels;
   protected Heartbeat heartbeat;
 }

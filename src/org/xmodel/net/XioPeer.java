@@ -386,9 +386,9 @@ public class XioPeer
   private IXioChannel channel;
   private IXioPeerRegistry registry;
   private StatefulContext eventContext;
-  private HeaderProtocol headerProtocol;
-  private EchoProtocol echoProtocol;
-  private BindProtocol bindProtocol;
-  private ExecutionProtocol executionProtocol;
-  private RegisterProtocol registerProtocol;
+  protected HeaderProtocol headerProtocol;
+  protected EchoProtocol echoProtocol;
+  protected BindProtocol bindProtocol;
+  protected ExecutionProtocol executionProtocol;
+  protected RegisterProtocol registerProtocol;
 }

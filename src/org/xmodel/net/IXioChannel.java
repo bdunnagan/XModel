@@ -21,19 +21,10 @@ public interface IXioChannel
   public boolean isConnected();
   
   /**
-   * Send a buffer containing the content of the specified buffer. This method
-   * may also be used when a response is not expected.
+   * Send a buffer containing the content of the specified buffer.
    * @param buffer The buffer.
    */
-  public void writeRequest( ChannelBuffer buffer);
-  
-  /**
-   * Send a response containing the content of the specified buffer. This method
-   * is distinguished from <code>writeRequest</code> when the transport is a 
-   * message bus and the response will travel over a different queue.
-   * @param buffer The buffer.
-   */
-  public void writeResponse( ChannelBuffer buffer);
+  public void write( ChannelBuffer buffer);
   
   /**
    * Close this channel.

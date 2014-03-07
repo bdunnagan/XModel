@@ -88,7 +88,7 @@ public class ExecutionResponseProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -114,7 +114,7 @@ public class ExecutionResponseProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeResponse, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**

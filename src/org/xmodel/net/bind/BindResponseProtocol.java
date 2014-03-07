@@ -51,7 +51,7 @@ public class BindResponseProtocol
       buffer1.writeInt( correlation);
       
       // ignoring write buffer overflow for this type of messaging
-      channel.writeResponse( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+      channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     }
     else
     {
@@ -59,7 +59,7 @@ public class BindResponseProtocol
       buffer.writeInt( correlation);
       
       // ignoring write buffer overflow for this type of messaging
-      channel.writeResponse( buffer);
+      channel.write( buffer);
     }
   }
   

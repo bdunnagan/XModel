@@ -76,7 +76,7 @@ public class BindRequestProtocol
     buffer.writeBytes( queryBytes);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
     
     // wait for response from server
     IModelObject received = bundle.bindResponseProtocol.waitForResponse( correlation, timeout);

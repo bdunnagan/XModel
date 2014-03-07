@@ -59,7 +59,10 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
   @Override
   public void unregisterAll( XioPeer peer)
   {
-    derivedPeers.clear();
+    // TODO: the protocol does not support identifying the correct peer when this message
+    // is sent by the client.  However, when this method is called by the Heartbeat class
+    // the Heartbeat class provides the correct peer instance.
+    
     backingRegistry.unregisterAll( peer);
   }
 

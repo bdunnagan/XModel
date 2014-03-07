@@ -29,7 +29,7 @@ public class EchoResponseProtocol
   public void send( IXioChannel channel) throws IOException
   {
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.echoResponse, 0);
-    channel.writeResponse( buffer);
+    channel.write( buffer);
   }
   
   /**

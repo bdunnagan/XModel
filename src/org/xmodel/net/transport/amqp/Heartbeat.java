@@ -43,7 +43,8 @@ public class Heartbeat
           public void run()
           {
             stop();
-            peer.getPeerRegistry().unregisterAll( peer);
+            //peer.getPeerRegistry().unregisterAll( peer);
+            peer.close();
           }
         });
       }

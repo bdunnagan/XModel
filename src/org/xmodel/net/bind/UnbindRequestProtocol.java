@@ -40,7 +40,7 @@ public class UnbindRequestProtocol
     bundle.requestCompressor.freeRemote( bundle.requestCompressor.findRemote( netID));
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
   }
   
   /**

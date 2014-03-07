@@ -42,7 +42,7 @@ public class RegisterRequestProtocol
     buffer.writeBytes( bytes);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
   }
   
   /**

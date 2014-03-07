@@ -57,7 +57,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendAddChild: parent=%s/%X, child=%s/%X, index=%d", parent.getType(), parentNetID, child.getType(), childNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**
@@ -79,7 +79,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendRemoveChild: parent=%s/%X, index=%d", parent.getType(), parentNetID, index);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
   }
 
   /**
@@ -105,7 +105,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendChangeAttribute: parent=%X, attrName=%s, attrValue=%s", netID, attrName, newValue);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
 
   /**
@@ -128,7 +128,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendClearAttribute: parent=%X, attrName=%s", netID, attrName);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
   }
 
   /**
@@ -148,7 +148,7 @@ public class UpdateProtocol
     log.debugf( "UpdateProtocol.sendChangeDirty: element=%X, dirty=%s", netID, dirty);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.writeRequest( buffer);
+    channel.write(buffer);
   }
   
   /**
