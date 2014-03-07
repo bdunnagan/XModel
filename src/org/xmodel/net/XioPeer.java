@@ -56,7 +56,7 @@ public class XioPeer
     bindProtocol = new BindProtocol( headerProtocol, context, executor);
     executionProtocol = new ExecutionProtocol( headerProtocol, context, executor, scheduler, privilege);
   }
-
+  
   /**
    * Specify whether the peer should attempt to reconnect if a message is sent and the underlying channel
    * is no longer connected.  Only one retry attempt will be made.

@@ -41,7 +41,7 @@ public class AmqpTransport
   public AmqpTransport( Role role)
   {
     this.role = role;
-    registry = new MemoryXioPeerRegistry();
+    registry = new AmqpXioPeerRegistry( new MemoryXioPeerRegistry());
   }
 
   /**

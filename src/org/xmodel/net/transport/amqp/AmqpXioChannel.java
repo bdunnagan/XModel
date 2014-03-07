@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Executor;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -12,6 +13,7 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
+
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -55,6 +57,16 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   public void setReplyQueue( String name)
   {
     outQueue = name;
+  }
+  
+  /**
+   * Create a new channel for the specified registration name.
+   * @param name The name with which the endpoint registered.
+   * @return Returns a new channel.
+   */
+  public AmqpXioChannel deriveRegisteredChannel( String name) throws IOException
+  {
+    return new AmqpXioChannel( connection, exchangeName, AmqpQueueNames.getRequestQueue( name), AmqpQueueNames.getResponseQueue( name));
   }
   
   /**
