@@ -90,8 +90,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     peer.setSubscribeChannel( subscribeChannel);
     subscribeChannel.startConsumer();
 
-    // TODO: insure registration complete before starting heartbeat
-    //subscribeChannel.startHeartbeat( 9000);
+    subscribeChannel.startHeartbeat( 9000);
     
     return peer;
   }
