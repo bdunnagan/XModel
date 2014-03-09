@@ -5,6 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.xmodel.log.SLog;
 
 public class Heartbeat
@@ -15,6 +16,7 @@ public class Heartbeat
     this.period = period;
     this.timeout = timeout;
     this.executor = executor;
+    this.active = new AtomicBoolean( false);
   }
 
   /**
@@ -22,6 +24,8 @@ public class Heartbeat
    */
   public void start()
   {
+    active.set( true);
+    
     heartbeatTask = new Runnable() {
       public void run()
       {
@@ -42,6 +46,7 @@ public class Heartbeat
         executor.execute( new Runnable() {
           public void run()
           {
+            // NOTE: server must send message after registration to restart heartbeat!
             stop();
             
             try
@@ -65,7 +70,11 @@ public class Heartbeat
    */
   public void stop()
   {
-    heartbeatFuture.cancel( false);
+    if ( active.getAndSet( false))
+    {
+      heartbeatFuture.cancel( false);
+      heartbeatTask = timeoutTask = null;
+    }
   }
   
   /**
@@ -73,8 +82,12 @@ public class Heartbeat
    */
   public void messageReceived()
   {
-    // TODO: signal to not send heartbeat message until idle
+    if ( !active.get())
+    {
+      start();
+    }
     
+    // TODO: signal to not send heartbeat message until idle
     if ( timeoutFuture == null || timeoutFuture.cancel( false))
     {
       timeoutFuture = scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS);
@@ -91,4 +104,5 @@ public class Heartbeat
   private ScheduledFuture<?> heartbeatFuture;
   private Runnable timeoutTask;
   private ScheduledFuture<?> timeoutFuture;
+  private AtomicBoolean active;
 }
