@@ -9,3 +9,8 @@ AMQP Registration Flow
 + Agent sends registration request to server
 + Server registers agent
 + Server sends agent requests to agent queue
+
+Test Cases
+
+1. Registration cancelled when client exits
+2. Re-registration fails because temporary loss of access to message-bus

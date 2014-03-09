@@ -91,10 +91,10 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
         connectionFactory.newConnection( ioExecutor):
         connectionFactory.newConnection( ioExecutor, brokers);
         
-    AmqpXioChannel channel = new AmqpXioChannel( connection, "", queue, null, ioExecutor);
+    AmqpXioChannel channel = new AmqpXioChannel( connection, "", ioExecutor);
     AmqpXioPeer peer = new AmqpXioPeer( channel, registry, context, context.getExecutor(), null, null);
     channel.setPeer( peer);
-    channel.startConsumer();
+    channel.startConsumer( queue, true, false);
     return peer;
   }
   

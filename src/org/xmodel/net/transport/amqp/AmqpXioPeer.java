@@ -3,7 +3,6 @@ package org.xmodel.net.transport.amqp;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
@@ -31,18 +30,24 @@ public class AmqpXioPeer extends XioPeer
   
   /**
    * Create a new channel for the specified registration name.
-   * @param name The name with which the endpoint registered.
+   * @param qName The qualified name with which the endpoint registered.
    * @return Returns a new channel.
    */
-  public AmqpXioPeer deriveRegisteredPeer( String name) throws IOException
+  public AmqpXioPeer deriveRegisteredPeer( String qName) throws IOException
   {
     AmqpXioChannel channel = (AmqpXioChannel)getChannel();
-    AmqpXioChannel newChannel = channel.deriveRegisteredChannel( AmqpQualifiedNames.parseRegistrationName( name));
+    
+    String name = AmqpQualifiedNames.parseRegistrationName( qName);
+    AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
+    newChannel.declareOutputQueue( AmqpQueueNames.getRequestQueue( name), false, true);
+    
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
+    peer.qualifiedName = qName;
     newChannel.setPeer( peer);
-    newChannel.startConsumer();
+    
+    newChannel.startConsumer( AmqpQueueNames.getResponseQueue( name), false, true);
     newChannel.startHeartbeat( 9000);
-    peer.qualifiedName = name;
+    
     return peer;
   }
 
@@ -64,7 +69,9 @@ public class AmqpXioPeer extends XioPeer
     if ( registerChannel == null) throw new IllegalStateException( "Peer is not connected.");
     
     // send qualified names to the server
-    registerProtocol.registerRequestProtocol.send( registerChannel, AmqpQualifiedNames.createQualifiedName( name));
+    // TODO: this only supports one name registration
+    qualifiedName = AmqpQualifiedNames.createQualifiedName( name);
+    registerProtocol.registerRequestProtocol.send( registerChannel, qualifiedName);
   }
 
   /* (non-Javadoc)
@@ -77,6 +84,17 @@ public class AmqpXioPeer extends XioPeer
     
     // send qualified names to the server
     registerProtocol.unregisterRequestProtocol.send( registerChannel, AmqpQualifiedNames.createQualifiedName( name));
+  }
+  
+  /**
+   * Register again with the same qualified name.
+   */
+  public void reregister() throws IOException, InterruptedException
+  {
+    if ( registerChannel == null) throw new IllegalStateException( "Peer is not connected.");
+    
+    // send qualified names to the server
+    registerProtocol.registerRequestProtocol.send( registerChannel, qualifiedName);
   }
 
   /* (non-Javadoc)
@@ -101,6 +119,15 @@ public class AmqpXioPeer extends XioPeer
   public int hashCode()
   {
     return (qualifiedName == null)? System.identityHashCode( this): qualifiedName.hashCode();
+  }
+
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString()
+  {
+    return qualifiedName;
   }
 
   private AmqpXioChannel registerChannel;

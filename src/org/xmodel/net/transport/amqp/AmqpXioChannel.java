@@ -23,11 +23,9 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel, Consumer
 {
-  public AmqpXioChannel( Connection connection, String exchangeName, String inQueue, String outQueue, Executor executor) throws IOException
+  public AmqpXioChannel( Connection connection, String exchangeName, Executor executor) throws IOException
   {
     this.connection = connection;
-    this.inQueue = inQueue;
-    this.outQueue = outQueue;
     this.exchangeName = exchangeName;
     this.executor = executor;
     this.threadChannels = new ThreadLocal<Channel>();
@@ -39,7 +37,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   protected void setPeer( XioPeer peer)
   {
-    this.peer = peer;
+    this.peer = (AmqpXioPeer)peer;
   }
   
   /* (non-Javadoc)
@@ -52,32 +50,35 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   }
 
   /**
-   * Create a new channel for the specified registration name.
-   * @param name The name with which the endpoint registered.
+   * Create a new channel on the same connection with the same parameters but no queues.
    * @return Returns a new channel.
    */
-  public AmqpXioChannel deriveRegisteredChannel( String name) throws IOException
+  public AmqpXioChannel deriveRegisteredChannel() throws IOException
   {
-    return new AmqpXioChannel( connection, exchangeName, AmqpQueueNames.getResponseQueue( name), AmqpQueueNames.getRequestQueue( name), executor);
+    return new AmqpXioChannel( connection, exchangeName, executor);
+  }
+  
+  /**
+   * Declare the output queue for this channel.
+   * @param queue The name of the queue.
+   * @param durable True if the queue is durable.
+   * @param autoDelete True if the queue is auto-delete.
+   */
+  public void declareOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
+  {
+    outQueue = queue;
+    getThreadChannel().queueDeclare( outQueue, durable, false, autoDelete, null);
   }
   
   /**
    * Start the consumer.
    */
-  public void startConsumer() throws IOException
+  public void startConsumer( String queue, boolean durable, boolean autoDelete) throws IOException
   {
+    inQueue = queue;
     Channel channel = getThreadChannel();
-    
-    if ( inQueue != null)
-    {
-      channel.queueDeclare( inQueue, false, false, true, null);
-      channel.basicConsume( inQueue, true, inQueue+"[consumer]", this);
-    }
-    
-    if ( outQueue != null)
-    {
-      channel.queueDeclare( outQueue, false, false, true, null);
-    }
+    channel.queueDeclare( inQueue, durable, false, autoDelete, null);
+    channel.basicConsume( inQueue, true, inQueue+"[consumer]", this);
   }
 
   /**
@@ -105,6 +106,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public void write( ChannelBuffer buffer)
   {
+    if ( outQueue == null) throw new IllegalStateException( "Output queue not defined.");
+    
     try
     {
       byte[] bytes = new byte[ buffer.readableBytes()];
@@ -248,6 +251,22 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return channel;
   }
   
+  /**
+   * @return Returns null or the input queue name.
+   */
+  protected String inQueue()
+  {
+    return inQueue;
+  }
+  
+  /**
+   * @return Returns null or the output queue name.
+   */
+  protected String outQueue()
+  {
+    return outQueue;
+  }
+  
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
@@ -259,7 +278,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
 
   private static Log log = Log.getLog( AmqpXioChannel.class);
   
-  private XioPeer peer;
+  private AmqpXioPeer peer;
   private String exchangeName;
   private String inQueue;
   private String outQueue;

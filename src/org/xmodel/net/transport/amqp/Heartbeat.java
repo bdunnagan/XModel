@@ -5,11 +5,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.xmodel.net.XioPeer;
+import org.xmodel.log.SLog;
 
 public class Heartbeat
 {
-  public Heartbeat( XioPeer peer, int period, int timeout, Executor executor)
+  public Heartbeat( AmqpXioPeer peer, int period, int timeout, Executor executor)
   {
     this.peer = peer;
     this.period = period;
@@ -43,8 +43,15 @@ public class Heartbeat
           public void run()
           {
             stop();
-            //peer.getPeerRegistry().unregisterAll( peer);
-            peer.close();
+            
+            try
+            {
+              peer.reregister();
+            }
+            catch( Exception e)
+            {
+              SLog.exception( String.format( "Unable to re-register after heartbeat lost, %s", peer), e);
+            }
           }
         });
       }
@@ -76,7 +83,7 @@ public class Heartbeat
   
   private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1);
 
-  private XioPeer peer;
+  private AmqpXioPeer peer;
   private int period;
   private int timeout;
   private Executor executor;

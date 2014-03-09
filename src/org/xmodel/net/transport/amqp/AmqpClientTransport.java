@@ -80,15 +80,17 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
         connectionFactory.newConnection( ioExecutor):
         connectionFactory.newConnection( ioExecutor, brokers);
 
-    AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", null, queue, ioExecutor);
+    AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor);
     AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
     initChannel.setPeer( peer);
-    initChannel.startConsumer();
+    initChannel.declareOutputQueue( queue, true, false);
     
-    AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", AmqpQueueNames.getRequestQueue( name), AmqpQueueNames.getResponseQueue( name), ioExecutor);
+    AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor);
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
-    subscribeChannel.startConsumer();
+    
+    subscribeChannel.declareOutputQueue( AmqpQueueNames.getResponseQueue( name), false, true);
+    subscribeChannel.startConsumer( AmqpQueueNames.getRequestQueue( name), false, true);
 
     subscribeChannel.startHeartbeat( 9000);
     
