@@ -18,57 +18,32 @@ public class Heartbeat
     this.executor = executor;
     this.isClient = isClient;
     this.active = new AtomicBoolean( false);
+    
+    heartbeatTask = new Runnable() {
+      public void run()
+      {
+        heartbeat();
+      }
+    };
+    
+    timeoutTask = new Runnable() {
+      public void run()
+      {
+        timeout();
+      }
+    };
   }
 
   /**
    * Start sending heartbeat messages.
    */
-  public void start()
+  public synchronized void start()
   {
-    active.set( true);
-    
-    heartbeatTask = new Runnable() {
-      public void run()
-      {
-        executor.execute( new Runnable() {
-          public void run()
-          {
-            try { peer.heartbeat();} catch( Exception e) {}
-          }
-        });
-      }
-    };
-    
-    heartbeatFuture = scheduler.scheduleAtFixedRate( heartbeatTask, period, period, TimeUnit.MILLISECONDS);
-    
-    timeoutTask = new Runnable() {
-      public void run()
-      {
-        executor.execute( new Runnable() {
-          public void run()
-          {
-            // NOTE: server must send message after registration to restart heartbeat!
-            stop();
-            
-            if ( isClient)
-            {
-              try
-              {
-                peer.reregister();
-              }
-              catch( Exception e)
-              {
-                SLog.error( this, String.format( "Unable to re-register after heartbeat lost, %s", peer), e);
-              }
-            }
-            else
-            {
-              peer.getPeerRegistry().unregisterAll( peer);
-            }
-          }
-        });
-      }
-    };
+    if ( isClient)
+    {
+      active.set( true);
+      heartbeatFuture = scheduler.scheduleAtFixedRate( heartbeatTask, period, period, TimeUnit.MILLISECONDS);
+    }
     
     timeoutFuture = scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS);
   }
@@ -86,11 +61,54 @@ public class Heartbeat
   }
   
   /**
+   * Called when the heartbeat schedule expires.
+   */
+  private void heartbeat()
+  {
+    executor.execute( new Runnable() {
+      public void run()
+      {
+        try { peer.heartbeat();} catch( Exception e) {}
+      }
+    });
+  }
+  
+  /**
+   * Called when the timeout schedule expires.
+   */
+  private void timeout()
+  {
+    executor.execute( new Runnable() {
+      public void run()
+      {
+        // NOTE: server must send message after registration to restart heartbeat!
+        stop();
+        
+        if ( isClient)
+        {
+          try
+          {
+            peer.reregister();
+          }
+          catch( Exception e)
+          {
+            SLog.error( this, String.format( "Unable to re-register after heartbeat lost, %s", peer), e);
+          }
+        }
+        else
+        {
+          peer.getPeerRegistry().unregisterAll( peer);
+        }
+      }
+    });
+  }
+  
+  /**
    * Call this method when a message is received.
    */
-  public void messageReceived()
+  public synchronized void messageReceived()
   {
-    if ( !active.get())
+    if ( isClient && !active.get())
     {
       start();
     }

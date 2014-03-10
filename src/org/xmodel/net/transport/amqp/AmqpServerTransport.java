@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLContext;
 
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
+import org.xmodel.util.CountingThreadPoolExecutor;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ServerAction.IServerTransport;
 import org.xmodel.xpath.expression.IContext;
@@ -85,7 +85,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
       }
     });
     
-    final ExecutorService ioExecutor = (threads == 0)? Executors.newCachedThreadPool(): Executors.newFixedThreadPool( threads);
+    final ExecutorService ioExecutor = new CountingThreadPoolExecutor( queue, 0, threads, 300000);
     Address[] brokers = getBrokers( context);
     Connection connection = (brokers == null)?
         connectionFactory.newConnection( ioExecutor):

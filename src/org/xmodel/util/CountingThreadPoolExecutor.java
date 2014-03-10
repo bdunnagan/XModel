@@ -38,7 +38,7 @@ public class CountingThreadPoolExecutor extends ThreadPoolExecutor implements Co
    */
   public CountingThreadPoolExecutor( String poolName, int coreSize, int maxSize, int linger)
   {
-    super( coreSize, maxSize, linger, TimeUnit.SECONDS, createQueue( maxSize), new PrefixThreadFactory( poolName));
+    super( coreSize, (maxSize > 0)? maxSize: Integer.MAX_VALUE, linger, TimeUnit.SECONDS, createQueue( maxSize), new PrefixThreadFactory( poolName));
     
     try
     {
