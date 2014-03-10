@@ -5,15 +5,15 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Executor;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -66,6 +66,9 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   public void declareOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
   {
+    if ( queue == null || queue.length() == 0)
+      throw new IllegalArgumentException( "Attempt to declare null/empty queue!");
+    
     outQueue = queue;
     getThreadChannel().queueDeclare( outQueue, durable, false, autoDelete, null);
   }
@@ -75,6 +78,9 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   public void startConsumer( String queue, boolean durable, boolean autoDelete) throws IOException
   {
+    if ( queue == null || queue.length() == 0)
+      throw new IllegalArgumentException( "Attempt to start consumer with null/empty queue!");
+    
     inQueue = queue;
     Channel channel = getThreadChannel();
     channel.queueDeclare( inQueue, durable, false, autoDelete, null);
@@ -84,10 +90,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   /**
    * Start a heartbeat schedule to detect remote connection loss.
    * @param timeout The timeout in milliseconds.
+   * @param isClient True if heartbeat from the client.
    */
-  public void startHeartbeat( int timeout)
+  public void startHeartbeat( int timeout, boolean isClient)
   {
-    heartbeat = new Heartbeat( peer, timeout / 3, timeout, executor);
+    heartbeat = new Heartbeat( peer, timeout / 3, timeout, executor, isClient);
     heartbeat.start();
   }
   
@@ -107,6 +114,15 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   public void write( ChannelBuffer buffer)
   {
     if ( outQueue == null) throw new IllegalStateException( "Output queue not defined.");
+    
+    if ( log.debug())
+    {
+      buffer.markReaderIndex();
+      HeaderProtocol header = new HeaderProtocol();
+      Type type = header.readType( buffer);
+      log.debugf( "Writing %s message to %s queue", type, outQueue);
+      buffer.resetReaderIndex();
+    }
     
     try
     {

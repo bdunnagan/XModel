@@ -26,13 +26,13 @@ package org.xmodel.xaction;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -106,27 +106,16 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( registryExpr != null)
+    if ( clientsExpr != null)
     {
-      if ( clientsExpr != null)
+      Object[] clients = getClients( context);
+      if ( clients.length > 0)
       {
-        String[] clients = getClients( context);
-        if ( clients.length > 0)
-        {
-          runRemote( context, getClients( context));
-        }
-        else if ( hostExpr != null)
-        {
-          runRemote( context, getRemoteAddresses( context));
-        }
-        else
-        {
-          SLog.warnf( this, "No clients specified.");
-        }
+        runRemote( context, clients);
       }
       else
       {
-        SLog.warnf( this, "Client expression not specified.");
+        SLog.warnf( this, "No clients specified.");
       }
     }
     else if ( hostExpr != null)
@@ -380,7 +369,7 @@ public class RunAction extends GuardedAction
    * @param context The context.
    * @param clients The registered names of the clients.
    */
-  private void runRemote( final IContext context, final String[] clients)
+  private void runRemote( final IContext context, final Object[] clients)
   {
     final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
 
@@ -394,20 +383,36 @@ public class RunAction extends GuardedAction
 
     try
     {
-      IXioPeerRegistry registry = (IXioPeerRegistry)Conventions.getCache( context, registryExpr);
-      if ( registry == null)
-      {
-        log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
-        return;
-      }
-      
-      for( String client: clients)
+      IXioPeerRegistry registry = (registryExpr != null)?
+          (IXioPeerRegistry)Conventions.getCache( context, registryExpr):
+          null;
+          
+      for( Object client: clients)
       {
         if ( client == null) continue;
         
-        log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
+        log.debugf( "Remote execution at clients with name, '%s', script=%s ...", client, Xlate.get( scriptNode, "name", "?"));
         
-        Iterator<XioPeer> iterator = registry.lookupByName( client);
+        Iterator<XioPeer> iterator = null;
+        String clientName = null;
+        if ( client instanceof XioPeer)
+        {
+          List<XioPeer> list = Collections.singletonList( (XioPeer)client);
+          iterator = list.iterator();
+        }
+        else
+        {
+          clientName = client.toString();
+          if ( clientName.length() == 0) continue;
+          iterator = registry.lookupByName( clientName);
+        }
+        
+        if ( clientName != null && registry == null)
+        {
+          log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
+          return;
+        }
+        
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();
@@ -425,7 +430,7 @@ public class RunAction extends GuardedAction
             final StatefulContext runContext = new StatefulContext( context.getObject());
             runContext.getScope().copyFrom( context.getScope());
             runContext.setExecutor( context.getExecutor());
-            runContext.set( "remoteName", client);
+            if ( clientName != null) runContext.set( "remoteName", clientName);
             runContext.set( "remoteHost", address.getAddress().getHostAddress());
             runContext.set( "remotePort", address.getPort());
             
@@ -451,7 +456,7 @@ public class RunAction extends GuardedAction
       handleException( e, context, onComplete, onError);
     }    
   }
-  
+    
   /**
    * Returns the addresses of the execution hosts.
    * @param context The context.
@@ -488,18 +493,18 @@ public class RunAction extends GuardedAction
    * @param context The context.
    * @return Returns the registered names of the clients.
    */
-  private String[] getClients( IContext context)
+  private Object[] getClients( IContext context)
   {
     if ( clientsExpr.getType( context) == ResultType.NODES)
     {
       List<IModelObject> nodes = clientsExpr.evaluateNodes( context);
-      List<String> clients = new ArrayList<String>( nodes.size());
+      List<Object> clients = new ArrayList<Object>( nodes.size());
       for( IModelObject node: nodes)
       {
-        String client = Xlate.get( node, (String)null);
-        if ( client.length() > 0) clients.add( client);
+        Object client = node.getValue();
+        clients.add( client);
       }
-      return clients.toArray( new String[ 0]);
+      return clients.toArray();
     }
     else
     {

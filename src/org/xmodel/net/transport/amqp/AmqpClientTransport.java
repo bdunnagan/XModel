@@ -3,16 +3,14 @@ package org.xmodel.net.transport.amqp;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import javax.net.ssl.SSLContext;
-
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
 import org.xmodel.xaction.ClientAction.IClientTransport;
+import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
-
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Connection;
 
@@ -89,10 +87,17 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
     
-    subscribeChannel.declareOutputQueue( AmqpQueueNames.getResponseQueue( name), false, true);
-    subscribeChannel.startConsumer( AmqpQueueNames.getRequestQueue( name), false, true);
+    subscribeChannel.declareOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
+    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( name), false, true);
 
-    subscribeChannel.startHeartbeat( 9000);
+    subscribeChannel.startHeartbeat( 9000, true);
+
+    if ( onConnect != null) 
+    {
+      StatefulContext eventContext = peer.getNetworkEventContext();
+      Conventions.putCache( eventContext, "peer", peer);
+      onConnect.run( eventContext);
+    }
     
     return peer;
   }

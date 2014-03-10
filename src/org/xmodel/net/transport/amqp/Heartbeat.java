@@ -10,12 +10,13 @@ import org.xmodel.log.SLog;
 
 public class Heartbeat
 {
-  public Heartbeat( AmqpXioPeer peer, int period, int timeout, Executor executor)
+  public Heartbeat( AmqpXioPeer peer, int period, int timeout, Executor executor, boolean isClient)
   {
     this.peer = peer;
     this.period = period;
     this.timeout = timeout;
     this.executor = executor;
+    this.isClient = isClient;
     this.active = new AtomicBoolean( false);
   }
 
@@ -49,13 +50,20 @@ public class Heartbeat
             // NOTE: server must send message after registration to restart heartbeat!
             stop();
             
-            try
+            if ( isClient)
             {
-              peer.reregister();
+              try
+              {
+                peer.reregister();
+              }
+              catch( Exception e)
+              {
+                SLog.error( this, String.format( "Unable to re-register after heartbeat lost, %s", peer), e);
+              }
             }
-            catch( Exception e)
+            else
             {
-              SLog.exception( String.format( "Unable to re-register after heartbeat lost, %s", peer), e);
+              peer.getPeerRegistry().unregisterAll( peer);
             }
           }
         });
@@ -104,5 +112,6 @@ public class Heartbeat
   private ScheduledFuture<?> heartbeatFuture;
   private Runnable timeoutTask;
   private ScheduledFuture<?> timeoutFuture;
+  private boolean isClient;
   private AtomicBoolean active;
 }

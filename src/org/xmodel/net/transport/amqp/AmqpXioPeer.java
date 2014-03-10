@@ -39,14 +39,14 @@ public class AmqpXioPeer extends XioPeer
     
     String name = AmqpQualifiedNames.parseRegistrationName( qName);
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
-    newChannel.declareOutputQueue( AmqpQueueNames.getRequestQueue( name), false, true);
+    newChannel.declareOutputQueue( AmqpQueueNames.getOutputQueue( name), false, true);
     
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
     peer.qualifiedName = qName;
     newChannel.setPeer( peer);
     
-    newChannel.startConsumer( AmqpQueueNames.getResponseQueue( name), false, true);
-    newChannel.startHeartbeat( 9000);
+    newChannel.startConsumer( AmqpQueueNames.getInputQueue( name), false, true);
+    newChannel.startHeartbeat( 9000, false);
     
     return peer;
   }
