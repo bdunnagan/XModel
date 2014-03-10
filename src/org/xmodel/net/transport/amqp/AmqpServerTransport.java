@@ -43,7 +43,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
    */
   protected AmqpXioPeer connect( final IContext context, String name, final IXAction onRegister, final IXAction onUnregister) throws IOException
   {
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
+    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
    
     String queue = queueExpr.evaluateString( context);

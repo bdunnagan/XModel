@@ -43,11 +43,11 @@ public class ClientAction extends GuardedAction
   /**
    * Register a new transport.
    * @param name The name of the transport configuration element.
-   * @param transport The transport implementation.
+   * @param transport The transport class.
    */
-  public static void registerTransport( String name, IClientTransport transport)
+  public static void registerTransport( String name, Class<?> clss)
   {
-    transports.put( name, transport);
+    transports.put( name, clss);
   }
   
   /* (non-Javadoc)
@@ -68,11 +68,18 @@ public class ClientAction extends GuardedAction
     
     for( IModelObject child: document.getRoot().getChildren())
     {
-      IClientTransport transport = transports.get( child.getType());
-      if ( transport != null)
+      Class<?> clss = transports.get( child.getType());
+      if ( clss != null)
       {
-        transport.configure( child);
-        this.transport = transport;
+        try
+        {
+          transport = (IClientTransport)clss.newInstance(); 
+          transport.configure( child);
+        }
+        catch( Exception e)
+        {
+          throw new XActionException( "Problem with client transport implementation: ", e);
+        }
       }
     }
     
@@ -145,12 +152,12 @@ public class ClientAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
-  private static Map<String, IClientTransport> transports = Collections.synchronizedMap( new HashMap<String, IClientTransport>());
+  private static Map<String, Class<?>> transports = Collections.synchronizedMap( new HashMap<String, Class<?>>());
   
   static
   {
-    registerTransport( "tcp", new NettyClientTransport());
-    registerTransport( "amqp", new AmqpClientTransport());
+    registerTransport( "tcp", NettyClientTransport.class);
+    registerTransport( "amqp", AmqpClientTransport.class);
   }
   
   private String var;

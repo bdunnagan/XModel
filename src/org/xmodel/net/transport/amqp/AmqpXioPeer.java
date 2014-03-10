@@ -39,7 +39,7 @@ public class AmqpXioPeer extends XioPeer
     
     String name = AmqpQualifiedNames.parseRegistrationName( qName);
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
-    newChannel.declareOutputQueue( AmqpQueueNames.getOutputQueue( name), false, true);
+    newChannel.declareOutputQueue( AmqpQueueNames.getOutputQueue( channel.inQueue(), name), false, true);
     
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
     peer.qualifiedName = qName;

@@ -41,9 +41,9 @@ public class ServerAction extends GuardedAction
   /**
    * Register a new transport.
    * @param name The name of the transport configuration element.
-   * @param transport The transport implementation.
+   * @param transport The transport class.
    */
-  public static void registerTransport( String name, IServerTransport transport)
+  public static void registerTransport( String name, Class<? extends IServerTransport> transport)
   {
     transports.put( name, transport);
   }
@@ -65,11 +65,18 @@ public class ServerAction extends GuardedAction
     
     for( IModelObject child: document.getRoot().getChildren())
     {
-      IServerTransport transport = transports.get( child.getType());
-      if ( transport != null)
+      Class<?> clss = transports.get( child.getType());
+      if ( clss != null)
       {
-        transport.configure( child);
-        this.transport = transport;
+        try
+        {
+          transport = (IServerTransport)clss.newInstance(); 
+          transport.configure( child);
+        }
+        catch( Exception e)
+        {
+          throw new XActionException( "Problem with server transport implementation: ", e);
+        }
       }
     }
     
@@ -113,12 +120,12 @@ public class ServerAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
-  private static Map<String, IServerTransport> transports = Collections.synchronizedMap( new HashMap<String, IServerTransport>());
+  private static Map<String, Class<?>> transports = Collections.synchronizedMap( new HashMap<String, Class<?>>());
   
   static
   {
-    registerTransport( "tcp", new NettyServerTransport());
-    registerTransport( "amqp", new AmqpServerTransport());
+    registerTransport( "tcp", NettyServerTransport.class);
+    registerTransport( "amqp", AmqpServerTransport.class);
   }
 
   private String var;

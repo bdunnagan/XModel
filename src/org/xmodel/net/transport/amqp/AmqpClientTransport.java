@@ -30,7 +30,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
       final IXAction onRegister, 
       final IXAction onUnregister) throws IOException
   {
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 1;
+    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
    
     String queue = queueExpr.evaluateString( context);
@@ -88,7 +88,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     peer.setSubscribeChannel( subscribeChannel);
     
     subscribeChannel.declareOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
-    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( name), false, true);
+    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( queue, name), false, true);
 
     subscribeChannel.startHeartbeat( 9000, true);
 
