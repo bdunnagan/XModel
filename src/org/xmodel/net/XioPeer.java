@@ -238,6 +238,8 @@ public class XioPeer
   public synchronized void setChannel( IXioChannel channel)
   {
     this.channel = channel;
+    bindProtocol.requestCompressor.setChannel( channel);
+    bindProtocol.responseCompressor.setChannel( channel);
     getRemoteAddress();
   }
   

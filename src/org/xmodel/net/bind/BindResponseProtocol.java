@@ -101,11 +101,11 @@ public class BindResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the element that was received or null if timoeut occurs.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( int correlation, int timeout) throws InterruptedException
   {
     try
     {
-      BindRecord record = pending.get( (int)correlation);
+      BindRecord record = pending.get( correlation);
       if ( record != null) return record.semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS)? record.received: null;
       return null;
     }

@@ -94,7 +94,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   public void startHeartbeat( int timeout, boolean isClient)
   {
-    heartbeat = new Heartbeat( peer, timeout / 3, timeout, executor, isClient);
+    heartbeat = new Heartbeat( peer, timeout / 2, timeout, executor, isClient);
     heartbeat.start();
   }
   

@@ -84,7 +84,7 @@ public class SyncResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( int correlation, int timeout) throws InterruptedException
   {
     try
     {

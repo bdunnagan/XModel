@@ -56,7 +56,6 @@ public class Heartbeat
     if ( active.getAndSet( false))
     {
       heartbeatFuture.cancel( false);
-      heartbeatTask = timeoutTask = null;
     }
   }
   
