@@ -34,6 +34,14 @@ public class NetworkCachingPolicy extends ConfiguredCachingPolicy
     getDiffer().setMatcher( new DefaultXmlMatcher( true));
   }
   
+  /**
+   * @deprecated Close the backing client, instead.
+   */
+  public void close()
+  {
+    throw new UnsupportedOperationException();
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#configure(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObject)
    */
