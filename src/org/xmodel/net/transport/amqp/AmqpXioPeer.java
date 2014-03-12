@@ -46,7 +46,7 @@ public class AmqpXioPeer extends XioPeer
     newChannel.setPeer( peer);
     
     newChannel.startConsumer( AmqpQueueNames.getInputQueue( name), false, true);
-    newChannel.startHeartbeat( 9000, false);
+    newChannel.startHeartbeat( false);
     
     return peer;
   }

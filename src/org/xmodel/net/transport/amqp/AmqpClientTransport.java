@@ -35,6 +35,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 10000;
    
     String queue = queueExpr.evaluateString( context);
     
@@ -81,19 +82,19 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
         connectionFactory.newConnection( ioExecutor):
         connectionFactory.newConnection( ioExecutor, brokers);
 
-    AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor);
+    AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor, 0);
     final AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
     initChannel.setPeer( peer);
     initChannel.declareOutputQueue( queue, true, false);
     
-    AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor);
+    AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
     
     subscribeChannel.declareOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
     subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( queue, name), false, true);
 
-    subscribeChannel.startHeartbeat( 9000, true);
+    subscribeChannel.startHeartbeat( true);
 
     if ( onConnect != null) 
     {

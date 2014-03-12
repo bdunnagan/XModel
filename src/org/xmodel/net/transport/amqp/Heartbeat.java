@@ -10,10 +10,10 @@ import org.xmodel.log.SLog;
 
 public class Heartbeat
 {
-  public Heartbeat( AmqpXioPeer peer, int period, int timeout, Executor executor, boolean isClient)
+  public Heartbeat( AmqpXioPeer peer, int count, int timeout, Executor executor, boolean isClient)
   {
     this.peer = peer;
-    this.period = period;
+    this.period = timeout / (count + 1) + 1000;
     this.timeout = timeout;
     this.executor = executor;
     this.isClient = isClient;
@@ -42,7 +42,7 @@ public class Heartbeat
     if ( isClient)
     {
       active.set( true);
-      heartbeatFuture = scheduler.scheduleAtFixedRate( heartbeatTask, period, period, TimeUnit.MILLISECONDS);
+      heartbeatFuture = scheduler.scheduleAtFixedRate( heartbeatTask, 0, period, TimeUnit.MILLISECONDS);
     }
     
     timeoutFuture = scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS);
@@ -51,9 +51,14 @@ public class Heartbeat
   /**
    * Stop sending heartbeat messages.
    */
-  public void stop()
+  public synchronized void stop()
   {
-    if ( active.getAndSet( false))
+    if ( timeoutFuture != null) 
+    {
+      timeoutFuture.cancel( false);
+    }
+    
+    if ( active.getAndSet( false) && heartbeatFuture != null)
     {
       heartbeatFuture.cancel( false);
     }
@@ -67,7 +72,7 @@ public class Heartbeat
     executor.execute( new Runnable() {
       public void run()
       {
-        try { peer.heartbeat();} catch( Exception e) {}
+        try { peer.heartbeat();} catch( Exception e) { SLog.exception( this, e);}
       }
     });
   }
@@ -81,7 +86,7 @@ public class Heartbeat
       public void run()
       {
         // NOTE: server must send message after registration to restart heartbeat!
-        stop();
+        peer.close();
         
         if ( isClient)
         {

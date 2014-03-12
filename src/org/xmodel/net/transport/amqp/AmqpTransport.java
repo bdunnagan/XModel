@@ -36,6 +36,7 @@ abstract class AmqpTransport
     threadsExpr = Xlate.get( config, "threads", Xlate.childGet( config, "threads", (IExpression)null));
     brokersExpr = Xlate.get( config, "brokers", Xlate.childGet( config, "brokers", (IExpression)null));
     queueExpr = Xlate.get( config, "queue", Xlate.childGet( config, "queue", (IExpression)null));
+    timeoutExpr = Xlate.get( config, "timeout", Xlate.childGet( config, "timeout", (IExpression)null));
     
     connectionFactory = new ConnectionFactory();
     connectionFactory.setHost( "localhost");
@@ -92,6 +93,7 @@ abstract class AmqpTransport
   protected IExpression queueExpr;
   protected IExpression threadsExpr;
   protected IExpression sslExpr;
+  protected IExpression timeoutExpr;
   protected IExpression brokersExpr;
   protected IXioPeerRegistry registry;
 }

@@ -24,6 +24,18 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
   @Override
   public void register( XioPeer peer, String name)
   {
+    //
+    // If a peer is already registered than we need to cancel the heartbeat
+    // so we don't expect any more messages from the old peer which is being
+    // replaced.
+    //
+    Iterator<XioPeer> iterator = backingRegistry.lookupByName( name);
+    while( iterator.hasNext())
+    {
+      AmqpXioPeer oldPeer = (AmqpXioPeer)iterator.next();
+      oldPeer.close();
+    }
+    
     try
     {
       //

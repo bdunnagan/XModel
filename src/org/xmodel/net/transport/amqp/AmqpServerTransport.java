@@ -1,6 +1,7 @@
 package org.xmodel.net.transport.amqp;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -45,6 +46,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
    
     String queue = queueExpr.evaluateString( context);
     
@@ -91,12 +93,32 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
         connectionFactory.newConnection( ioExecutor):
         connectionFactory.newConnection( ioExecutor, brokers);
         
-    AmqpXioChannel channel = new AmqpXioChannel( connection, "", ioExecutor);
+    AmqpXioChannel channel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     AmqpXioPeer peer = new AmqpXioPeer( channel, registry, context, context.getExecutor(), null, null);
     channel.setPeer( peer);
+    
+    configureEventContext( peer);
+    
     channel.startConsumer( queue, true, false);
+    
     return peer;
   }
+  
+  /**
+   * Set default variables of new event context.
+   * @param context The event context.
+   */
+  private void configureEventContext( XioPeer peer)
+  {
+    StatefulContext context = peer.getNetworkEventContext();
+    
+    InetSocketAddress localAddress = peer.getLocalAddress();
+    if ( localAddress != null) context.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
+    
+    InetSocketAddress remoteAddress = peer.getRemoteAddress();
+    if ( remoteAddress != null) context.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
+  }
+  
   
   // TODO: store peer in context
   private List<XioPeer> peers = new ArrayList<XioPeer>();

@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Executor;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -14,6 +15,7 @@ import org.xmodel.net.HeaderProtocol;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
+
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -23,11 +25,12 @@ import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel, Consumer
 {
-  public AmqpXioChannel( Connection connection, String exchangeName, Executor executor) throws IOException
+  public AmqpXioChannel( Connection connection, String exchangeName, Executor executor, int timeout) throws IOException
   {
     this.connection = connection;
     this.exchangeName = exchangeName;
     this.executor = executor;
+    this.timeout = timeout;
     this.threadChannels = new ThreadLocal<Channel>();
   }
 
@@ -55,11 +58,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   public AmqpXioChannel deriveRegisteredChannel() throws IOException
   {
-    return new AmqpXioChannel( connection, exchangeName, executor);
+    return new AmqpXioChannel( connection, exchangeName, executor, timeout);
   }
   
   /**
-   * Declare the output queue for this channel.
+   * Declare the output queue for this channel.  The queue is purged of records.
    * @param queue The name of the queue.
    * @param durable True if the queue is durable.
    * @param autoDelete True if the queue is auto-delete.
@@ -72,7 +75,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     outQueue = queue;
     getThreadChannel().queueDeclare( outQueue, durable, false, autoDelete, null);
   }
-  
+
   /**
    * Start the consumer.
    */
@@ -89,12 +92,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
 
   /**
    * Start a heartbeat schedule to detect remote connection loss.
-   * @param timeout The timeout in milliseconds.
    * @param isClient True if heartbeat from the client.
    */
-  public void startHeartbeat( int timeout, boolean isClient)
+  public void startHeartbeat( boolean isClient)
   {
-    heartbeat = new Heartbeat( peer, timeout / 2, timeout, executor, isClient);
+    heartbeat = new Heartbeat( peer, 1, timeout, executor, isClient);
     heartbeat.start();
   }
   
@@ -146,7 +148,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     AsyncFuture<IXioChannel> future = getCloseFuture();
     try
     {
-      connection.close();
+      heartbeat.stop();
+      getThreadChannel().close();
       future.notifySuccess();
     }
     catch( IOException e)
@@ -250,7 +253,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   public void handleShutdownSignal( String consumerTag, ShutdownSignalException signal)
   {
     log.debugf( "handleShutdownSignal: q=%s, signal=%s", this, signal);
-    if ( peer != null) peer.getPeerRegistry().unregisterAll( peer);
+    if ( peer != null) 
+    {
+      heartbeat.stop();
+      peer.getPeerRegistry().unregisterAll( peer);
+    }
   }
 
   /**
@@ -302,5 +309,6 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   private AsyncFuture<IXioChannel> closeFuture;
   private Executor executor;
   private ThreadLocal<Channel> threadChannels;
+  private int timeout;
   protected Heartbeat heartbeat;
 }

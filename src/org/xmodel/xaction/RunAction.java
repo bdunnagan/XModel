@@ -403,48 +403,91 @@ public class RunAction extends GuardedAction
         else
         {
           clientName = client.toString();
-          if ( clientName.length() == 0) continue;
+          
+          if ( registry == null) 
+          {
+            log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
+            continue;
+          }
+          
           iterator = registry.lookupByName( clientName);
         }
         
-        if ( clientName != null && registry == null)
-        {
-          log.warnf( "Peer registry not found during remote execution: %s", registryExpr);
-          return;
-        }
-        
+        int count = 0;
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();
-
-          InetSocketAddress address = peer.getRemoteAddress();
-          log.debugf( "Remote execution at named client with address, %s:%d ...", address.getAddress().getHostAddress(), address.getPort());
           
-          if ( onComplete == null && onSuccess == null && onError == null)
+          try
           {
-            Object[] result = peer.execute( (StatefulContext)context, varArray, scriptNode, timeout);
-            if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
-          }
-          else
-          {
-            final StatefulContext runContext = new StatefulContext( context.getObject());
-            runContext.getScope().copyFrom( context.getScope());
-            runContext.setExecutor( context.getExecutor());
-            if ( clientName != null) runContext.set( "remoteName", clientName);
-            runContext.set( "remoteHost", address.getAddress().getHostAddress());
-            runContext.set( "remotePort", address.getPort());
-            
-            final int correlation = correlationCounter.getAndIncrement();
-            if ( cancelVar != null)
+            if ( onComplete == null && onSuccess == null && onError == null)
             {
-              IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
-              asyncInvocation.setAttribute( "peer", peer);
-              asyncInvocation.setAttribute( "correlation", correlation);
-              context.set( cancelVar, asyncInvocation);
+              Object[] result = peer.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+              if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
             }
-            
-            AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-            peer.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+            else
+            {
+              final StatefulContext runContext = new StatefulContext( context.getObject());
+              runContext.getScope().copyFrom( context.getScope());
+              runContext.setExecutor( context.getExecutor());
+              
+              if ( clientName != null) runContext.set( "remoteName", clientName);
+              
+              InetSocketAddress address = peer.getRemoteAddress();
+              if ( address != null)
+              {
+                runContext.set( "remoteHost", address.getAddress().getHostAddress());
+                runContext.set( "remotePort", address.getPort());
+              }
+              
+              final int correlation = correlationCounter.getAndIncrement();
+              if ( cancelVar != null)
+              {
+                IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
+                asyncInvocation.setAttribute( "peer", peer);
+                asyncInvocation.setAttribute( "correlation", correlation);
+                context.set( cancelVar, asyncInvocation);
+              }
+              
+              AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+              peer.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+              
+              count++;
+            }
+          }
+          catch( Exception e)
+          {
+            log.errorf( "Remote execution failed for '%s'", clientName, e);
+            handleException( e, context, onComplete, onError);
+          }
+        }
+        
+        if ( count == 0 && (onError != null || onComplete != null))
+        {
+          if ( onError != null)
+          {
+            try
+            {
+              StatefulContext eventContext = new StatefulContext( context);
+              eventContext.set( "error", String.format( "Client %s is not registered.", clientName));
+              onError.run( eventContext);
+            }
+            catch( Exception e)
+            {
+              log.errorf( "Error notification failed for '%s'", clientName, e);
+            }
+          }
+          
+          if ( onComplete != null) 
+          {
+            try
+            {
+              onComplete.run( context);
+            }
+            catch( Exception e)
+            {
+              log.errorf( "Completion notification failed for '%s'", clientName, e);
+            }
           }
         }
       }
