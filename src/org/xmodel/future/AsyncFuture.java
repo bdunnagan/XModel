@@ -174,12 +174,15 @@ public class AsyncFuture<T>
     
     synchronized( this)
     {
-      for( int i=0; i<listeners.length; i++)
+      if ( listeners != null)
       {
-        if ( listeners[ i] == listener)
+        for( int i=0; i<listeners.length; i++)
         {
-          listeners[ i] = null;
-          break;
+          if ( listeners[ i] == listener)
+          {
+            listeners[ i] = null;
+            break;
+          }
         }
       }
     }
