@@ -4,7 +4,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -19,19 +25,22 @@ import org.xmodel.net.XioPeer;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.ShutdownSignalException;
 
-public class AmqpXioChannel implements IXioChannel, Consumer
+public class AmqpXioChannel implements IXioChannel
 {
   public AmqpXioChannel( Connection connection, String exchangeName, Executor executor, int timeout) throws IOException
   {
+    log.verbosef( "\n\nCreated channel: %X\n", hashCode());
+    
     this.connection = connection;
     this.exchangeName = exchangeName;
     this.executor = executor;
     this.timeout = timeout;
+    this.timeoutScheduleRef = new AtomicReference<ScheduledFuture<?>>();
     this.threadChannels = new ThreadLocal<Channel>();
+    this.timedout = new AtomicReference<Boolean>( false);
   }
 
   /**
@@ -58,7 +67,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    */
   public AmqpXioChannel deriveRegisteredChannel() throws IOException
   {
-    return new AmqpXioChannel( connection, exchangeName, executor, timeout);
+    return new AmqpXioChannel( connection, "", executor, timeout);
   }
   
   /**
@@ -67,13 +76,81 @@ public class AmqpXioChannel implements IXioChannel, Consumer
    * @param durable True if the queue is durable.
    * @param autoDelete True if the queue is auto-delete.
    */
-  public void declareOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
+  public void setOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
   {
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to declare null/empty queue!");
     
     outQueue = queue;
     getThreadChannel().queueDeclare( outQueue, durable, false, autoDelete, null);
+  }
+  
+  /**
+   * Create a heartbeat output queue for this channel.
+   */
+  public void setHeartbeatOutputQueue() throws IOException
+  {
+    exchangeName = AmqpQueueNames.getHeartbeatExchange();
+    outQueue = "";
+    getThreadChannel().exchangeDeclare( exchangeName, "fanout");
+  }
+  
+  /**
+   * Create the heartbeat fanout exchange and start sending heartbeat messages.
+   * @param period The heartbeat send period in milliseconds.
+   */
+  public void startServerHeartbeat( int period) throws IOException
+  {
+    // create heartbeat exchange if it does not already exists
+    Channel channel = getThreadChannel(); 
+    channel.exchangeDeclare( AmqpQueueNames.getHeartbeatExchange(), "fanout");
+    
+    // create timer to send heartbeat messages
+    Runnable sendTask = new Runnable() {
+      public void run()
+      {
+        try 
+        { 
+          peer.heartbeat( AmqpXioChannel.this);
+        } 
+        catch( Exception e) 
+        {
+          log.error( "Unable to send heartbeat...", e);
+        }      
+      }
+    };
+    
+    scheduler.scheduleAtFixedRate( sendTask, period, period, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Start receiving heartbeat messages via this channel.
+   */
+  public void startHeartbeatConsumer() throws IOException
+  {
+    heartbeatConsumerChannel = connection.createChannel();
+    String queueName = heartbeatConsumerChannel.queueDeclare().getQueue();
+    heartbeatConsumerChannel.queueBind( queueName, AmqpQueueNames.getHeartbeatExchange(), "");
+    heartbeatConsumerChannel.basicConsume( queueName, false, "heartbeat", new TrafficConsumer( heartbeatConsumerChannel));
+  }
+  
+  /**
+   * Start the heartbeat message expiration timer.
+   */
+  public AsyncFuture<AmqpXioPeer> startHeartbeatTimeout()
+  {
+    timeoutFuture = new AsyncFuture<AmqpXioPeer>( peer);
+    timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
+    log.verbosef( "\n\nStart timer: channel=%X, future=%X\n", hashCode(), timeoutFuture.hashCode());
+    return timeoutFuture;
+  }
+  
+  /**
+   * Remove all pending messages from the output queue.
+   */
+  public void purgeOutputQueue() throws IOException
+  {
+    getThreadChannel().queuePurge( outQueue);
   }
 
   /**
@@ -85,21 +162,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
       throw new IllegalArgumentException( "Attempt to start consumer with null/empty queue!");
     
     inQueue = queue;
-    Channel channel = getThreadChannel();
-    channel.queueDeclare( inQueue, durable, false, autoDelete, null);
-    channel.basicConsume( inQueue, true, inQueue+"[consumer]", this);
+    defaultConsumerChannel = connection.createChannel();
+    defaultConsumerChannel.queueDeclare( inQueue, durable, false, autoDelete, null);
+    defaultConsumerChannel.basicConsume( inQueue, false, "traffic", new TrafficConsumer( defaultConsumerChannel));
   }
 
-  /**
-   * Start a heartbeat schedule to detect remote connection loss.
-   * @param isClient True if heartbeat from the client.
-   */
-  public void startHeartbeat( boolean isClient)
-  {
-    heartbeat = new Heartbeat( peer, 1, timeout, executor, isClient);
-    heartbeat.start();
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.net.IXioChannel#isConnected()
    */
@@ -122,7 +189,7 @@ public class AmqpXioChannel implements IXioChannel, Consumer
       buffer.markReaderIndex();
       HeaderProtocol header = new HeaderProtocol();
       Type type = header.readType( buffer);
-      log.debugf( "Writing %s message to %s queue", type, outQueue);
+      log.debugf( "Writing %s message to e='%s',q='%s'", type, exchangeName, outQueue);
       buffer.resetReaderIndex();
     }
     
@@ -148,7 +215,8 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     AsyncFuture<IXioChannel> future = getCloseFuture();
     try
     {
-      heartbeat.stop();
+      if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
+      defaultConsumerChannel.close();
       getThreadChannel().close();
       future.notifySuccess();
     }
@@ -199,67 +267,6 @@ public class AmqpXioChannel implements IXioChannel, Consumer
     return closeFuture;
   }
   
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleCancel(java.lang.String)
-   */
-  @Override
-  public void handleCancel( String consumerTag) throws IOException
-  {
-    log.debugf( "handleCancel: q=%s", this);
-  }
-
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleCancelOk(java.lang.String)
-   */
-  @Override
-  public void handleCancelOk( String consumerTag)
-  {
-    log.debugf( "handleCancelOk: q=%s", this);
-  }
-
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleConsumeOk(java.lang.String)
-   */
-  @Override
-  public void handleConsumeOk( String consumerTag)
-  {
-    log.debugf( "handleConsumeOk: q=%s", this);
-  }
-
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleDelivery(java.lang.String, com.rabbitmq.client.Envelope, com.rabbitmq.client.AMQP.BasicProperties, byte[])
-   */
-  @Override
-  public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
-  {
-    log.debugf( "handleDelivery: q=%s", this);
-    if ( heartbeat != null) heartbeat.messageReceived();
-    peer.handleMessage( this, ChannelBuffers.wrappedBuffer( body));
-  }
-
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleRecoverOk(java.lang.String)
-   */
-  @Override
-  public void handleRecoverOk( String consumerTag)
-  {
-    log.debugf( "handleRecoverOk: q=%s", this);
-  }
-
-  /* (non-Javadoc)
-   * @see com.rabbitmq.client.Consumer#handleShutdownSignal(java.lang.String, com.rabbitmq.client.ShutdownSignalException)
-   */
-  @Override
-  public void handleShutdownSignal( String consumerTag, ShutdownSignalException signal)
-  {
-    log.debugf( "handleShutdownSignal: q=%s, signal=%s", this, signal);
-    if ( peer != null) 
-    {
-      heartbeat.stop();
-      peer.getPeerRegistry().unregisterAll( peer);
-    }
-  }
-
   /**
    * @return Returns the channel for the current thread.
    */
@@ -296,10 +303,62 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   @Override
   public String toString()
   {
-    return inQueue+"<>"+outQueue;
+    return inQueue+" <-> "+outQueue;
+  }
+  
+  private class TrafficConsumer extends DefaultConsumer
+  {
+    public TrafficConsumer( Channel channel)
+    {
+      super( channel);
+      log.verbosef( "\n\nCreated: consumer=%X\n", hashCode());
+    }
+    
+    /* (non-Javadoc)
+     * @see com.rabbitmq.client.Consumer#handleDelivery(java.lang.String, com.rabbitmq.client.Envelope, com.rabbitmq.client.AMQP.BasicProperties, byte[])
+     */
+    @Override
+    public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
+    {
+      log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
+      if ( timedout.get())
+      {
+        log.debugf( "\n\nDelivery aborted! channel=%X, consumer=%X\n", AmqpXioChannel.this.hashCode(), hashCode());
+        return;
+      }
+      
+      ScheduledFuture<?> timer = timeoutScheduleRef.get();
+      if ( timer != null && timer.cancel( false))
+      {
+        timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
+        log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
+      }
+      
+      peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
+      getChannel().basicAck( envelope.getDeliveryTag(), false);
+    }
   }
 
+  private Runnable timeoutTask = new Runnable() {
+    public void run()
+    {
+      log.verbosef( "\n\nDispatch Timeout: channel=%X, future=%X\n", AmqpXioChannel.this.hashCode(), timeoutScheduleRef.get().hashCode());
+      
+      timedout.set( true);
+      
+      executor.execute( new Runnable() {
+        public void run()
+        {
+          log.verbosef( "\n\nTimeout: channel=%X, future=%X\n", AmqpXioChannel.this.hashCode(), timeoutScheduleRef.get().hashCode());
+          timeoutFuture.notifySuccess();
+          close();
+        }
+      });
+    }
+  };
+  
   private static Log log = Log.getLog( AmqpXioChannel.class);
+  private static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1);
   
   private AmqpXioPeer peer;
   private String exchangeName;
@@ -308,7 +367,11 @@ public class AmqpXioChannel implements IXioChannel, Consumer
   private Connection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private Executor executor;
+  private Channel heartbeatConsumerChannel;
+  private Channel defaultConsumerChannel;
   private ThreadLocal<Channel> threadChannels;
   private int timeout;
-  protected Heartbeat heartbeat;
+  private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;
+  private AsyncFuture<AmqpXioPeer> timeoutFuture;
+  private AtomicReference<Boolean> timedout;
 }

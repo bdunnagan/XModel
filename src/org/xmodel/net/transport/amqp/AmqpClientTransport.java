@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 
 import javax.net.ssl.SSLContext;
 
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
 import org.xmodel.util.CountingThreadPoolExecutor;
@@ -85,16 +86,23 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor, 0);
     final AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
     initChannel.setPeer( peer);
-    initChannel.declareOutputQueue( queue, true, false);
+    initChannel.setOutputQueue( queue, true, false);
     
     AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
-    
-    subscribeChannel.declareOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
+    subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
     subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( queue, name), false, true);
-
-    subscribeChannel.startHeartbeat( true);
+    subscribeChannel.startHeartbeatConsumer();
+    
+    class TimeoutTask implements AsyncFuture.IListener<AmqpXioPeer>
+    {
+      public TimeoutTask( AmqpXioPeer peer) { this.peer = peer;}
+      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception { peer.reregister();}
+      private AmqpXioPeer peer;
+    }
+    
+    subscribeChannel.startHeartbeatTimeout().addListener( new TimeoutTask( peer));
 
     if ( onConnect != null) 
     {

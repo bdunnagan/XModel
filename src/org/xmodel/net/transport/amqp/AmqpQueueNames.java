@@ -9,7 +9,7 @@ public class AmqpQueueNames
    */
   public static String getInputQueue( String queue)
   {
-    return queue+"_in";
+    return "C_"+queue;
   }
   
   /**
@@ -19,7 +19,7 @@ public class AmqpQueueNames
    */
   public static String getOutputQueue( String queue)
   {
-    return queue+"_out";
+    return "S_"+queue;
   }
   
   /**
@@ -32,6 +32,14 @@ public class AmqpQueueNames
    */
   public static String getOutputQueue( String server, String queue)
   {
-    return server+":"+queue+"_out";
+    return "S_"+server+":"+queue;
+  }
+
+  /**
+   * @return Returns the name of the heartbeat echo-request channel.
+   */
+  public static String getHeartbeatExchange()
+  {
+    return "heartbeat";
   }
 }

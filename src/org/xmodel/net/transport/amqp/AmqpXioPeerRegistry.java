@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.log.Log;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
@@ -24,17 +25,21 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
   @Override
   public void register( XioPeer peer, String name)
   {
+    String regName = AmqpQualifiedNames.parseRegistrationName( name);
+    log.debugf( "Register peer: qname='%s', name='%s'", name, regName);
+    
     //
     // If a peer is already registered than we need to cancel the heartbeat
     // so we don't expect any more messages from the old peer which is being
     // replaced.
     //
-    Iterator<XioPeer> iterator = backingRegistry.lookupByName( name);
-    while( iterator.hasNext())
-    {
-      AmqpXioPeer oldPeer = (AmqpXioPeer)iterator.next();
-      oldPeer.close();
-    }
+//    Iterator<XioPeer> iterator = backingRegistry.lookupByName( regName);
+//    while( iterator.hasNext())
+//    {
+//      AmqpXioPeer oldPeer = (AmqpXioPeer)iterator.next();
+//      unregister( peer, name);
+//      log.debugf( "Closing previously registered peer: %s", oldPeer);
+//    }
     
     try
     {
@@ -44,10 +49,11 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
       // to this function is not unique to the remote endpoint.
       //
       peer = ((AmqpXioPeer)peer).deriveRegisteredPeer( name);
+      log.debugf( "Creating new peer for remote: %X", peer.hashCode());
       derivedPeers.put( name, peer);
       
       // register
-      backingRegistry.register( peer, AmqpQualifiedNames.parseRegistrationName( name));
+      backingRegistry.register( peer, regName);
     }
     catch( IOException e)
     {
@@ -61,8 +67,11 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
   @Override
   public void unregister( XioPeer peer, String name)
   {
+    String regName = AmqpQualifiedNames.parseRegistrationName( name);
+    log.debugf( "Unregister peer: qname='%s', name='%s'", name, regName);
+    
     peer = derivedPeers.remove( name);
-    if ( peer != null) backingRegistry.unregister( peer, AmqpQualifiedNames.parseRegistrationName( name));
+    if ( peer != null) backingRegistry.unregister( peer, regName);
   }
 
   /* (non-Javadoc)
@@ -114,6 +123,8 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
     backingRegistry.removeListener( listener);
   }
 
+  public final static Log log = Log.getLog( AmqpXioPeerRegistry.class);
+  
   private IXioPeerRegistry backingRegistry;
   private Map<String, XioPeer> derivedPeers;
 }

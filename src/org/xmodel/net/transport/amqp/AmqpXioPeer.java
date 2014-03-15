@@ -3,6 +3,8 @@ package org.xmodel.net.transport.amqp;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
@@ -39,14 +41,21 @@ public class AmqpXioPeer extends XioPeer
     
     String name = AmqpQualifiedNames.parseRegistrationName( qName);
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
-    newChannel.declareOutputQueue( AmqpQueueNames.getOutputQueue( channel.inQueue(), name), false, true);
+    newChannel.setOutputQueue( AmqpQueueNames.getOutputQueue( channel.inQueue(), name), false, true);
     
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
     peer.qualifiedName = qName;
     newChannel.setPeer( peer);
+
+    class TimeoutTask implements AsyncFuture.IListener<AmqpXioPeer>
+    {
+      public TimeoutTask( AmqpXioPeer peer) { this.peer = peer;}
+      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception { peer.getPeerRegistry().unregisterAll( peer);}
+      private AmqpXioPeer peer;
+    }
     
     newChannel.startConsumer( AmqpQueueNames.getInputQueue( name), false, true);
-    newChannel.startHeartbeat( false);
+    newChannel.startHeartbeatTimeout().addListener( new TimeoutTask( peer));
     
     return peer;
   }
@@ -97,29 +106,38 @@ public class AmqpXioPeer extends XioPeer
     registerProtocol.registerRequestProtocol.send( registerChannel, qualifiedName);
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.XioPeer#equals(java.lang.Object)
+  /**
+   * Send an echo-request message on the specified channel.
+   * @param channel The channel.
    */
-  @Override
-  public boolean equals( Object object)
+  public void heartbeat( AmqpXioChannel channel) throws IOException
   {
-    if ( !(object instanceof AmqpXioPeer)) return false;
-    
-    AmqpXioPeer other = (AmqpXioPeer)object;
-    if ( qualifiedName == null && qualifiedName != other.qualifiedName) return false;
-    if ( qualifiedName != null && other.qualifiedName != null && !qualifiedName.equals( other.qualifiedName)) return false;
-    
-    return true;
+    echoProtocol.requestProtocol.send( channel);
   }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.XioPeer#hashCode()
-   */
-  @Override
-  public int hashCode()
-  {
-    return (qualifiedName == null)? System.identityHashCode( this): qualifiedName.hashCode();
-  }
+  
+//  /* (non-Javadoc)
+//   * @see org.xmodel.net.XioPeer#equals(java.lang.Object)
+//   */
+//  @Override
+//  public boolean equals( Object object)
+//  {
+//    if ( !(object instanceof AmqpXioPeer)) return false;
+//    
+//    AmqpXioPeer other = (AmqpXioPeer)object;
+//    if ( qualifiedName == null && qualifiedName != other.qualifiedName) return false;
+//    if ( qualifiedName != null && other.qualifiedName != null && !qualifiedName.equals( other.qualifiedName)) return false;
+//    
+//    return true;
+//  }
+//
+//  /* (non-Javadoc)
+//   * @see org.xmodel.net.XioPeer#hashCode()
+//   */
+//  @Override
+//  public int hashCode()
+//  {
+//    return (qualifiedName == null)? System.identityHashCode( this): qualifiedName.hashCode();
+//  }
 
   /* (non-Javadoc)
    * @see java.lang.Object#toString()

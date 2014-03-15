@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 
 import javax.net.ssl.SSLContext;
 
+import org.xmodel.log.SLog;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
@@ -30,7 +31,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
   public IXioPeerRegistry listen( IContext context, IXAction onConnect, IXAction onDisconnect, IXAction onRegister, IXAction onUnregister) throws IOException
   {
     AmqpXioPeer peer = connect( context, null, onRegister, onUnregister);
-    peers.add( peer);
+    serverPeers.add( peer);
     return peer.getPeerRegistry();
   }
 
@@ -46,7 +47,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 15000;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 5000;
    
     String queue = queueExpr.evaluateString( context);
     
@@ -59,6 +60,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     registry.addListener( new IXioPeerRegistryListener() {
       public void onRegister( final XioPeer peer, final String name)
       {
+        SLog.infof( this, "Registering %s", peer.hashCode());
         context.getExecutor().execute( new Runnable() {
           public void run() 
           {
@@ -73,6 +75,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
       }
       public void onUnregister( final XioPeer peer, final String name)
       {
+        SLog.infof( this, "Un-registering %s", peer.hashCode());
         context.getExecutor().execute( new Runnable() {
           public void run() 
           {
@@ -92,18 +95,22 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     Connection connection = (brokers == null)?
         connectionFactory.newConnection( ioExecutor):
         connectionFactory.newConnection( ioExecutor, brokers);
-        
-    AmqpXioChannel channel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
-    AmqpXioPeer peer = new AmqpXioPeer( channel, registry, context, context.getExecutor(), null, null);
-    channel.setPeer( peer);
     
-    configureEventContext( peer);
+    AmqpXioChannel serverChannel = new AmqpXioChannel( connection, AmqpQueueNames.getHeartbeatExchange(), ioExecutor, timeout);
+    AmqpXioPeer serverPeer = new AmqpXioPeer( serverChannel, registry, context, context.getExecutor(), null, null);
+    serverChannel.setPeer( serverPeer);
+
+    // configure event notification context before starting consumer
+    configureEventContext( serverPeer);
+    serverChannel.startConsumer( queue, true, false);
     
-    channel.startConsumer( queue, true, false);
+    // start sending heartbeats from this server
+    serverChannel.setHeartbeatOutputQueue();
+    serverChannel.startServerHeartbeat( timeout / 2);
     
-    return peer;
+    return serverPeer;
   }
-  
+
   /**
    * Set default variables of new event context.
    * @param context The event context.
@@ -121,5 +128,5 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
   
   
   // TODO: store peer in context
-  private List<XioPeer> peers = new ArrayList<XioPeer>();
+  private List<XioPeer> serverPeers = new ArrayList<XioPeer>();
 }
