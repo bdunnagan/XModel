@@ -117,7 +117,7 @@ public class SQLTransaction implements ITransaction
   {
     try
     {
-      connection.rollback();
+      if ( connection != null) connection.rollback();
       state = State.rolledback;
       return true;
     }

@@ -3,7 +3,6 @@ package org.xmodel.net.transport.amqp;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
@@ -22,7 +21,7 @@ public class AmqpXioPeer extends XioPeer
       ExecutionPrivilege privilege)
   {
     super( channel, registry, context, executor, scheduler, privilege);
-    
+
     registerChannel = (AmqpXioChannel)channel;
 
     this.executor = executor;

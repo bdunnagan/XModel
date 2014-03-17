@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -11,7 +12,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -21,7 +21,6 @@ import org.xmodel.net.HeaderProtocol;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -32,15 +31,15 @@ public class AmqpXioChannel implements IXioChannel
 {
   public AmqpXioChannel( Connection connection, String exchangeName, Executor executor, int timeout) throws IOException
   {
-    log.verbosef( "\n\nCreated channel: %X\n", hashCode());
-    
     this.connection = connection;
     this.exchangeName = exchangeName;
     this.executor = executor;
     this.timeout = timeout;
     this.timeoutScheduleRef = new AtomicReference<ScheduledFuture<?>>();
     this.threadChannels = new ThreadLocal<Channel>();
+    this.openChannels = new ArrayList<Channel>();
     this.timedout = new AtomicReference<Boolean>( false);
+    this.closed = new AtomicReference<Boolean>( false);
   }
 
   /**
@@ -61,6 +60,14 @@ public class AmqpXioChannel implements IXioChannel
     return peer;
   }
 
+  /**
+   * @return Returns the amqp Connection instance.
+   */
+  public Connection getConnection()
+  {
+    return connection;
+  }
+  
   /**
    * Create a new channel on the same connection with the same parameters but no queues.
    * @return Returns a new channel.
@@ -212,19 +219,43 @@ public class AmqpXioChannel implements IXioChannel
   @Override
   public AsyncFuture<IXioChannel> close()
   {
+    closed.set( true);
+    
+    // cancel timeout
+    ScheduledFuture<?> timeoutFuture = timeoutScheduleRef.get();
+    if ( timeoutFuture != null) timeoutFuture.cancel( false);
+    
+    // stop consumers
     AsyncFuture<IXioChannel> future = getCloseFuture();
     try
     {
       if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
       defaultConsumerChannel.close();
-      getThreadChannel().close();
-      future.notifySuccess();
     }
     catch( IOException e)
     {
       log.exception( e);
       future.notifyFailure( e);
     }
+      
+    // close amqp channels
+    for( Channel channel: openChannels)
+    {
+      try
+      {
+        channel.close();
+      }
+      catch( IOException e)
+      {
+        log.exception( e);
+        future.notifyFailure( e);
+      }
+    }
+
+    openChannels.clear();
+    threadChannels = null;
+    
+    future.notifySuccess();
     return future;
   }
 
@@ -272,11 +303,14 @@ public class AmqpXioChannel implements IXioChannel
    */
   private Channel getThreadChannel() throws IOException
   {
+    if ( closed.get()) throw new IOException( "AmqpXioChannel is closed.");
+    
     Channel channel = threadChannels.get();
     if ( channel == null)
     {
       channel = connection.createChannel();
       threadChannels.set( channel);
+      openChannels.add( channel);
     }
     return channel;
   }
@@ -311,7 +345,6 @@ public class AmqpXioChannel implements IXioChannel
     public TrafficConsumer( Channel channel)
     {
       super( channel);
-      log.verbosef( "\n\nCreated: consumer=%X\n", hashCode());
     }
     
     /* (non-Javadoc)
@@ -369,9 +402,11 @@ public class AmqpXioChannel implements IXioChannel
   private Executor executor;
   private Channel heartbeatConsumerChannel;
   private Channel defaultConsumerChannel;
+  private List<Channel> openChannels;
   private ThreadLocal<Channel> threadChannels;
   private int timeout;
   private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;
   private AsyncFuture<AmqpXioPeer> timeoutFuture;
   private AtomicReference<Boolean> timedout;
+  private AtomicReference<Boolean> closed;
 }
