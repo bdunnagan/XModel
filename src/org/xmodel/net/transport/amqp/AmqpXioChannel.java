@@ -97,20 +97,20 @@ public class AmqpXioChannel implements IXioChannel
    */
   public void setHeartbeatOutputQueue() throws IOException
   {
-    exchangeName = AmqpQueueNames.getHeartbeatExchange();
-    outQueue = "";
-    getThreadChannel().exchangeDeclare( exchangeName, "fanout");
+//    exchangeName = AmqpQueueNames.getHeartbeatExchange();
+//    outQueue = "";
+//    getThreadChannel().exchangeDeclare( exchangeName, "fanout");
   }
   
   /**
    * Create the heartbeat fanout exchange and start sending heartbeat messages.
    * @param period The heartbeat send period in milliseconds.
    */
-  public void startServerHeartbeat( int period) throws IOException
+  public void startHeartbeat( int period) throws IOException
   {
     // create heartbeat exchange if it does not already exists
-    Channel channel = getThreadChannel(); 
-    channel.exchangeDeclare( AmqpQueueNames.getHeartbeatExchange(), "fanout");
+//    Channel channel = getThreadChannel(); 
+//    channel.exchangeDeclare( AmqpQueueNames.getHeartbeatExchange(), "fanout");
     
     // create timer to send heartbeat messages
     Runnable sendTask = new Runnable() {
@@ -127,7 +127,7 @@ public class AmqpXioChannel implements IXioChannel
       }
     };
     
-    scheduler.scheduleAtFixedRate( sendTask, period, period, TimeUnit.MILLISECONDS);
+    heartbeatTimer = scheduler.scheduleAtFixedRate( sendTask, period, period, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -135,10 +135,10 @@ public class AmqpXioChannel implements IXioChannel
    */
   public void startHeartbeatConsumer() throws IOException
   {
-    heartbeatConsumerChannel = connection.createChannel();
-    String queueName = heartbeatConsumerChannel.queueDeclare().getQueue();
-    heartbeatConsumerChannel.queueBind( queueName, AmqpQueueNames.getHeartbeatExchange(), "");
-    heartbeatConsumerChannel.basicConsume( queueName, false, "heartbeat", new TrafficConsumer( heartbeatConsumerChannel));
+//    heartbeatConsumerChannel = connection.createChannel();
+//    String queueName = heartbeatConsumerChannel.queueDeclare().getQueue();
+//    heartbeatConsumerChannel.queueBind( queueName, AmqpQueueNames.getHeartbeatExchange(), "");
+//    heartbeatConsumerChannel.basicConsume( queueName, false, "heartbeat", new TrafficConsumer( heartbeatConsumerChannel));
   }
   
   /**
@@ -221,6 +221,9 @@ public class AmqpXioChannel implements IXioChannel
   {
     closed.set( true);
     
+    // cancel heartbeat
+    if ( heartbeatTimer != null) heartbeatTimer.cancel( false);
+    
     // cancel timeout
     ScheduledFuture<?> timeoutFuture = timeoutScheduleRef.get();
     if ( timeoutFuture != null) timeoutFuture.cancel( false);
@@ -229,7 +232,7 @@ public class AmqpXioChannel implements IXioChannel
     AsyncFuture<IXioChannel> future = getCloseFuture();
     try
     {
-      if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
+//      if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
       defaultConsumerChannel.close();
     }
     catch( IOException e)
@@ -400,12 +403,12 @@ public class AmqpXioChannel implements IXioChannel
   private Connection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private Executor executor;
-  private Channel heartbeatConsumerChannel;
   private Channel defaultConsumerChannel;
   private List<Channel> openChannels;
   private ThreadLocal<Channel> threadChannels;
   private int timeout;
   private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;
+  private ScheduledFuture<?> heartbeatTimer;
   private AsyncFuture<AmqpXioPeer> timeoutFuture;
   private AtomicReference<Boolean> timedout;
   private AtomicReference<Boolean> closed;
