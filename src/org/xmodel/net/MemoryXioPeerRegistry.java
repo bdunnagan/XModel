@@ -99,6 +99,8 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
       if ( set != null) names.addAll( set);
     }
     
+    System.out.println( "Names: "+names);
+    
     for( String name: names)
       unregister( peer, name);
   }

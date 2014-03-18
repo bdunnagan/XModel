@@ -35,6 +35,7 @@ abstract class AmqpTransport
     sslExpr = Xlate.get( config, "ssl", Xlate.childGet( config, "ssl", (IExpression)null));
     threadsExpr = Xlate.get( config, "threads", Xlate.childGet( config, "threads", (IExpression)null));
     brokersExpr = Xlate.get( config, "brokers", Xlate.childGet( config, "brokers", (IExpression)null));
+    brokerHostExpr = Xlate.get( config, "host", Xlate.childGet( config, "host", (IExpression)null));
     queueExpr = Xlate.get( config, "queue", Xlate.childGet( config, "queue", (IExpression)null));
     timeoutExpr = Xlate.get( config, "timeout", Xlate.childGet( config, "timeout", (IExpression)null));
     
@@ -48,18 +49,26 @@ abstract class AmqpTransport
    */
   protected Address[] getBrokers( IContext context)
   {
-    if ( brokersExpr == null) return null;
+    if ( brokersExpr == null && brokerHostExpr == null) return null;
     
     List<Address> addresses = new ArrayList<Address>();
     
-    for( IModelObject broker: brokersExpr.query( context, null))
+    if ( brokersExpr != null)
     {
-      String host = Xlate.get( broker, "host", Xlate.childGet( broker, "host", ""));
-      int port = Xlate.get( broker, "port", Xlate.childGet( broker, "port", 0));
-      if ( host.length() > 0)
+      for( IModelObject broker: brokersExpr.query( context, null))
       {
-        addresses.add( (port == 0)? new Address( host): new Address( host, port));
+        String host = Xlate.get( broker, "host", Xlate.childGet( broker, "host", ""));
+        int port = Xlate.get( broker, "port", Xlate.childGet( broker, "port", 0));
+        if ( host.length() > 0)
+        {
+          addresses.add( (port == 0)? new Address( host): new Address( host, port));
+        }
       }
+    }
+    else
+    {
+      String host = brokerHostExpr.evaluateString( context);
+      addresses.add( new Address( host));
     }
     
     return addresses.toArray( new Address[ 0]);
@@ -95,5 +104,6 @@ abstract class AmqpTransport
   protected IExpression sslExpr;
   protected IExpression timeoutExpr;
   protected IExpression brokersExpr;
+  protected IExpression brokerHostExpr;
   protected IXioPeerRegistry registry;
 }

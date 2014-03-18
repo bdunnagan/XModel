@@ -115,7 +115,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
       private AmqpXioPeer peer;
     }
     
-    subscribeChannel.startHeartbeat( timeout / 2);
+    subscribeChannel.startHeartbeat( timeout / 3);
     subscribeChannel.startHeartbeatTimeout().addListener( new TimeoutTask( peer));
 
     if ( onConnect != null) 
