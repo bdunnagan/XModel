@@ -28,18 +28,14 @@ public class AmqpXioPeerRegistry implements IXioPeerRegistry
     String regName = AmqpQualifiedNames.parseRegistrationName( name);
     log.debugf( "Register peer: qname='%s', name='%s'", name, regName);
     
-    //
-    // If a peer is already registered than we need to cancel the heartbeat
-    // so we don't expect any more messages from the old peer which is being
-    // replaced.
-    //
-//    Iterator<XioPeer> iterator = backingRegistry.lookupByName( regName);
-//    while( iterator.hasNext())
-//    {
-//      AmqpXioPeer oldPeer = (AmqpXioPeer)iterator.next();
-//      unregister( peer, name);
-//      log.debugf( "Closing previously registered peer: %s", oldPeer);
-//    }
+    Iterator<XioPeer> iterator = backingRegistry.lookupByName( regName);
+    while( iterator.hasNext())
+    {
+      AmqpXioPeer oldPeer = (AmqpXioPeer)iterator.next();
+      iterator.remove();
+      oldPeer.close();
+      log.debugf( "Closing previously registered peer: %s", oldPeer);
+    }
     
     try
     {

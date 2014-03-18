@@ -38,7 +38,6 @@ public class AmqpXioChannel implements IXioChannel
     this.timeoutScheduleRef = new AtomicReference<ScheduledFuture<?>>();
     this.threadChannels = new ThreadLocal<Channel>();
     this.openChannels = new ArrayList<Channel>();
-    this.timedout = new AtomicReference<Boolean>( false);
     this.closed = new AtomicReference<Boolean>( false);
   }
 
@@ -93,54 +92,14 @@ public class AmqpXioChannel implements IXioChannel
   }
   
   /**
-   * Create a heartbeat output queue for this channel.
-   */
-  public void setHeartbeatOutputQueue() throws IOException
-  {
-//    exchangeName = AmqpQueueNames.getHeartbeatExchange();
-//    outQueue = "";
-//    getThreadChannel().exchangeDeclare( exchangeName, "fanout");
-  }
-  
-  /**
    * Create the heartbeat fanout exchange and start sending heartbeat messages.
-   * @param period The heartbeat send period in milliseconds.
    */
-  public void startHeartbeat( int period) throws IOException
+  public void startHeartbeat() throws IOException
   {
-    // create heartbeat exchange if it does not already exists
-//    Channel channel = getThreadChannel(); 
-//    channel.exchangeDeclare( AmqpQueueNames.getHeartbeatExchange(), "fanout");
-    
-    // create timer to send heartbeat messages
-    Runnable sendTask = new Runnable() {
-      public void run()
-      {
-        try 
-        { 
-          peer.heartbeat( AmqpXioChannel.this);
-        } 
-        catch( Exception e) 
-        {
-          log.error( "Unable to send heartbeat...", e);
-        }      
-      }
-    };
-    
-    heartbeatTimer = scheduler.scheduleAtFixedRate( sendTask, period, period, TimeUnit.MILLISECONDS);
+    this.heartbeatPeriod = (int)(timeout / 2.5f);
+    heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
   }
 
-  /**
-   * Start receiving heartbeat messages via this channel.
-   */
-  public void startHeartbeatConsumer() throws IOException
-  {
-//    heartbeatConsumerChannel = connection.createChannel();
-//    String queueName = heartbeatConsumerChannel.queueDeclare().getQueue();
-//    heartbeatConsumerChannel.queueBind( queueName, AmqpQueueNames.getHeartbeatExchange(), "");
-//    heartbeatConsumerChannel.basicConsume( queueName, false, "heartbeat", new TrafficConsumer( heartbeatConsumerChannel));
-  }
-  
   /**
    * Start the heartbeat message expiration timer.
    */
@@ -221,12 +180,15 @@ public class AmqpXioChannel implements IXioChannel
   {
     closed.set( true);
     
-    // cancel heartbeat
-    if ( heartbeatTimer != null) heartbeatTimer.cancel( false);
-    
     // cancel timeout
     ScheduledFuture<?> timeoutFuture = timeoutScheduleRef.get();
     if ( timeoutFuture != null) timeoutFuture.cancel( false);
+    
+    // cancel heartbeat
+    if ( heartbeatTimer != null) heartbeatTimer.cancel( false);
+    
+    // clear registry
+    getPeer().getPeerRegistry().unregisterAll( getPeer());
     
     // stop consumers
     AsyncFuture<IXioChannel> future = getCloseFuture();
@@ -357,9 +319,10 @@ public class AmqpXioChannel implements IXioChannel
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
       log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
-      if ( timedout.get())
+      
+      if ( closed.get())
       {
-        log.debugf( "\n\nDelivery aborted! channel=%X, consumer=%X\n", AmqpXioChannel.this.hashCode(), hashCode());
+        log.debugf( "Delivery aborted on closed channel: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
         return;
       }
       
@@ -370,24 +333,42 @@ public class AmqpXioChannel implements IXioChannel
         log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
       }
       
+      if ( heartbeatTimer != null)
+      {
+        heartbeatTimer.cancel( false);        
+        heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
+      }
+      
       peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
       getChannel().basicAck( envelope.getDeliveryTag(), false);
     }
   }
 
+  private Runnable heartbeatTask = new Runnable() {
+    public void run()
+    {
+      try 
+      { 
+        peer.heartbeat( AmqpXioChannel.this);
+      } 
+      catch( Exception e) 
+      {
+        log.error( "Unable to send heartbeat...", e);
+      }      
+    }
+  };
+  
   private Runnable timeoutTask = new Runnable() {
     public void run()
     {
-      log.verbosef( "\n\nDispatch Timeout: channel=%X, future=%X\n", AmqpXioChannel.this.hashCode(), timeoutScheduleRef.get().hashCode());
-      
-      timedout.set( true);
+      log.verbosef( "\n\nDispatch Timeout: channel=%X\n", AmqpXioChannel.this.hashCode());
+
+      timeoutScheduleRef.set( null);
       
       executor.execute( new Runnable() {
         public void run()
         {
-          log.verbosef( "\n\nTimeout: channel=%X, future=%X\n", AmqpXioChannel.this.hashCode(), timeoutScheduleRef.get().hashCode());
           timeoutFuture.notifySuccess();
-          close();
         }
       });
     }
@@ -406,10 +387,10 @@ public class AmqpXioChannel implements IXioChannel
   private Channel defaultConsumerChannel;
   private List<Channel> openChannels;
   private ThreadLocal<Channel> threadChannels;
+  private int heartbeatPeriod;
   private int timeout;
   private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;
   private ScheduledFuture<?> heartbeatTimer;
   private AsyncFuture<AmqpXioPeer> timeoutFuture;
-  private AtomicReference<Boolean> timedout;
   private AtomicReference<Boolean> closed;
 }

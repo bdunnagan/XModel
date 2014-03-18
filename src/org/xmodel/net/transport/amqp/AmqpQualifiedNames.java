@@ -1,6 +1,7 @@
 package org.xmodel.net.transport.amqp;
 
 import java.util.Random;
+import org.xmodel.util.Identifier;
 
 /**
  * When an AMQP client registers with a server, it must provide a unique identifier in addition
@@ -16,7 +17,7 @@ public class AmqpQualifiedNames
    */
   public static String createQualifiedName( String name)
   {
-    return unique+","+name;
+    return name + "_" + unique;
   }
 
   /**
@@ -26,21 +27,10 @@ public class AmqpQualifiedNames
    */
   public static String parseRegistrationName( String name)
   {
-    int index = name.indexOf( ',');
+    int index = name.indexOf( '_');
     if ( index == -1) throw new IllegalStateException( "Registration name is not qualified!");
-    return name.substring( index+1);
+    return name.substring( 0, index);
   }
   
-  private static String unique;
-  
-  static
-  {
-    if ( unique == null) 
-    {
-      Random random = new Random();
-      long value = random.nextLong();
-      if ( value < 0) value = -value;
-      unique = Long.toString( value, 36).toUpperCase();
-    }
-  }
+  private static String unique = Identifier.generate( new Random(), 8);
 }

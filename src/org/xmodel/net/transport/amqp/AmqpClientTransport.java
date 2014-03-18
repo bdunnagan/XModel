@@ -76,7 +76,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
       }
     });
     
-    final ExecutorService ioExecutor = new CountingThreadPoolExecutor( queue, 0, threads, 300000);
+    final ExecutorService ioExecutor = new CountingThreadPoolExecutor( queue, 0, threads, 300);
     Address[] brokers = getBrokers( context);
     Connection connection = (brokers == null)?
         connectionFactory.newConnection( ioExecutor):
@@ -91,8 +91,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
     subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
-    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( queue, name), false, true);
-    subscribeChannel.startHeartbeatConsumer();
+    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( AmqpQualifiedNames.createQualifiedName( name)), false, true);
 
     subscribeChannel.getCloseFuture().addListener( new AsyncFuture.IListener<IXioChannel>() {
       public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception
@@ -111,11 +110,16 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     class TimeoutTask implements AsyncFuture.IListener<AmqpXioPeer>
     {
       public TimeoutTask( AmqpXioPeer peer) { this.peer = peer;}
-      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception { peer.reregister();}
+      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception 
+      {
+        AmqpXioChannel channel = (AmqpXioChannel)peer.getChannel();
+        peer.reregister();
+        channel.startHeartbeatTimeout().addListener( this);
+      }
       private AmqpXioPeer peer;
     }
     
-    subscribeChannel.startHeartbeat( timeout / 3);
+    subscribeChannel.startHeartbeat();
     subscribeChannel.startHeartbeatTimeout().addListener( new TimeoutTask( peer));
 
     if ( onConnect != null) 

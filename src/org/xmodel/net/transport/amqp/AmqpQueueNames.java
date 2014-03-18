@@ -9,17 +9,16 @@ public class AmqpQueueNames
    */
   public static String getInputQueue( String queue)
   {
-    return "C_"+queue;
+    return queue + "_C";
   }
   
   /**
    * Returns the name of the server-side output queue.
-   * @param server The name of the server to which the queue belongs.
    * @param queue The name with which an endpoint has registered.
    * @return Returns the name of the response queue.
    */
-  public static String getOutputQueue( String server, String queue)
+  public static String getOutputQueue( String queue)
   {
-    return "S_"+server+":"+queue;
+    return queue + "_S";
   }
 }

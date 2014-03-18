@@ -40,7 +40,7 @@ public class AmqpXioPeer extends XioPeer
     
     String name = AmqpQualifiedNames.parseRegistrationName( qName);
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
-    newChannel.setOutputQueue( AmqpQueueNames.getOutputQueue( channel.inQueue(), name), false, true);
+    newChannel.setOutputQueue( AmqpQueueNames.getOutputQueue( qName), false, true);
     
     AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
     peer.qualifiedName = qName;
@@ -49,7 +49,7 @@ public class AmqpXioPeer extends XioPeer
     class TimeoutTask implements AsyncFuture.IListener<AmqpXioPeer>
     {
       public TimeoutTask( AmqpXioPeer peer) { this.peer = peer;}
-      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception { peer.getPeerRegistry().unregisterAll( peer);}
+      public void notifyComplete( AsyncFuture<AmqpXioPeer> future) throws Exception { peer.close();}
       private AmqpXioPeer peer;
     }
     
