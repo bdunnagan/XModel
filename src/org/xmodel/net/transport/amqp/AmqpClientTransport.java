@@ -35,7 +35,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 10000;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 30000;
    
     String queue = queueExpr.evaluateString( context);
     

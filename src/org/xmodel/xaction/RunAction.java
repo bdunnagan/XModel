@@ -663,9 +663,14 @@ public class RunAction extends GuardedAction
       catch( Exception e)
       {
         if ( future != null) 
+        {
           future.notifyFailure( e);
+        }
         else
-          log.errorf( "Caught error running script, %s", script, e);
+        {
+          log.errorf( "Caught error running script, %s...", script);
+          log.exception( e);
+        }
       }
     }
 
