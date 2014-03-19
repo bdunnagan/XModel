@@ -27,8 +27,8 @@ public class AmqpQualifiedNames
    */
   public static String parseRegistrationName( String name)
   {
-    int index = name.indexOf( '_');
-    if ( index == -1) throw new IllegalStateException( "Registration name is not qualified!");
+    int index = name.lastIndexOf( '_');
+    if ( index == -1) throw new IllegalStateException( String.format( "Registration name is not qualified, '%s'!", name));
     return name.substring( 0, index);
   }
   

@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.ssl.SslHandler;
@@ -21,11 +22,13 @@ import org.xmodel.net.HeaderProtocol;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
+
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel
 {
@@ -129,6 +132,7 @@ public class AmqpXioChannel implements IXioChannel
     
     inQueue = queue;
     defaultConsumerChannel = connection.createChannel();
+    defaultConsumerChannel.basicQos( 100);
     defaultConsumerChannel.queueDeclare( inQueue, durable, false, autoDelete, null);
     defaultConsumerChannel.basicConsume( inQueue, false, "traffic", new TrafficConsumer( defaultConsumerChannel));
   }
@@ -318,29 +322,58 @@ public class AmqpXioChannel implements IXioChannel
     @Override
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
-      log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
-      
-      if ( closed.get())
+      try
       {
-        log.debugf( "Delivery aborted on closed channel: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
-        return;
+        log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
+        
+        if ( closed.get())
+        {
+          log.warnf( "Delivery aborted on closed channel: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
+          return;
+        }
+        
+        ScheduledFuture<?> timer = timeoutScheduleRef.get();
+        if ( timer != null && timer.cancel( false))
+        {
+          timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
+          log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
+        }
+        
+        if ( heartbeatTimer != null)
+        {
+          heartbeatTimer.cancel( false);        
+          heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
+        }
+        
+        peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
       }
-      
-      ScheduledFuture<?> timer = timeoutScheduleRef.get();
-      if ( timer != null && timer.cancel( false))
+      catch( Exception e)
       {
-        timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
-        log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
+        log.errorf( "Caught exception handling message from queue, %s", envelope.getRoutingKey());
+        log.exception( e);
       }
-      
-      if ( heartbeatTimer != null)
+      finally
       {
-        heartbeatTimer.cancel( false);        
-        heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
+        getChannel().basicAck( envelope.getDeliveryTag(), false);
       }
-      
-      peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
-      getChannel().basicAck( envelope.getDeliveryTag(), false);
+    }
+
+    /* (non-Javadoc)
+     * @see com.rabbitmq.client.DefaultConsumer#handleCancel(java.lang.String)
+     */
+    @Override
+    public void handleCancel( String consumerTag) throws IOException
+    {
+      log.severef( "Consumer was cancelled unexpected! consumerTag=%s", consumerTag);
+    }
+
+    /* (non-Javadoc)
+     * @see com.rabbitmq.client.DefaultConsumer#handleShutdownSignal(java.lang.String, com.rabbitmq.client.ShutdownSignalException)
+     */
+    @Override
+    public void handleShutdownSignal( String consumerTag, ShutdownSignalException sig)
+    {
+      log.severef( "Received shutdown signal! consumerTag=%s, signal=%s", consumerTag, sig.toString());
     }
   }
 

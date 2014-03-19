@@ -100,7 +100,7 @@ public class StringFunction extends Function
   public static String stringValue( IModelObject object)
   {
     Object value = object.getValue();
-    if ( value instanceof Number) return value.toString();
+    if ( value instanceof Number) return stringValue( (Number)value);
     if ( value instanceof Boolean) return stringValue( (Boolean)value);
     if ( value != null) return value.toString();
     return "";
@@ -127,6 +127,19 @@ public class StringFunction extends Function
     return stringValue( nodes.get( 0));
   }
 
+  /**
+   * Returns the string-value of the specified number.
+   * @param value The number to be converted.
+   * @return Returns the string-value of the specified number.
+   */
+  public static String stringValue( Number value)
+  {
+    if ( value instanceof Double || value instanceof Float)
+      return stringValue( value.doubleValue());
+    else
+      return value.toString();
+  }
+  
   /**
    * Returns the string-value of the specified number.
    * @param value The number to be converted.
