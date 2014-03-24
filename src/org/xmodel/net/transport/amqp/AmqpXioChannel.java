@@ -24,6 +24,7 @@ import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioPeer;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DefaultConsumer;
@@ -374,6 +375,11 @@ public class AmqpXioChannel implements IXioChannel
     public void handleShutdownSignal( String consumerTag, ShutdownSignalException sig)
     {
       log.severef( "Received shutdown signal! consumerTag=%s, signal=%s", consumerTag, sig.toString());
+      AMQP.Channel.Close event = (AMQP.Channel.Close)sig.getReason();
+      if ( !event.getReplyText().equals( "OK"))
+      {
+        //TODO
+      }
     }
   }
 
