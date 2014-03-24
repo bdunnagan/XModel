@@ -2,12 +2,13 @@ package org.xmodel.net.connection.amqp;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.connection.AbstractNetworkConnection;
 import org.xmodel.net.connection.INetworkConnection;
-import org.xmodel.net.connection.INetworkMessage;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Address;
@@ -23,8 +24,10 @@ import com.rabbitmq.client.ShutdownSignalException;
  */
 public class AmqpNetworkConnection extends AbstractNetworkConnection
 {
-  public AmqpNetworkConnection( ConnectionFactory connectionFactory, Address[] brokers, ExecutorService executor)
+  public AmqpNetworkConnection( ConnectionFactory connectionFactory, Address[] brokers, ExecutorService executor, ScheduledExecutorService scheduler)
   {
+    super( new AmqpNetworkProtocol(), scheduler);
+    
     this.exchange = "";
     this.outQueue = "";
     this.connectionFactory = connectionFactory;
@@ -76,6 +79,14 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   {
     AsyncFuture<INetworkConnection> connectFuture = new AsyncFuture<INetworkConnection>( this);
     
+    if ( connection != null && connection.isOpen())
+    {
+      connectFuture.notifySuccess();
+      return connectFuture;
+    }
+
+    closeFuture = new AsyncFuture<INetworkConnection>( this);
+    
     try
     {
       startConsumer();
@@ -83,12 +94,6 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
     catch( Exception e)
     {
       connectFuture.notifyFailure( e);
-      return connectFuture;
-    }
-    
-    if ( connection != null && connection.isOpen())
-    {
-      connectFuture.notifySuccess();
       return connectFuture;
     }
     
@@ -120,32 +125,41 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   @Override
   public synchronized AsyncFuture<INetworkConnection> closeImpl()
   {
-    AsyncFuture<INetworkConnection> connectFuture = new AsyncFuture<INetworkConnection>( this);
+    if ( closeFuture == null) return new SuccessAsyncFuture<INetworkConnection>( this);
     
     if ( connection == null || !connection.isOpen())
     {
-      connectFuture.notifySuccess();
-      return connectFuture;
+      closeFuture.notifySuccess();
+      return closeFuture;
     }
     
     try
     {
       connection.close();
-      connectFuture.notifySuccess();
+      closeFuture.notifySuccess();
     }
     catch( Exception e)
     {
-      connectFuture.notifyFailure( e);
+      closeFuture.notifyFailure( e);
     }
     
-    return connectFuture;
+    return closeFuture;
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#send(org.xmodel.net.connection.INetworkMessage)
+   * @see org.xmodel.net.connection.INetworkConnection#getCloseFuture()
    */
   @Override
-  public void send( INetworkMessage message) throws Exception
+  public AsyncFuture<INetworkConnection> getCloseFuture()
+  {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
+   */
+  @Override
+  public void send( Object message) throws Exception
   {
     if ( exchange.length() == 0 && outQueue.length() == 0)
       throw new IOException( "AmqpNetworkChannel does not define an exchange or a queue.");
@@ -157,7 +171,7 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
       properties = amqpMessage.getBasicProperties();
     }
     
-    byte[] bytes = message.getBytes();
+    byte[] bytes = getProtocol().getBytes( message);
     getThreadChannel().basicPublish( exchange, outQueue, properties, bytes);
   }
 
@@ -267,4 +281,5 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   private ExecutorService executor;
   private ThreadLocal<Channel> threadChannels;
   private Channel consumerChannel;
+  private AsyncFuture<INetworkConnection> closeFuture;
 }

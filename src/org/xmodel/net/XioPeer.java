@@ -10,10 +10,10 @@ import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.bind.BindProtocol;
+import org.xmodel.net.connection.INetworkConnection;
 import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.net.execution.ExecutionProtocol;
@@ -286,9 +286,9 @@ public class XioPeer
   /**
    * Close the connection.
    */
-  public AsyncFuture<IXioChannel> close()
+  public AsyncFuture<INetworkConnection> close()
   {
-    return isConnected()? channel.close(): new SuccessAsyncFuture<IXioChannel>( channel);
+    return channel.close();
   }
 
   /**
