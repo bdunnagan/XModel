@@ -24,9 +24,8 @@ public class QueuedConnection extends AbstractNetworkConnection
      * Called when a message expires before it can be sent.
      * @param connection The connection.
      * @param message The message.
-     * @param correlation The correlation key.
      */
-    public void onMessageExpired( INetworkConnection connection, Object message, Object correlation);
+    public void onMessageExpired( INetworkConnection connection, Object message);
   }
   
   public QueuedConnection( INetworkProtocol protocol, INetworkConnectionFactory connectionFactory, Queue<Object> queue, ScheduledExecutorService scheduler)

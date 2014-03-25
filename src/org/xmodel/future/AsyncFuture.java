@@ -1,11 +1,17 @@
 package org.xmodel.future;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
 import org.xmodel.log.Log;
 
 public class AsyncFuture<T>
 {
+  public final static String cancelFailureMessage = "cancelled";
+  public final static String timeoutFailureMessage = "timeout";
+  
   public interface IListener<T>
   {
     /**
@@ -38,6 +44,39 @@ public class AsyncFuture<T>
   {
     return initiator;
   }
+
+  /**
+   * Schedule a timeout for this future.  If the timeout expires the future is failed with timeoutFailureMessage.
+   * @param scheduler The scheduler.
+   * @param timeout The timeout in milliseconds.
+   */
+  public void scheduleTimeout( ScheduledExecutorService scheduler, int timeout)
+  {
+    Runnable timeoutTask = new Runnable() {
+      public void run()
+      {
+        notifyFailure( timeoutFailureMessage);
+      }
+    };
+    
+    class TimerCancelListener implements IListener<T>
+    {
+      public TimerCancelListener( ScheduledFuture<?> timeoutFuture)
+      {
+        this.timeoutFuture = timeoutFuture;
+      }
+      
+      public void notifyComplete( AsyncFuture<T> future) throws Exception
+      {
+        timeoutFuture.cancel( false);
+      }
+      
+      private ScheduledFuture<?> timeoutFuture;
+    }
+    
+    ScheduledFuture<?> future = scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS);
+    addListener( new TimerCancelListener( future));
+  }
   
   /**
    * Wait for the future to complete.
@@ -65,7 +104,7 @@ public class AsyncFuture<T>
    */
   public void cancel()
   {
-    notifyFailure( "cancelled");
+    notifyFailure( cancelFailureMessage);
   }
   
   /**

@@ -119,6 +119,14 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.net.connection.INetworkConnection#setPending(boolean)
+   */
+  @Override
+  public void setPending( boolean pending)
+  {
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.connection.INetworkConnection#closeImpl()
    */
   @Override
@@ -246,7 +254,7 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
       if ( threadChannels.get() != getChannel()) threadChannels.set( getChannel());
-      onMessageReceived( new AmqpNetworkMessage( properties, body), properties.getCorrelationId());
+      onMessageReceived( new AmqpNetworkMessage( properties, body));
     }
 
     /* (non-Javadoc)
