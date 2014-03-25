@@ -25,7 +25,7 @@ import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.MemoryXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.protocol.execute.ExecutionPrivilege;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 

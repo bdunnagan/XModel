@@ -27,7 +27,7 @@ import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.protocol.execute.ExecutionPrivilege;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 

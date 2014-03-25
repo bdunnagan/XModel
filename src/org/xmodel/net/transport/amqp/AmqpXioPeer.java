@@ -8,7 +8,7 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.XioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.protocol.execute.ExecutionPrivilege;
+import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
 public class AmqpXioPeer extends XioPeer
