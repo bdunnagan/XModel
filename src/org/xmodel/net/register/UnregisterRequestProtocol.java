@@ -6,7 +6,7 @@ import java.nio.charset.Charset;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 
 public class UnregisterRequestProtocol
 {
@@ -27,7 +27,7 @@ public class UnregisterRequestProtocol
    * Send an asynchronous request to unregister all names via the specified channel.
    * @param channel The channel.
    */
-  public void send( XioChannel channel) throws IOException, InterruptedException
+  public void send( IXioChannel channel) throws IOException, InterruptedException
   {
     send( channel, "");
   }
@@ -37,7 +37,7 @@ public class UnregisterRequestProtocol
    * @param channel The channel.
    * @param name The name to associate with this peer.
    */
-  public void send( XioChannel channel, String name) throws IOException, InterruptedException
+  public void send( IXioChannel channel, String name) throws IOException, InterruptedException
   {
     log.debugf( "UnregisterRequestProtocol.send: name='%s'", name);
     
@@ -56,7 +56,7 @@ public class UnregisterRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( XioChannel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int length = buffer.readByte();
     if ( length < 0) length += 256;

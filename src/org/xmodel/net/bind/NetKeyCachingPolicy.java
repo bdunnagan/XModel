@@ -7,19 +7,19 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICache;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.UnboundedCache;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 
 /**
  * A caching policy for elements belonging to a remote bound model whose peers are external references.
  */
 class NetKeyCachingPolicy extends AbstractCachingPolicy
 {
-  public NetKeyCachingPolicy( BindProtocol protocol, XioChannel channel, int netID, int timeout, String[] statics)
+  public NetKeyCachingPolicy( BindProtocol protocol, IXioChannel channel, int netID, int timeout, String[] statics)
   {
     this( new UnboundedCache(), protocol, channel, netID, timeout, statics);
   }
   
-  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, XioChannel channel, int netID, int timeout, String[] statics)
+  public NetKeyCachingPolicy( ICache cache, BindProtocol protocol, IXioChannel channel, int netID, int timeout, String[] statics)
   {
     super( cache);
     
@@ -64,7 +64,7 @@ class NetKeyCachingPolicy extends AbstractCachingPolicy
   }
 
   private BindProtocol protocol;
-  private XioChannel channel;
+  private IXioChannel channel;
   private int netID;
   private int timeout;
 }

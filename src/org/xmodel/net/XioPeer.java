@@ -14,11 +14,9 @@ import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.connection.INetworkConnection;
-import org.xmodel.net.connection.INetworkMessage;
 import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.net.execution.ExecutionProtocol;
-import org.xmodel.net.message.ExecuteMessageFactory;
 import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -38,7 +36,7 @@ public class XioPeer
    * @param scheduler The scheduler.
    * @param privilege The execution privilege manager.
    */
-  protected XioPeer( XioChannel channel, IXioPeerRegistry registry, IContext context, Executor executor, ScheduledExecutorService scheduler, ExecutionPrivilege privilege)
+  protected XioPeer( IXioChannel channel, IXioPeerRegistry registry, IContext context, Executor executor, ScheduledExecutorService scheduler, ExecutionPrivilege privilege)
   {
     this.channel = channel;
     this.registry = registry;
@@ -162,7 +160,7 @@ public class XioPeer
    */
   public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
-    XioChannel channel = getChannel();
+    IXioChannel channel = getChannel();
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     executionProtocol.requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
@@ -173,7 +171,7 @@ public class XioPeer
    * @param buffer The buffer.
    * @return Returns true if a message was read.
    */
-  public boolean handleMessage( XioChannel channel, ChannelBuffer buffer) throws IOException
+  public boolean handleMessage( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
     
@@ -193,13 +191,13 @@ public class XioPeer
       
       case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer); return true;
       case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
-      case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
+      case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer, headerProtocol.readCorrelation( buffer)); return true;
       
-      case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
-      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer, length); return true;
+      case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length, headerProtocol.readCorrelation( buffer)); return true;
+      case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer, length, headerProtocol.readCorrelation( buffer)); return true;
       case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); return true;
-      case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); return true;
-      case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); return true;
+      case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer, headerProtocol.readCorrelation( buffer)); return true;
+      case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer, headerProtocol.readCorrelation( buffer)); return true;
       case addChild:        bindProtocol.updateProtocol.handleAddChild( channel, buffer); return true;
       case removeChild:     bindProtocol.updateProtocol.handleRemoveChild( channel, buffer); return true;
       case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
@@ -217,7 +215,7 @@ public class XioPeer
    * Set the underlying channel.
    * @param channel The channel.
    */
-  public synchronized void setChannel( XioChannel channel)
+  public synchronized void setChannel( IXioChannel channel)
   {
     this.channel = channel;
     bindProtocol.requestCompressor.setChannel( channel);
@@ -228,7 +226,7 @@ public class XioPeer
   /**
    * @return Returns null or the underlying channel.
    */
-  public synchronized XioChannel getChannel()
+  public synchronized IXioChannel getChannel()
   {
     return channel;
   }
@@ -289,7 +287,7 @@ public class XioPeer
   @Override
   public boolean equals( Object object)
   {
-    XioChannel otherChannel = ((XioPeer)object).getChannel();
+    IXioChannel otherChannel = ((XioPeer)object).getChannel();
     if ( channel == null || otherChannel == null) return false;
     return channel == otherChannel;
   }
@@ -350,14 +348,11 @@ public class XioPeer
 
   private final static Log log = Log.getLog( XioPeer.class);
   
-  private XioChannel channel;
+  private IXioChannel channel;
   private IXioPeerRegistry registry;
   private StatefulContext eventContext;
   
   protected HeaderProtocol headerProtocol;
-  private ExecuteMessageFactory executeMessageFactory;
-  
-  
   protected EchoProtocol echoProtocol;
   protected BindProtocol bindProtocol;
   protected ExecutionProtocol executionProtocol;

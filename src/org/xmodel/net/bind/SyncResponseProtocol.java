@@ -7,13 +7,14 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 
 public class SyncResponseProtocol
 {
@@ -38,7 +39,7 @@ public class SyncResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( XioChannel channel, long correlation, IModelObject element) throws IOException
+  public void send( IXioChannel channel, long correlation, IModelObject element) throws IOException
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -56,7 +57,7 @@ public class SyncResponseProtocol
    * @param buffer The buffer.
    * @param correlation The correlation number.
    */
-  public void handle( XioChannel channel, ChannelBuffer buffer, long correlation) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer, long correlation) throws IOException
   {
     IModelObject element = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
     

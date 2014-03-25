@@ -7,12 +7,12 @@ import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.NonSyncingListener;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.NetworkCachingPolicy;
 
 class UpdateListener extends NonSyncingListener
 {
-  public UpdateListener( UpdateProtocol updateProtocol, XioChannel channel, String query)
+  public UpdateListener( UpdateProtocol updateProtocol, IXioChannel channel, String query)
   {
     this.updateProtocol = updateProtocol;
     this.channel = channel;
@@ -155,7 +155,7 @@ class UpdateListener extends NonSyncingListener
   }
 
   private UpdateProtocol updateProtocol;
-  private XioChannel channel;
+  private IXioChannel channel;
   private String query;
   private boolean enabled;
 };

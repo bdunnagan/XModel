@@ -3,9 +3,12 @@ package org.xmodel.net.connection.amqp;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
+import org.xmodel.net.XioPeer;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.connection.AbstractNetworkConnection;
 import org.xmodel.net.connection.INetworkConnection;
 import org.xmodel.net.connection.INetworkMessage;
@@ -245,10 +248,41 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
       if ( threadChannels.get() != getChannel()) threadChannels.set( getChannel());
+
+      // dispatch through original protocol classes for now
+      Type type = headerProtocol.readType( buffer);
+      log.debugf( "Message Type: %s", type);
       
-      // submit to protocol classes
+      long length = headerProtocol.readLength( buffer);
+      if ( buffer.readableBytes() < length) return false;
+      log.debugf( "Message Length: %d", length);
       
-      onMessageReceived( new AmqpNetworkMessage( properties, body));
+      switch( type)
+      {
+        case echoRequest:     echoProtocol.requestProtocol.handle( channel, buffer); return true;
+        case echoResponse:    echoProtocol.responseProtocol.handle( channel, buffer); return true;
+        
+        case executeRequest:  executionProtocol.requestProtocol.handle( channel, buffer, headerProtocol.readCorrelation( buffer)); return true;
+        case cancelRequest:   executionProtocol.requestProtocol.handleCancel( channel, buffer); return true;
+        case executeResponse: executionProtocol.responseProtocol.handle( channel, buffer); return true;
+        
+        case bindRequest:     bindProtocol.bindRequestProtocol.handle( channel, buffer, length); return true;
+        case bindResponse:    bindProtocol.bindResponseProtocol.handle( channel, buffer, length); return true;
+        case unbindRequest:   bindProtocol.unbindRequestProtocol.handle( channel, buffer); return true;
+        case syncRequest:     bindProtocol.syncRequestProtocol.handle( channel, buffer); return true;
+        case syncResponse:    bindProtocol.syncResponseProtocol.handle( channel, buffer); return true;
+        case addChild:        bindProtocol.updateProtocol.handleAddChild( channel, buffer); return true;
+        case removeChild:     bindProtocol.updateProtocol.handleRemoveChild( channel, buffer); return true;
+        case changeAttribute: bindProtocol.updateProtocol.handleChangeAttribute( channel, buffer); return true;
+        case clearAttribute:  bindProtocol.updateProtocol.handleClearAttribute( channel, buffer); return true;
+        case changeDirty:     bindProtocol.updateProtocol.handleChangeDirty( channel, buffer); return true;
+        
+        case register:        registerProtocol.registerRequestProtocol.handle( channel, buffer); return true;
+        case unregister:      registerProtocol.unregisterRequestProtocol.handle( channel, buffer); return true;
+      }
+      
+      
+      //onMessageReceived( new AmqpNetworkMessage( properties, body));
     }
 
     /* (non-Javadoc)
@@ -283,4 +317,5 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   private ThreadLocal<Channel> threadChannels;
   private Channel consumerChannel;
   private AsyncFuture<INetworkConnection> closeFuture;
+  private XioPeer peer;
 }

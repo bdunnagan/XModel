@@ -15,14 +15,12 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioExecutionException;
-import org.xmodel.net.connection.INetworkMessage;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -36,7 +34,7 @@ public class ExecutionRequestProtocol
   public ExecutionRequestProtocol( ExecutionProtocol bundle, ExecutionPrivilege privilege)
   {
     this.bundle = bundle;
-    this.requests = new ConcurrentHashMap<Long, RequestRunnable>();
+    this.requests = new ConcurrentHashMap<Integer, RequestRunnable>();
     this.privilege = privilege;
   }
   
@@ -46,7 +44,7 @@ public class ExecutionRequestProtocol
    */
   public void reset()
   {
-    for( Map.Entry<Long, RequestRunnable> entry: requests.entrySet())
+    for( Map.Entry<Integer, RequestRunnable> entry: requests.entrySet())
     {
       RequestRunnable runnable = entry.getValue();
       runnable.cancel();
@@ -59,40 +57,32 @@ public class ExecutionRequestProtocol
    * @param channel The channel.
    * @param context The local context.
    * @param vars Shared variables from the local context.
-   * @param scriptElement The script element to execute.
+   * @param element The script element to execute.
    * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public Object[] send( XioChannel channel, IContext context, String[] vars, IModelObject scriptElement, int timeout) throws XioExecutionException, IOException, InterruptedException
+  public Object[] send( IXioChannel channel, IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
-    long correlation = bundle.headerProtocol.correlation();
+    int correlation = bundle.responseProtocol.nextCorrelation();
+    log.debugf( "ExecutionRequestProtocol.send (sync): corr=%d, vars=%s, @name=%s, timeout=%d", correlation, Arrays.toString( vars), Xlate.get( element, "name", ""), timeout);
+    if ( log.debug()) log.debugf( "script:\n%s", XmlIO.write( Style.printable, element));
     
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
     ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
     
-    // build payload
-    IModelObject requestElement = ExecutionSerializer.buildRequest( context, vars, scriptElement);
-    List<byte[]> buffers = compressor.compress( requestElement);
+    IModelObject request = ExecutionSerializer.buildRequest( context, vars, element);
+    List<byte[]> buffers = compressor.compress( request);
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
-    // build header
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
-    // build aggregate
-    ChannelBuffer buffer = ChannelBuffers.wrappedBuffer( buffer1, buffer2);
+    // ignoring write buffer overflow for this type of messaging
+    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     
-    // set correlation on message
-    INetworkMessage message = null; //new Message( buffer, correlation)
-    
-    AsyncFuture<INetworkMessage> future = channel.request( message);
-    if ( future.await( timeout))
-    {
-      return parseResponse( context, compressor, message.getResponse());
-    }
-    else
-    {
-      log.debugf( "Execution request timed-out.");
-      return null;
-    }
+    return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
   }
   
   /**
@@ -104,8 +94,10 @@ public class ExecutionRequestProtocol
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( XioChannel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
+  public void send( IXioChannel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
+    int correlation = bundle.headerProtocol.correlation();
+    
     ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)
     {
@@ -126,44 +118,19 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
-    
-    // ignoring write buffer overflow for this type of messaging
+
     channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
-  }
-  
-  /**
-   * Parse the execution result.
-   * @param context The execution context.
-   * @param compressor The compressor.
-   * @param message The response message.
-   * @return Returns the result of the script execution.
-   */
-  private Object[] parseResponse( IContext context, ICompressor compressor, INetworkMessage message) throws XioExecutionException
-  {
-    IModelObject element = null;
-    try
-    {
-      element = compressor.decompress( new ChannelBufferInputStream( message.getChannelBuffer()));
-    }
-    catch( IOException e)
-    {
-      throw new XioExecutionException( e);
-    }
-        
-    Throwable throwable = ExecutionSerializer.readResponseException( element);
-    if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
-    
-    return ExecutionSerializer.readResponse( element, context);
   }
   
   /**
    * Handle a request.
    * @param channel The channel.
    * @param buffer The buffer.
-   * @param correlation The correlation number.
    */
-  public void handle( XioChannel channel, ChannelBuffer buffer, long correlation) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
+    int correlation = buffer.readInt();
+
     if ( bundle.context == null)
     {
       bundle.responseProtocol.send( channel, correlation, null, (Object[])null);
@@ -180,6 +147,40 @@ public class ExecutionRequestProtocol
     RequestRunnable runnable = new RequestRunnable( channel, correlation, request);
     requests.put( correlation, runnable);
     bundle.executor.execute( runnable);
+  }
+  
+  /**
+   * Cancel an asynchronous execute request.  This method first removes the async context associated with the specified
+   * correlation number, and then sends a cancel request to the server.  The handling of the cancel request is implementation
+   * dependent, and no guarantee is made that the server will interrupt the operation.
+   * @param channel The channel. 
+   * @param correlation The correlation number of the request.
+   */
+  public void cancel( IXioChannel channel, int correlation)
+  {
+    log.debugf( "ExecutionRequestProtocol.cancel: corr=%d", correlation);
+    
+    // ignore response with this correlation
+    bundle.responseProtocol.cancel( correlation);
+
+    // send cancel
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.cancelRequest, 4, correlation);
+    channel.write(buffer);
+  }
+  
+  /**
+   * Handle an execution cancel request. 
+   * @param channel The channel.
+   * @param buffer The buffer.
+   */
+  public void handleCancel( IXioChannel channel, ChannelBuffer buffer) throws IOException
+  {
+    int correlation = buffer.readInt();
+    
+    log.debugf( "ExecutionRequestProtocol.handleCancel: corr=%d", correlation);
+    
+    RequestRunnable runnable = requests.remove( correlation);
+    if ( runnable != null) runnable.cancel();
   }
   
   /**
@@ -215,7 +216,7 @@ public class ExecutionRequestProtocol
    * @param request The request.
    * @param context The execution context.
    */
-  private void execute( XioChannel channel, long correlation, IModelObject request, IContext context)
+  private void execute( IXioChannel channel, int correlation, IModelObject request, IContext context)
   {
     try
     {
@@ -264,7 +265,7 @@ public class ExecutionRequestProtocol
   
   private class RequestRunnable implements Runnable
   {
-    public RequestRunnable( XioChannel channel, long correlation, IModelObject request)
+    public RequestRunnable( IXioChannel channel, int correlation, IModelObject request)
     {
       this.channel = channel;
       this.correlation = correlation;
@@ -319,8 +320,8 @@ public class ExecutionRequestProtocol
       }
     }
 
-    private XioChannel channel;
-    private long correlation;
+    private IXioChannel channel;
+    private int correlation;
     private IModelObject request;
     private IContext context;
     private boolean cancelled;
@@ -328,7 +329,7 @@ public class ExecutionRequestProtocol
   
   private class ResponseTimeout implements Runnable
   {
-    public ResponseTimeout( ResponseTask task, long correlation)
+    public ResponseTimeout( ResponseTask task, int correlation)
     {
       this.task = task;
       this.correlation = correlation;
@@ -344,12 +345,12 @@ public class ExecutionRequestProtocol
     }
 
     private ResponseTask task;
-    private long correlation;
+    private int correlation;
   }
   
   private final static Log log = Log.getLog( ExecutionRequestProtocol.class);
 
   private ExecutionProtocol bundle;
   private ExecutionPrivilege privilege;
-  private Map<Long, RequestRunnable> requests;
+  private Map<Integer, RequestRunnable> requests;
 }

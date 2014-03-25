@@ -6,13 +6,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 
 public class BindResponseProtocol
 {
@@ -39,7 +40,7 @@ public class BindResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( XioChannel channel, long correlation, IModelObject element) throws IOException
+  public void send( IXioChannel channel, long correlation, IModelObject element) throws IOException
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -68,7 +69,7 @@ public class BindResponseProtocol
    * @param length The message length.
    * @param correlation The correlation number.
    */
-  public void handle( XioChannel channel, ChannelBuffer buffer, long length, long correlation) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer, long length, long correlation) throws IOException
   {
     BindRecord record = pending.get( correlation);
     if ( record != null) 

@@ -6,7 +6,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.XioChannel;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioException;
 
 public class SyncRequestProtocol
@@ -31,7 +31,7 @@ public class SyncRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the result of the sync.
    */
-  public IModelObject send( XioChannel channel, int netID, int timeout) throws InterruptedException
+  public IModelObject send( IXioChannel channel, int netID, int timeout) throws InterruptedException
   {
     long correlation = bundle.syncResponseProtocol.nextCorrelation();
     log.debugf( "SyncRequestProtocol.send (sync): corr=%d, timeout=%d, netID=%X", correlation, timeout, netID);
@@ -51,7 +51,7 @@ public class SyncRequestProtocol
    * @param buffer The buffer.
    * @param correlation The correlation number.
    */
-  public void handle( XioChannel channel, ChannelBuffer buffer, long correlation) throws XioException
+  public void handle( IXioChannel channel, ChannelBuffer buffer, long correlation) throws XioException
   {
     int netID = buffer.readInt();
     
@@ -72,7 +72,7 @@ public class SyncRequestProtocol
    * @param element The local element to sync.
    * @param listener The listener.
    */
-  private void sync( XioChannel channel, long correlation, long netID, IModelObject element, UpdateListener listener)
+  private void sync( IXioChannel channel, long correlation, long netID, IModelObject element, UpdateListener listener)
   {
     synchronized( bundle.context)
     {
@@ -100,7 +100,7 @@ public class SyncRequestProtocol
   
   private class SyncRunnable implements Runnable
   {
-    public SyncRunnable( XioChannel channel, long correlation, long netID, IModelObject element, UpdateListener listener)
+    public SyncRunnable( IXioChannel channel, long correlation, long netID, IModelObject element, UpdateListener listener)
     {
       this.channel = channel;
       this.correlation = correlation;
@@ -118,7 +118,7 @@ public class SyncRequestProtocol
       sync( channel, correlation, netID, element, listener);
     }
     
-    private XioChannel channel;
+    private IXioChannel channel;
     private long correlation;
     private long netID;
     private IModelObject element;
