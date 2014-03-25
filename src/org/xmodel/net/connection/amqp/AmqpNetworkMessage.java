@@ -1,10 +1,8 @@
 package org.xmodel.net.connection.amqp;
 
-import org.xmodel.net.connection.INetworkMessage;
-
 import com.rabbitmq.client.AMQP.BasicProperties;
 
-public class AmqpNetworkMessage implements INetworkMessage
+public class AmqpNetworkMessage
 {
   public AmqpNetworkMessage( BasicProperties properties, byte[] body)
   {
@@ -12,22 +10,22 @@ public class AmqpNetworkMessage implements INetworkMessage
     this.correlation = properties.getCorrelationId();
     this.body = body;
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkMessage#getBytes()
+
+  /**
+   * @return Returns the bytes of the message.
    */
-  @Override
   public byte[] getBytes()
   {
     return body;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkMessage#getCorrelation()
+  /**
+   * @return Returns null or the message correlation.
    */
-  @Override
   public Object getCorrelation()
   {
+    // TODO: Remove this after verification
+    if ( correlation != null && correlation.toString().length() == 0) throw new IllegalStateException();
     return correlation;
   }
   

@@ -2,19 +2,23 @@ package org.xmodel.net.execution;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.xmodel.compress.ICompressor;
 import org.xmodel.net.HeaderProtocol;
+import org.xmodel.net.connection.INetworkConnection;
 import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionProtocol
 {
   public ExecutionProtocol( 
+      INetworkConnection connection,
       HeaderProtocol headerProtocol, 
       IContext context, 
       Executor executor, 
       ScheduledExecutorService scheduler,
       ExecutionPrivilege privilege)
   {
+    this.connection = connection;
     this.context = context;
     this.executor = executor;
     this.headerProtocol = headerProtocol;
@@ -42,6 +46,7 @@ public class ExecutionProtocol
     responseProtocol.reset();
   }
   
+  public INetworkConnection connection;
   public IContext context;
   public Executor executor;
   public HeaderProtocol headerProtocol;

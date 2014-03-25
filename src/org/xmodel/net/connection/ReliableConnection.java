@@ -1,5 +1,6 @@
 package org.xmodel.net.connection;
 
+import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -16,8 +17,10 @@ import org.xmodel.log.SLog;
  */
 public class ReliableConnection extends AbstractNetworkConnection
 {
-  public ReliableConnection( int lifetime, INetworkConnectionFactory connectionFactory, ScheduledExecutorService scheduler)
+  public ReliableConnection( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory)
   {
+    super( protocol);
+    
     this.lifetime = lifetime;
     this.connectionFactory = connectionFactory;
     this.connectionLock = new Object();
@@ -58,10 +61,23 @@ public class ReliableConnection extends AbstractNetworkConnection
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#send(org.xmodel.net.connection.INetworkMessage)
+   * @see org.xmodel.net.connection.INetworkConnection#getCloseFuture()
    */
   @Override
-  public void send( INetworkMessage message) throws Exception
+  public AsyncFuture<INetworkConnection> getCloseFuture()
+  {
+    synchronized( connectionLock)
+    {
+      if ( activeConnection != null) return activeConnection.getCloseFuture();
+      return new SuccessAsyncFuture<INetworkConnection>( this);
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
+   */
+  @Override
+  public void send( Object message) throws IOException
   {
     synchronized( connectionLock)
     {
@@ -70,15 +86,15 @@ public class ReliableConnection extends AbstractNetworkConnection
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.AbstractNetworkConnection#request(org.xmodel.net.connection.INetworkMessage, int)
+   * @see org.xmodel.net.connection.AbstractNetworkConnection#request(java.lang.Object, int)
    */
   @Override
-  public AsyncFuture<INetworkMessage> request( INetworkMessage request, int timeout)
+  public RequestFuture request( Object request, Object correlation)
   {
     synchronized( connectionLock)
     {
       isRequestPending = true;
-      AsyncFuture<INetworkMessage> future = activeConnection.request( request, timeout);
+      RequestFuture future = activeConnection.request( request, correlation);
       future.addListener( requestListener);
       return future;
     }
@@ -169,8 +185,8 @@ public class ReliableConnection extends AbstractNetworkConnection
     }
   };
   
-  private AsyncFuture.IListener<INetworkMessage> requestListener = new AsyncFuture.IListener<INetworkMessage>() {
-    public void notifyComplete( AsyncFuture<INetworkMessage> future) throws Exception
+  private AsyncFuture.IListener<Object> requestListener = new AsyncFuture.IListener<Object>() {
+    public void notifyComplete( AsyncFuture<Object> future) throws Exception
     {
       synchronized( connectionLock) { isRequestPending = false;}
       
@@ -186,9 +202,9 @@ public class ReliableConnection extends AbstractNetworkConnection
   };
   
   private INetworkConnection.IListener consumer = new INetworkConnection.IListener() {
-    public void onMessageReceived( INetworkConnection connection, INetworkMessage message)
+    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
     {
-      ReliableConnection.this.onMessageReceived( message);
+      ReliableConnection.this.onMessageReceived( message, correlation);
     }
     public void onClose( INetworkConnection connection, Object cause)
     {

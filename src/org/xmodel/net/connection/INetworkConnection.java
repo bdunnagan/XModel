@@ -1,5 +1,7 @@
 package org.xmodel.net.connection;
 
+import java.io.IOException;
+
 import org.xmodel.future.AsyncFuture;
 
 public interface INetworkConnection
@@ -10,8 +12,9 @@ public interface INetworkConnection
      * Called when a message is received.
      * @param connection The connection that received the message.
      * @param message The message that was received.
+     * @param correlation TODO
      */
-    public void onMessageReceived( INetworkConnection connection, INetworkMessage message);
+    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation);
     
     /**
      * Called when the network connection is closed either explicitly or unexpectedly.
@@ -27,6 +30,11 @@ public interface INetworkConnection
   public final static String closedFutureMessage = "closed";
   
   /**
+   * @return Returns the protocol implementation for this connection.
+   */
+  public INetworkProtocol getProtocol();
+  
+  /**
    * Establish the network connection. If the connection is already established, then this
    * method should return a SuccessAsyncFuture indicating that the connection is already 
    * established.
@@ -39,21 +47,28 @@ public interface INetworkConnection
    * @return Returns the future for the operation.
    */
   public AsyncFuture<INetworkConnection> close();
+
+  /**
+   * Returns the future for the next close operation. This instance will change if the connection
+   * is closed and subsequently connected again.
+   * @return Returns the future for the close operation.
+   */
+  public AsyncFuture<INetworkConnection> getCloseFuture();
   
   /**
    * Send a message.
    * @param message The message.
    */
-  public void send( INetworkMessage message) throws Exception;
+  public void send( Object message) throws IOException;
   
   /**
    * Send a request and return a future that will be notified when the response arrives.
    * @param request The request message.
-   * @param timeout The timeout for the request in milliseconds (excessive values will cause memory leak).
-   * @return Returns a future for the response message.
+   * @param correlation The correlation key.
+   * @return Returns a future for the operation (with a reference to the request message).
    */
-  public AsyncFuture<INetworkMessage> request( INetworkMessage request, int timeout);
-  
+  public RequestFuture request( Object request, Object correlation);
+    
   /**
    * Add a listener for incoming messages.
    * @param listener The listener.

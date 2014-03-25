@@ -21,6 +21,7 @@ import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioExecutionException;
+import org.xmodel.net.connection.RequestFuture;
 import org.xmodel.net.execution.ExecutionResponseProtocol.ResponseTask;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
@@ -80,7 +81,18 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    RequestFuture future = channel.request( ChannelBuffers.wrappedBuffer( buffer1, buffer2), correlation);
+    if ( timeout <= 0) return null;
+
+    // wait
+    future.await( timeout);
+    
+    // parse response
+    Object response = future.getResponse();
+    if ( response == null) return null;
+    
+    byte[] content = bundle.connection.getProtocol().getBytes( response);
+    
     
     return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
   }
@@ -119,7 +131,7 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**

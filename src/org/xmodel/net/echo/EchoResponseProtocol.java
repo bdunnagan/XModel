@@ -13,14 +13,6 @@ public class EchoResponseProtocol
   {
     this.bundle = bundle;
   }
-
-  /**
-   * Reset this instance by releasing internal resources.  This method should be called after 
-   * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
-   */
-  public void reset()
-  {
-  }
   
   /**
    * Send an echo response.
@@ -29,7 +21,7 @@ public class EchoResponseProtocol
   public void send( IXioChannel channel) throws IOException
   {
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.echoResponse, 0);
-    channel.write( buffer);
+    channel.send( buffer);
   }
   
   /**
