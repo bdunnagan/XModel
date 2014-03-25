@@ -14,7 +14,7 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioPeer;
 
 /**
@@ -192,7 +192,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    * @param buffer The buffer.
    * @return Returns true if a message was read.
    */
-  private boolean handleMessage( IXioChannel channel, ChannelBuffer buffer) throws Exception
+  private boolean handleMessage( XioChannel channel, ChannelBuffer buffer) throws Exception
   {
     return channel.getPeer().handleMessage( channel, buffer);
   }

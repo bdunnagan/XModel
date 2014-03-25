@@ -10,32 +10,22 @@ import org.xmodel.log.SLog;
 
 public abstract class AbstractNetworkConnection implements INetworkConnection
 {
-  public AbstractNetworkConnection( INetworkProtocol protocol)
+  public AbstractNetworkConnection()
   {
-    this.protocol = protocol;
     listeners = new ArrayList<IListener>( 1);
-    requestFutures = new HashMap<Object, RequestFuture>();
+    requestFutures = new HashMap<Object, AsyncFuture<INetworkMessage>>();
     requestFuturesLock = new Object();
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#getProtocol()
+   * @see org.xmodel.net.connection.INetworkConnection#request(org.xmodel.net.connection.INetworkMessage)
    */
   @Override
-  public INetworkProtocol getProtocol()
+  public AsyncFuture<INetworkMessage> request( INetworkMessage request)
   {
-    return protocol;
-  }
-
-  /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#request(org.xmodel.net.connection.INetworkMessage, int)
-   */
-  @Override
-  public RequestFuture request( final Object request, Object correlation)
-  {
-    RequestFuture requestFuture = new RequestFuture( this, request, correlation);
+    AsyncFuture<INetworkMessage> requestFuture = new AsyncFuture<INetworkMessage>( request);
     
-    putRequestFuture( correlation, requestFuture);
+    putRequestFuture( request.getCorrelation(), requestFuture);
     
     try
     {
@@ -43,7 +33,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
     }
     catch( Exception e)
     {
-      removeRequestFuture( correlation);
+      removeRequestFuture( request.getCorrelation());
       requestFuture.notifyFailure( e);
     }
     
@@ -106,22 +96,23 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
   /**
    * Sub-classes must call this method when a message is received.
    * @param message The message.
-   * @param correlation The correlation key.
    */
-  protected void onMessageReceived( Object message, Object correlation)
+  protected void onMessageReceived( INetworkMessage message)
   {
+    Object correlation = message.getCorrelation();
+    
     try
     {
       // correlate the response
-      RequestFuture requestFuture = getRequestFuture( correlation);
-      if ( requestFuture != null) requestFuture.setResponse( message);
+      AsyncFuture<INetworkMessage> requestFuture = getRequestFuture( correlation);
+      if ( requestFuture != null) requestFuture.getInitiator().setResponse( message);
       
       // notify listeners
       for( IListener listener: getListeners())
       {
         try
         {
-          listener.onMessageReceived( this, message, correlation);
+          listener.onMessageReceived( this, message);
         }
         catch( Exception e)
         {
@@ -173,7 +164,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
     }
     
     // notify request futures
-    for( AsyncFuture<Object> requestFuture: removeAllRequestFutures())
+    for( AsyncFuture<INetworkMessage> requestFuture: removeAllRequestFutures())
     {
       requestFuture.notifyFailure( closedFutureMessage);
     }
@@ -184,7 +175,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
    * @param key The correlation object.
    * @param requestFuture The request future.
    */
-  private void putRequestFuture( Object key, RequestFuture requestFuture)
+  private void putRequestFuture( Object key, AsyncFuture<INetworkMessage> requestFuture)
   {
     synchronized( requestFuturesLock)
     {
@@ -197,7 +188,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
    * @param key The correlation object.
    * @return Returns null or the request future.
    */
-  private RequestFuture getRequestFuture( Object key)
+  private AsyncFuture<INetworkMessage> getRequestFuture( Object key)
   {
     synchronized( requestFuturesLock)
     {
@@ -210,7 +201,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
    * @param key The correlation object.
    * @return Returns null or the request future.
    */
-  protected RequestFuture removeRequestFuture( Object key)
+  protected AsyncFuture<INetworkMessage> removeRequestFuture( Object key)
   {
     synchronized( requestFuturesLock)
     {
@@ -222,11 +213,11 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
    * Remove and return all request futures.
    * @return Returns the list of request futures.
    */
-  private List<RequestFuture> removeAllRequestFutures()
+  private List<AsyncFuture<INetworkMessage>> removeAllRequestFutures()
   {
     synchronized( requestFuturesLock)
     {
-      List<RequestFuture> list = new ArrayList<RequestFuture>();
+      List<AsyncFuture<INetworkMessage>> list = new ArrayList<AsyncFuture<INetworkMessage>>();
       list.addAll( requestFutures.values());
       requestFutures.clear();
       return list;
@@ -246,8 +237,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
     }
   };
   
-  INetworkProtocol protocol;  
   private List<IListener> listeners;
-  private Map<Object, RequestFuture> requestFutures;
+  private Map<Object, AsyncFuture<INetworkMessage>> requestFutures;
   private Object requestFuturesLock;
 }

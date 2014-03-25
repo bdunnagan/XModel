@@ -7,10 +7,10 @@ import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioPeer;
 
-public final class NettyXioChannel implements IXioChannel
+public final class NettyXioChannel implements XioChannel
 {
   public NettyXioChannel( Channel channel)
   {
@@ -30,9 +30,9 @@ public final class NettyXioChannel implements IXioChannel
    * @see org.xmodel.net.IXioChannel#close()
    */
   @Override
-  public AsyncFuture<IXioChannel> close()
+  public AsyncFuture<XioChannel> close()
   {
-    final AsyncFuture<IXioChannel> future = getCloseFuture();
+    final AsyncFuture<XioChannel> future = getCloseFuture();
     
     ChannelFuture channelFuture = channel.close();
     channelFuture.addListener( new ChannelFutureListener() {
@@ -91,12 +91,12 @@ public final class NettyXioChannel implements IXioChannel
   }
 
   @Override
-  public synchronized AsyncFuture<IXioChannel> getCloseFuture()
+  public synchronized AsyncFuture<XioChannel> getCloseFuture()
   {
-    if ( closeFuture == null) closeFuture = new AsyncFuture<IXioChannel>( this);
+    if ( closeFuture == null) closeFuture = new AsyncFuture<XioChannel>( this);
     return closeFuture;
   }
 
   private Channel channel;
-  private AsyncFuture<IXioChannel> closeFuture;
+  private AsyncFuture<XioChannel> closeFuture;
 }

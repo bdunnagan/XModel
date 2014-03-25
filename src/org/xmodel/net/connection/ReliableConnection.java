@@ -17,10 +17,8 @@ import org.xmodel.log.SLog;
  */
 public class ReliableConnection extends AbstractNetworkConnection
 {
-  public ReliableConnection( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory)
+  public ReliableConnection( int lifetime, INetworkConnectionFactory connectionFactory)
   {
-    super( protocol);
-    
     this.lifetime = lifetime;
     this.connectionFactory = connectionFactory;
     this.connectionLock = new Object();
@@ -74,10 +72,10 @@ public class ReliableConnection extends AbstractNetworkConnection
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
+   * @see org.xmodel.net.connection.INetworkConnection#send(org.xmodel.net.connection.INetworkMessage)
    */
   @Override
-  public void send( Object message) throws IOException
+  public void send( INetworkMessage message) throws IOException
   {
     synchronized( connectionLock)
     {
@@ -86,17 +84,31 @@ public class ReliableConnection extends AbstractNetworkConnection
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.AbstractNetworkConnection#request(java.lang.Object, int)
+   * @see org.xmodel.net.connection.AbstractNetworkConnection#request(org.xmodel.net.connection.INetworkMessage)
    */
   @Override
-  public RequestFuture request( Object request, Object correlation)
+  public AsyncFuture<INetworkMessage> request( INetworkMessage request)
   {
     synchronized( connectionLock)
     {
-      isRequestPending = true;
-      RequestFuture future = activeConnection.request( request, correlation);
+      isActive = true;
+      AsyncFuture<INetworkMessage> future = activeConnection.request( request);
       future.addListener( requestListener);
       return future;
+    }
+  }
+  
+  /**
+   * Set whether this connection is currently handling a request/response transaction.  An active
+   * connection will not be recycled until this method is called again with argument, false, indicating
+   * that the transaction is complete.
+   * @param active
+   */
+  public void setActive( boolean active)
+  {
+    synchronized( connectionLock)
+    {
+      isActive = active;
     }
   }
 
@@ -135,7 +147,7 @@ public class ReliableConnection extends AbstractNetworkConnection
       activeConnection = connection;
       activeConnection.addListener( consumer);
           
-      if ( !isRequestPending)
+      if ( !isActive)
       {
         connectionToClose = dyingConnection;
         dyingConnection = null;
@@ -185,10 +197,10 @@ public class ReliableConnection extends AbstractNetworkConnection
     }
   };
   
-  private AsyncFuture.IListener<Object> requestListener = new AsyncFuture.IListener<Object>() {
-    public void notifyComplete( AsyncFuture<Object> future) throws Exception
+  private AsyncFuture.IListener<INetworkMessage> requestListener = new AsyncFuture.IListener<INetworkMessage>() {
+    public void notifyComplete( AsyncFuture<INetworkMessage> future) throws Exception
     {
-      synchronized( connectionLock) { isRequestPending = false;}
+      synchronized( connectionLock) { isActive = false;}
       
       closeDyingConnection();
     }
@@ -202,9 +214,9 @@ public class ReliableConnection extends AbstractNetworkConnection
   };
   
   private INetworkConnection.IListener consumer = new INetworkConnection.IListener() {
-    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
+    public void onMessageReceived( INetworkConnection connection, INetworkMessage message)
     {
-      ReliableConnection.this.onMessageReceived( message, correlation);
+      ReliableConnection.this.onMessageReceived( message);
     }
     public void onClose( INetworkConnection connection, Object cause)
     {
@@ -216,7 +228,7 @@ public class ReliableConnection extends AbstractNetworkConnection
   private INetworkConnection activeConnection;
   private INetworkConnection dyingConnection;
   private Object connectionLock;
-  private boolean isRequestPending;
+  private boolean isActive;
   private int lifetime;
   private ScheduledExecutorService scheduler;
 }

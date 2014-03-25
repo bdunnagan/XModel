@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 
 public class EchoRequestProtocol
 {
@@ -16,13 +16,9 @@ public class EchoRequestProtocol
   /**
    * Send an execution request via the specified channel.
    * @param channel The channel.
-   * @param context The local context.
-   * @param vars Shared variables from the local context.
-   * @param element The script element to execute.
-   * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
-  public void send( IXioChannel channel) throws IOException
+  public void send( XioChannel channel) throws IOException
   {
     ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.echoRequest, 0);
     channel.send( buffer);
@@ -34,7 +30,7 @@ public class EchoRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
+  public void handle( XioChannel channel, ChannelBuffer buffer) throws IOException
   {
     bundle.responseProtocol.send( channel);
   }

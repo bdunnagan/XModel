@@ -3,16 +3,17 @@ package org.xmodel.net.transport.netty;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-import org.xmodel.net.IXioChannel;
+
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
-import org.xmodel.net.execution.ExecutionPrivilege;
+import org.xmodel.net.protocol.execute.ExecutionPrivilege;
 import org.xmodel.xpath.expression.IContext;
 
 public class NettyXioServerPeer extends XioPeer
 {
   public NettyXioServerPeer( 
-      IXioChannel channel, 
+      XioChannel channel, 
       IXioPeerRegistry registry, 
       IContext context, 
       Executor executor, 
@@ -28,7 +29,7 @@ public class NettyXioServerPeer extends XioPeer
   public synchronized InetSocketAddress getRemoteAddress()
   {
     if ( address != null) return address;
-    IXioChannel channel = getChannel();
+    XioChannel channel = getChannel();
     address = (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
     return address;
   }

@@ -2,10 +2,12 @@ package org.xmodel.net;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,8 +16,8 @@ import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.concurrent.ThreadPoolExecutor;
 import org.xmodel.log.Log;
-import org.xmodel.net.execution.ExecutionRequestProtocol;
-import org.xmodel.net.execution.ExecutionResponseProtocol;
+import org.xmodel.net.protocol.execute.ExecutionRequestProtocol;
+import org.xmodel.net.protocol.execute.ExecutionResponseProtocol;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;

@@ -12,7 +12,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 
 public class BindResponseProtocol
 {
@@ -39,7 +39,7 @@ public class BindResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( IXioChannel channel, int correlation, IModelObject element) throws IOException
+  public void send( XioChannel channel, long correlation, IModelObject element) throws IOException
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -47,16 +47,14 @@ public class BindResponseProtocol
     {
       List<byte[]> buffers = bundle.responseCompressor.compress( element);
       ChannelBuffer buffer2 = ChannelBuffers.wrappedBuffer( buffers.toArray( new byte[ 0][]));
-      ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, buffer2.readableBytes());
-      buffer1.writeInt( correlation);
+      ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.bindResponse, buffer2.readableBytes(), correlation);
       
       // ignoring write buffer overflow for this type of messaging
       channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     }
     else
     {
-      ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 4, Type.bindResponse, 0);
-      buffer.writeInt( correlation);
+      ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 0, Type.bindResponse, 0, correlation);
       
       // ignoring write buffer overflow for this type of messaging
       channel.write( buffer);
@@ -68,11 +66,10 @@ public class BindResponseProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    * @param length The message length.
+   * @param correlation The correlation number.
    */
-  public void handle( IXioChannel channel, ChannelBuffer buffer, long length) throws IOException
+  public void handle( XioChannel channel, ChannelBuffer buffer, long length, long correlation) throws IOException
   {
-    int correlation = buffer.readInt();
-    
     BindRecord record = pending.get( correlation);
     if ( record != null) 
     {
@@ -90,7 +87,7 @@ public class BindResponseProtocol
    */
   protected synchronized int nextCorrelation( IExternalReference reference)
   {
-    int correlation = bundle.headerProtocol.correlation();
+    long correlation = bundle.headerProtocol.correlation();
     pending.put( correlation, new BindRecord( reference));
     return correlation;
   }
@@ -101,7 +98,7 @@ public class BindResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the element that was received or null if timoeut occurs.
    */
-  protected IModelObject waitForResponse( int correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
   {
     try
     {

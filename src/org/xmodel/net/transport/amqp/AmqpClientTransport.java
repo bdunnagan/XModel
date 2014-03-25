@@ -5,7 +5,7 @@ import java.util.concurrent.ExecutorService;
 import javax.net.ssl.SSLContext;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.SLog;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
 import org.xmodel.util.CountingThreadPoolExecutor;
@@ -93,8 +93,8 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
     subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( AmqpQualifiedNames.createQualifiedName( name)), false, true);
 
-    subscribeChannel.getCloseFuture().addListener( new AsyncFuture.IListener<IXioChannel>() {
-      public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception
+    subscribeChannel.getCloseFuture().addListener( new AsyncFuture.IListener<XioChannel>() {
+      public void notifyComplete( AsyncFuture<XioChannel> future) throws Exception
       {
         try
         {

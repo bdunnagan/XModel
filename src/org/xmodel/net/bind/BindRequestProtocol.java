@@ -14,7 +14,7 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioException;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
@@ -63,15 +63,14 @@ public class BindRequestProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns false if a timeout occurs.
    */
-  public boolean send( IExternalReference reference, IXioChannel channel, boolean readonly, String query, int timeout) throws InterruptedException
+  public boolean send( IExternalReference reference, XioChannel channel, boolean readonly, String query, int timeout) throws InterruptedException
   {
-    int correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
+    long correlation = bundle.bindResponseProtocol.nextCorrelation( reference);
     log.debugf( "BindRequestProtocol.send (sync): corr=%d, timeout=%d, readonly=%s, query=%s", correlation, timeout, readonly, query);
     
     byte[] queryBytes = query.getBytes( charset);
     
-    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 5 + queryBytes.length, Type.bindRequest, 0);
-    buffer.writeInt( correlation);
+    ChannelBuffer buffer = bundle.headerProtocol.writeHeader( 1 + queryBytes.length, Type.bindRequest, correlation);
     buffer.writeByte( readonly? 1: 0);
     buffer.writeBytes( queryBytes);
     
@@ -110,10 +109,10 @@ public class BindRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    * @param length The length of the message.
+   * @param correlation The correlation number.
    */
-  public void handle( IXioChannel channel, ChannelBuffer buffer, long length) throws XioException
+  public void handle( XioChannel channel, ChannelBuffer buffer, long length, long correlation) throws XioException
   {
-    int correlation = buffer.readInt();
     boolean readonly = buffer.readByte() == 1;
     
     byte[] queryBytes = new byte[ (int)length - 5];
@@ -140,7 +139,7 @@ public class BindRequestProtocol
    * @param query The expression string.
    * @param queryExpr The compiled expression.
    */
-  private void bind( IXioChannel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
+  private void bind( XioChannel channel, long correlation, boolean readonly, String query, IExpression queryExpr)
   {
     synchronized( bundle.context)
     {
@@ -165,7 +164,7 @@ public class BindRequestProtocol
   
   private class BindRunnable implements Runnable
   {
-    public BindRunnable( IXioChannel channel, int correlation, boolean readonly, String query, IExpression queryExpr)
+    public BindRunnable( XioChannel channel, long correlation, boolean readonly, String query, IExpression queryExpr)
     {
       this.channel = channel;
       this.correlation = correlation;
@@ -183,8 +182,8 @@ public class BindRequestProtocol
       bind( channel, correlation, readonly, query, queryExpr);
     }
     
-    private IXioChannel channel;
-    private int correlation;
+    private XioChannel channel;
+    private long correlation;
     private boolean readonly;
     private String query;
     private IExpression queryExpr;

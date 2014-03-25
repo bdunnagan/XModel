@@ -14,9 +14,11 @@ import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.connection.INetworkConnection;
+import org.xmodel.net.connection.INetworkMessage;
 import org.xmodel.net.echo.EchoProtocol;
-import org.xmodel.net.execution.ExecutionPrivilege;
-import org.xmodel.net.execution.ExecutionProtocol;
+import org.xmodel.net.message.ExecuteMessageFactory;
+import org.xmodel.net.protocol.execute.ExecutionPrivilege;
+import org.xmodel.net.protocol.execute.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -36,13 +38,7 @@ public class XioPeer
    * @param scheduler The scheduler.
    * @param privilege The execution privilege manager.
    */
-  protected XioPeer( 
-      IXioChannel channel, 
-      IXioPeerRegistry registry, 
-      IContext context, 
-      Executor executor, 
-      ScheduledExecutorService scheduler, 
-      ExecutionPrivilege privilege)
+  protected XioPeer( XioChannel channel, IXioPeerRegistry registry, IContext context, Executor executor, ScheduledExecutorService scheduler, ExecutionPrivilege privilege)
   {
     this.channel = channel;
     this.registry = registry;
@@ -166,7 +162,7 @@ public class XioPeer
    */
   public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
-    IXioChannel channel = getChannel();
+    XioChannel channel = getChannel();
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
     executionProtocol.requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
@@ -177,7 +173,7 @@ public class XioPeer
    * @param buffer The buffer.
    * @return Returns true if a message was read.
    */
-  public boolean handleMessage( IXioChannel channel, ChannelBuffer buffer) throws IOException
+  public boolean handleMessage( XioChannel channel, ChannelBuffer buffer) throws IOException
   {
     if ( log.verbose()) log.verbosef( "handleMessage: offset=%d\n%s", buffer.readerIndex(), toString( "  ", buffer));
     
@@ -221,7 +217,7 @@ public class XioPeer
    * Set the underlying channel.
    * @param channel The channel.
    */
-  public synchronized void setChannel( IXioChannel channel)
+  public synchronized void setChannel( XioChannel channel)
   {
     this.channel = channel;
     bindProtocol.requestCompressor.setChannel( channel);
@@ -232,7 +228,7 @@ public class XioPeer
   /**
    * @return Returns null or the underlying channel.
    */
-  public synchronized IXioChannel getChannel()
+  public synchronized XioChannel getChannel()
   {
     return channel;
   }
@@ -293,7 +289,7 @@ public class XioPeer
   @Override
   public boolean equals( Object object)
   {
-    IXioChannel otherChannel = ((XioPeer)object).getChannel();
+    XioChannel otherChannel = ((XioPeer)object).getChannel();
     if ( channel == null || otherChannel == null) return false;
     return channel == otherChannel;
   }
@@ -354,10 +350,14 @@ public class XioPeer
 
   private final static Log log = Log.getLog( XioPeer.class);
   
-  private IXioChannel channel;
+  private XioChannel channel;
   private IXioPeerRegistry registry;
   private StatefulContext eventContext;
+  
   protected HeaderProtocol headerProtocol;
+  private ExecuteMessageFactory executeMessageFactory;
+  
+  
   protected EchoProtocol echoProtocol;
   protected BindProtocol bindProtocol;
   protected ExecutionProtocol executionProtocol;

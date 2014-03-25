@@ -8,6 +8,7 @@ import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.connection.AbstractNetworkConnection;
 import org.xmodel.net.connection.INetworkConnection;
+import org.xmodel.net.connection.INetworkMessage;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Address;
@@ -25,8 +26,6 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
 {
   public AmqpNetworkConnection( ConnectionFactory connectionFactory, Address[] brokers, ExecutorService executor)
   {
-    super( new AmqpNetworkProtocol());
-    
     this.exchange = "";
     this.outQueue = "";
     this.connectionFactory = connectionFactory;
@@ -155,10 +154,10 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
+   * @see org.xmodel.net.connection.INetworkConnection#send(org.xmodel.net.connection.INetworkMessage)
    */
   @Override
-  public void send( Object message) throws IOException
+  public void send( INetworkMessage message) throws IOException
   {
     if ( exchange.length() == 0 && outQueue.length() == 0)
       throw new IOException( "AmqpNetworkChannel does not define an exchange or a queue.");
@@ -170,7 +169,7 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
       properties = amqpMessage.getBasicProperties();
     }
     
-    byte[] bytes = getProtocol().getBytes( message);
+    byte[] bytes = message.getBytes();
     getThreadChannel().basicPublish( exchange, outQueue, properties, bytes);
   }
 
@@ -246,7 +245,10 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
       if ( threadChannels.get() != getChannel()) threadChannels.set( getChannel());
-      onMessageReceived( new AmqpNetworkMessage( properties, body), properties.getCorrelationId());
+      
+      // submit to protocol classes
+      
+      onMessageReceived( new AmqpNetworkMessage( properties, body));
     }
 
     /* (non-Javadoc)

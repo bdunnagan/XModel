@@ -18,13 +18,15 @@ public class StaleConnectionMonitor implements INetworkConnection.IListener
    * Constructor.
    * @param idleSendTimeout The timeout in milliseconds after which an echo request will be sent when connection is idle.
    * @param staleTimeout The timeout in milliseconds after which an idle connection will be declared stale.
+   * @param messageFactory A message factory for creating echo request messages.
    * @param connection The network connection to be monitored.
    * @param scheduler The scheduler for scheduling the timeouts.
    */
-  public StaleConnectionMonitor( int idleSendTimeout, int staleTimeout, INetworkConnection connection, ScheduledExecutorService scheduler)
+  public StaleConnectionMonitor( int idleSendTimeout, int staleTimeout, INetworkMessageFactory messageFactory, INetworkConnection connection, ScheduledExecutorService scheduler)
   {
     this.idleSendTimeout = idleSendTimeout;
     this.staleTimeout = staleTimeout;
+    this.messageFactory = messageFactory;
     this.connection = connection;
     this.scheduler = scheduler;
     
@@ -51,10 +53,10 @@ public class StaleConnectionMonitor implements INetworkConnection.IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection.IListener#onMessageReceived(org.xmodel.net.connection.INetworkConnection, java.lang.Object, java.lang.Object)
+   * @see org.xmodel.net.connection.INetworkConnection.IListener#onMessageReceived(org.xmodel.net.connection.INetworkConnection, org.xmodel.net.connection.INetworkMessage)
    */
   @Override
-  public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
+  public void onMessageReceived( INetworkConnection connection, INetworkMessage message)
   {
     if ( closed.get()) return;
     
@@ -108,7 +110,7 @@ public class StaleConnectionMonitor implements INetworkConnection.IListener
       
       try
       {
-        connection.send( connection.getProtocol().createEchoRequest());
+        connection.send( messageFactory.createEchoRequest());
         idleSendFutureRef.set( null);
         scheduleHeartbeatMessage();
       }
@@ -129,6 +131,7 @@ public class StaleConnectionMonitor implements INetworkConnection.IListener
   };
 
   private INetworkConnection connection;
+  private INetworkMessageFactory messageFactory;
   private ScheduledExecutorService scheduler;
   private int staleTimeout;
   private AtomicReference<ScheduledFuture<?>> timeoutFutureRef;

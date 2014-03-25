@@ -1,6 +1,7 @@
 package org.xmodel.net;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 
@@ -27,10 +28,14 @@ public class HeaderProtocol
     echoResponse
   }
   
-  public HeaderProtocol()
+  /**
+   * The header protocol optionally includes the correlation key for request/response pairs.
+   * @param correlate True if correlation key should be included in header.
+   */
+  public HeaderProtocol( boolean includeCorrelation)
   {
-    int seed = (int)System.nanoTime();
-    correlation = new AtomicInteger( seed);
+    correlation = new AtomicLong( (int)System.nanoTime());
+    this.includeCorrelation = includeCorrelation;
   }
   
   /**
@@ -44,7 +49,7 @@ public class HeaderProtocol
   /**
    * @return Returns the next request correlation number.
    */
-  public int correlation()
+  public long correlation()
   {
     return correlation.getAndIncrement();
   }
@@ -69,6 +74,17 @@ public class HeaderProtocol
    */
   public long readLength( ChannelBuffer buffer)
   {
+    return buffer.readLong();
+  }
+  
+  /**
+   * Read the correlation number from the buffer.
+   * @param buffer The buffer.
+   * @return Returns the correlation number.
+   */
+  public long readCorrelation( ChannelBuffer buffer)
+  {
+    if ( !includeCorrelation) throw new IllegalStateException( "Header does not include correlation.");
     return buffer.readLong();
   }
  
@@ -100,14 +116,22 @@ public class HeaderProtocol
    * @param reserve Extra space to reserve in header.
    * @return Returns the buffer containing the header.
    */
-  public ChannelBuffer writeHeader( int reserve, Type type, long length, int correlation)
+  public ChannelBuffer writeHeader( int reserve, Type type, long length, long correlation)
   {
-    ChannelBuffer buffer = ChannelBuffers.buffer( 13 + reserve);
-    buffer.writeByte( type.ordinal());
-    buffer.writeLong( reserve + length);
-    buffer.writeInt( correlation);
-    return buffer;
+    if ( includeCorrelation)
+    {
+      ChannelBuffer buffer = ChannelBuffers.buffer( 17 + reserve);
+      buffer.writeByte( type.ordinal());
+      buffer.writeLong( reserve + length);
+      buffer.writeLong( correlation);
+      return buffer;
+    }
+    else
+    {
+      return writeHeader( reserve, type, length);
+    }
   }
   
-  private AtomicInteger correlation;
+  private AtomicLong correlation;
+  private boolean includeCorrelation;
 }  

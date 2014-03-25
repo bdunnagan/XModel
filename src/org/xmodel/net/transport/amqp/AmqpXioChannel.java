@@ -20,7 +20,7 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.HeaderProtocol;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioPeer;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -31,7 +31,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
-public class AmqpXioChannel implements IXioChannel
+public class AmqpXioChannel implements XioChannel
 {
   public AmqpXioChannel( Connection connection, String exchangeName, Executor executor, int timeout) throws IOException
   {
@@ -181,7 +181,7 @@ public class AmqpXioChannel implements IXioChannel
    * @see org.xmodel.net.IXioChannel#close()
    */
   @Override
-  public AsyncFuture<IXioChannel> close()
+  public AsyncFuture<XioChannel> close()
   {
     closed.set( true);
     
@@ -196,7 +196,7 @@ public class AmqpXioChannel implements IXioChannel
     getPeer().getPeerRegistry().unregisterAll( getPeer());
     
     // stop consumers
-    AsyncFuture<IXioChannel> future = getCloseFuture();
+    AsyncFuture<XioChannel> future = getCloseFuture();
     try
     {
 //      if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
@@ -262,9 +262,9 @@ public class AmqpXioChannel implements IXioChannel
    * @see org.xmodel.net.IXioChannel#getCloseFuture()
    */
   @Override
-  public synchronized AsyncFuture<IXioChannel> getCloseFuture()
+  public synchronized AsyncFuture<XioChannel> getCloseFuture()
   {
-    if ( closeFuture == null) closeFuture = new AsyncFuture<IXioChannel>( this);
+    if ( closeFuture == null) closeFuture = new AsyncFuture<XioChannel>( this);
     return closeFuture;
   }
   
@@ -421,7 +421,7 @@ public class AmqpXioChannel implements IXioChannel
   private String inQueue;
   private String outQueue;
   private Connection connection;
-  private AsyncFuture<IXioChannel> closeFuture;
+  private AsyncFuture<XioChannel> closeFuture;
   private Executor executor;
   private Channel defaultConsumerChannel;
   private List<Channel> openChannels;

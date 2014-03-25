@@ -5,7 +5,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.HeaderProtocol.Type;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.XioException;
 
 public class UnbindRequestProtocol
@@ -29,7 +29,7 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @return Returns null or the query result.
    */
-  public void send( IXioChannel channel, int netID) throws InterruptedException
+  public void send( XioChannel channel, int netID) throws InterruptedException
   {
     log.debugf( "UnbindRequestProtocol.send: element=%X", netID);
     
@@ -48,7 +48,7 @@ public class UnbindRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( IXioChannel channel, ChannelBuffer buffer) throws XioException
+  public void handle( XioChannel channel, ChannelBuffer buffer) throws XioException
   {
     int netID = buffer.readInt();
     
@@ -66,7 +66,7 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @param element The element.
    */
-  private void unbind( IXioChannel channel, long netID, IModelObject element)
+  private void unbind( XioChannel channel, long netID, IModelObject element)
   {
     synchronized( bundle.context)
     {
@@ -87,7 +87,7 @@ public class UnbindRequestProtocol
   
   private class UnbindRunnable implements Runnable
   {
-    public UnbindRunnable( IXioChannel channel, long netID, IModelObject element)
+    public UnbindRunnable( XioChannel channel, long netID, IModelObject element)
     {
       this.channel = channel;
       this.netID = netID;
@@ -103,7 +103,7 @@ public class UnbindRequestProtocol
       unbind( channel, netID, element);
     }
     
-    private IXioChannel channel;
+    private XioChannel channel;
     private long netID;
     private IModelObject element;
   }

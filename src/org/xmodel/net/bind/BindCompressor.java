@@ -37,7 +37,7 @@ import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.IXioChannel;
+import org.xmodel.net.XioChannel;
 import org.xmodel.net.NetworkCachingPolicy;
 
 /**
@@ -98,7 +98,7 @@ public class BindCompressor extends TabularCompressor
    * Set the channel for the next call to the <code>decompress</code> method.
    * @param channel The channel.
    */
-  public void setChannel( IXioChannel channel)
+  public void setChannel( XioChannel channel)
   {
     this.channel = channel;
   }
@@ -336,6 +336,6 @@ public class BindCompressor extends TabularCompressor
   private Map<Integer, IModelObject> localMap;
   private Map<Integer, IModelObject> remoteMap;
   private Map<IModelObject, Integer> remoteKeys;
-  private IXioChannel channel;
+  private XioChannel channel;
   private int timeout;
 }

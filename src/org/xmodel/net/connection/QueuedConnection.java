@@ -24,14 +24,13 @@ public class QueuedConnection extends AbstractNetworkConnection
      * Called when a message expires before it can be sent.
      * @param connection The connection.
      * @param message The message.
-     * @param correlation The correlation key.
      */
-    public void onMessageExpired( INetworkConnection connection, Object message, Object correlation);
+    public void onMessageExpired( INetworkConnection connection, INetworkMessage message);
   }
   
-  public QueuedConnection( INetworkProtocol protocol, INetworkConnectionFactory connectionFactory, Queue<Object> queue, ScheduledExecutorService scheduler)
+  public QueuedConnection( INetworkConnectionFactory connectionFactory, Queue<INetworkMessage> queue, ScheduledExecutorService scheduler)
   {
-    super( protocol);
+    super();
     
     this.connectionFactory = connectionFactory;
     this.queue = queue;
@@ -53,9 +52,9 @@ public class QueuedConnection extends AbstractNetworkConnection
    * @param message The message to send.
    * @return Returns the future for the operation.
    */
-  public AsyncFuture<Object> queueSend( Object message)
+  public AsyncFuture<INetworkMessage> queueSend( INetworkMessage message)
   {
-    AsyncFuture<Object> future = new AsyncFuture<Object>( message);
+    AsyncFuture<INetworkMessage> future = new AsyncFuture<INetworkMessage>( message);
     
     if ( !queue.offer( message))
     {
@@ -77,10 +76,10 @@ public class QueuedConnection extends AbstractNetworkConnection
     {
       while( true)
       {
-        Object message = queue.peek();
+        INetworkMessage message = queue.peek();
         if ( message == null) break;
         
-        long expires = protocol.getExpiration( message);
+        long expires = message.getExpiration();
         if ( expires > 0)
         {
           long life = expires - System.currentTimeMillis();
@@ -148,7 +147,7 @@ public class QueuedConnection extends AbstractNetworkConnection
    * Notify listeners that a message expired.
    * @param message The message.
    */
-  protected void handleExpiredMessage( Object message, Object correlation)
+  protected void handleExpiredMessage( INetworkMessage message)
   {
     for( INetworkConnection.IListener listener: getListeners())
     {
@@ -205,7 +204,7 @@ public class QueuedConnection extends AbstractNetworkConnection
   
   private INetworkConnectionFactory connectionFactory;
   private INetworkConnection connection;
-  private Queue<Object> queue;
+  private Queue<INetworkMessage> queue;
   private ScheduledExecutorService scheduler;
   private AtomicReference<ScheduledFuture<?>> reconnectFutureRef;
   private int retryDelay;

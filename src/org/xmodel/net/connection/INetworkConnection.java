@@ -18,9 +18,8 @@ public interface INetworkConnection
      * Called when a message is received.
      * @param connection The connection that received the message.
      * @param message The message that was received.
-     * @param correlation TODO
      */
-    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation);
+    public void onMessageReceived( INetworkConnection connection, INetworkMessage message);
     
     /**
      * Called when the network connection is closed either explicitly or unexpectedly.
@@ -34,11 +33,6 @@ public interface INetworkConnection
    * Reason for request future failure when connection is closed before response is received.
    */
   public final static String closedFutureMessage = "closed";
-  
-  /**
-   * @return Returns the protocol implementation for this connection.
-   */
-  public INetworkProtocol getProtocol();
   
   /**
    * Establish the network connection. If the connection is already established, then this
@@ -65,15 +59,14 @@ public interface INetworkConnection
    * Send a message.
    * @param message The message.
    */
-  public void send( Object message) throws IOException;
+  public void send( INetworkMessage message) throws IOException;
   
   /**
    * Send a request and return a future that will be notified when the response arrives.
    * @param request The request message.
-   * @param correlation The correlation key.
    * @return Returns a future for the operation (with a reference to the request message).
    */
-  public RequestFuture request( Object request, Object correlation);
+  public AsyncFuture<INetworkMessage> request( INetworkMessage request);
     
   /**
    * Add a listener for incoming messages.

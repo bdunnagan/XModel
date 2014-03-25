@@ -1,8 +1,0 @@
-Types of Communication Failures
-
-  Message Parsing Failure
-    ex: TabularCompressor exception
-
-  Remote Execution Failure
-
-  Remote Execution Timeout
