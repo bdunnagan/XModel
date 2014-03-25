@@ -1,5 +1,6 @@
 package org.xmodel.net.connection;
 
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -23,12 +24,15 @@ public class QueuedConnection extends AbstractNetworkConnection
      * Called when a message expires before it can be sent.
      * @param connection The connection.
      * @param message The message.
+     * @param correlation The correlation key.
      */
-    public void onMessageExpired( INetworkConnection connection, INetworkMessage message);
+    public void onMessageExpired( INetworkConnection connection, Object message, Object correlation);
   }
   
-  public QueuedConnection( INetworkConnectionFactory connectionFactory, Queue<INetworkMessage> queue, ScheduledExecutorService scheduler)
+  public QueuedConnection( INetworkProtocol protocol, INetworkConnectionFactory connectionFactory, Queue<Object> queue, ScheduledExecutorService scheduler)
   {
+    super( protocol);
+    
     this.connectionFactory = connectionFactory;
     this.queue = queue;
     this.scheduler = scheduler;
@@ -49,9 +53,9 @@ public class QueuedConnection extends AbstractNetworkConnection
    * @param message The message to send.
    * @return Returns the future for the operation.
    */
-  public AsyncFuture<INetworkMessage> queueSend( INetworkMessage message)
+  public AsyncFuture<Object> queueSend( Object message)
   {
-    AsyncFuture<INetworkMessage> future = new AsyncFuture<INetworkMessage>( message);
+    AsyncFuture<Object> future = new AsyncFuture<Object>( message);
     
     if ( !queue.offer( message))
     {
@@ -73,10 +77,10 @@ public class QueuedConnection extends AbstractNetworkConnection
     {
       while( true)
       {
-        INetworkMessage message = queue.peek();
+        Object message = queue.peek();
         if ( message == null) break;
         
-        long expires = message.getExpiration();
+        long expires = protocol.getExpiration( message);
         if ( expires > 0)
         {
           long life = expires - System.currentTimeMillis();
@@ -123,10 +127,10 @@ public class QueuedConnection extends AbstractNetworkConnection
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection#send(org.xmodel.net.connection.INetworkMessage)
+   * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
    */
   @Override
-  public void send( INetworkMessage message) throws Exception
+  public void send( Object message) throws IOException
   {
     connection.send( message);
   }
@@ -144,7 +148,7 @@ public class QueuedConnection extends AbstractNetworkConnection
    * Notify listeners that a message expired.
    * @param message The message.
    */
-  protected void handleExpiredMessage( INetworkMessage message)
+  protected void handleExpiredMessage( Object message, Object correlation)
   {
     for( INetworkConnection.IListener listener: getListeners())
     {
@@ -201,7 +205,7 @@ public class QueuedConnection extends AbstractNetworkConnection
   
   private INetworkConnectionFactory connectionFactory;
   private INetworkConnection connection;
-  private Queue<INetworkMessage> queue;
+  private Queue<Object> queue;
   private ScheduledExecutorService scheduler;
   private AtomicReference<ScheduledFuture<?>> reconnectFutureRef;
   private int retryDelay;

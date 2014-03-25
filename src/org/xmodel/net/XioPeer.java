@@ -164,25 +164,11 @@ public class XioPeer
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void execute( final IContext context, 
-                       final int correlation, 
-                       final String[] vars, 
-                       final IModelObject element, 
-                       final IXioCallback callback, 
-                       final int timeout) throws IOException, InterruptedException
+  public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     IXioChannel channel = getChannel();
     if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    executionProtocol.requestProtocol.send( channel, correlation, context, vars, element, callback, timeout);
-  }
-  
-  /**
-   * Cancel the request with the specified correlation number.
-   * @param correlation The correlation number.
-   */
-  public void cancel( int correlation)
-  {
-    executionProtocol.requestProtocol.cancel( channel, correlation);
+    executionProtocol.requestProtocol.send( channel, context, vars, element, callback, timeout);
   }
   
   /**
@@ -268,22 +254,6 @@ public class XioPeer
   }
   
   /**
-   * Connect this 
-   */
-  public void connect()
-  {
-    
-  }
-  
-  /**
-   * @return Returns true if the connection to the server is established.
-   */
-  public synchronized boolean isConnected()
-  {
-    return (channel != null)? channel.isConnected(): false;
-  }
-  
-  /**
    * Close the connection.
    */
   public AsyncFuture<INetworkConnection> close()
@@ -298,7 +268,6 @@ public class XioPeer
   {
     headerProtocol.reset();
     bindProtocol.reset();
-    echoProtocol.reset();
     executionProtocol.reset();
   }
   

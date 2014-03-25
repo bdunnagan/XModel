@@ -75,7 +75,6 @@ public class RunAction extends GuardedAction
     super.configure( document);
 
     var = Conventions.getVarName( document.getRoot(), false, "assign");    
-    cancelVar = Xlate.get( document.getRoot(), "cancelVar", (String)null);    
     contextExpr = document.getExpression( "context", true);
     scriptExpr = document.getExpression();
     
@@ -266,8 +265,8 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote execution at %s, @name=%s ...", address.toString(), Xlate.get( scriptNode, "name", "?"));
   
         final NettyXioClient client = new NettyXioClient( context);
-        client.connect( address, connectionRetries).await( timeout);
-        if ( !client.isConnected()) throw new RuntimeException( "Timeout");
+        if ( !client.connect( address, connectionRetries).await( timeout))
+          throw new RuntimeException( "Timeout");
         
         if ( onComplete == null && onSuccess == null && onError == null)
         {
@@ -289,69 +288,14 @@ public class RunAction extends GuardedAction
           runContext.set( "remoteHost", address.getAddress().getHostAddress());
           runContext.set( "remotePort", address.getPort());
           
-          final int correlation = correlationCounter.getAndIncrement();
-          if ( cancelVar != null)
+          try
           {
-            IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
-            asyncInvocation.setAttribute( "peer", client);
-            asyncInvocation.setAttribute( "correlation", correlation);
-            context.set( cancelVar, asyncInvocation);
+            AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+            client.execute( runContext, varArray, scriptNode, callback, timeout);
           }
-          
-          if ( !client.isConnected())
+          finally
           {
-            AsyncFuture<NettyXioClient> future = client.connect( address, connectionRetries);
-            future.addListener( new IListener<NettyXioClient>() {
-              public void notifyComplete( AsyncFuture<NettyXioClient> future) throws Exception
-              {
-                if ( future.isSuccess())
-                {
-                  try
-                  {
-                    AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-                    client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
-                  }
-                  catch( final Exception e)
-                  {
-                    context.getExecutor().execute( new Runnable() {
-                      public void run()
-                      {
-                        context.set( "error", e.toString());
-                        if ( onError != null) onError.run( context);
-                        if ( onComplete != null) onComplete.run( context);
-                      }
-                    });
-                  }
-                  finally
-                  {
-                    if ( client != null) client.close();
-                  }
-                }
-                else
-                {
-                  context.getExecutor().execute( new Runnable() {
-                    public void run()
-                    {
-                      context.set( "error", "Connection not established!");
-                      if ( onError != null) onError.run( context);
-                      if ( onComplete != null) onComplete.run( context);
-                    }
-                  });
-                }
-              }
-            });
-          }
-          else
-          {
-            try
-            {
-              AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-              client.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
-            }
-            finally
-            {
-              if ( client != null) client.close();
-            }
+            if ( client != null) client.close();
           }
         }
       }
@@ -440,17 +384,8 @@ public class RunAction extends GuardedAction
                 runContext.set( "remotePort", address.getPort());
               }
               
-              final int correlation = correlationCounter.getAndIncrement();
-              if ( cancelVar != null)
-              {
-                IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
-                asyncInvocation.setAttribute( "peer", peer);
-                asyncInvocation.setAttribute( "correlation", correlation);
-                context.set( cancelVar, asyncInvocation);
-              }
-              
               AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
-              peer.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+              peer.execute( runContext, varArray, scriptNode, callback, timeout);
               
               count++;
             }
@@ -745,7 +680,6 @@ public class RunAction extends GuardedAction
   private final static AtomicInteger correlationCounter = new AtomicInteger( 0);
   
   private String var;
-  private String cancelVar;
   private IExpression varsExpr;
   private IExpression contextExpr;
   private IExpression hostExpr;

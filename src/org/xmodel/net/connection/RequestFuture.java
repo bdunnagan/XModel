@@ -6,10 +6,11 @@ import org.xmodel.future.AsyncFuture;
 
 public class RequestFuture extends AsyncFuture<Object>
 {
-  public RequestFuture( AbstractNetworkConnection connection, Object request)
+  public RequestFuture( AbstractNetworkConnection connection, Object request, Object correlation)
   {
     super( request);
     
+    this.correlation = correlation;
     this.connection = connection;
     this.responseRef = new AtomicReference<Object>();
   }
@@ -37,12 +38,11 @@ public class RequestFuture extends AsyncFuture<Object>
   @Override
   public void cancel()
   {
-    Object key = connection.protocol.getCorrelation( getInitiator());
-    connection.removeRequestFuture( key);
-    
+    if ( correlation != null) connection.removeRequestFuture( correlation);
     super.cancel();
   }
-  
+ 
+  private Object correlation;
   private final AbstractNetworkConnection connection;
   private AtomicReference<Object> responseRef;
 }

@@ -4,6 +4,12 @@ import java.io.IOException;
 
 import org.xmodel.future.AsyncFuture;
 
+/**
+ * An interface for network connections that are used for messaging.  Implementations of this interface
+ * are responsible for framing and correlation.  The interface was designed to support message-bus
+ * implementations, where framing and correlation may already be provided, as well as socket-based
+ * implementations.
+ */
 public interface INetworkConnection
 {
   public interface IListener

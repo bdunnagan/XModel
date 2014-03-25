@@ -33,7 +33,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
   @Override
   public RequestFuture request( final Object request, Object correlation)
   {
-    RequestFuture requestFuture = new RequestFuture( this, request);
+    RequestFuture requestFuture = new RequestFuture( this, request, correlation);
     
     putRequestFuture( correlation, requestFuture);
     
@@ -110,11 +110,10 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
    */
   protected void onMessageReceived( Object message, Object correlation)
   {
-    Object key = protocol.getCorrelation( message);
     try
     {
       // correlate the response
-      RequestFuture requestFuture = getRequestFuture( key);
+      RequestFuture requestFuture = getRequestFuture( correlation);
       if ( requestFuture != null) requestFuture.setResponse( message);
       
       // notify listeners
@@ -143,7 +142,7 @@ public abstract class AbstractNetworkConnection implements INetworkConnection
     finally
     {
       // cleanup
-      removeRequestFuture( key);
+      removeRequestFuture( correlation);
     }
   }
   

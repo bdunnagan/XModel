@@ -80,34 +80,21 @@ public class ExecutionRequestProtocol
     
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
-    // ignoring write buffer overflow for this type of messaging
     RequestFuture future = channel.request( ChannelBuffers.wrappedBuffer( buffer1, buffer2), correlation);
-    if ( timeout <= 0) return null;
-
-    // wait
-    future.await( timeout);
     
-    // parse response
-    Object response = future.getResponse();
-    if ( response == null) return null;
-    
-    byte[] content = bundle.connection.getProtocol().getBytes( response);
-    
-    
-    return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
+    return (timeout > 0)? bundle.responseProtocol.waitForResponse( future, context): null;
   }
   
   /**
    * Send an asynchronous execution request via the specified channel.
    * @param channel The channel.
-   * @param correlation The preallocated correlation number.
    * @param context The local context.
    * @param vars Shared variables from the local context.
    * @param element The script element to execute.
    * @param callback The callback.
    * @param timeout The timeout in milliseconds.
    */
-  public void send( IXioChannel channel, int correlation, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
+  public void send( IXioChannel channel, IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
     ResponseTask task = new ResponseTask( channel, context, callback);
     if ( timeout != Integer.MAX_VALUE)

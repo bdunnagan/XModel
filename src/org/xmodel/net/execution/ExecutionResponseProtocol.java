@@ -23,6 +23,7 @@ import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioExecutionException;
+import org.xmodel.net.connection.RequestFuture;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -124,27 +125,23 @@ public class ExecutionResponseProtocol
    */
   public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
-    int correlation = buffer.readInt();
+    Object correlation = channel.getProtocol().getCorrelation( buffer);
     
-    //
-    // The execution protocol can function in a variety of client/server threading models.
-    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
-    //
-    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
-    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
-    
-    BlockingQueue<IModelObject> queue = queues.get( correlation);
-    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
-    if ( queue != null) queue.offer( response);
-    
-    ResponseTask task = tasks.remove( correlation);
-    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
-    if ( task != null && task.cancelTimer()) 
-    {
-      task.setResponse( response);
-      Executor executor = task.context.getExecutor();
-      executor.execute( task);
-    }
+//    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+//    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
+//    
+//    BlockingQueue<IModelObject> queue = queues.get( correlation);
+//    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
+//    if ( queue != null) queue.offer( response);
+//    
+//    ResponseTask task = tasks.remove( correlation);
+//    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
+//    if ( task != null && task.cancelTimer()) 
+//    {
+//      task.setResponse( response);
+//      Executor executor = task.context.getExecutor();
+//      executor.execute( task);
+//    }
   }
   
   /**
@@ -192,41 +189,36 @@ public class ExecutionResponseProtocol
   
   /**
    * Wait for a response to the request with the specified correlation number.
-   * @param correlation The correlation number.
+   * @param future The requets future.
    * @param context The execution context.
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected Object[] waitForResponse( int correlation, IContext context, int timeout) throws InterruptedException, XioExecutionException
+  protected Object[] waitForResponse( RequestFuture future, IContext context, int timeout) throws InterruptedException, XioExecutionException
   {
-    log.debugf( "waitForResponse: corr=%d", correlation);
+    if ( !future.await( timeout))
+    {
+      log.debugf( "Execution request timed-out.");
+      return null;
+    }
+
+    ChannelBuffer buffer = (ChannelBuffer)future.getResponse();
     
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    IModelObject response = null;
     try
     {
-      BlockingQueue<IModelObject> queue = queues.get( correlation);
-      IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
-      
-      if ( response == null) 
-      {
-        log.debugf( "Response is null: corr=%s", correlation);
-        return null;
-      }
-      
-      if ( response == closedQueueIndicator)
-      {
-        log.debugf( "Response interrupted: corr=%s", correlation);
-        throw new XioExecutionException( "Protocol interrupted by closed connection.");
-      }
-        
-      Throwable throwable = ExecutionSerializer.readResponseException( response);
-      if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
-      
-      return ExecutionSerializer.readResponse( response, context);
+      compressor.decompress( new ChannelBufferInputStream( buffer));
     }
-    finally
+    catch( IOException e)
     {
-      queues.remove( correlation);
+      throw new XioExecutionException( e);
     }
+        
+    Throwable throwable = ExecutionSerializer.readResponseException( response);
+    if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
+    
+    return ExecutionSerializer.readResponse( response, context);
   }
 
   public static class ResponseTask implements Runnable
