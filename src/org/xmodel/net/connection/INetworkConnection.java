@@ -1,5 +1,7 @@
 package org.xmodel.net.connection;
 
+import java.io.IOException;
+
 import org.xmodel.future.AsyncFuture;
 
 public interface INetworkConnection
@@ -10,8 +12,9 @@ public interface INetworkConnection
      * Called when a message is received.
      * @param connection The connection that received the message.
      * @param message The message that was received.
+     * @param correlation TODO
      */
-    public void onMessageReceived( INetworkConnection connection, Object message);
+    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation);
     
     /**
      * Called when the network connection is closed either explicitly or unexpectedly.
@@ -56,16 +59,16 @@ public interface INetworkConnection
    * Send a message.
    * @param message The message.
    */
-  public void send( Object message) throws Exception;
+  public void send( Object message) throws IOException;
   
   /**
    * Send a request and return a future that will be notified when the response arrives.
    * @param request The request message.
-   * @param timeout The timeout for the request in milliseconds.
+   * @param correlation The correlation key.
    * @return Returns a future for the operation (with a reference to the request message).
    */
-  public AsyncFuture<Object> request( Object request, int timeout);
-  
+  public RequestFuture request( Object request, Object correlation);
+    
   /**
    * Add a listener for incoming messages.
    * @param listener The listener.

@@ -51,10 +51,10 @@ public class StaleConnectionMonitor implements INetworkConnection.IListener
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.net.connection.INetworkConnection.IListener#onMessageReceived(org.xmodel.net.connection.INetworkConnection, org.xmodel.net.connection.INetworkMessage)
+   * @see org.xmodel.net.connection.INetworkConnection.IListener#onMessageReceived(org.xmodel.net.connection.INetworkConnection, java.lang.Object, java.lang.Object)
    */
   @Override
-  public void onMessageReceived( INetworkConnection connection, Object message)
+  public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
   {
     if ( closed.get()) return;
     

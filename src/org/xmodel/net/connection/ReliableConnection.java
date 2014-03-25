@@ -1,5 +1,6 @@
 package org.xmodel.net.connection;
 
+import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -16,9 +17,9 @@ import org.xmodel.log.SLog;
  */
 public class ReliableConnection extends AbstractNetworkConnection
 {
-  public ReliableConnection( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory, ScheduledExecutorService scheduler)
+  public ReliableConnection( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory)
   {
-    super( protocol, scheduler);
+    super( protocol);
     
     this.lifetime = lifetime;
     this.connectionFactory = connectionFactory;
@@ -76,7 +77,7 @@ public class ReliableConnection extends AbstractNetworkConnection
    * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
    */
   @Override
-  public void send( Object message) throws Exception
+  public void send( Object message) throws IOException
   {
     synchronized( connectionLock)
     {
@@ -88,12 +89,12 @@ public class ReliableConnection extends AbstractNetworkConnection
    * @see org.xmodel.net.connection.AbstractNetworkConnection#request(java.lang.Object, int)
    */
   @Override
-  public AsyncFuture<Object> request( Object request, int timeout)
+  public RequestFuture request( Object request, Object correlation)
   {
     synchronized( connectionLock)
     {
       isRequestPending = true;
-      AsyncFuture<Object> future = activeConnection.request( request, timeout);
+      RequestFuture future = activeConnection.request( request, correlation);
       future.addListener( requestListener);
       return future;
     }
@@ -201,9 +202,9 @@ public class ReliableConnection extends AbstractNetworkConnection
   };
   
   private INetworkConnection.IListener consumer = new INetworkConnection.IListener() {
-    public void onMessageReceived( INetworkConnection connection, Object message)
+    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
     {
-      ReliableConnection.this.onMessageReceived( message);
+      ReliableConnection.this.onMessageReceived( message, correlation);
     }
     public void onClose( INetworkConnection connection, Object cause)
     {

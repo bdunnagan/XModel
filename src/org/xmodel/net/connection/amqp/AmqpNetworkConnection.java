@@ -2,7 +2,6 @@ package org.xmodel.net.connection.amqp;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
@@ -24,9 +23,9 @@ import com.rabbitmq.client.ShutdownSignalException;
  */
 public class AmqpNetworkConnection extends AbstractNetworkConnection
 {
-  public AmqpNetworkConnection( ConnectionFactory connectionFactory, Address[] brokers, ExecutorService executor, ScheduledExecutorService scheduler)
+  public AmqpNetworkConnection( ConnectionFactory connectionFactory, Address[] brokers, ExecutorService executor)
   {
-    super( new AmqpNetworkProtocol(), scheduler);
+    super( new AmqpNetworkProtocol());
     
     this.exchange = "";
     this.outQueue = "";
@@ -159,7 +158,7 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
    * @see org.xmodel.net.connection.INetworkConnection#send(java.lang.Object)
    */
   @Override
-  public void send( Object message) throws Exception
+  public void send( Object message) throws IOException
   {
     if ( exchange.length() == 0 && outQueue.length() == 0)
       throw new IOException( "AmqpNetworkChannel does not define an exchange or a queue.");
@@ -247,7 +246,7 @@ public class AmqpNetworkConnection extends AbstractNetworkConnection
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
       if ( threadChannels.get() != getChannel()) threadChannels.set( getChannel());
-      onMessageReceived( new AmqpNetworkMessage( properties, body));
+      onMessageReceived( new AmqpNetworkMessage( properties, body), properties.getCorrelationId());
     }
 
     /* (non-Javadoc)

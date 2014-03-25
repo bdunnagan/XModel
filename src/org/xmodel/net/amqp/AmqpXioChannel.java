@@ -1,7 +1,6 @@
 package org.xmodel.net.amqp;
 
 import java.net.SocketAddress;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.xmodel.net.IXioChannel;
@@ -12,9 +11,9 @@ import org.xmodel.net.connection.ReliableConnection;
 
 public class AmqpXioChannel extends ReliableConnection implements IXioChannel
 {
-  public AmqpXioChannel( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory, ScheduledExecutorService scheduler)
+  public AmqpXioChannel( INetworkProtocol protocol, int lifetime, INetworkConnectionFactory connectionFactory)
   {
-    super( protocol, lifetime, connectionFactory, scheduler);
+    super( protocol, lifetime, connectionFactory);
   }
   
   /**
