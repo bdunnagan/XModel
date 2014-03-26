@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,22 +23,17 @@ import org.xmodel.net.XioPeer;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpXioChannel implements IXioChannel
 {
-  public AmqpXioChannel( Connection connection, String exchangeName, Executor executor, int timeout) throws IOException
+  public AmqpXioChannel( AutoRefreshConnection connection, String exchangeName, Executor executor, int timeout) throws IOException
   {
     this.connection = connection;
     this.exchangeName = exchangeName;
     this.executor = executor;
     this.timeout = timeout;
     this.timeoutScheduleRef = new AtomicReference<ScheduledFuture<?>>();
-    this.threadChannels = new ThreadLocal<Channel>();
-    this.openChannels = new ArrayList<Channel>();
     this.closed = new AtomicReference<Boolean>( false);
   }
 
@@ -65,7 +58,7 @@ public class AmqpXioChannel implements IXioChannel
   /**
    * @return Returns the amqp Connection instance.
    */
-  public Connection getConnection()
+  public AutoRefreshConnection getConnection()
   {
     return connection;
   }
@@ -91,7 +84,16 @@ public class AmqpXioChannel implements IXioChannel
       throw new IllegalArgumentException( "Attempt to declare null/empty queue!");
     
     outQueue = queue;
-    getThreadChannel().queueDeclare( outQueue, durable, false, autoDelete, null);
+    
+    Channel channel = connection.leaseChannel();
+    try
+    {
+      channel.queueDeclare( outQueue, durable, false, autoDelete, null);
+    }
+    finally
+    {
+      connection.returnChannel( channel);
+    }
   }
   
   /**
@@ -119,7 +121,15 @@ public class AmqpXioChannel implements IXioChannel
    */
   public void purgeOutputQueue() throws IOException
   {
-    getThreadChannel().queuePurge( outQueue);
+    Channel channel = connection.leaseChannel();
+    try
+    {
+      channel.queuePurge( outQueue);
+    }
+    finally
+    {
+      connection.returnChannel( channel);
+    }
   }
 
   /**
@@ -129,12 +139,19 @@ public class AmqpXioChannel implements IXioChannel
   {
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to start consumer with null/empty queue!");
+
+    Channel channel = connection.leaseChannel();
+    try
+    {
+      defaultConsumerChannel.queueDeclare( inQueue, durable, false, autoDelete, null);
+    }
+    finally
+    {
+      connection.returnChannel( channel);
+    }
     
     inQueue = queue;
-    defaultConsumerChannel = connection.createChannel();
-    defaultConsumerChannel.basicQos( 100);
-    defaultConsumerChannel.queueDeclare( inQueue, durable, false, autoDelete, null);
-    defaultConsumerChannel.basicConsume( inQueue, false, "traffic", new TrafficConsumer( defaultConsumerChannel));
+    connection.startConsumer( queue, durable, autoDelete, this);
   }
 
   /* (non-Javadoc)
@@ -167,7 +184,16 @@ public class AmqpXioChannel implements IXioChannel
     {
       byte[] bytes = new byte[ buffer.readableBytes()];
       buffer.readBytes( bytes);
-      getThreadChannel().basicPublish( exchangeName, outQueue, null, bytes);
+      
+      Channel channel = connection.leaseChannel();
+      try
+      {
+        channel.basicPublish( exchangeName, outQueue, null, bytes);
+      }
+      finally
+      {
+        connection.returnChannel( channel);
+      }
     }
     catch( IOException e)
     {
@@ -206,23 +232,6 @@ public class AmqpXioChannel implements IXioChannel
       log.exception( e);
       future.notifyFailure( e);
     }
-      
-    // close amqp channels
-    for( Channel channel: openChannels)
-    {
-      try
-      {
-        channel.close();
-      }
-      catch( IOException e)
-      {
-        log.exception( e);
-        future.notifyFailure( e);
-      }
-    }
-
-    openChannels.clear();
-    threadChannels = null;
     
     future.notifySuccess();
     return future;
@@ -268,23 +277,6 @@ public class AmqpXioChannel implements IXioChannel
   }
   
   /**
-   * @return Returns the channel for the current thread.
-   */
-  private Channel getThreadChannel() throws IOException
-  {
-    if ( closed.get()) throw new IOException( "AmqpXioChannel is closed.");
-    
-    Channel channel = threadChannels.get();
-    if ( channel == null)
-    {
-      channel = connection.createChannel();
-      threadChannels.set( channel);
-      openChannels.add( channel);
-    }
-    return channel;
-  }
-  
-  /**
    * @return Returns null or the input queue name.
    */
   protected String inQueue()
@@ -308,75 +300,53 @@ public class AmqpXioChannel implements IXioChannel
   {
     return inQueue+" <-> "+outQueue;
   }
-  
-  private class TrafficConsumer extends DefaultConsumer
+
+  /**
+   * Consume a message.
+   * @param channel The consumer channel.
+   * @param consumerTag 
+   * @param envelope
+   * @param properties
+   * @param body
+   */
+  public void handleDelivery( Channel channel, String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
   {
-    public TrafficConsumer( Channel channel)
+    try
     {
-      super( channel);
-    }
-    
-    /* (non-Javadoc)
-     * @see com.rabbitmq.client.Consumer#handleDelivery(java.lang.String, com.rabbitmq.client.Envelope, com.rabbitmq.client.AMQP.BasicProperties, byte[])
-     */
-    @Override
-    public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
-    {
-      try
+      log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
+      
+      if ( closed.get())
       {
-        log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
-        
-        if ( closed.get())
-        {
-          log.warnf( "Delivery aborted on closed channel: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
-          return;
-        }
-        
-        ScheduledFuture<?> timer = timeoutScheduleRef.get();
-        if ( timer != null && timer.cancel( false))
-        {
-          timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
-          log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
-        }
-        
-        if ( heartbeatTimer != null)
-        {
-          heartbeatTimer.cancel( false);        
-          heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
-        }
-        
-        peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
+        log.warnf( "Delivery aborted on closed channel: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
+        return;
       }
-      catch( Exception e)
+      
+      ScheduledFuture<?> timer = timeoutScheduleRef.get();
+      if ( timer != null && timer.cancel( false))
       {
-        log.errorf( "Caught exception handling message from queue, %s", envelope.getRoutingKey());
-        log.exception( e);
+        timeoutScheduleRef.set( scheduler.schedule( timeoutTask, timeout, TimeUnit.MILLISECONDS));
+        log.verbosef( "\n\nRefreshing timeout: channel=%X, consumer=%X, oldFuture=%X, newFuture=%X\n", AmqpXioChannel.this.hashCode(), hashCode(), timer.hashCode(), timeoutScheduleRef.get().hashCode());
       }
-      finally
+      
+      if ( heartbeatTimer != null)
       {
-        getChannel().basicAck( envelope.getDeliveryTag(), false);
+        heartbeatTimer.cancel( false);        
+        heartbeatTimer = scheduler.schedule( heartbeatTask, heartbeatPeriod, TimeUnit.MILLISECONDS);
       }
+      
+      peer.handleMessage( AmqpXioChannel.this, ChannelBuffers.wrappedBuffer( body));
     }
-
-    /* (non-Javadoc)
-     * @see com.rabbitmq.client.DefaultConsumer#handleCancel(java.lang.String)
-     */
-    @Override
-    public void handleCancel( String consumerTag) throws IOException
+    catch( Exception e)
     {
-      log.severef( "Consumer was cancelled unexpected! consumerTag=%s", consumerTag);
+      log.errorf( "Caught exception handling message from queue, %s", envelope.getRoutingKey());
+      log.exception( e);
     }
-
-    /* (non-Javadoc)
-     * @see com.rabbitmq.client.DefaultConsumer#handleShutdownSignal(java.lang.String, com.rabbitmq.client.ShutdownSignalException)
-     */
-    @Override
-    public void handleShutdownSignal( String consumerTag, ShutdownSignalException sig)
+    finally
     {
-      log.severef( "Received shutdown signal! consumerTag=%s, signal=%s", consumerTag, sig.toString());
+      channel.basicAck( envelope.getDeliveryTag(), false);
     }
   }
-
+  
   private Runnable heartbeatTask = new Runnable() {
     public void run()
     {
@@ -414,12 +384,10 @@ public class AmqpXioChannel implements IXioChannel
   private String exchangeName;
   private String inQueue;
   private String outQueue;
-  private Connection connection;
+  private AutoRefreshConnection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private Executor executor;
   private Channel defaultConsumerChannel;
-  private List<Channel> openChannels;
-  private ThreadLocal<Channel> threadChannels;
   private int heartbeatPeriod;
   private int timeout;
   private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;

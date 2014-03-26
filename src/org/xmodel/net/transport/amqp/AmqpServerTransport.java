@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLContext;
 
@@ -19,7 +20,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
 import com.rabbitmq.client.Address;
-import com.rabbitmq.client.Connection;
 
 public class AmqpServerTransport extends AmqpTransport implements IServerTransport
 {
@@ -48,6 +48,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 30000;
+    int refresh = (refreshExpr != null)? (int)refreshExpr.evaluateNumber( context): (30 * 60);
    
     String queue = queueExpr.evaluateString( context);
     
@@ -92,10 +93,10 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     
     final ExecutorService ioExecutor = new CountingThreadPoolExecutor( queue, 0, threads, 300000);
     Address[] brokers = getBrokers( context);
-    Connection connection = (brokers == null)?
-        connectionFactory.newConnection( ioExecutor):
-        connectionFactory.newConnection( ioExecutor, brokers);
     
+    AutoRefreshConnection connection = new AutoRefreshConnection( connectionFactory, ioExecutor, brokers);
+    connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1));
+        
     AmqpXioChannel serverChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     AmqpXioPeer serverPeer = new AmqpXioPeer( serverChannel, registry, context, context.getExecutor(), null, null);
     serverChannel.setPeer( serverPeer);

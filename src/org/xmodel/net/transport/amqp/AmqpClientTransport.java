@@ -2,7 +2,10 @@ package org.xmodel.net.transport.amqp;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.net.ssl.SSLContext;
+
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.IXioChannel;
@@ -14,8 +17,8 @@ import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
+
 import com.rabbitmq.client.Address;
-import com.rabbitmq.client.Connection;
 
 public class AmqpClientTransport extends AmqpTransport implements IClientTransport
 {
@@ -36,6 +39,7 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 30000;
+    int refresh = (refreshExpr != null)? (int)refreshExpr.evaluateNumber( context): (30 * 60);
    
     String queue = queueExpr.evaluateString( context);
     
@@ -78,9 +82,9 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     
     final ExecutorService ioExecutor = new CountingThreadPoolExecutor( queue, 0, threads, 300);
     Address[] brokers = getBrokers( context);
-    Connection connection = (brokers == null)?
-        connectionFactory.newConnection( ioExecutor):
-        connectionFactory.newConnection( ioExecutor, brokers);
+    
+    AutoRefreshConnection connection = new AutoRefreshConnection( connectionFactory, ioExecutor, brokers);
+    connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1));
 
     AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor, 0);
     final AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
