@@ -25,7 +25,7 @@ import org.xmodel.xpath.expression.StatefulContext;
  * This class represents an XIO protocol end-point.
  * (thread-safe)
  */
-public class XioPeer
+public class XioPeer implements IXioChannel
 {
   /**
    * Create an XioPeer with the specified parameters.
@@ -36,15 +36,15 @@ public class XioPeer
    * @param scheduler The scheduler.
    * @param privilege The execution privilege manager.
    */
-  protected XioPeer( 
-      IXioChannel channel, 
+  protected XioPeer(
+      INetworkConnection connection,
       IXioPeerRegistry registry, 
       IContext context, 
       Executor executor, 
       ScheduledExecutorService scheduler, 
       ExecutionPrivilege privilege)
   {
-    this.channel = channel;
+    this.connection = connection;
     this.registry = registry;
     this.eventContext = new StatefulContext( context);
     
@@ -72,8 +72,7 @@ public class XioPeer
    */
   public void heartbeat() throws IOException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    echoProtocol.requestProtocol.send( channel);
+    echoProtocol.requestProtocol.send( this);
   }
   
   /**
@@ -82,8 +81,7 @@ public class XioPeer
    */
   public void register( final String name) throws IOException, InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    registerProtocol.registerRequestProtocol.send( channel, name);
+    registerProtocol.registerRequestProtocol.send( this, name);
   }
   
   /**
@@ -92,8 +90,7 @@ public class XioPeer
    */
   public void unregisterAll() throws IOException, InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    registerProtocol.unregisterRequestProtocol.send( channel);
+    registerProtocol.unregisterRequestProtocol.send( this);
   }
   
   /**
@@ -102,8 +99,7 @@ public class XioPeer
    */
   public void unregister( final String name) throws IOException, InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    registerProtocol.unregisterRequestProtocol.send( channel, name);
+    registerProtocol.unregisterRequestProtocol.send( this, name);
   }
   
   /**
@@ -115,8 +111,7 @@ public class XioPeer
    */
   public void bind( final IExternalReference reference, final boolean readonly, final String query, final int timeout) throws InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    bindProtocol.bindRequestProtocol.send( reference, channel, readonly, query, timeout);
+    bindProtocol.bindRequestProtocol.send( reference, this, readonly, query, timeout);
   }
   
   /**
@@ -125,8 +120,7 @@ public class XioPeer
    */
   public void unbind( final int netID) throws InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    bindProtocol.unbindRequestProtocol.send( channel, netID);
+    bindProtocol.unbindRequestProtocol.send( this, netID);
   }
   
   /**
@@ -137,8 +131,7 @@ public class XioPeer
    */
   public IModelObject sync( int netID, int timeout) throws InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return bindProtocol.syncRequestProtocol.send( channel, netID, timeout);
+    return bindProtocol.syncRequestProtocol.send( this, netID, timeout);
   }
   
   /**
@@ -151,8 +144,7 @@ public class XioPeer
    */
   public Object[] execute( IContext context, String[] vars, IModelObject element, int timeout) throws XioExecutionException, IOException, InterruptedException
   {
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    return executionProtocol.requestProtocol.send( channel, context, vars, element, timeout);
+    return executionProtocol.requestProtocol.send( this, context, vars, element, timeout);
   }
   
   /**
@@ -166,9 +158,7 @@ public class XioPeer
    */
   public void execute( IContext context, String[] vars, IModelObject element, IXioCallback callback, int timeout) throws IOException, InterruptedException
   {
-    IXioChannel channel = getChannel();
-    if ( channel == null) throw new IllegalStateException( "Peer is not connected.");
-    executionProtocol.requestProtocol.send( channel, context, vars, element, callback, timeout);
+    executionProtocol.requestProtocol.send( this, context, vars, element, callback, timeout);
   }
   
   /**
@@ -218,31 +208,11 @@ public class XioPeer
   }
   
   /**
-   * Set the underlying channel.
-   * @param channel The channel.
-   */
-  public synchronized void setChannel( IXioChannel channel)
-  {
-    this.channel = channel;
-    bindProtocol.requestCompressor.setChannel( channel);
-    bindProtocol.responseCompressor.setChannel( channel);
-    getRemoteAddress();
-  }
-  
-  /**
-   * @return Returns null or the underlying channel.
-   */
-  public synchronized IXioChannel getChannel()
-  {
-    return channel;
-  }
-  
-  /**
    * @return Returns the remote address to which this client is, or was last, connected.
    */
   public synchronized InetSocketAddress getLocalAddress()
   {
-    return (channel != null)? (InetSocketAddress)channel.getLocalAddress(): null;
+    return null;
   }
   
   /**
@@ -250,7 +220,7 @@ public class XioPeer
    */
   public synchronized InetSocketAddress getRemoteAddress()
   {
-    return (channel != null)? (InetSocketAddress)channel.getRemoteAddress(): null;
+    return null;
   }
   
   /**
@@ -258,7 +228,7 @@ public class XioPeer
    */
   public AsyncFuture<INetworkConnection> close()
   {
-    return channel.close();
+    return connection.close();
   }
 
   /**
@@ -287,27 +257,6 @@ public class XioPeer
     return eventContext;
   }
   
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
-  @Override
-  public boolean equals( Object object)
-  {
-    IXioChannel otherChannel = ((XioPeer)object).getChannel();
-    if ( channel == null || otherChannel == null) return false;
-    return channel == otherChannel;
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
-  @Override
-  public int hashCode()
-  {
-    if ( channel == null) return 0;
-    return channel.hashCode();
-  }
-
   /**
    * Dump the content of the specified buffer.
    * @param indent The indentation before each line.
@@ -354,7 +303,7 @@ public class XioPeer
 
   private final static Log log = Log.getLog( XioPeer.class);
   
-  private IXioChannel channel;
+  private INetworkConnection connection;
   private IXioPeerRegistry registry;
   private StatefulContext eventContext;
   protected HeaderProtocol headerProtocol;

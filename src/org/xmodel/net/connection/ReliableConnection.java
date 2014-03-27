@@ -43,6 +43,19 @@ public class ReliableConnection extends AbstractNetworkConnection
   }
   
   /* (non-Javadoc)
+   * @see org.xmodel.net.connection.INetworkConnection#setActive(boolean)
+   */
+  @Override
+  public void setPending( boolean pending)
+  {
+    synchronized( connectionLock)
+    {
+      isRequestPending = pending;
+      if ( !pending) closeDyingConnection();
+    }
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.net.connection.INetworkConnection#close()
    */
   @Override
@@ -85,21 +98,6 @@ public class ReliableConnection extends AbstractNetworkConnection
     }
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.connection.AbstractNetworkConnection#request(java.lang.Object, int)
-   */
-  @Override
-  public RequestFuture request( Object request, Object correlation)
-  {
-    synchronized( connectionLock)
-    {
-      isRequestPending = true;
-      RequestFuture future = activeConnection.request( request, correlation);
-      future.addListener( requestListener);
-      return future;
-    }
-  }
-
   /**
    * Create a new connection, but only update the active connection after the new connection is established.
    */
@@ -185,15 +183,6 @@ public class ReliableConnection extends AbstractNetworkConnection
     }
   };
   
-  private AsyncFuture.IListener<Object> requestListener = new AsyncFuture.IListener<Object>() {
-    public void notifyComplete( AsyncFuture<Object> future) throws Exception
-    {
-      synchronized( connectionLock) { isRequestPending = false;}
-      
-      closeDyingConnection();
-    }
-  };
-  
   private AsyncFuture.IListener<INetworkConnection> reconnectListener = new AsyncFuture.IListener<INetworkConnection>() {
     public void notifyComplete( AsyncFuture<INetworkConnection> future) throws Exception
     {
@@ -202,9 +191,9 @@ public class ReliableConnection extends AbstractNetworkConnection
   };
   
   private INetworkConnection.IListener consumer = new INetworkConnection.IListener() {
-    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation)
+    public void onMessageReceived( INetworkConnection connection, Object message)
     {
-      ReliableConnection.this.onMessageReceived( message, correlation);
+      ReliableConnection.this.onMessageReceived( message);
     }
     public void onClose( INetworkConnection connection, Object cause)
     {

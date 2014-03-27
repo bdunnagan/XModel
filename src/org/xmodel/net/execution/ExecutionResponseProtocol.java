@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -23,7 +24,7 @@ import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
 import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioExecutionException;
-import org.xmodel.net.connection.RequestFuture;
+import org.xmodel.net.connection.INetworkConnection;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
 
@@ -125,23 +126,27 @@ public class ExecutionResponseProtocol
    */
   public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
-    Object correlation = channel.getProtocol().getCorrelation( buffer);
+    int correlation = buffer.readInt();
     
-//    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
-//    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
-//    
-//    BlockingQueue<IModelObject> queue = queues.get( correlation);
-//    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
-//    if ( queue != null) queue.offer( response);
-//    
-//    ResponseTask task = tasks.remove( correlation);
-//    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
-//    if ( task != null && task.cancelTimer()) 
-//    {
-//      task.setResponse( response);
-//      Executor executor = task.context.getExecutor();
-//      executor.execute( task);
-//    }
+    //
+    // The execution protocol can function in a variety of client/server threading models.
+    // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
+    //
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
+    
+    BlockingQueue<IModelObject> queue = queues.get( correlation);
+    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, queue? %s", correlation, (queue != null)? "yes": "no");
+    if ( queue != null) queue.offer( response);
+    
+    ResponseTask task = tasks.remove( correlation);
+    log.debugf( "ExecutionResponseProtocol.handle: corr=%d, task? %s", correlation, (task != null)? "yes": "no");
+    if ( task != null && task.cancelTimer()) 
+    {
+      task.setResponse( response);
+      Executor executor = task.context.getExecutor();
+      executor.execute( task);
+    }
   }
   
   /**
@@ -189,36 +194,41 @@ public class ExecutionResponseProtocol
   
   /**
    * Wait for a response to the request with the specified correlation number.
-   * @param future The requets future.
+   * @param correlation The correlation number.
    * @param context The execution context.
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected Object[] waitForResponse( RequestFuture future, IContext context, int timeout) throws InterruptedException, XioExecutionException
+  protected Object[] waitForResponse( int correlation, IContext context, int timeout) throws InterruptedException, XioExecutionException
   {
-    if ( !future.await( timeout))
-    {
-      log.debugf( "Execution request timed-out.");
-      return null;
-    }
-
-    ChannelBuffer buffer = (ChannelBuffer)future.getResponse();
+    log.debugf( "waitForResponse: corr=%d", correlation);
     
-    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
-    IModelObject response = null;
     try
     {
-      compressor.decompress( new ChannelBufferInputStream( buffer));
-    }
-    catch( IOException e)
-    {
-      throw new XioExecutionException( e);
-    }
+      BlockingQueue<IModelObject> queue = queues.get( correlation);
+      IModelObject response = queue.poll( timeout, TimeUnit.MILLISECONDS);
+      
+      if ( response == null) 
+      {
+        log.debugf( "Response is null: corr=%s", correlation);
+        return null;
+      }
+      
+      if ( response == closedQueueIndicator)
+      {
+        log.debugf( "Response interrupted: corr=%s", correlation);
+        throw new XioExecutionException( "Protocol interrupted by closed connection.");
+      }
         
-    Throwable throwable = ExecutionSerializer.readResponseException( response);
-    if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
-    
-    return ExecutionSerializer.readResponse( response, context);
+      Throwable throwable = ExecutionSerializer.readResponseException( response);
+      if ( throwable != null) throw new XioExecutionException( "Remote invocation exception", throwable);
+      
+      return ExecutionSerializer.readResponse( response, context);
+    }
+    finally
+    {
+      queues.remove( correlation);
+    }
   }
 
   public static class ResponseTask implements Runnable
@@ -229,8 +239,8 @@ public class ExecutionResponseProtocol
       this.context = context;
       this.callback = callback;
       
-      closeListener = new AsyncFuture.IListener<IXioChannel>() {
-        public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception
+      closeListener = new AsyncFuture.IListener<INetworkConnection>() {
+        public void notifyComplete( AsyncFuture<INetworkConnection> future) throws Exception
         {
           if ( cancelTimer())
           {
@@ -314,7 +324,7 @@ public class ExecutionResponseProtocol
     }
 
     private IXioChannel channel;
-    private AsyncFuture.IListener<IXioChannel> closeListener;
+    private AsyncFuture.IListener<INetworkConnection> closeListener;
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;

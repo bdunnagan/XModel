@@ -16,10 +16,6 @@ public class EchoRequestProtocol
   /**
    * Send an execution request via the specified channel.
    * @param channel The channel.
-   * @param context The local context.
-   * @param vars Shared variables from the local context.
-   * @param element The script element to execute.
-   * @param timeout The timeout in milliseconds.
    * @return Returns the result.
    */
   public void send( IXioChannel channel) throws IOException

@@ -18,9 +18,8 @@ public interface INetworkConnection
      * Called when a message is received.
      * @param connection The connection that received the message.
      * @param message The message that was received.
-     * @param correlation TODO
      */
-    public void onMessageReceived( INetworkConnection connection, Object message, Object correlation);
+    public void onMessageReceived( INetworkConnection connection, Object message);
     
     /**
      * Called when the network connection is closed either explicitly or unexpectedly.
@@ -68,13 +67,11 @@ public interface INetworkConnection
   public void send( Object message) throws IOException;
   
   /**
-   * Send a request and return a future that will be notified when the response arrives.
-   * @param request The request message.
-   * @param correlation The correlation key.
-   * @return Returns a future for the operation (with a reference to the request message).
+   * Specify the network connection has a pending request/response transaction.
+   * @param pending True if the connection has a pending transaction.
    */
-  public RequestFuture request( Object request, Object correlation);
-    
+  public void setPending( boolean pending);
+  
   /**
    * Add a listener for incoming messages.
    * @param listener The listener.
