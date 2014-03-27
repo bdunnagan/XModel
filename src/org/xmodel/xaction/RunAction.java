@@ -414,6 +414,19 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
         
         Iterator<XioPeer> iterator = server.getPeerRegistry().lookupByName( client);
+        if ( !iterator.hasNext()) 
+        {
+          if ( onError != null)
+          {
+            String error = String.format( "Client '%s' is not registered.", client);
+            StatefulContext runContext = new StatefulContext( context.getObject());
+            runContext.getScope().copyFrom( context.getScope());
+            runContext.set( "error", error);
+            onError.run( runContext);
+            if ( onComplete != null) onComplete.run( runContext);
+          }
+        }
+        
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();
