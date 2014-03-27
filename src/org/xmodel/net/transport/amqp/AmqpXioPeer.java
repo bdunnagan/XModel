@@ -114,30 +114,6 @@ public class AmqpXioPeer extends XioPeer
     echoProtocol.requestProtocol.send( channel);
   }
   
-//  /* (non-Javadoc)
-//   * @see org.xmodel.net.XioPeer#equals(java.lang.Object)
-//   */
-//  @Override
-//  public boolean equals( Object object)
-//  {
-//    if ( !(object instanceof AmqpXioPeer)) return false;
-//    
-//    AmqpXioPeer other = (AmqpXioPeer)object;
-//    if ( qualifiedName == null && qualifiedName != other.qualifiedName) return false;
-//    if ( qualifiedName != null && other.qualifiedName != null && !qualifiedName.equals( other.qualifiedName)) return false;
-//    
-//    return true;
-//  }
-//
-//  /* (non-Javadoc)
-//   * @see org.xmodel.net.XioPeer#hashCode()
-//   */
-//  @Override
-//  public int hashCode()
-//  {
-//    return (qualifiedName == null)? System.identityHashCode( this): qualifiedName.hashCode();
-//  }
-
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */

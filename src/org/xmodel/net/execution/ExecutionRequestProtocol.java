@@ -80,7 +80,7 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
     
     return (timeout > 0)? bundle.responseProtocol.waitForResponse( correlation, context, timeout): null;
   }
@@ -119,7 +119,7 @@ public class ExecutionRequestProtocol
     ChannelBuffer buffer1 = bundle.headerProtocol.writeHeader( 0, Type.executeRequest, 4 + buffer2.readableBytes(), correlation);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write(ChannelBuffers.wrappedBuffer( buffer1, buffer2));
+    channel.write( ChannelBuffers.wrappedBuffer( buffer1, buffer2));
   }
   
   /**

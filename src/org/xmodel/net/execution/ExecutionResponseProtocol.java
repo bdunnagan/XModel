@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -294,7 +295,7 @@ public class ExecutionResponseProtocol
      */
     @Override
     public void run()
-    {      
+    { 
       channel.getCloseFuture().removeListener( closeListener);
       
       IContext context = new StatefulContext( this.context);

@@ -140,16 +140,6 @@ public class AmqpXioChannel implements IXioChannel
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to start consumer with null/empty queue!");
 
-    Channel channel = connection.leaseChannel();
-    try
-    {
-      defaultConsumerChannel.queueDeclare( inQueue, durable, false, autoDelete, null);
-    }
-    finally
-    {
-      connection.returnChannel( channel);
-    }
-    
     inQueue = queue;
     connection.startConsumer( queue, durable, autoDelete, this);
   }
@@ -225,7 +215,7 @@ public class AmqpXioChannel implements IXioChannel
     try
     {
 //      if ( heartbeatConsumerChannel != null) heartbeatConsumerChannel.close();
-      defaultConsumerChannel.close();
+      connection.stopConsumer( this);
     }
     catch( IOException e)
     {
@@ -311,6 +301,8 @@ public class AmqpXioChannel implements IXioChannel
    */
   public void handleDelivery( Channel channel, String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
   {
+    channel.basicAck( envelope.getDeliveryTag(), false);
+    
     try
     {
       log.debugf( "handleDelivery: e=%s, q=%s", envelope.getExchange(), envelope.getRoutingKey());
@@ -340,10 +332,6 @@ public class AmqpXioChannel implements IXioChannel
     {
       log.errorf( "Caught exception handling message from queue, %s", envelope.getRoutingKey());
       log.exception( e);
-    }
-    finally
-    {
-      channel.basicAck( envelope.getDeliveryTag(), false);
     }
   }
   
@@ -387,7 +375,6 @@ public class AmqpXioChannel implements IXioChannel
   private AutoRefreshConnection connection;
   private AsyncFuture<IXioChannel> closeFuture;
   private Executor executor;
-  private Channel defaultConsumerChannel;
   private int heartbeatPeriod;
   private int timeout;
   private AtomicReference<ScheduledFuture<?>> timeoutScheduleRef;

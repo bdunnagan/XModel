@@ -14,6 +14,7 @@ import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.IXioPeerRegistryListener;
 import org.xmodel.net.XioPeer;
 import org.xmodel.util.CountingThreadPoolExecutor;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ServerAction.IServerTransport;
 import org.xmodel.xpath.expression.IContext;
@@ -95,7 +96,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     Address[] brokers = getBrokers( context);
     
     AutoRefreshConnection connection = new AutoRefreshConnection( connectionFactory, ioExecutor, brokers);
-    connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1));
+    connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "amqp-refresh")));
         
     AmqpXioChannel serverChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     AmqpXioPeer serverPeer = new AmqpXioPeer( serverChannel, registry, context, context.getExecutor(), null, null);

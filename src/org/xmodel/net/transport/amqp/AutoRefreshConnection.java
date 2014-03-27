@@ -4,19 +4,23 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.xmodel.log.SLog;
+import org.xmodel.log.Log;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -39,7 +43,7 @@ public class AutoRefreshConnection
     this.threadItems = new ThreadLocal<ThreadItem>();
     this.allThreadItems = Collections.synchronizedList( new ArrayList<ThreadItem>());
     this.connectionLock = new ReentrantReadWriteLock( true);
-    this.consumers = Collections.synchronizedList( new ArrayList<AutoRefreshConsumer>());
+    this.consumers = Collections.synchronizedMap( new HashMap<AmqpXioChannel, AutoRefreshConsumer>());
     this.obsoleteLeaseQueue = new LinkedBlockingQueue<Channel>();
   }
 
@@ -48,8 +52,10 @@ public class AutoRefreshConnection
    * @param period The period in seconds.
    * @param scheduler The scheduler.
    */
-  public void startRefreshSchedule( int period, ScheduledExecutorService scheduler)
+  public synchronized void startRefreshSchedule( int period, ScheduledExecutorService scheduler)
   {
+    if ( refreshSchedule != null) stopRefreshSchedule();
+    
     Runnable refreshRunnable = new Runnable() {
       public void run()
       {
@@ -63,7 +69,7 @@ public class AutoRefreshConnection
   /**
    * Stop the current refresh schedule.
    */
-  public void stopRefreshSchedule()
+  public synchronized void stopRefreshSchedule()
   {
     if ( refreshSchedule != null) refreshSchedule.cancel( false);
     refreshSchedule = null;
@@ -122,36 +128,38 @@ public class AutoRefreshConnection
    */
   private void refresh()
   {
+    log.debug( "Refreshing connection ...");
+    
     long t0 = System.nanoTime();
+
+    //
+    // Close previous connection.  If there are pending requests on this channel
+    // they will be lost, so choose the refresh rate to be much slower than the longest
+    // request processing time.  This is okay since the goal is just to refresh the 
+    // connection frequently enough to prevent it being dropped by intermediate routers.
+    //
+    log.debug( "Closing obsolete connection ...");
+    try
+    {
+      if ( obsoleteConnection != null) obsoleteConnection.close();
+    }
+    catch( IOException e)
+    {
+      log.warn( "Failed to close obsolete connection ...");
+      log.exception( e);
+    }
     
     // create new connection
+    log.debug( "Swapping new connection ...");
     Connection newConnection = createConnection();
     
-    // stop consumers and close consumer channels
-    for( AutoRefreshConsumer consumer: consumers)
-    {
-      try
-      {
-        Channel channel = consumer.getChannel();
-        channel.flow( false);
-        channel.close();
-      }
-      catch( IOException e)
-      {
-        SLog.warn( this, "Failed while shutting down consumers during refresh ...");
-        SLog.exception( this, e);
-        
-        recoverAfterRefreshFailure();
-      }
-    }
-
     // swap connection under write lock
-    int pendingLeaseCount = 0;
+    List<Channel> pendingLeases = new ArrayList<Channel>();
     long t1 = System.nanoTime();
     try
     {
       connectionLock.writeLock().lock();
-      SLog.infof( this, "Write lock acquired in %1.2fms", (System.nanoTime() - t1) / 1e6);
+      log.debugf( "Write lock acquired in %1.2fms", (System.nanoTime() - t1) / 1e6);
 
       // swap
       obsoleteConnection = activeConnection;
@@ -160,63 +168,82 @@ public class AutoRefreshConnection
       // clear channel of all thread items
       for( ThreadItem item: allThreadItems.toArray( new ThreadItem[ 0]))
       {
+        if ( item.leased) pendingLeases.add( item.channel); 
         item.obsoleteChannel = item.channel;
         item.channel = null;
-        if ( item.leased) pendingLeaseCount++; 
       }
     }
     finally
     {
       connectionLock.writeLock().unlock();
-      SLog.infof( this, "Write lock held for %1.2fms", (System.nanoTime() - t1) / 1e6);
+      log.debugf( "Write lock held for %1.2fms", (System.nanoTime() - t1) / 1e6);
     }
     
     // restart consumers
-    for( AutoRefreshConsumer consumer: consumers)
+    log.debug( "Restarting consumers ...");
+    for( Map.Entry<AmqpXioChannel, AutoRefreshConsumer> entry: consumers.entrySet())
     {
+      Channel oldChannel = entry.getValue().getChannel();
+      
       try
       {
         Channel channel = activeConnection.createChannel();
         
-        AutoRefreshConsumer newConsumer = consumer.cloneWithNewChannel( channel);
-        consumers.add( newConsumer);
+        AutoRefreshConsumer newConsumer = entry.getValue().cloneWithNewChannel( channel);
+        consumers.put( entry.getKey(), newConsumer);
         
         channel.basicQos( 1);
-        channel.basicConsume( newConsumer.queue, false, newConsumer.queue, newConsumer);
+        channel.basicConsume( newConsumer.queue, false, newConsumer.getConsumerTag(), newConsumer);
       }
       catch( IOException e)
       {
-        SLog.warn( this, "Lost connection to message bus while refreshing connection ...");
-        SLog.exception( this, e);
+        log.warn( "Lost connection to message bus while refreshing connection ...");
+        log.exception( e);
+
+        recoverAfterRefreshFailure();
+      }
+      
+      try
+      {
+        oldChannel.close();
+      }
+      catch( IOException e)
+      {
+        log.warn( "Lost connection to message bus while refreshing connection ...");
+        log.exception( e);
 
         recoverAfterRefreshFailure();
       }
     }
-    
+
     // wait for leased channels to be returned before closing old connection
+    log.debug( "Waiting for leases to be returned ...");
     try
     {
-      for( int i=0; i<pendingLeaseCount; i++)
+      for( int i=0; i<pendingLeases.size(); i++)
         obsoleteLeaseQueue.take();
     }
     catch( InterruptedException e)
     {
-      SLog.warn( this, "Interrupted while waiting for leases to be returned ...");
-      SLog.exception( this, e);
+      log.warn( "Interrupted while waiting for leases to be returned ...");
+      log.exception( e);
+    }
+
+    // close channels
+    log.debug( "Closing returned channels ...");
+    for( Channel channel: pendingLeases)
+    {
+      try
+      {
+        channel.close();
+      }
+      catch( IOException e)
+      {
+        log.warn( "Failed to close channel during refresh.");
+      }
     }
     
-    // close old connection
-    try
-    {
-      obsoleteConnection.close();
-    }
-    catch( IOException e)
-    {
-      SLog.warn( this, "Failed to close obsolete connection ...");
-      SLog.exception( this, e);
-    }
-    
-    SLog.infof( this, "Connection refresh took %1.3fs", (System.nanoTime() - t0) / 1e9);
+    log.debugf( "Connection refreshed in %1.3fs", (System.nanoTime() - t0) / 1e9);
   }
   
   /**
@@ -224,7 +251,7 @@ public class AutoRefreshConnection
    */
   private void recoverAfterRefreshFailure()
   {
-    SLog.warn( this, "Recovering after refresh failure!");
+    log.warn( "Recovering after refresh failure!");
     throw new UnsupportedOperationException();
   }
   
@@ -241,6 +268,7 @@ public class AutoRefreshConnection
       ThreadItem item = threadItems.get();
       if ( item == null || item.channel == null)
       {
+        log.debug( "Creating new channel");
         item = new ThreadItem();
         item.channel = activeConnection.createChannel();
         threadItems.set( item);
@@ -273,7 +301,7 @@ public class AutoRefreshConnection
       }
       else if ( item.channel != channel) 
       {
-        SLog.severe( this, "Incorrect thread channel returned.");
+        log.severe( "Incorrect thread channel returned.");
       }
       
       item.leased = false;
@@ -299,8 +327,9 @@ public class AutoRefreshConnection
     
       Channel channel = activeConnection.createChannel();
       
-      AutoRefreshConsumer refreshConsumer = new AutoRefreshConsumer( queue, durable, autoDelete, channel, consumer);
-      consumers.add( refreshConsumer);
+      String tag = queue + counter.getAndIncrement();
+      AutoRefreshConsumer refreshConsumer = new AutoRefreshConsumer( tag, queue, durable, autoDelete, channel, consumer);
+      consumers.put( consumer, refreshConsumer);
       
       //
       // Setting qos to 1 to insure that consumer does not have backlog of messages
@@ -308,7 +337,27 @@ public class AutoRefreshConnection
       // flow is stopped before the consumer channel is closed.
       //
       channel.basicQos( 1);
-      channel.basicConsume( queue, false, queue, refreshConsumer);
+      channel.queueDeclare( queue, durable, false, autoDelete, null);
+      channel.basicConsume( queue, false, refreshConsumer.getConsumerTag(), refreshConsumer);
+    }
+    finally
+    {
+      connectionLock.readLock().unlock();
+    }
+  }
+  
+  /**
+   * Stop the specified consumer.
+   * @param consumer The consumer.
+   */
+  public void stopConsumer( AmqpXioChannel consumer) throws IOException
+  {
+    try
+    {
+      connectionLock.readLock().lock();
+      
+      AutoRefreshConsumer refreshConsumer = consumers.remove( consumer);
+      refreshConsumer.getChannel().close();
     }
     finally
     {
@@ -334,7 +383,7 @@ public class AutoRefreshConnection
       }
       catch( IOException e)
       {
-        SLog.exception( this, e);
+        log.exception( e);
       }
       
       try { Thread.sleep( 3000);} catch( InterruptedException e) { break;}
@@ -348,7 +397,52 @@ public class AutoRefreshConnection
    */
   public void close() throws IOException
   {
-    throw new UnsupportedOperationException();
+    try
+    {
+      connectionLock.writeLock().lock();
+      
+      closeChannels();
+      
+      if ( activeConnection != null) activeConnection.close();
+      activeConnection = null;
+      
+      threadItems = new ThreadLocal<ThreadItem>();
+      allThreadItems.clear();
+      consumers.clear();
+      obsoleteLeaseQueue = new LinkedBlockingQueue<Channel>();
+    }
+    finally
+    {
+      connectionLock.writeLock().unlock();
+    }
+  }
+  
+  /**
+   * Close all open channels.
+   */
+  private void closeChannels()
+  {
+    try
+    {
+      connectionLock.writeLock().lock();
+
+      for( ThreadItem item: allThreadItems)
+      {
+        try
+        {
+          if ( item.channel != null) item.channel.close();
+          item.channel = null;
+        }
+        catch( IOException e)
+        {
+          log.warn( "Failed to close channel.");
+        }
+      }
+    }
+    finally
+    {
+      connectionLock.writeLock().unlock();
+    }
   }
 
   private static class ThreadItem
@@ -360,10 +454,11 @@ public class AutoRefreshConnection
   
   private class AutoRefreshConsumer extends DefaultConsumer
   {
-    public AutoRefreshConsumer( String queue, boolean durable, boolean autoDelete, Channel channel, AmqpXioChannel consumer)
+    public AutoRefreshConsumer( String tag, String queue, boolean durable, boolean autoDelete, Channel channel, AmqpXioChannel consumer)
     {
       super( channel);
       
+      this.tag = tag;
       this.queue = queue;
       this.durable = durable;
       this.autoDelete = autoDelete;
@@ -371,13 +466,23 @@ public class AutoRefreshConnection
     }
     
     /**
+     * @return Returns the correct consumer tag.
+     */
+    public String getConsumerTag()
+    {
+      return tag;
+    }
+    
+    /**
      * Clone this consumer, but assign a new channel.
      * @param channel The new channel.
      * @return Returns the clone.
      */
-    public AutoRefreshConsumer cloneWithNewChannel( Channel channel)
+    public AutoRefreshConsumer cloneWithNewChannel( Channel channel) throws IOException
     {
-      return new AutoRefreshConsumer( queue, durable, autoDelete, channel, consumer);
+      channel.queueDeclare( queue, durable, false, autoDelete, null);
+      String tag = queue + counter.getAndIncrement();
+      return new AutoRefreshConsumer( tag, queue, durable, autoDelete, channel, consumer);
     }
     
     /* (non-Javadoc)
@@ -386,7 +491,15 @@ public class AutoRefreshConnection
     @Override
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
-      consumer.handleDelivery( getChannel(), consumerTag, envelope, properties, body);
+      try
+      {
+        consumer.handleDelivery( getChannel(), consumerTag, envelope, properties, body);
+      }
+      catch( Exception e)
+      {
+        log.warn( "Caught exception in consumer ...");
+        log.exception( e);
+      }
     }
     
     /* (non-Javadoc)
@@ -427,14 +540,22 @@ public class AutoRefreshConnection
     @Override
     public void handleShutdownSignal( String consumerTag, ShutdownSignalException signal)
     {
+      Object reason = signal.getReason();
+      if ( !(reason instanceof AMQP.Channel.Close) || ((AMQP.Channel.Close)reason).getReplyCode() != 200)
+      {
+        log.warnf( "handleShutdownSignal: %s, %s", consumerTag, signal);
+      }
     }
 
+    private String tag;
     private String queue;
     private boolean durable;
     private boolean autoDelete;
     private AmqpXioChannel consumer;
   }
 
+  private final static Log log = Log.getLog( AutoRefreshConnection.class);
+  
   private ConnectionFactory connectionFactory;
   private ExecutorService executor;
   private Address[] brokers;
@@ -443,7 +564,8 @@ public class AutoRefreshConnection
   private ThreadLocal<ThreadItem> threadItems;
   private List<ThreadItem> allThreadItems;
   private ReadWriteLock connectionLock;
-  private List<AutoRefreshConsumer> consumers;
+  private Map<AmqpXioChannel, AutoRefreshConsumer> consumers;
   private BlockingQueue<Channel> obsoleteLeaseQueue;
   private ScheduledFuture<?> refreshSchedule;
+  private AtomicInteger counter = new AtomicInteger();
 }
