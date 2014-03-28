@@ -22,6 +22,7 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 
 import org.xmodel.IModelObject;
@@ -153,26 +154,24 @@ public class ScriptAction extends GuardedAction
     // optionally create local variable context
     privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
 
-    // special handling of <if>, <elseif>, <else>
-    IfAction ifAction = null;
-    
     // create script operations
     List<IXAction> list = new ArrayList<IXAction>();
-    for( IModelObject element: document.getRoot().getChildren())
+    ListIterator<IModelObject> iterator = document.getRoot().getChildren().listIterator();
+    while( iterator.hasNext())
     {
+      IModelObject element = iterator.next();
+      
       if ( !ignore.contains( element.getType()))
       {
         IXAction action = document.getAction( element);
         if ( action != null) 
         {
-          if ( ifAction != null)
+          if ( action instanceof CompoundAction)
           {
-            if ( action instanceof ElseAction) ((ElseAction)action).setIf( ifAction);
-            else if ( action instanceof ElseifAction) ((ElseifAction)action).setIf( ifAction);
-            ifAction = null;
+            CompoundAction compound = (CompoundAction)action;
+            compound.configure( document, iterator);
+            iterator.previous();
           }
-          
-          if ( action instanceof IfAction) ifAction = (IfAction)action;
           
           list.add( action);
         }
@@ -213,7 +212,7 @@ public class ScriptAction extends GuardedAction
       }
       catch( RuntimeException e)
       {
-        SLog.errorf( this, "Caught next exception at %s ...", Xlate.get( getDocument().getRoot(), "name", "?"));
+        SLog.errorf( this, "Caught next exception at %s ...", getScriptLocationString( getDocument()));
         throw e;
       }
       finally
@@ -223,6 +222,43 @@ public class ScriptAction extends GuardedAction
       
       return null;
     }
+  }
+  
+  /**
+   * @return Returns a string that describes the location of this script.
+   */
+  private String getScriptLocationString( XActionDocument document)
+  {
+    StringBuilder sb = new StringBuilder();
+    IModelObject root = null;
+    
+    while ( document != null)
+    {
+      root = document.getRoot();
+      if ( root == null) continue;
+      
+      if ( sb.length() > 0) sb.append( " <- ");
+      
+      String name = Xlate.get( root, "name", (String)null);
+      if ( name != null) 
+      {
+        sb.append( name);
+      }
+      else
+      {
+        sb.append( root.getType());
+        if ( root.getParent() != null)
+        {
+          sb.append( '[');
+          sb.append( root.getParent().getChildren( root.getType()).indexOf( root) + 1);
+          sb.append( ']');
+        }
+      }
+      
+      document = document.getParentDocument();
+    }
+    
+    return sb.toString();
   }
   
   private final static String[] defaultIgnore = {
