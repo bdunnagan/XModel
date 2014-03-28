@@ -213,7 +213,7 @@ public class ScriptAction extends GuardedAction
       }
       catch( RuntimeException e)
       {
-        SLog.errorf( this, "Caught next exception at %s ...", Xlate.get( getDocument().getRoot(), "name", "?"));
+        SLog.errorf( this, "Caught next exception at %s ...", getScriptLocationString( getDocument()));
         throw e;
       }
       finally
@@ -223,6 +223,43 @@ public class ScriptAction extends GuardedAction
       
       return null;
     }
+  }
+  
+  /**
+   * @return Returns a string that describes the location of this script.
+   */
+  private String getScriptLocationString( XActionDocument document)
+  {
+    StringBuilder sb = new StringBuilder();
+    IModelObject root = null;
+    
+    while ( document != null)
+    {
+      root = document.getRoot();
+      if ( root == null) continue;
+      
+      if ( sb.length() > 0) sb.append( " <- ");
+      
+      String name = Xlate.get( root, "name", (String)null);
+      if ( name != null) 
+      {
+        sb.append( name);
+      }
+      else
+      {
+        sb.append( root.getType());
+        if ( root.getParent() != null)
+        {
+          sb.append( '[');
+          sb.append( root.getParent().getChildren( root.getType()).indexOf( root) + 1);
+          sb.append( ']');
+        }
+      }
+      
+      document = document.getParentDocument();
+    }
+    
+    return sb.toString();
   }
   
   private final static String[] defaultIgnore = {
