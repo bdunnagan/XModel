@@ -22,6 +22,7 @@ package org.xmodel.xaction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 
 import org.xmodel.IModelObject;
@@ -153,26 +154,24 @@ public class ScriptAction extends GuardedAction
     // optionally create local variable context
     privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
 
-    // special handling of <if>, <elseif>, <else>
-    IfAction ifAction = null;
-    
     // create script operations
     List<IXAction> list = new ArrayList<IXAction>();
-    for( IModelObject element: document.getRoot().getChildren())
+    ListIterator<IModelObject> iterator = document.getRoot().getChildren().listIterator();
+    while( iterator.hasNext())
     {
+      IModelObject element = iterator.next();
+      
       if ( !ignore.contains( element.getType()))
       {
         IXAction action = document.getAction( element);
         if ( action != null) 
         {
-          if ( ifAction != null)
+          if ( action instanceof CompoundAction)
           {
-            if ( action instanceof ElseAction) ((ElseAction)action).setIf( ifAction);
-            else if ( action instanceof ElseifAction) ((ElseifAction)action).setIf( ifAction);
-            ifAction = null;
+            CompoundAction compound = (CompoundAction)action;
+            compound.configure( document, iterator);
+            iterator.previous();
           }
-          
-          if ( action instanceof IfAction) ifAction = (IfAction)action;
           
           list.add( action);
         }

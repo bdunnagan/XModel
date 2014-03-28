@@ -19,15 +19,42 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.log.SLog;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-/**
- * An action which executes on of two actions depending on the result of a condition evaluation.
- */
-public class IfAction extends XAction
+public class IfAction extends CompoundAction
 {
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.Iterator)
+   */
+  @Override
+  public void configure( XActionDocument document, Iterator<IModelObject> iterator)
+  {
+    while( iterator.hasNext())
+    {
+      IModelObject element = iterator.next();
+      if ( element.isType( "elseif"))
+      {
+        if ( elseIfActions == null) elseIfActions = new ArrayList<ElseifAction>( 1);
+        ElseifAction action = (ElseifAction)document.getAction( element);
+        if ( action != null) elseIfActions.add( action);
+      }
+      else if ( element.isType( "else"))
+      {
+        elseAction = document.createScript( element);
+      }
+      else
+      {
+        break;
+      }
+    }
+  }
+
   /* (non-Javadoc)
    * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.ViewModel)
    */
@@ -51,19 +78,36 @@ public class IfAction extends XAction
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.ui.swt.form.IXAction#run(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.XAction#doRun(org.xmodel.xpath.expression.IContext)
    */
+  @Override
   public Object[] doRun( IContext context)
   {
-    test = condition.evaluateBoolean( context);
-    SLog.debugf( this, "%s(%s) returned (%s)", (negate? "!": ""), condition, test ^ negate);
-    if ( negate ^ test) return script.run( context);
+    boolean test = condition.evaluateBoolean( context);
+    if ( negate ^ test) 
+    {
+      return script.run( context);
+    }
+    else
+    {
+      if ( elseIfActions != null)
+      {
+        for( ElseifAction elseIfAction: elseIfActions)
+        {
+          ElseifAction.Result result = elseIfAction.runTest( context);
+          if ( result.test) return result.returned; 
+        }
+      }
+      
+      if ( elseAction != null) return elseAction.run( context);
+    }
+    
     return null;
   }
 
-  boolean test;
-  
   protected IExpression condition;
   protected ScriptAction script;
   protected boolean negate;
+  private List<ElseifAction> elseIfActions;
+  private IXAction elseAction;
 }
