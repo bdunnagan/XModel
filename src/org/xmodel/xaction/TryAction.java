@@ -20,9 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-
+import java.util.ListIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -75,11 +74,11 @@ public class TryAction extends CompoundAction
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.Iterator)
+   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.ListIterator)
    */
   @SuppressWarnings("unchecked")
   @Override
-  public void configure( XActionDocument document, Iterator<IModelObject> iterator)
+  public void configure( XActionDocument document, ListIterator<IModelObject> iterator)
   {
     catchBlocks = new ArrayList<CatchBlock>( 1);
     
@@ -110,6 +109,7 @@ public class TryAction extends CompoundAction
       }
       else
       {
+        iterator.previous();
         break;
       }
     }

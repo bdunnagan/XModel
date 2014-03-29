@@ -20,9 +20,8 @@
 package org.xmodel.xaction;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-
+import java.util.ListIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -30,10 +29,10 @@ import org.xmodel.xpath.expression.IExpression;
 public class IfAction extends CompoundAction
 {
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.Iterator)
+   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.ListIterator)
    */
   @Override
-  public void configure( XActionDocument document, Iterator<IModelObject> iterator)
+  public void configure( XActionDocument document, ListIterator<IModelObject> iterator)
   {
     while( iterator.hasNext())
     {
@@ -50,6 +49,7 @@ public class IfAction extends CompoundAction
       }
       else
       {
+        iterator.previous();
         break;
       }
     }
