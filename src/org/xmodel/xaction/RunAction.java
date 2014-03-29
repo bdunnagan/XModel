@@ -435,7 +435,9 @@ public class RunAction extends GuardedAction
           }
           else
           {
-            throw new XActionException( error);
+            log.warnf( error);
+            // TODO: need sync error reporting
+            //throw new XActionException( error);
           }
         }
         

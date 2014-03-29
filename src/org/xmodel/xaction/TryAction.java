@@ -39,11 +39,39 @@ public class TryAction extends CompoundAction
   /* (non-Javadoc)
    * @see org.xmodel.xaction.XAction#configure(org.xmodel.xaction.XActionDocument)
    */
+  @SuppressWarnings("unchecked")
   @Override
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    tryScript = document.createScript();
+    tryScript = document.createScript( "catch", "finally");
+    
+    // backwards compatibility (finally script)
+    IModelObject finallyNode = document.getRoot().getFirstChild( "finally");
+    if ( finallyNode != null) finallyScript = document.createScript( finallyNode);
+    
+    // backwards compatibility (catch blocks)
+    List<IModelObject> catchElements = document.getRoot().getChildren( "catch");
+    catchBlocks = new ArrayList<CatchBlock>( catchElements.size());
+    for( int i=0; i<catchElements.size(); i++)
+    {
+      IModelObject catchElement = catchElements.get( i);
+      CatchBlock catchBlock = new CatchBlock();
+      
+      String className = Xlate.get( catchElement, "class", "java.lang.Throwable");
+      try
+      {
+        ClassLoader loader = document.getClassLoader();
+        catchBlock.thrownClass = (Class<Throwable>)loader.loadClass( className);
+        catchBlocks.add( catchBlock);
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+      
+      catchBlock.script = document.createScript( catchElement);
+    }
   }
 
   /* (non-Javadoc)

@@ -169,8 +169,9 @@ public class ScriptAction extends GuardedAction
           if ( action instanceof CompoundAction)
           {
             CompoundAction compound = (CompoundAction)action;
+            boolean hasNext = iterator.hasNext();
             compound.configure( document, iterator);
-            iterator.previous();
+            if ( hasNext) iterator.previous();
           }
           
           list.add( action);
