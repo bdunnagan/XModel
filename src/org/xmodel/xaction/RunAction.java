@@ -101,6 +101,14 @@ public class RunAction extends GuardedAction
     schedulerExpr = document.getExpression( "scheduler", true);
   }
 
+  /**
+   * @return Returns true if the execution should be asynchronous.
+   */
+  private boolean isAsynchronous()
+  {
+    return onSuccessExpr != null || onErrorExpr != null || onCompleteExpr != null;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
@@ -280,7 +288,7 @@ public class RunAction extends GuardedAction
         final XioClientPool clientPool = getClientPool( context);
         final XioClient client = clientPool.lease( address);
         
-        if ( onComplete == null && onSuccess == null && onError == null)
+        if ( !isAsynchronous())
         {
           if ( !client.isConnected())  // TODO: no longer necessary - remove and test
             client.connect( address, connectionRetries).await( timeout);
@@ -414,6 +422,25 @@ public class RunAction extends GuardedAction
         log.debugf( "Remote execution at clients with name, '%s', @name=%s ...", client, Xlate.get( scriptNode, "name", "?"));
         
         Iterator<XioPeer> iterator = server.getPeerRegistry().lookupByName( client);
+        if ( !iterator.hasNext()) 
+        {
+          String error = String.format( "Client '%s' is not registered.", client);
+          if ( isAsynchronous())
+          {
+            StatefulContext runContext = new StatefulContext( context.getObject());
+            runContext.getScope().copyFrom( context.getScope());
+            runContext.set( "error", error);
+            if ( onError != null) onError.run( runContext); else log.warn( error);
+            if ( onComplete != null) onComplete.run( runContext);
+          }
+          else
+          {
+            log.warnf( error);
+            // TODO: need sync error reporting
+            //throw new XActionException( error);
+          }
+        }
+        
         while( iterator.hasNext())
         {
           XioPeer peer = iterator.next();
@@ -421,7 +448,7 @@ public class RunAction extends GuardedAction
           InetSocketAddress address = peer.getRemoteAddress();
           log.debugf( "Remote execution at named client with address, %s:%d ...", address.getAddress().getHostAddress(), address.getPort());
           
-          if ( onComplete == null && onSuccess == null && onError == null)
+          if ( !isAsynchronous())
           {
             Object[] result = peer.execute( (StatefulContext)context, varArray, scriptNode, timeout);
             if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
@@ -641,7 +668,7 @@ public class RunAction extends GuardedAction
    */
   private void handleException( Throwable t, IContext context, IXAction onComplete, IXAction onError)
   {
-    if ( onComplete != null || onError != null)
+    if ( isAsynchronous())
     {
       context.set( "error", t.getMessage());
       if ( onError != null) onError.run( context);
@@ -676,18 +703,25 @@ public class RunAction extends GuardedAction
     @Override
     public void run()
     {
-      try
+      if ( future != null)
       {
-        Object[] result = script.run( context);
-        if ( future != null)
+        try
         {
-          future.setInitiator( result);
-          future.notifySuccess();
+          Object[] result = script.run( context);
+          if ( future != null)
+          {
+            future.setInitiator( result);
+            future.notifySuccess();
+          }
+        }
+        catch( Exception e)
+        {
+          if ( future != null) future.notifyFailure( e);
         }
       }
-      catch( Exception e)
+      else
       {
-        future.notifyFailure( e);
+        script.run( context);
       }
     }
 

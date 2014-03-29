@@ -19,22 +19,44 @@
  */
 package org.xmodel.xaction;
 
-import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 
-/**
- * An action which executes its children if the preceding IfAction or ElseIfAction test is false.
- */
-public class ElseifAction extends IfAction
+public class ElseifAction extends XAction
 {
-  /**
-   * Set the IfAction with which this ElseAction pairs.
-   * @param action The IfAction.
+  /* (non-Javadoc)
+   * @see org.xmodel.ui.swt.form.actions.XAction#configure(org.xmodel.ui.model.ViewModel)
    */
-  public void setIf( IfAction action)
+  @Override
+  public void configure( XActionDocument document)
   {
-    if ( !(action instanceof IfAction)) throw new XActionException( "An 'else' element does not following an 'if' element.");
-    ifScript = (IfAction)action;
+    super.configure( document);
+    
+    condition = document.getExpression( "true", true);
+    if ( condition == null)
+    {
+      condition = document.getExpression( "test", true);
+      if ( condition == null)
+      {
+        condition = document.getExpression( "false", true);
+        negate = true;
+      }
+    }
+
+    script = document.createScript( "true", "false", "test");
+  }
+
+  /**
+   * Evaluate this condition and run script if condition is met.
+   * @param context The context.
+   * @return Returns the result of the evaluation.
+   */
+  public Result runTest( IContext context)
+  {
+    Result result = new Result();
+    result.test = condition.evaluateBoolean( context);
+    if ( negate ^ result.test) result.returned = script.run( context);
+    return result;
   }
   
   /* (non-Javadoc)
@@ -42,18 +64,16 @@ public class ElseifAction extends IfAction
    */
   public Object[] doRun( IContext context)
   {
-    if ( !ifScript.test)
-    {
-      test = condition.evaluateBoolean( context);
-      SLog.debugf( this, "%s(%s) returned (%s)", (negate? "!": ""), condition, test ^ negate);
-      if ( negate ^ test) return script.run( context);
-    }
-    else
-    {
-      test = true;
-    }
-    return null;
+    throw new IllegalStateException();
   }
   
-  private IfAction ifScript;
+  static class Result
+  {
+    public boolean test;
+    public Object[] returned;
+  }
+  
+  protected IExpression condition;
+  protected ScriptAction script;
+  protected boolean negate;
 }
