@@ -51,9 +51,9 @@ public class BindCompressor extends TabularCompressor
     public int netID;
   }
   
-  private BindCompressor( BindProtocol protocol, boolean progressive)
+  private BindCompressor( BindProtocol protocol, boolean stateful)
   {
-    super( progressive);
+    super( stateful, false, Order.depthFirst);
     
     this.protocol = protocol;
     this.localMap = new ConcurrentHashMap<Integer, IModelObject>();
@@ -76,22 +76,22 @@ public class BindCompressor extends TabularCompressor
   /**
    * Create a new request compressor.
    * @param protocol The protocol bundle.
-   * @param progressive See TabularCompressor for more information.
+   * @param stateful See TabularCompressor for more information.
    * @return Returns the new compressor.
    */
-  public static BindCompressor newRequestCompressor( BindProtocol protocol, boolean progressive)
+  public static BindCompressor newRequestCompressor( BindProtocol protocol, boolean stateful)
   {
-    return new BindCompressor( protocol, progressive);
+    return new BindCompressor( protocol, stateful);
   }
   
   /**
    * Create a new response compressor.
-   * @param progressive See TabularCompressor for more information.
+   * @param stateful See TabularCompressor for more information.
    * @return Returns the new compressor.
    */
-  public static BindCompressor newResponseCompressor( boolean progressive)
+  public static BindCompressor newResponseCompressor( boolean stateful)
   {
-    return new BindCompressor( null, progressive);
+    return new BindCompressor( null, stateful);
   }
   
   /**

@@ -83,7 +83,7 @@ public class ExecutionResponseProtocol
     // The execution protocol can function in a variety of client/server threading models.
     // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
     //
-    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor();
     
     IModelObject response = ExecutionSerializer.buildResponse( context, results);
     List<byte[]> buffers = compressor.compress( response);
@@ -109,7 +109,7 @@ public class ExecutionResponseProtocol
     // The execution protocol can function in a variety of client/server threading models.
     // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
     //
-    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor( false);
+    ICompressor compressor = (bundle.responseCompressor != null)? bundle.responseCompressor: new TabularCompressor();
     
     IModelObject response = ExecutionSerializer.buildResponse( context, throwable);
     List<byte[]> buffers = compressor.compress( response);
@@ -133,7 +133,7 @@ public class ExecutionResponseProtocol
     // The execution protocol can function in a variety of client/server threading models.
     // A progressive, shared TabularCompressor may be used when the worker pool has only one thread.
     //
-    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor( false);
+    ICompressor compressor = (bundle.requestCompressor != null)? bundle.requestCompressor: new TabularCompressor();
     IModelObject response = compressor.decompress( new ChannelBufferInputStream( buffer));
     
     BlockingQueue<IModelObject> queue = queues.get( correlation);
