@@ -3,7 +3,6 @@ package org.xmodel.compress;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class MultiByteArrayOutputStream extends OutputStream
@@ -83,22 +82,23 @@ public class MultiByteArrayOutputStream extends OutputStream
    */
   public List<byte[]> getBuffers()
   {
-    if ( buffer == null) return Collections.emptyList();
-    
-    // compact current segment
-    if ( bufferIndex < defaultLength)
+    if ( buffer != null)
     {
-      byte[] array = new byte[ bufferIndex];
-      System.arraycopy( buffer, 0, array, 0, bufferIndex);
-      buffer = array;
+      // compact current segment
+      if ( bufferIndex > 0 && bufferIndex < defaultLength)
+      {
+        byte[] array = new byte[ bufferIndex];
+        System.arraycopy( buffer, 0, array, 0, bufferIndex);
+        buffer = array;
+      }
+      
+      // add to list
+      segments.add( buffer);
+      
+      // cleanup
+      buffer = null;
+      bufferIndex = 0;
     }
-    
-    // add to list
-    segments.add( buffer);
-    
-    // cleanup
-    buffer = null;
-    bufferIndex = 0;
     
     return segments;
   }
@@ -108,9 +108,9 @@ public class MultiByteArrayOutputStream extends OutputStream
    * @param buffers The buffers.
    * @return Returns the total number of bytes in the specified buffers.
    */
-  public static int getLength( List<byte[]> buffers)
+  public static long getLength( List<byte[]> buffers)
   {
-    int count = 0;
+    long count = 0;
     for( byte[] buffer: buffers)
       count += buffer.length;
     return count;

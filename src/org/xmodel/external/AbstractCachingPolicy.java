@@ -416,29 +416,22 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   public boolean isStaticAttribute( String attribute)
   {
-    if ( attribute == null)
+    if ( attribute == null) attribute = "";
+    
+    for( String staticAttribute: staticAttributes)
     {
-      for( String staticAttribute: staticAttributes)
+      if ( staticAttribute.equals( "*"))
       {
-        if ( staticAttribute.equals( "*"))
-          return true;
+        return true;
       }
-      return false;
-    }
-    else
-    {
-      for( int i=0; i<staticAttributes.size(); i++)
+      else if ( staticAttribute.endsWith( ":*"))
       {
-        String staticAttribute = staticAttributes.get( i);
-        if ( staticAttribute.endsWith( ":*"))
-        {
-          String prefix = staticAttribute.substring( 0, staticAttribute.length()-2);
-          if ( attribute.startsWith( prefix)) return true;
-        }
-        else if ( (staticAttribute.equals( "*") && attribute.length() > 0) || attribute.equals( staticAttribute))
-        {
-          return true;
-        }
+        String prefix = staticAttribute.substring( 0, staticAttribute.length() - 1);
+        if ( attribute.startsWith( prefix)) return true;
+      }
+      else
+      {
+        if ( attribute.equals( staticAttribute)) return true;
       }
     }
     return false;
