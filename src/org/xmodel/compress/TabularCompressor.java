@@ -69,7 +69,7 @@ public class TabularCompressor extends AbstractCompressor
   
   public TabularCompressor()
   {
-    this( false, false, Order.depthFirst);
+    this( false, false, Order.breadthFirst);
   }
   
   /**
