@@ -40,6 +40,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.external.AbstractCachingPolicy;
@@ -203,28 +204,53 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
   {
-    String type = readHash( stream);
-    IModelObject root = null;
-    
     if ( shallow)
     {
-      root = factory.createExternalObject( null, type);
-      readAttributes( stream, root);
+      // read tag
+      String type = readHash( stream);
+      IModelObject element = factory.createExternalObject( null, type);
+      
+      // read attributes, but not number of children
+      readAttributes( stream, element);
       
       DecompressCachingPolicy cachingPolicy = new DecompressCachingPolicy( this, new StreamReference( stream));
-      cachingPolicy.elements = Collections.singletonList( root);
-      root.setCachingPolicy( cachingPolicy);
-      root.setDirty( true);
+      cachingPolicy.elements = Collections.singletonList( element);
+      element.setCachingPolicy( cachingPolicy);
+      element.setDirty( true);
+      
+      return element;
     }
     else
     {
-      root = factory.createObject( null, type);
-      readAttributes( stream, root);
+      IModelObject root = null;
+
+      // read tree
+      Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
+      deque.add( nullParent);
+      while( deque.size() > 0)
+      {
+        IModelObject parent = deque.removeFirst();
+
+        // read tag
+        String type = readHash( stream);
+        IModelObject element = factory.createObject( null, type);
+        
+        // read attributes and number of children
+        readAttributes( stream, element);
+        int numChildren = readValue( stream);
+
+        // add child to parent
+        if ( parent != nullParent) parent.addChild( element); else root = element;
+        
+        // push parent onto stack once for each of its children
+        for( int i=0; i<numChildren; i++)
+        {
+          if ( order == Order.depthFirst) deque.addFirst( element); else deque.addLast( element);
+        }
+      }
       
-      readChildren( stream, root);
+      return root;
     }
-    
-    return root;
   }
   
   /**
@@ -234,12 +260,84 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
   {
-    // write tag name
-    writeHash( stream, element.getType());
+    // write tree
+    Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
+    deque.add( element);
+    while( deque.size() > 0)
+    {
+      element = deque.removeFirst();
+      
+      // write tag and attributes
+      writeHash( stream, element.getType());
+      writeAttributes( stream, element, element.getAttributeNames());
+      
+      // use stream, if present, to write content of children (note that number of children is not written)
+      ICachingPolicy cachingPolicy = element.getCachingPolicy();
+      if ( element.isDirty() && cachingPolicy != null && cachingPolicy instanceof DecompressCachingPolicy)
+      {
+        copyStream( ((DecompressCachingPolicy)cachingPolicy).streamRef.stream, stream);
+        break;
+      }
+      else
+      {
+        // write number of children
+        List<IModelObject> children = element.getChildren();
+        writeValue( stream, children.size());
+  
+        // write child tags
+        for( IModelObject child: children)
+        {
+          if ( order == Order.depthFirst) deque.addFirst( child); else deque.addLast( child);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Copy all data from the specified input stream to the specified output stream.
+   * @param in The input stream.
+   * @param out The output stream.
+   */
+  private void copyStream( DataInputStream in, DataOutputStream out) throws IOException
+  {
+    byte[] buffer = new byte[ 4096];
+    while( true)
+    {
+      int nread = in.read( buffer);
+      if ( nread < 0) break;
+      out.write( buffer, 0, nread);
+    }
+  }
+
+  /**
+   * Read the children in the specified buffer and populate the node.
+   * @param streamRef The stream reference.
+   * @param root The node whose children are being read.
+   */
+  protected void readChildren( StreamReference streamRef, IModelObject root) throws IOException, CompressorException
+  {
+    DataInputStream stream = streamRef.stream;
     
-    // write attributes and children
-    writeAttributes( stream, element, element.getAttributeNames());
-    writeChildren( stream, element);
+    // read number of children
+    int numChildren = readValue( stream);
+
+    // configure caching policy to read children on demand
+    DecompressCachingPolicy cachingPolicy = (numChildren > 0)? new DecompressCachingPolicy( this, streamRef): null;
+    
+    for( int i=0; i<numChildren; i++)
+    {
+      String type = readHash( stream);
+      
+      IModelObject child = factory.createExternalObject( null, type);
+      readAttributes( stream, child);
+      
+      child.setCachingPolicy( cachingPolicy);
+      child.setDirty( true);
+
+      root.addChild( child);
+    }
+    
+    if ( cachingPolicy != null) cachingPolicy.elements = root.getChildren();
   }
   
   /**
@@ -343,124 +441,6 @@ public class TabularCompressor extends AbstractCompressor
     }
   }
   
-  /**
-   * Read the children in the specified buffer and populate the node.
-   * @param stream The input stream.
-   * @param root The node whose children are being read.
-   */
-  protected void readChildren( DataInputStream stream, IModelObject root) throws IOException, CompressorException
-  {
-    Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
-    deque.add( root);
-    
-    while( deque.size() > 0)
-    {
-      IModelObject element = deque.removeFirst();
-
-      // read number of children
-      int count = readValue( stream);
-     
-      // read children
-      for( int i=0; i<count; i++)
-      {
-        String type = readHash( stream);
-        IModelObject child = factory.createObject( null, type);
-        readAttributes( stream, child);
-        
-        if ( order == Order.depthFirst) deque.addFirst( child); else deque.addLast( child);
-
-        element.addChild( child);
-      }
-    }
-  }
-  
-  /**
-   * Read the children in the specified buffer and populate the node.
-   * @param streamRef The stream reference.
-   * @param root The node whose children are being read.
-   */
-  protected void readChildren( StreamReference streamRef, IModelObject root) throws IOException, CompressorException
-  {
-    DataInputStream stream = streamRef.stream;
-    
-    // read number of children
-    int count = readValue( stream);
-
-    // configure caching policy to read children on demand
-    DecompressCachingPolicy cachingPolicy = (count > 0)? new DecompressCachingPolicy( this, streamRef): null;
-    
-    for( int i=0; i<count; i++)
-    {
-      String type = readHash( stream);
-      
-      IModelObject child = factory.createExternalObject( null, type);
-      readAttributes( stream, child);
-      
-      child.setCachingPolicy( cachingPolicy);
-      child.setDirty( true);
-
-      root.addChild( child);
-    }
-    
-    if ( cachingPolicy != null) cachingPolicy.elements = root.getChildren();
-  }
-  
-  /**
-   * Write the children of the specified element.
-   * @param stream The output stream.
-   * @param root The element.
-   */
-  protected void writeChildren( DataOutputStream stream, IModelObject root) throws IOException, CompressorException
-  {
-    Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
-    deque.add( root);
-    
-    while( deque.size() > 0)
-    {
-      IModelObject element = deque.removeFirst();
-
-      // write count of children
-      List<IModelObject> children = element.getChildren();
-      writeValue( stream, children.size());
-
-      for( IModelObject child: children)
-      {
-        // write tag name
-        writeHash( stream, child.getType());
-        
-        // write attributes
-        writeAttributes( stream, element, element.getAttributeNames());
-
-        // push
-        if ( order == Order.depthFirst) deque.addFirst( child); else deque.addLast( child);
-      }
-      
-      // use stream, if present, to write content of children
-      ICachingPolicy cachingPolicy = element.getCachingPolicy();
-      if ( cachingPolicy != null && cachingPolicy instanceof DecompressCachingPolicy)
-      {
-        copyStream( ((DecompressCachingPolicy)cachingPolicy).streamRef.stream, stream);
-        break;
-      }
-    }
-  }
-  
-  /**
-   * Copy all data from the specified input stream to the specified output stream.
-   * @param in The input stream.
-   * @param out The output stream.
-   */
-  private void copyStream( DataInputStream in, DataOutputStream out) throws IOException
-  {
-    byte[] buffer = new byte[ 4096];
-    while( true)
-    {
-      int nread = in.read( buffer);
-      if ( nread < 0) break;
-      out.write( buffer, 0, nread);
-    }
-  }
-
   /**
    * Read a hashed name from the stream.
    * @param stream The input stream.
@@ -698,6 +678,7 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   private final static Log log = Log.getLog( TabularCompressor.class);
+  private final static IModelObject nullParent = new ModelObject( "");
  
   private List<String> table;
   private Map<String, Integer> map;
@@ -710,21 +691,16 @@ public class TabularCompressor extends AbstractCompressor
   public static void main( String[] args) throws Exception
   {
     boolean shallow = false;
-    for( int i=0; i<10; i++)
-    {
-      long t0 = System.nanoTime();
-      
-      ByteCounterInputStream in = new ByteCounterInputStream( new BufferedInputStream( new FileInputStream( "KingLear.xip")));
-      TabularCompressor c1 = new TabularCompressor( false, shallow, Order.breadthFirst);
-      IModelObject book = c1.decompress( in);
-      
-      FileOutputStream out = new FileOutputStream( "KingLear-2.xip");
-      TabularCompressor c2 = new TabularCompressor( false, shallow, Order.breadthFirst);
-      c2.compress( book, out);
-      out.close();
-      
-      long t1 = System.nanoTime();
-      System.out.printf( "Elapsed: %1.0fus\n", (t1-t0) / 1e3);
-    }
+    
+    ByteCounterInputStream in = new ByteCounterInputStream( new BufferedInputStream( new FileInputStream( "KingLear.xip")));
+    TabularCompressor c1 = new TabularCompressor( false, shallow, Order.breadthFirst);
+    IModelObject book = c1.decompress( in);
+    
+    book.getChildren();
+    
+    FileOutputStream out = new FileOutputStream( "KingLear-2.xip");
+    TabularCompressor c2 = new TabularCompressor( false, shallow, Order.breadthFirst);
+    c2.compress( book, out);
+    out.close();
   }
 }
