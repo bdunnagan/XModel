@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -229,7 +230,7 @@ public class TabularCompressor extends AbstractCompressor
       readAttributes( stream, element);
       
       DecompressCachingPolicy cachingPolicy = new DecompressCachingPolicy( this, stream);
-      cachingPolicy.elements = Collections.singletonList( element);
+      cachingPolicy.elements.add( element);
       element.setCachingPolicy( cachingPolicy);
       element.setDirty( true);
       
@@ -420,7 +421,7 @@ public class TabularCompressor extends AbstractCompressor
       root.addChild( child);
     }
     
-    if ( cachingPolicy != null) cachingPolicy.elements = root.getChildren();
+    if ( cachingPolicy != null) cachingPolicy.elements.addAll( root.getChildren());
   }
   
   /**
@@ -714,6 +715,7 @@ public class TabularCompressor extends AbstractCompressor
     {
       this.stream = stream;
       this.compressor = compressor;
+      this.elements = new ArrayList<IModelObject>();
       
       setStaticAttributes( new String[] { "*"});
     }
@@ -724,24 +726,30 @@ public class TabularCompressor extends AbstractCompressor
     @Override
     public void sync( IExternalReference reference) throws CachingException
     {
-      if ( complete) return;
-      complete = true;
+      int index = elements.indexOf( reference);
+      if ( index == -1) return;
       
-      try
+      for( int i=0; i<=index; i++)
       {
-        for( IModelObject parent: elements)
-          compressor.readChildren( stream, parent);
+        try
+        {
+          IModelObject element = elements.get( i);
+          element.setDirty( false);
+          compressor.readChildren( stream, element);
+        }
+        catch( IOException e)
+        {
+          elements.clear();
+          throw new RuntimeException( "Caught exception during deserialization: ", e);
+        }
       }
-      catch( IOException e)
-      {
-        throw new RuntimeException( "Caught exception during deserialization: ", e);
-      }
+      
+      elements.subList( 0, index+1).clear();
     }
 
     private TabularCompressor compressor;
     private DataInputStream stream;
     protected List<IModelObject> elements;
-    private boolean complete;
   }
   
   private final static Log log = Log.getLog( TabularCompressor.class);
@@ -777,7 +785,10 @@ public class TabularCompressor extends AbstractCompressor
     c = new TabularCompressor( false, true, Order.breadthFirst);
     book = c.decompress( in);
     
-    //System.out.println( book.getChildren());
+    List<IModelObject> children = book.getChildren();
+    //children.get( 0).getChildren();
+    children.get( 1).getChildren();
+    
     
     out = new FileOutputStream( "KingLear-BF-copy.xip");
     c = new TabularCompressor( false, false, Order.breadthFirst);
