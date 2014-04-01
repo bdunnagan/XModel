@@ -44,6 +44,16 @@ public final class DataStorageClass implements IStorageClass
     children = storageClass.children;
   }
   
+  /**
+   * Copy the data from the specified storage class.
+   * @param storageClass The storage class to be copied.
+   */
+  public DataStorageClass( ByteArrayStorageClass storageClass)
+  {
+    // Statistics.increment( this);
+    attributes = storageClass.attributes;
+  }
+  
 //  /* (non-Javadoc)
 //   * @see java.lang.Object#finalize()
 //   */
