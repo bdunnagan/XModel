@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 
-import org.xmodel.IModelObject;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.IExternalReference;
@@ -15,7 +14,7 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
   public ByteArrayCachingPolicy( TabularCompressor compressor)
   {
     this.compressor = compressor;
-    setStaticAttributes( new String[ 0]);
+    setStaticAttributes( new String[] { "*"});
   }
   
   /* (non-Javadoc)
@@ -31,8 +30,7 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
     try
     {
       DataInputStream bytesIn = new DataInputStream( new ByteArrayInputStream( bytes, offset, bytes.length - offset));
-      IModelObject element = compressor.readElement( bytesIn);
-      update( reference, element);
+      compressor.readChildren( bytesIn, reference);
     }
     catch( IOException e)
     {
