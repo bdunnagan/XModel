@@ -176,7 +176,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param stream The input stream.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
+  public IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
   {
     // read tag name
     String type = readHash( stream);
