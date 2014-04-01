@@ -19,12 +19,10 @@
  */
 package org.xmodel.compress;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,6 +31,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +40,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelListener;
 import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
@@ -49,7 +49,11 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
+import org.xmodel.log.SLog;
 import org.xmodel.util.ByteCounterInputStream;
+import org.xmodel.util.HexDump;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
@@ -135,8 +139,14 @@ public class TabularCompressor extends AbstractCompressor
   @Override
   public List<byte[]> compress( IModelObject element) throws IOException
   {
-    // initialize table from element, if present
-    initTable( element);
+    // get original compressor instance
+    ICachingPolicy cachingPolicy = element.getCachingPolicy();
+    if ( cachingPolicy != null && cachingPolicy instanceof DecompressCachingPolicy)
+    {
+      TabularCompressor compressor = ((DecompressCachingPolicy)cachingPolicy).compressor;
+      if ( compressor != this) 
+        return compressor.compress( element);
+    }
     
     // content
     MultiByteArrayOutputStream content = new MultiByteArrayOutputStream();
@@ -149,6 +159,7 @@ public class TabularCompressor extends AbstractCompressor
     byte flags = 0x1; // 1 => content size is written in header
     if ( predefined) flags |= 0x20;
     if ( order == Order.breadthFirst) flags |= 0x40;
+flags |= 0x80; 
     header.write( flags);
 
     // write size of content
@@ -157,6 +168,7 @@ public class TabularCompressor extends AbstractCompressor
     
     // write table if necessary
     if ( !predefined) writeTable( headerOut);  
+    headerOut.write( "||".getBytes());
     
     // log
     log.debugf( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
@@ -198,6 +210,12 @@ public class TabularCompressor extends AbstractCompressor
     
     // table
     if ( !predefined) readTable( input);
+    
+if ( (flags & 0x80) != 0)
+{
+  int b = input.read(); if ( b != '|') throw new IllegalStateException();
+  b = input.read(); if ( b != '|') throw new IllegalStateException();
+}
 
     // log
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
@@ -229,7 +247,6 @@ public class TabularCompressor extends AbstractCompressor
       readAttributes( stream, element);
       
       DecompressCachingPolicy cachingPolicy = new DecompressCachingPolicy( this, stream);
-      cachingPolicy.elements.add( element);
       element.setCachingPolicy( cachingPolicy);
       element.setDirty( true);
       
@@ -340,9 +357,13 @@ public class TabularCompressor extends AbstractCompressor
     }
     else
     {
+      int k = 0;
+      
       // write tag and attributes of root
       writeHash( stream, element.getType());
       writeAttributes( stream, element, element.getAttributeNames());
+      
+      Set<ICachingPolicy> written = new HashSet<ICachingPolicy>();
       
       Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
       deque.add( element);
@@ -353,13 +374,19 @@ public class TabularCompressor extends AbstractCompressor
         
         // use stream, if present, to write content of children (note that number of children is not written)
         ICachingPolicy cachingPolicy = element.getCachingPolicy();
-        if ( element.isDirty() && cachingPolicy != null && cachingPolicy instanceof DecompressCachingPolicy)
+        if ( cachingPolicy != null && element.isDirty() && cachingPolicy instanceof DecompressCachingPolicy && !written.contains( cachingPolicy))
         {
-          copyStream( ((DecompressCachingPolicy)cachingPolicy).stream, stream);
-          break;
+          written.add( cachingPolicy);
+          System.out.println( "Writing stream for:\n"+((ModelObject)element).toXml());
+          DataInputStream dataIn = ((DecompressCachingPolicy)cachingPolicy).stream;
+          dataIn.mark( dataIn.available());
+          copyStream( dataIn, stream);
+          dataIn.reset();
         }
         else
         {
+          stream.writeInt( k++);
+          
           // write number of children
           List<IModelObject> children = element.getChildren();
           writeValue( stream, children.size());
@@ -367,6 +394,8 @@ public class TabularCompressor extends AbstractCompressor
           // write child tags
           for( IModelObject child: children)
           {
+            //System.out.println( "Write: "+child.getType());
+            
             // write tag and attributes of child
             writeHash( stream, child.getType());
             writeAttributes( stream, child, child.getAttributeNames());
@@ -390,26 +419,31 @@ public class TabularCompressor extends AbstractCompressor
     {
       int nread = in.read( buffer);
       if ( nread < 0) break;
+      System.out.println( HexDump.toString( buffer, 0, nread));
       out.write( buffer, 0, nread);
     }
   }
 
   /**
    * Read the children in the specified buffer and populate the node.
-   * @param streamRef The stream reference.
+   * @param cachingPolicy The caching policy currently being synced.
+   * @param stream The stream containing the data for the element.
    * @param root The node whose children are being read.
    */
-  protected void readChildren( DataInputStream stream, IModelObject root) throws IOException, CompressorException
+  protected void readChildren( DecompressCachingPolicy cachingPolicy, DataInputStream stream, IModelObject root) throws IOException, CompressorException
   {
+    int k = stream.readInt();
+    System.out.println( "k="+k);
+    
     // read number of children
     int numChildren = readValue( stream);
-
-    // configure caching policy to read children on demand
-    DecompressCachingPolicy cachingPolicy = (numChildren > 0)? new DecompressCachingPolicy( this, stream): null;
+    //System.out.println( "\tChildren: "+numChildren);
     
+    // create children
     for( int i=0; i<numChildren; i++)
     {
       String type = readHash( stream);
+      //System.out.println( "\tType: "+type);
       
       IModelObject child = factory.createExternalObject( null, type);
       readAttributes( stream, child);
@@ -418,9 +452,8 @@ public class TabularCompressor extends AbstractCompressor
       child.setDirty( true);
 
       root.addChild( child);
+      child.addModelListener( new ML());
     }
-    
-    if ( cachingPolicy != null) cachingPolicy.elements.addAll( root.getChildren());
   }
   
   /**
@@ -640,21 +673,6 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   /**
-   * Initialize table using instance of TabularCompressor in DecompressCachingPolicy, if present.
-   * @param element The element to be compressed.
-   */
-  protected void initTable( IModelObject element)
-  {
-    ICachingPolicy cachingPolicy = element.getCachingPolicy();
-    if ( cachingPolicy != null && cachingPolicy instanceof DecompressCachingPolicy)
-    {
-      TabularCompressor compressor = ((DecompressCachingPolicy)cachingPolicy).compressor;
-      map = compressor.map;
-      table = compressor.table;
-    }
-  }
-  
-  /**
    * Read a value stored at the hash size.
    * @param stream The input stream.
    * @return Returns the value.
@@ -708,13 +726,27 @@ public class TabularCompressor extends AbstractCompressor
     return sb.toString();
   }
       
+  /* (non-Javadoc)
+   * @see java.lang.Object#clone()
+   */
+  @Override
+  protected Object clone() throws CloneNotSupportedException
+  {
+    TabularCompressor clone = new TabularCompressor( stateful, shallow, order);
+
+    clone.table.addAll( table);
+    for( int i=0; i<table.size(); i++)
+      clone.map.put( table.get( i), i);
+    
+    return clone;
+  }
+
   public static class DecompressCachingPolicy extends AbstractCachingPolicy
   {
     public DecompressCachingPolicy( TabularCompressor compressor, DataInputStream stream)
     {
       this.stream = stream;
-      this.compressor = compressor;
-      this.elements = new ArrayList<IModelObject>();
+      try { this.compressor = (TabularCompressor)compressor.clone();} catch( Exception e) {}
       
       setStaticAttributes( new String[] { "*"});
     }
@@ -725,30 +757,101 @@ public class TabularCompressor extends AbstractCompressor
     @Override
     public void sync( IExternalReference reference) throws CachingException
     {
-      int index = elements.indexOf( reference);
-      if ( index == -1) return;
-      
-      for( int i=0; i<=index; i++)
+      // find root
+      int depth = 1;
+      IModelObject root = reference;
+      IModelObject parent = root.getParent();
+      while ( parent != null && parent.getCachingPolicy() instanceof DecompressCachingPolicy)
       {
-        try
-        {
-          IModelObject element = elements.get( i);
-          element.setDirty( false);
-          compressor.readChildren( stream, element);
-        }
-        catch( IOException e)
-        {
-          elements.clear();
-          throw new RuntimeException( "Caught exception during deserialization: ", e);
-        }
+        if ( parent.getCachingPolicy() != this) break;
+        depth++;
+        root = parent;
+        parent = parent.getParent();
       }
       
-      elements.subList( 0, index+1).clear();
+      System.out.println( "depth="+depth);
+      
+      final class Item
+      {
+        public Item( IModelObject node, int depth)
+        {
+          this.node = node;
+          this.depth = depth;
+        }
+        public IModelObject node;
+        public int depth;
+      }
+      
+      Deque<Item> deque = new ArrayDeque<Item>();
+      deque.add( new Item( root, 0));
+      while( !deque.isEmpty())
+      {
+        Item item = deque.removeFirst();
+        IModelObject node = item.node;
+        
+        if ( item.depth <= depth)
+        {
+          if ( node == reference || node.isDirty())
+          {
+            try
+            {
+              SLog.infof( this, "Sync: " + node.getType());
+              node.setDirty( false);
+              compressor.readChildren( this, stream, node);
+            }
+            catch( IOException e)
+            {
+              throw new RuntimeException( "Caught exception during deserialization: ", e);
+            }
+          }
+          
+          for( IModelObject child: node.getChildren())
+            deque.addLast( new Item( child, item.depth+1));
+        }
+      }      
     }
-
+    
     private TabularCompressor compressor;
     private DataInputStream stream;
-    protected List<IModelObject> elements;
+  }
+  
+  private static class ML extends ModelListener
+  {
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyAddChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
+     */
+    @Override
+    public void notifyAddChild( IModelObject parent, IModelObject child, int index)
+    {
+      System.out.printf( "AddChild: %s, %s\n", parent.getType(), child.getType());
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyRemoveChild(org.xmodel.IModelObject, org.xmodel.IModelObject, int)
+     */
+    @Override
+    public void notifyRemoveChild( IModelObject parent, IModelObject child, int index)
+    {
+      System.out.printf( "RemoveChild: %s, %s\n", parent.getType(), child.getType());
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyChange(org.xmodel.IModelObject, java.lang.String, java.lang.Object, java.lang.Object)
+     */
+    @Override
+    public void notifyChange( IModelObject object, String attrName, Object newValue, Object oldValue)
+    {
+      System.out.printf( "notifyChange: %s, %s\n", object.getType(), attrName);
+    }
+
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyClear(org.xmodel.IModelObject, java.lang.String, java.lang.Object)
+     */
+    @Override
+    public void notifyClear( IModelObject object, String attrName, Object oldValue)
+    {
+      System.out.printf( "notifyClear: %s, %s\n", object.getType(), attrName);
+    }
   }
   
   private final static Log log = Log.getLog( TabularCompressor.class);
@@ -764,34 +867,70 @@ public class TabularCompressor extends AbstractCompressor
   
   public static void main( String[] args) throws Exception
   {
-    // test backward compatability
-    ByteCounterInputStream in = new ByteCounterInputStream( new BufferedInputStream( new FileInputStream( "KingLear.xip")));
-    TabularCompressor c = new TabularCompressor( false, false, Order.depthFirst);
-    IModelObject book = c.decompress( in);
+    //Log.getLog( ByteCounterInputStream.class).setLevel( Log.all);
+
+//    System.out.println( "\n\n----- #2 Decompressing (shallow) -----\n");
+//    ByteCounterInputStream fin = new ByteCounterInputStream( new FileInputStream( "request.xip"));
+//    TabularCompressor c1 = new TabularCompressor( false, true, Order.breadthFirst);
+//    IModelObject req = c1.decompress( fin);
+//    System.out.println( XmlIO.write( Style.printable, req));
+//    System.exit( 1);
+ 
     
-    FileOutputStream out = new FileOutputStream( "KingLear-DF.xip");
-    c = new TabularCompressor( false, false, Order.depthFirst);
-    c.compress( book, out);
+    String xml =
+      "<A>" +
+      "  <B>" +
+      "    <F/>" +
+      "  </B>" +
+      "  <C>" +
+      "    <G>" +
+      "      <H/>" +      
+      "    </G>" +
+      "  </C>" +
+      "  <D>" +
+      "    <H/>" +
+      "  </D>" +
+      "  <E/>" +
+      "</A>";
+
+    IModelObject el = new XmlIO().read( xml);
+    
+    System.out.println( "----- #1 Compressing -----\n");
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    TabularCompressor c = new TabularCompressor( false, false, Order.breadthFirst);
+    c.compress( el, out);
     out.close();
     
-    // test shallow deserialization
-    out = new FileOutputStream( "KingLear-BF.xip");
-    c = new TabularCompressor( false, false, Order.breadthFirst);
-    c.compress( book, out);
-    out.close();
+    byte[] b1 = out.toByteArray();
+    System.out.printf( "%s\n", HexDump.toString( b1));
     
-    in = new ByteCounterInputStream( new BufferedInputStream( new FileInputStream( "KingLear-BF.xip")));
+    System.out.println( "\n\n----- #2 Decompressing (shallow) -----\n");
+    ByteCounterInputStream in = new ByteCounterInputStream( new ByteArrayInputStream( b1));
     c = new TabularCompressor( false, true, Order.breadthFirst);
-    book = c.decompress( in);
+    el = c.decompress( in);
+
+    IModelObject n1 = el.getChild( 0);
+    n1.removeChild( 0);
+    el.getChild( 1).getChild( 0).getChild( 0);
     
-    List<IModelObject> children = book.getChildren();
-    //children.get( 0).getChildren();
-    children.get( 1).getChildren();
-    
-    
-    out = new FileOutputStream( "KingLear-BF-copy.xip");
+    System.out.println( "\n\n----- #3 Compressing -----\n");
+    out = new ByteArrayOutputStream();
     c = new TabularCompressor( false, false, Order.breadthFirst);
-    c.compress( book, out);
+    c.compress( el, out);
+    c.compress( el, out);
     out.close();
+    
+    byte[] b2 = out.toByteArray();
+    System.out.printf( "\n\n%s\n", HexDump.toString( b2));
+    System.out.println( XmlIO.write( Style.printable, el));
+    
+    
+    
+    System.out.println( "\n\n----- #4 Decompressing (shallow) -----\n");
+    in = new ByteCounterInputStream( new ByteArrayInputStream( b2));
+    c = new TabularCompressor( false, true, Order.breadthFirst);
+    el = c.decompress( in);
+
+    System.out.println( XmlIO.write( Style.printable, el));
   }
 }
