@@ -19,7 +19,6 @@
  */
 package org.xmodel.net.bind;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +31,7 @@ import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.compress.CaptureInputStream;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.ICachingPolicy;
@@ -192,7 +192,7 @@ public class BindCompressor extends TabularCompressor
    */
   public IModelObject decompress( ChannelBuffer input, IExternalReference reference) throws IOException
   {
-    DataInputStream stream = new DataInputStream( new ChannelBufferInputStream( input));
+    CaptureInputStream stream = new CaptureInputStream( new ChannelBufferInputStream( input));
     
     // header flags
     int flags = input.readUnsignedByte();
@@ -214,11 +214,11 @@ public class BindCompressor extends TabularCompressor
    * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( DataInputStream stream, IExternalReference binding) throws IOException, CompressorException
+  protected IModelObject readElement( CaptureInputStream stream, IExternalReference binding) throws IOException, CompressorException
   {
-    Integer netID = stream.readInt();
+    Integer netID = stream.getDataIn().readInt();
     String type = readHash( stream);
-    byte flags = stream.readByte();
+    byte flags = stream.getDataIn().readByte();
     
     // create element
     IModelObject element;
@@ -272,7 +272,7 @@ public class BindCompressor extends TabularCompressor
    * @return Returns the new element.
    */
   @Override
-  protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
+  public IModelObject readElement( CaptureInputStream stream) throws IOException, CompressorException
   {
     return readElement( stream, null);
   }
