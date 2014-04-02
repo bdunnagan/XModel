@@ -47,9 +47,7 @@ public class WaitAction extends GuardedAction
         else
         {
           Throwable t = future.getFailureCause();
-          
           if ( t != null) SLog.exception( this, t); else SLog.error( this, future.getFailureMessage());
-          
           throw new XActionException( t);
         }
       }

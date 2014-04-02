@@ -24,6 +24,8 @@ public class FileUtil
       if ( count > 0) content.append( buffer, 0, count);
     }
     
+    reader.close();
+    
     return content.toString();
   }
 }
