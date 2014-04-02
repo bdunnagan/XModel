@@ -25,6 +25,14 @@ public class ByteArrayStorageClass implements IStorageClass
     return stream;
   }
   
+  /**
+   * @return Returns the delgate storage class.
+   */
+  public IStorageClass getDelegate()
+  {
+    return storageClass;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */

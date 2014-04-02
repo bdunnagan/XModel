@@ -26,19 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
-import org.xmodel.external.ICachingPolicy;
 import org.xmodel.log.Log;
 import org.xmodel.storage.ByteArrayStorageClass;
 import org.xmodel.storage.IStorageClass;
@@ -129,12 +129,8 @@ public class TabularCompressor extends AbstractCompressor
   @Override
   public List<byte[]> compress( IModelObject element) throws IOException
   {
-    ICachingPolicy cachingPolicy = element.getCachingPolicy();
-    if ( cachingPolicy instanceof ByteArrayCachingPolicy)
-    {
-      ICompressor compressor = ((ByteArrayCachingPolicy)cachingPolicy).compressor;
-      if ( compressor != this) return compressor.compress( element);
-    }
+    resolveTable( element);
+    thruBytesWritten = 0;
     
     // content
     MultiByteArrayOutputStream content = new MultiByteArrayOutputStream();
@@ -152,11 +148,16 @@ public class TabularCompressor extends AbstractCompressor
     if ( !predefined) writeTable( new DataOutputStream( header));  
     
     // log
-    log.debugf( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
+    log.verbosef( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
     
     // progressive compression assumes a send/receive pair of compressors to remember table entries
     if ( stateful) predefined = true;
 
+    log.debugf( "Compression: total=%1.1fK, thru=%1.1fK, thru-ratio=%1.0f%%", 
+      (header.getWritten() + content.getWritten()) / 1000f,
+      thruBytesWritten / 1000f,
+      ((double)thruBytesWritten / content.getWritten()) * 100f);
+    
     List<byte[]> buffers = header.getBuffers();
     buffers.addAll( content.getBuffers());
     return buffers;
@@ -188,7 +189,7 @@ public class TabularCompressor extends AbstractCompressor
     if ( !predefined) readTable( input);
 
     // log
-    log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
+    log.verbosef( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
     // content
     return shallow? readElementShallow( input, null): readElement( input);
@@ -297,6 +298,7 @@ public class TabularCompressor extends AbstractCompressor
       int nread = in.read( buffer);
       if ( nread < 0) break;
       out.write( buffer, 0, nread);
+      thruBytesWritten += nread;
     }
   }
 
@@ -408,6 +410,17 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void readChildren( CaptureInputStream stream, IModelObject node) throws IOException, CompressorException
   {
+    readChildren( stream, node, shallow);
+  }
+  
+  /**
+   * Read the children in the specified buffer and populate the node.
+   * @param stream The input stream.
+   * @param node The node whose children are being read.
+   * @param shallow True if partial decompression should be employed.
+   */
+  protected void readChildren( CaptureInputStream stream, IModelObject node, boolean shallow) throws IOException, CompressorException
+  {
     ByteArrayCachingPolicy cachingPolicy = (ByteArrayCachingPolicy)node.getCachingPolicy();
     
     // read count (must be read, since information belongs to this element)
@@ -477,7 +490,7 @@ public class TabularCompressor extends AbstractCompressor
     Integer hash = map.get( name);
     if ( hash == null)
     {
-      hash = hashIndex++;
+      hash = table.size();
       table.add( name);
       map.put( name, hash);
       predefined = false;
@@ -611,6 +624,83 @@ public class TabularCompressor extends AbstractCompressor
       stream.writeByte( value);
     }
   }
+
+  /**
+   * Find the largest element in the specified sub-tree that has not been decompressed and 
+   * redefine the table of this compressor so that it can be compressed with being synced. 
+   * @param root The root of the sub-tree to search.
+   */
+  private void resolveTable( IModelObject root)
+  {
+    long t0 = System.nanoTime();
+    
+    List<IModelObject> dirty = new ArrayList<IModelObject>();
+    IModelObject largest = null;
+    int largestSize = 0;
+    
+    Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
+    deque.addLast( root);
+    
+    while( !deque.isEmpty())
+    {
+      IModelObject element = deque.removeFirst();
+      if ( element.isDirty())
+      {
+        IStorageClass storageClass = element.getStorageClass(); 
+        if ( storageClass instanceof ByteArrayStorageClass)
+        {
+          dirty.add( element);
+          
+          ByteArrayInputStream stream = ((ByteArrayStorageClass)storageClass).getStream();
+          int size = stream.available();
+          if ( size > largestSize)
+          {
+            largest = element;
+            largestSize = size;
+          }
+        }
+      }
+      else
+      {
+        for( IModelObject child: element.getChildren())
+          deque.addLast( child);
+      }
+    }
+    
+    // sync smaller partially decompressed elements
+    if ( dirty != null)
+    {
+      boolean wasShallow = shallow;
+      shallow = false;
+      int unresolved = 0;
+      for( IModelObject element: dirty)
+      {
+        if ( element.getCachingPolicy() != largest.getCachingPolicy())
+        {
+          unresolved++;
+          element.getChildren();
+        }
+      }
+      shallow = wasShallow;
+      
+      log.debugf( "Synced %d elements with conflicting tables", unresolved);
+    }
+    
+    // update table
+    if ( largest != null)
+    {
+      log.debugf( "Copying table of largest partially decompressed element, %s", largest.getType());
+      
+      map.clear();
+      table.clear();
+      ByteArrayCachingPolicy cachingPolicy = (ByteArrayCachingPolicy)largest.getCachingPolicy();
+      map.putAll( cachingPolicy.compressor.map);
+      table.addAll( cachingPolicy.compressor.table);
+    }
+    
+    long t1 = System.nanoTime();
+    log.debugf( "Compressor table resolved in %1.1fms", (t1 - t0) / 1e6);
+  }
  
   /**
    * Dump the string table.
@@ -633,7 +723,6 @@ public class TabularCompressor extends AbstractCompressor
   private TabularCompressor cloneThis()
   {
     TabularCompressor clone = new TabularCompressor( stateful, shallow);
-    clone.hashIndex = hashIndex;
     clone.predefined = predefined;
     clone.charset = charset;
     clone.table.addAll( table);
@@ -646,14 +735,15 @@ public class TabularCompressor extends AbstractCompressor
  
   private List<String> table;
   private Map<String, Integer> map;
-  private int hashIndex;
   private boolean predefined;
   private boolean stateful;
   private boolean shallow;
   private Charset charset;
+  private int thruBytesWritten;
   
   public static void main( String[] args) throws Exception
   {
+    log.setLevel( Log.all);
     //Log.getLog( ByteCounterInputStream.class).setLevel( Log.all);
 
 //    System.out.println( "\n\n----- #2 Decompressing (shallow) -----\n");
