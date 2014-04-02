@@ -1,111 +1,87 @@
 package org.xmodel.storage;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelListenerList;
 import org.xmodel.PathListenerList;
+import org.xmodel.compress.ByteArrayInputStream;
 import org.xmodel.external.ICachingPolicy;
 
-/**
- * An IStorageClass that only stores attributes and children.
- */
-public final class DataStorageClass implements IStorageClass
+public class ByteArrayStorageClass implements IStorageClass
 {
-  /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
-   */
-  public DataStorageClass( SmallDataStorageClass storageClass)
+  public ByteArrayStorageClass( IStorageClass storageClass, ByteArrayInputStream stream)
   {
-    // Statistics.increment( this);
-    
-    attributes = new LinkedHashMap<String, Object>();
-    attributes.put( storageClass.name1, storageClass.value1);
-    attributes.put( storageClass.name2, storageClass.value2);
-    attributes.put( storageClass.name3, storageClass.value3);
+    this.storageClass = storageClass;
+    this.stream = stream;
   }
   
   /**
-   * Copy the data from the specified storage class.
-   * @param storageClass The storage class to be copied.
+   * @return Returns the input stream pointing to this element.
    */
-  public DataStorageClass( MediumDataStorageClass storageClass)
+  public ByteArrayInputStream getStream()
   {
-    // Statistics.increment( this);
-    
-    attributes = new LinkedHashMap<String, Object>();
-    attributes.put( storageClass.name1, storageClass.value1);
-    attributes.put( storageClass.name2, storageClass.value2);
-    attributes.put( storageClass.name3, storageClass.value3);
-    children = storageClass.children;
+    return stream;
   }
   
-//  /* (non-Javadoc)
-//   * @see java.lang.Object#finalize()
-//   */
-//  @Override
-//  protected void finalize() throws Throwable
-//  {
-//    super.finalize();
-//    Statistics.decrement( this);
-//  }
-
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setCachingPolicyStorageClass()
    */
   @Override
   public IStorageClass getCachingPolicyStorageClass()
   {
-    return new CachingPolicyStorageClass( this);
+    return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getChildrenStorageClass()
    */
   @Override
   public IStorageClass getChildrenStorageClass()
   {
+    // TODO: Can we throw away this storage class at this point?
+    storageClass = storageClass.getChildrenStorageClass();
     return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setAttributeStorageClass(java.lang.String)
    */
   @Override
   public IStorageClass getAttributeStorageClass( String name)
   {
+    storageClass = storageClass.getAttributeStorageClass( name);
     return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getModelListenersStorageClass()
    */
   @Override
   public IStorageClass getModelListenersStorageClass()
   {
-    return new ModelListenerStorageClass( this);
+    storageClass = storageClass.getModelListenersStorageClass();
+    return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#getPathListenersStorageClass()
    */
   @Override
   public IStorageClass getPathListenersStorageClass()
   {
-    return new PathListenerStorageClass( this);
+    storageClass = storageClass.getPathListenersStorageClass();
+    return this;
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.storage.IStorageClass#setDirty(boolean)
    */
   @Override
   public void setDirty( boolean dirty)
   {
-    throw new UnsupportedOperationException();
+    this.dirty = dirty;
   }
 
   /* (non-Javadoc)
@@ -114,7 +90,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public boolean getDirty()
   {
-    return false;
+    return dirty;
   }
 
   /* (non-Javadoc)
@@ -123,7 +99,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public void setCachingPolicy( ICachingPolicy cachingPolicy)
   {
-    throw new UnsupportedOperationException();
+    this.cachingPolicy = cachingPolicy;
   }
 
   /* (non-Javadoc)
@@ -132,7 +108,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public ICachingPolicy getCachingPolicy()
   {
-    return null;
+    return cachingPolicy;
   }
 
   /* (non-Javadoc)
@@ -141,9 +117,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public List<IModelObject> getChildren()
   {
-    // children may be null coming from SmallDataStorageClass
-    if ( children == null) children = new ArrayList<IModelObject>( 3);
-    return children;
+    return storageClass.getChildren();
   }
 
   /* (non-Javadoc)
@@ -152,9 +126,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public Object setAttribute( String name, Object value)
   {
-    if ( value == null) return (attributes != null)? attributes.remove( name): null;
-    if ( attributes == null) attributes = new LinkedHashMap<String, Object>();
-    return attributes.put( name, value);
+    return storageClass.setAttribute( name, value);
   }
 
   /* (non-Javadoc)
@@ -163,8 +135,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public Object getAttribute( String name)
   {
-    if ( attributes == null) return null;
-    return attributes.get( name);
+    return storageClass.getAttribute( name);
   }
 
   /* (non-Javadoc)
@@ -173,7 +144,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public Collection<String> getAttributeNames()
   {
-    return attributes.keySet();
+    return storageClass.getAttributeNames();
   }
 
   /* (non-Javadoc)
@@ -182,7 +153,7 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public ModelListenerList getModelListeners()
   {
-    return null;
+    return storageClass.getModelListeners();
   }
 
   /* (non-Javadoc)
@@ -191,9 +162,11 @@ public final class DataStorageClass implements IStorageClass
   @Override
   public PathListenerList getPathListeners()
   {
-    return null;
+    return storageClass.getPathListeners();
   }
 
-  protected Map<String, Object> attributes;
-  protected List<IModelObject> children;
+  protected IStorageClass storageClass;
+  protected ICachingPolicy cachingPolicy;
+  protected boolean dirty;
+  private ByteArrayInputStream stream;
 }

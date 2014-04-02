@@ -1,7 +1,5 @@
 package org.xmodel.compress;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 
 import org.xmodel.external.AbstractCachingPolicy;
@@ -23,14 +21,14 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
   @Override
   public void sync( IExternalReference reference) throws CachingException
   {
-    ByteArrayStorageClass storageClass = (ByteArrayStorageClass)reference.getStorageClass();
-    byte[] bytes = storageClass.getBytes();
-    int offset = storageClass.getByteOffset();
-
+    System.out.println( "Sync: "+reference.getType());
+    
     try
     {
-      DataInputStream bytesIn = new DataInputStream( new ByteArrayInputStream( bytes, offset, bytes.length - offset));
-      compressor.readChildren( bytesIn, reference);
+      // TODO: discard storage class and extra data
+      ByteArrayStorageClass storageClass = (ByteArrayStorageClass)reference.getStorageClass();
+      CaptureInputStream in = new CaptureInputStream( storageClass.getStream());
+      compressor.readChildren( in, reference);
     }
     catch( IOException e)
     {
@@ -38,5 +36,5 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
     }
   }
   
-  private TabularCompressor compressor;
+  protected TabularCompressor compressor;
 }
