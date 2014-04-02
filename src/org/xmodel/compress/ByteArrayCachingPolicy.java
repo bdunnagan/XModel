@@ -2,6 +2,7 @@ package org.xmodel.compress;
 
 import java.io.IOException;
 
+import org.xmodel.IModelObject;
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.IExternalReference;
@@ -28,7 +29,10 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
       // TODO: discard storage class and extra data
       ByteArrayStorageClass storageClass = (ByteArrayStorageClass)reference.getStorageClass();
       CaptureInputStream in = new CaptureInputStream( storageClass.getStream());
-      compressor.readChildren( in, reference);
+      
+      IModelObject element = reference.cloneObject();
+      compressor.readChildren( in, element);
+      update( reference, element);
     }
     catch( IOException e)
     {

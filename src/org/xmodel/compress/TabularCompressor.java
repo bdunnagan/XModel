@@ -89,7 +89,6 @@ public class TabularCompressor extends AbstractCompressor
     this.stateful = stateful;
     this.shallow = shallow;
     this.charset = Charset.forName( "UTF-8");
-    this.cachingPolicy = new ByteArrayCachingPolicy( this);
   }
   
   /**
@@ -192,7 +191,7 @@ public class TabularCompressor extends AbstractCompressor
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
     // content
-    return shallow? readElementShallow( input): readElement( input);
+    return shallow? readElementShallow( input, null): readElement( input);
   }
 
   /**
@@ -215,10 +214,13 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Read an element from the specified byte array and instrument with ByteArrayCachingPolicy.
    * @param stream The input stream.
+   * @param cachingPolicy The caching policy.
    * @return Returns the new element.
    */
-  public IModelObject readElementShallow( CaptureInputStream stream) throws IOException, CompressorException
+  public IModelObject readElementShallow( CaptureInputStream stream, ByteArrayCachingPolicy cachingPolicy) throws IOException, CompressorException
   {
+    if ( cachingPolicy == null) cachingPolicy = new ByteArrayCachingPolicy( cloneThis());
+    
     // read tag name
     String type = readHash( stream);
     
@@ -294,7 +296,6 @@ public class TabularCompressor extends AbstractCompressor
     {
       int nread = in.read( buffer);
       if ( nread < 0) break;
-      System.out.println( HexDump.toString( buffer, 0, nread));
       out.write( buffer, 0, nread);
     }
   }
@@ -407,13 +408,15 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void readChildren( CaptureInputStream stream, IModelObject node) throws IOException, CompressorException
   {
+    ByteArrayCachingPolicy cachingPolicy = (ByteArrayCachingPolicy)node.getCachingPolicy();
+    
     // read count (must be read, since information belongs to this element)
     int count = readValue( stream);
     
     // read children
     for( int i=0; i<count; i++)
     {
-      IModelObject child = shallow? readElementShallow( stream): readElement( stream);
+      IModelObject child = shallow? readElementShallow( stream, cachingPolicy): readElement( stream);
       node.addChild( child);
     }
   }
@@ -622,6 +625,22 @@ public class TabularCompressor extends AbstractCompressor
     }
     return sb.toString();
   }
+  
+  /**
+   * Clone this compressor and its current map/table.
+   * @return Returns the cloned compressor.
+   */
+  private TabularCompressor cloneThis()
+  {
+    TabularCompressor clone = new TabularCompressor( stateful, shallow);
+    clone.hashIndex = hashIndex;
+    clone.predefined = predefined;
+    clone.charset = charset;
+    clone.table.addAll( table);
+    for( int i=0; i<table.size(); i++)
+      clone.map.put( table.get( i), i);
+    return clone;
+  }
     
   private final static Log log = Log.getLog( TabularCompressor.class);
  
@@ -632,7 +651,6 @@ public class TabularCompressor extends AbstractCompressor
   private boolean stateful;
   private boolean shallow;
   private Charset charset;
-  private ByteArrayCachingPolicy cachingPolicy;
   
   public static void main( String[] args) throws Exception
   {
@@ -678,9 +696,9 @@ public class TabularCompressor extends AbstractCompressor
     c = new TabularCompressor( false, true);
     el = c.decompress( in);
 
-    IModelObject n1 = el.getChild( 0);
+//    IModelObject n1 = el.getChild( 0);
     //n1.removeChild( 0);
-    el.getChild( 1).getChild( 0).getChild( 0);
+//    el.getChild( 1).getChild( 0).getChild( 0);
     
     System.out.println( "\n\n----- #3 Compressing -----\n");
     out = new ByteArrayOutputStream();
