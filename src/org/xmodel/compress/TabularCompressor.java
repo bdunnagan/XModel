@@ -34,7 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.Stack;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -253,9 +253,10 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void consumeElement( CaptureInputStream stream) throws IOException
   {
-    readHash( stream);
-    readAttributes( stream, null);
-    consumeChildren( stream);
+    TabularCompressor compressor = readCompressor( stream);
+    compressor.readHash( stream);
+    compressor.readAttributes( stream, null);
+    compressor.consumeChildren( stream);
   }
   
   /**
@@ -265,11 +266,14 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeElement( DataOutputStream stream, IModelObject element) throws IOException, CompressorException
   {
+    // write compressor translation
+    TabularCompressor compressor = writeCompressor( stream, element);
+    
     // write tag name
-    writeHash( stream, element.getType());
+    compressor.writeHash( stream, element.getType());
     
     // write attributes and children
-    writeAttributes( stream, element, element.getAttributeNames());
+    compressor.writeAttributes( stream, element, element.getAttributeNames());
     
     // write children
     IStorageClass storageClass = element.getStorageClass();
@@ -282,7 +286,7 @@ public class TabularCompressor extends AbstractCompressor
     }
     else
     {
-      writeChildren( stream, element);
+      compressor.writeChildren( stream, element);
     }
   }
   
@@ -465,6 +469,11 @@ public class TabularCompressor extends AbstractCompressor
       writeElement( stream, child);
   }
   
+  protected TabularCompressor readCompressor( CaptureInputStream stream)
+  {
+    
+  }
+  
   /**
    * Read a hashed name from the stream.
    * @param stream The input stream.
@@ -636,8 +645,6 @@ public class TabularCompressor extends AbstractCompressor
     long t0 = System.nanoTime();
     
     List<IModelObject> dirty = new ArrayList<IModelObject>();
-    IModelObject largest = null;
-    int largestSize = 0;
     
     Deque<IModelObject> deque = new ArrayDeque<IModelObject>();
     deque.addLast( root);
@@ -651,14 +658,6 @@ public class TabularCompressor extends AbstractCompressor
         if ( storageClass instanceof ByteArrayStorageClass)
         {
           dirty.add( element);
-          
-          ByteArrayInputStream stream = ((ByteArrayStorageClass)storageClass).getStream();
-          int size = stream.available();
-          if ( size > largestSize)
-          {
-            largest = element;
-            largestSize = size;
-          }
         }
       }
       else
@@ -668,7 +667,10 @@ public class TabularCompressor extends AbstractCompressor
       }
     }
     
-    // sync smaller partially decompressed elements
+    // foreach dirty element
+    // add to translation set
+    
+    
     if ( dirty != null)
     {
       boolean wasShallow = shallow;
