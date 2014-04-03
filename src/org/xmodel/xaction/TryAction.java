@@ -21,13 +21,11 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.ListIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -35,26 +33,24 @@ import org.xmodel.xpath.variable.IVariableScope;
  * exceptions thrown during processing of the script. Any type of Throwable can be handled. When
  * an exception is caught, the <i>exception</i> variable holds the instance of the exception.
  */
-public class TryAction extends GuardedAction
+public class TryAction extends CompoundAction
 {
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.GuardedAction#configure(org.xmodel.xaction.XActionDocument)
+   * @see org.xmodel.xaction.XAction#configure(org.xmodel.xaction.XActionDocument)
    */
   @SuppressWarnings("unchecked")
   @Override
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    
-    // try script
     tryScript = document.createScript( "catch", "finally");
     
-    // finally script
+    // backwards compatibility (finally script)
     IModelObject finallyNode = document.getRoot().getFirstChild( "finally");
     if ( finallyNode != null) finallyScript = document.createScript( finallyNode);
     
-    // catch blocks
-    List<IModelObject> catchElements = catchActionExpr.query( document.getRoot(), null);
+    // backwards compatibility (catch blocks)
+    List<IModelObject> catchElements = document.getRoot().getChildren( "catch");
     catchBlocks = new ArrayList<CatchBlock>( catchElements.size());
     for( int i=0; i<catchElements.size(); i++)
     {
@@ -78,10 +74,52 @@ public class TryAction extends GuardedAction
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.CompoundAction#configure(org.xmodel.xaction.XActionDocument, java.util.ListIterator)
+   */
+  @SuppressWarnings("unchecked")
+  @Override
+  public void configure( XActionDocument document, ListIterator<IModelObject> iterator)
+  {
+    catchBlocks = new ArrayList<CatchBlock>( 1);
+    
+    while( iterator.hasNext())
+    {
+      IModelObject element = iterator.next();
+      if ( element.isType( "catch"))
+      {
+        CatchBlock catchBlock = new CatchBlock();
+        
+        String className = Xlate.get( element, "class", "java.lang.Throwable");
+        try
+        {
+          ClassLoader loader = document.getClassLoader();
+          catchBlock.thrownClass = (Class<Throwable>)loader.loadClass( className);
+          catchBlocks.add( catchBlock);
+        }
+        catch( Exception e)
+        {
+          log.exception( e);
+        }
+        
+        catchBlock.script = document.createScript( element);
+      }
+      else if ( element.isType( "finally"))
+      {
+        finallyScript = document.createScript( element);
+      }
+      else
+      {
+        iterator.previous();
+        break;
+      }
+    }
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xaction.XAction#doRun(org.xmodel.xpath.expression.IContext)
    */
   @Override
-  protected Object[] doAction( IContext context)
+  public Object[] doRun( IContext context)
   {
     try
     {
@@ -122,7 +160,7 @@ public class TryAction extends GuardedAction
         finallyScript.run( context);
     }
   }
-  
+
   /**
    * Find the matching CatchBlock for the specified throwable.
    * @param t The object that was thrown.
@@ -159,9 +197,6 @@ public class TryAction extends GuardedAction
   }
   
   private static Log log = Log.getLog( "org.xmodel.xaction");
-  
-  private final IExpression catchActionExpr = XPath.createExpression(
-    "*[ name() = 'catch']");
   
   private ScriptAction tryScript;
   private List<CatchBlock> catchBlocks;

@@ -1163,6 +1163,15 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       notifyChange( object, attrName, null, null);
     }
     
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
+     */
+    @Override
+    public void notifyDirty( IModelObject object, boolean dirty)
+    {
+      // override default behavior
+    }
+
     private boolean enabled;
   }
     

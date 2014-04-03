@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -677,8 +678,14 @@ public class TabularCompressor extends AbstractCompressor
       {
         if ( element.getCachingPolicy() != largest.getCachingPolicy())
         {
-          unresolved++;
-          element.getChildren();
+          boolean compatible = compareTables( 
+              ((ByteArrayCachingPolicy)largest.getCachingPolicy()).compressor, 
+              ((ByteArrayCachingPolicy)element.getCachingPolicy()).compressor);
+          if ( !compatible)
+          {
+            unresolved++;
+            element.getChildren();
+          }
         }
       }
       shallow = wasShallow;
@@ -700,6 +707,22 @@ public class TabularCompressor extends AbstractCompressor
     
     long t1 = System.nanoTime();
     log.debugf( "Compressor table resolved in %1.1fms", (t1 - t0) / 1e6);
+  }
+  
+  /**
+   * Compare the tables of the two compressors.
+   * @param c1 The first compressor.
+   * @param c2 The second compressor.
+   * @return Returns true if the tables are compatible.
+   */
+  private static boolean compareTables( TabularCompressor c1, TabularCompressor c2)
+  {
+    for( int i=0; i<c1.table.size() && i<c2.table.size(); i++)
+    {
+      if ( !c1.table.get( i).equals( c2.table.get( i)))
+          return false;
+    }
+    return true;
   }
  
   /**
