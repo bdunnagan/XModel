@@ -33,7 +33,6 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.xmodel.IModelObject;
@@ -85,7 +84,6 @@ public class TabularCompressor extends AbstractCompressor
   public TabularCompressor( boolean stateful, boolean shallow)
   {
     this.factory = new ModelObjectFactory();
-    this.predefined = false;
     this.stateful = stateful;
     this.shallow = shallow;
     this.charset = Charset.forName( "UTF-8");
@@ -101,9 +99,13 @@ public class TabularCompressor extends AbstractCompressor
   {
     try
     {
-      globalTableLock.writeLock().unlock();
-      globalMap.put( tag, globalTable.size());
-      globalTable.add( tag);
+      globalTableLock.writeLock().lock();
+      if ( !globalMap.containsKey( tag))
+      {
+        log.infof( "Reserving global tag: [%d] '%s'", globalTable.size(), tag);
+        globalMap.put( tag, globalTable.size());
+        globalTable.add( tag);
+      }
     }
     finally
     {
@@ -132,7 +134,7 @@ public class TabularCompressor extends AbstractCompressor
    */
   public void defineTagTable( List<String> table)
   {
-    this.table = table;
+    this.table = new ArrayList<String>( table);
     map.clear();
     for( int i=0; i<table.size(); i++) map.put( table.get( i), i);
     predefined = true;
@@ -184,7 +186,7 @@ public class TabularCompressor extends AbstractCompressor
     MultiByteArrayOutputStream header = new MultiByteArrayOutputStream();
   
     // write header flags
-    byte flags = 0;
+    byte flags = 0x10;
     if ( predefined) flags |= 0x20;
     header.write( flags);
     
@@ -192,8 +194,7 @@ public class TabularCompressor extends AbstractCompressor
     if ( !predefined) writeTable( new DataOutputStream( header));
     
     // log
-    if ( log.debug()) log.debugf( "Wrote Table:\n%s", dumpTable());
-    log.verbosef( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
+    log.verbosef( "Compressed '%s' with table: %s", element.getType(), dumpTable());
     
     // progressive compression assumes a send/receive pair of compressors to remember table entries
     if ( stateful) predefined = true;
@@ -229,15 +230,18 @@ public class TabularCompressor extends AbstractCompressor
     // header flags
     int flags = input.getDataIn().readUnsignedByte();
     boolean predefined = (flags & 0x20) != 0;
+    boolean importGlobal = (flags & 0x10) != 0;
     
     // table
-    if ( !predefined) readTable( input);
+    if ( !predefined) readTable( input, importGlobal);
 
     // log
     log.verbosef( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
     // content
-    return shallow? readElementShallow( input, null): readElement( input);
+    IModelObject e= shallow? readElementShallow( input, null): readElement( input);
+    System.out.println( XmlIO.write( Style.printable, e));
+    return e;
   }
 
   /**
@@ -571,10 +575,19 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Read the hash table from the stream.
    * @param stream The input stream.
+   * @param importGlobal True if global tags should be imported.
    */
-  protected void readTable( CaptureInputStream stream) throws IOException, CompressorException
+  protected void readTable( CaptureInputStream stream, boolean importGlobal) throws IOException, CompressorException
   {
-    clearTagTable();
+    if ( importGlobal)
+    {
+      clearTagTable();
+    }
+    else
+    {
+      map = new LinkedHashMap<String, Integer>();
+      table = new ArrayList<String>();
+    }
     
     // read table size
     int count = readValue( stream);
@@ -612,18 +625,22 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
+    // get global table size
+    globalTableLock.readLock().lock();
+    int globalCount = globalTable.size();
+    globalTableLock.readLock().unlock();
+    
     // write table size
-    Set<String> keys = map.keySet();
-    writeValue( stream, keys.size());
+    writeValue( stream, table.size() - globalCount);
 
     // write entries
-    for( String key: keys) 
+    for( int i=globalCount; i<table.size(); i++) 
     {
-      stream.write( key.getBytes( charset));
+      stream.write( table.get( i).getBytes( charset));
       stream.write( 0);
     }
     
-    stream.write( "|".getBytes());
+    stream.write( (int)'|');
   }
   
   /**
@@ -774,8 +791,10 @@ public class TabularCompressor extends AbstractCompressor
     StringBuilder sb = new StringBuilder();
     for( int i=0; i<table.size(); i++)
     {
-      sb.append( String.format( "%d = '%s'\n", i, table.get( i)));
+      sb.append( table.get( i));
+      sb.append( ", ");
     }
+    if ( sb.length() > 0) sb.setLength( sb.length() - 2);
     return sb.toString();
   }
   
@@ -793,7 +812,7 @@ public class TabularCompressor extends AbstractCompressor
     {
       globalTableLock.readLock().lock();
       for( int i=globalTable.size(); i<table.size(); i++)
-        reserveTag( table.get( i));
+        clone.reserveTag( table.get( i));
     }
     finally
     {
@@ -846,6 +865,9 @@ public class TabularCompressor extends AbstractCompressor
       "  <E/>" +
       "</A>";
 
+    TabularCompressor.reserveGlobalTag( "G");
+    TabularCompressor.reserveGlobalTag( "G");
+    
     IModelObject el = new XmlIO().read( xml);
     
     System.out.println( "----- #1 Compressing -----\n");
