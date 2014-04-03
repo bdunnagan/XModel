@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.zip.CRC32;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -168,6 +170,22 @@ public class TabularCompressor extends AbstractCompressor
       globalTableLock.readLock().unlock();
     }
   }
+  
+  /**
+   * @return Returns the number of globally defined tags.
+   */
+  private int getGlobalCount()
+  {
+    try
+    {
+      globalTableLock.readLock().lock();
+      return globalTable.size();
+    }
+    finally
+    {
+      globalTableLock.readLock().unlock();
+    }
+  }
 
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
@@ -186,7 +204,7 @@ public class TabularCompressor extends AbstractCompressor
     MultiByteArrayOutputStream header = new MultiByteArrayOutputStream();
   
     // write header flags
-    byte flags = 0x10;
+    byte flags = (byte)((getGlobalCount() > 0)? 0x10: 0);
     if ( predefined) flags |= 0x20;
     header.write( flags);
     
@@ -239,9 +257,7 @@ public class TabularCompressor extends AbstractCompressor
     log.verbosef( "%x.decompress(): predefined=%s", hashCode(), predefined);
     
     // content
-    IModelObject e= shallow? readElementShallow( input, null): readElement( input);
-    System.out.println( XmlIO.write( Style.printable, e));
-    return e;
+    return shallow? readElementShallow( input, null): readElement( input);
   }
 
   /**
@@ -589,6 +605,9 @@ public class TabularCompressor extends AbstractCompressor
       table = new ArrayList<String>();
     }
     
+    // read table hash
+    //int hash = stream.getDataIn().readInt();
+    
     // read table size
     int count = readValue( stream);
     
@@ -617,6 +636,10 @@ public class TabularCompressor extends AbstractCompressor
     }
     
     stream.read();
+    
+    // validate hash
+//    if ( hash != getTableHash())
+//      log.severef( "Table does not match hash!");
   }
   
   /**
@@ -625,10 +648,11 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
+    // write table hash
+    //stream.writeInt( getTableHash());
+    
     // get global table size
-    globalTableLock.readLock().lock();
-    int globalCount = globalTable.size();
-    globalTableLock.readLock().unlock();
+    int globalCount = getGlobalCount();
     
     // write table size
     writeValue( stream, table.size() - globalCount);
@@ -641,6 +665,17 @@ public class TabularCompressor extends AbstractCompressor
     }
     
     stream.write( (int)'|');
+  }
+  
+  /**
+   * @return Returns a hash of all of the tags in the table.
+   */
+  private int getTableHash()
+  {
+    CRC32 crc = new CRC32();
+    for( String tag: table)
+      crc.update( tag.getBytes( charset));
+    return (int)(crc.getValue() & 0x7FFFFFFF);
   }
   
   /**

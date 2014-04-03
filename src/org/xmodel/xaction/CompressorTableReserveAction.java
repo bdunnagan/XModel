@@ -42,7 +42,8 @@ public class CompressorTableReserveAction extends GuardedAction
       case STRING:
       {
         String tags = tagsExpr.evaluateString( context);
-        for( String tag: tags.split( "\\s*,\\s*"))
+        String[] split = tags.split( "\\s*,\\s*");
+        for( String tag: split)
         {
           if ( tag != null) TabularCompressor.reserveGlobalTag( tag);
         }
