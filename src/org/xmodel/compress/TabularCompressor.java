@@ -33,6 +33,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.CRC32;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -99,15 +100,20 @@ public class TabularCompressor extends AbstractCompressor
     globalTable = new ArrayList<String>();
     globalMap = new LinkedHashMap<String, Integer>();
     
+    CRC32 crc = new CRC32();
     for( int i=0; i<tags.length; i++)
     {
       String tag = tags[ i];
       if ( !globalMap.containsKey( tags))
       {
+        log.verbosef( "Implicit tag: [%d] '%s'", i, tag);
+        crc.update( tag.getBytes());
         globalMap.put( tag, i);
         globalTable.add( tag);
       }
     }
+    
+    log.infof( "Implicit table hash: %X", crc.getValue());
   }
   
   /**
