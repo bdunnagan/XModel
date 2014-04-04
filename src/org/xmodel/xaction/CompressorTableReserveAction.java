@@ -1,5 +1,7 @@
 package org.xmodel.xaction;
 
+import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.TabularCompressor;
@@ -31,22 +33,18 @@ public class CompressorTableReserveAction extends GuardedAction
     {
       case NODES: 
       {
-        for( IModelObject node: tagsExpr.evaluateNodes( context))
-        {
-          String tag = Xlate.get( node, (String)null);
-          if ( tag != null) TabularCompressor.reserveGlobalTag( tag);
-        }
+        List<IModelObject> nodes = tagsExpr.evaluateNodes( context);
+        String[] tags = new String[ nodes.size()];
+        for( int i=0; i<nodes.size(); i++)
+          tags[ i] = Xlate.get( nodes.get( i), (String)null);
+        TabularCompressor.setImplicitTable( tags);
         break;
       }
       
       case STRING:
       {
         String tags = tagsExpr.evaluateString( context);
-        String[] split = tags.split( "\\s*,\\s*");
-        for( String tag: split)
-        {
-          if ( tag != null) TabularCompressor.reserveGlobalTag( tag);
-        }
+        TabularCompressor.setImplicitTable( tags.split( "\\s*,\\s*"));
         break;
       }
       

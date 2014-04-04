@@ -33,9 +33,6 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.zip.CRC32;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -90,55 +87,36 @@ public class TabularCompressor extends AbstractCompressor
     this.shallow = shallow;
     this.charset = Charset.forName( "UTF-8");
     
-    clearTagTable();
+    clearTable();
   }
 
   /**
-   * Add a tag to the global tag table.
-   * @param tag The element/attribute name.
+   * Set the default table to contain the specified tags.
+   * @param tags The tags.
    */
-  public static void reserveGlobalTag( String tag)
+  public static void setImplicitTable( String[] tags)
   {
-    int index = -1;
+    globalTable = new ArrayList<String>();
+    globalMap = new LinkedHashMap<String, Integer>();
     
-    try
+    for( int i=0; i<tags.length; i++)
     {
-      globalTableLock.writeLock().lock();
-      if ( !globalMap.containsKey( tag))
+      String tag = tags[ i];
+      if ( !globalMap.containsKey( tags))
       {
-        index = globalTable.size();
-        globalMap.put( tag, index);
+        globalMap.put( tag, i);
         globalTable.add( tag);
       }
     }
-    finally
-    {
-      globalTableLock.writeLock().unlock();
-    }
-    
-    if ( index != -1) log.debugf( "Reserving global tag: [%d] '%s'", index, tag);
   }
   
-  /**
-   * Add a tag to the tag table.
-   * @param tag The element/attribute name.
-   */
-  public void reserveTag( String tag)
-  {
-    if ( !map.containsKey( tag))
-    {
-      map.put( tag, table.size());
-      table.add( tag);
-    }
-  }
-
   /**
    * Predefine the tag table. If the compressor does not encounter tags which are not defined
    * in the table then the table will not be written to the output. This is useful when all
    * the tags are known in advance.
    * @param table The table.
    */
-  public void defineTagTable( List<String> table)
+  public void defineTable( List<String> table)
   {
     this.table = new ArrayList<String>( table);
     map.clear();
@@ -149,7 +127,7 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * @return Returns the tag table.
    */
-  public List<String> getTagTable()
+  public List<String> getTable()
   {
     return table;
   }
@@ -157,40 +135,15 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Clear the predefined tag table.
    */
-  public void clearTagTable()
+  public void clearTable()
   {
     map = new LinkedHashMap<String, Integer>();
     table = new ArrayList<String>();
     predefined = false;
-
-    try
-    {
-      globalTableLock.readLock().lock();
-      table.addAll( globalTable);
-      map.putAll( globalMap);
-    }
-    finally
-    {
-      globalTableLock.readLock().unlock();
-    }
+    table.addAll( globalTable);
+    map.putAll( globalMap);
   }
   
-  /**
-   * @return Returns the number of globally defined tags.
-   */
-  private int getGlobalCount()
-  {
-    try
-    {
-      globalTableLock.readLock().lock();
-      return globalTable.size();
-    }
-    finally
-    {
-      globalTableLock.readLock().unlock();
-    }
-  }
-
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
    */
@@ -208,7 +161,7 @@ public class TabularCompressor extends AbstractCompressor
     MultiByteArrayOutputStream header = new MultiByteArrayOutputStream();
   
     // write header flags
-    byte flags = (byte)((getGlobalCount() > 0)? 0x10: 0);
+    byte flags = (byte)((globalTable.size() > 0)? 0x10: 0);
     if ( predefined) flags |= 0x20;
     header.write( flags);
     
@@ -601,16 +554,13 @@ public class TabularCompressor extends AbstractCompressor
   {
     if ( importGlobal)
     {
-      clearTagTable();
+      clearTable();
     }
     else
     {
       map = new LinkedHashMap<String, Integer>();
       table = new ArrayList<String>();
     }
-    
-    // read table hash
-    //int hash = stream.getDataIn().readInt();
     
     // read table size
     int count = readValue( stream);
@@ -640,10 +590,6 @@ public class TabularCompressor extends AbstractCompressor
     }
     
     stream.read();
-    
-    // validate hash
-//    if ( hash != getTableHash())
-//      log.severef( "Table does not match hash!");
   }
   
   /**
@@ -656,7 +602,7 @@ public class TabularCompressor extends AbstractCompressor
     //stream.writeInt( getTableHash());
     
     // get global table size
-    int globalCount = getGlobalCount();
+    int globalCount = globalTable.size();
     
     // write table size
     writeValue( stream, table.size() - globalCount);
@@ -669,17 +615,6 @@ public class TabularCompressor extends AbstractCompressor
     }
     
     stream.write( (int)'|');
-  }
-  
-  /**
-   * @return Returns a hash of all of the tags in the table.
-   */
-  private int getTableHash()
-  {
-    CRC32 crc = new CRC32();
-    for( String tag: table)
-      crc.update( tag.getBytes( charset));
-    return (int)(crc.getValue() & 0x7FFFFFFF);
   }
   
   /**
@@ -796,7 +731,7 @@ public class TabularCompressor extends AbstractCompressor
     {
       log.debugf( "Copying table of largest partially decompressed element, %s", largest.getType());
       
-      clearTagTable();
+      clearTable();
       ByteArrayCachingPolicy cachingPolicy = (ByteArrayCachingPolicy)largest.getCachingPolicy();
       for( String tag: cachingPolicy.compressor.table) reserveTag( tag);
     }
@@ -838,6 +773,19 @@ public class TabularCompressor extends AbstractCompressor
   }
   
   /**
+   * Add a tag to the tag table.
+   * @param tag The element/attribute name.
+   */
+  private void reserveTag( String tag)
+  {
+    if ( !map.containsKey( tag))
+    {
+      map.put( tag, table.size());
+      table.add( tag);
+    }
+  }
+
+  /**
    * Clone this compressor and its current map/table.
    * @return Returns the cloned compressor.
    */
@@ -847,25 +795,16 @@ public class TabularCompressor extends AbstractCompressor
     clone.predefined = predefined;
     clone.charset = charset;
 
-    try
-    {
-      globalTableLock.readLock().lock();
-      for( int i=globalTable.size(); i<table.size(); i++)
-        clone.reserveTag( table.get( i));
-    }
-    finally
-    {
-      globalTableLock.readLock().unlock();
-    }
+    for( int i=globalTable.size(); i<table.size(); i++)
+      clone.reserveTag( table.get( i));
     
     return clone;
   }
     
   protected final static Log log = Log.getLog( TabularCompressor.class);
   
-  private static List<String> globalTable = new ArrayList<String>();
-  private static Map<String, Integer> globalMap = new LinkedHashMap<String, Integer>();
-  private static ReadWriteLock globalTableLock = new ReentrantReadWriteLock();
+  private static List<String> globalTable;
+  private static Map<String, Integer> globalMap;
  
   private List<String> table;
   private Map<String, Integer> map;
@@ -887,7 +826,6 @@ public class TabularCompressor extends AbstractCompressor
 //    System.out.println( XmlIO.write( Style.printable, req));
 //    System.exit( 1);
  
-    
     String xml =
       "<A>" +
       "  <B>" +
@@ -904,8 +842,7 @@ public class TabularCompressor extends AbstractCompressor
       "  <E/>" +
       "</A>";
 
-    TabularCompressor.reserveGlobalTag( "G");
-    TabularCompressor.reserveGlobalTag( "G");
+    TabularCompressor.setImplicitTable( new String[] { "G"});
     
     IModelObject el = new XmlIO().read( xml);
     

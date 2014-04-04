@@ -21,7 +21,7 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
   @Override
   public void sync( IExternalReference reference) throws CachingException
   {
-    TabularCompressor.log.debugf( "Sync: %s", reference.getType());
+    TabularCompressor.log.verbosef( "Sync: %s", reference.getType());
     
     try
     {
