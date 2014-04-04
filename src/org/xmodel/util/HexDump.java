@@ -108,8 +108,8 @@ public class HexDump
     }
     else
     {
-      String file1 = files.substring( 0, iComma).trim();
-      String file2 = files.substring( iComma+1).trim();
+//      String file1 = files.substring( 0, iComma).trim();
+//      String file2 = files.substring( iComma+1).trim();
       
       
       
