@@ -99,13 +99,15 @@ public class TabularCompressor extends AbstractCompressor
    */
   public static void reserveGlobalTag( String tag)
   {
+    int index = -1;
+    
     try
     {
       globalTableLock.writeLock().lock();
       if ( !globalMap.containsKey( tag))
       {
-        log.infof( "Reserving global tag: [%d] '%s'", globalTable.size(), tag);
-        globalMap.put( tag, globalTable.size());
+        index = globalTable.size();
+        globalMap.put( tag, index);
         globalTable.add( tag);
       }
     }
@@ -113,6 +115,8 @@ public class TabularCompressor extends AbstractCompressor
     {
       globalTableLock.writeLock().unlock();
     }
+    
+    if ( index != -1) log.debugf( "Reserving global tag: [%d] '%s'", index, tag);
   }
   
   /**
@@ -857,7 +861,7 @@ public class TabularCompressor extends AbstractCompressor
     return clone;
   }
     
-  private final static Log log = Log.getLog( TabularCompressor.class);
+  protected final static Log log = Log.getLog( TabularCompressor.class);
   
   private static List<String> globalTable = new ArrayList<String>();
   private static Map<String, Integer> globalMap = new LinkedHashMap<String, Integer>();
