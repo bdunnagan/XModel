@@ -15,6 +15,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.HeaderProtocol.Type;
@@ -216,7 +217,7 @@ public class ExecutionRequestProtocol
    * @param request The request.
    * @param context The execution context.
    */
-  private void execute( IXioChannel channel, int correlation, IModelObject request, IContext context)
+  private void execute( final IXioChannel channel, final int correlation, final IModelObject request, final IContext context)
   {
     try
     {
@@ -225,7 +226,37 @@ public class ExecutionRequestProtocol
       
       IXAction script = compile( element);
       Object[] results = script.run( context);
-      bundle.responseProtocol.send( channel, correlation, context, results);
+      
+      AsyncFuture<Object[]> future = getResultFuture( results);
+      if ( future != null)
+      {
+        future.addListener( new AsyncFuture.IListener<Object[]>() {
+          public void notifyComplete( AsyncFuture<Object[]> future) throws Exception
+          {
+            if ( future.isSuccess())
+            {
+              bundle.responseProtocol.send( channel, correlation, context, future.getInitiator());
+            }
+            else
+            {
+              try
+              {
+                Throwable thrown = future.getFailureCause();
+                if ( thrown == null) thrown = new Exception( future.getFailureMessage());
+                bundle.responseProtocol.send( channel, correlation, context, thrown);
+              }
+              catch( Exception e)
+              {
+                SLog.warnf( this, "Unable to send exception execution response because %s.", e.getMessage());
+              }
+            }
+          }
+        });
+      }
+      else
+      {
+        bundle.responseProtocol.send( channel, correlation, context, results);
+      }      
     }
     catch( Exception e)
     {
@@ -240,6 +271,23 @@ public class ExecutionRequestProtocol
       
       SLog.exceptionf( this, e, "Exception thrown during remote execution: ");
     }
+  }
+  
+  /**
+   * Returns null or the AsyncFuture returned in the specified results.
+   * @param results The script execution results.
+   * @return Returns null or the AsyncFuture.
+   */
+  @SuppressWarnings("unchecked")
+  private AsyncFuture<Object[]> getResultFuture( Object[] results)
+  {
+    if ( results == null || results.length == 0 || !(results[ 0] instanceof List)) return null;
+    
+    List<IModelObject> list = (List<IModelObject>)results[ 0];
+    if ( list == null || list.size() == 0) return null;
+
+    Object value = list.get( 0).getValue();
+    return (value instanceof AsyncFuture)? (AsyncFuture<Object[]>)value: null;
   }
   
   /**
