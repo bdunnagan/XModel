@@ -46,23 +46,6 @@ public class UnionFuture<T, U> extends AsyncFuture<T> implements IListener<U>
   }
   
   /**
-   * Add one or more tasks atomically.  Use this method to add tasks, some of which may 
-   * already have completed, and which you want to all complete before this future completes.
-   * @param futures The task futures to be added.
-   */
-  public void addTasks( final AsyncFuture<U> ... futures)
-  {
-    synchronized( tasksLock)
-    {
-      for( AsyncFuture<U> future: futures)
-        tasks.add( future);
-    }
-    
-    for( AsyncFuture<U> future: futures)
-      future.addListener( this);
-  }
-  
-  /**
    * Remove all tasks.
    */
   public void removeTasks()

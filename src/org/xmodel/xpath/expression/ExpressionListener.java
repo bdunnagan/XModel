@@ -174,6 +174,8 @@ public class ExpressionListener implements IExpressionListener
           if ( !newValue.equals( oldValue)) notifyChange( expression, context, newValue, oldValue);
         }
         break;
+        
+        default: break;
       }      
     }
     catch( ExpressionException e)

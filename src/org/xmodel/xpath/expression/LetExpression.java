@@ -283,6 +283,8 @@ public class LetExpression extends Expression
         case BOOLEAN:
           context.set( clause.variable, clause.expression.evaluateBoolean( context));
           break;
+          
+        default: break;
       }
     }
   }

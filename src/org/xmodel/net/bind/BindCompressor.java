@@ -199,7 +199,7 @@ public class BindCompressor extends TabularCompressor
     boolean predefined = (flags & 0x20) != 0;
     
     // table
-    if ( !predefined) readTable( stream);
+    if ( !predefined) readTable( stream, false);
 
     // log
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);

@@ -33,7 +33,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.zip.CRC32;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
@@ -84,12 +84,36 @@ public class TabularCompressor extends AbstractCompressor
   public TabularCompressor( boolean stateful, boolean shallow)
   {
     this.factory = new ModelObjectFactory();
-    this.map = new LinkedHashMap<String, Integer>();
-    this.table = new ArrayList<String>();
-    this.predefined = false;
     this.stateful = stateful;
     this.shallow = shallow;
     this.charset = Charset.forName( "UTF-8");
+    
+    clearTable();
+  }
+
+  /**
+   * Set the default table to contain the specified tags.
+   * @param tags The tags.
+   */
+  public static void setImplicitTable( String[] tags)
+  {
+    globalTable = new ArrayList<String>();
+    globalMap = new LinkedHashMap<String, Integer>();
+    
+    CRC32 crc = new CRC32();
+    for( int i=0; i<tags.length; i++)
+    {
+      String tag = tags[ i];
+      if ( !globalMap.containsKey( tags))
+      {
+        log.verbosef( "Implicit tag: [%d] '%s'", i, tag);
+        crc.update( tag.getBytes());
+        globalMap.put( tag, i);
+        globalTable.add( tag);
+      }
+    }
+    
+    log.infof( "Implicit table hash: %X", crc.getValue());
   }
   
   /**
@@ -98,9 +122,9 @@ public class TabularCompressor extends AbstractCompressor
    * the tags are known in advance.
    * @param table The table.
    */
-  public void defineTagTable( List<String> table)
+  public void defineTable( List<String> table)
   {
-    this.table = table;
+    this.table = new ArrayList<String>( table);
     map.clear();
     for( int i=0; i<table.size(); i++) map.put( table.get( i), i);
     predefined = true;
@@ -109,7 +133,7 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * @return Returns the tag table.
    */
-  public List<String> getTagTable()
+  public List<String> getTable()
   {
     return table;
   }
@@ -117,13 +141,15 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Clear the predefined tag table.
    */
-  public void clearTagTable()
+  public void clearTable()
   {
-    map.clear();
-    table.clear();
+    map = new LinkedHashMap<String, Integer>();
+    table = new ArrayList<String>();
     predefined = false;
+    table.addAll( globalTable);
+    map.putAll( globalMap);
   }
-
+  
   /* (non-Javadoc)
    * @see org.xmodel.compress.ICompressor#compress(org.xmodel.IModelObject)
    */
@@ -141,15 +167,15 @@ public class TabularCompressor extends AbstractCompressor
     MultiByteArrayOutputStream header = new MultiByteArrayOutputStream();
   
     // write header flags
-    byte flags = 0;
+    byte flags = (byte)((globalTable.size() > 0)? 0x10: 0);
     if ( predefined) flags |= 0x20;
     header.write( flags);
     
     // write table if necessary
-    if ( !predefined) writeTable( new DataOutputStream( header));  
+    if ( !predefined) writeTable( new DataOutputStream( header));
     
     // log
-    log.verbosef( "%x.compress( %s): predefined=%s", hashCode(), element.getType(), predefined);
+    log.verbosef( "Compressed '%s' with table: %s", element.getType(), dumpTable());
     
     // progressive compression assumes a send/receive pair of compressors to remember table entries
     if ( stateful) predefined = true;
@@ -185,9 +211,10 @@ public class TabularCompressor extends AbstractCompressor
     // header flags
     int flags = input.getDataIn().readUnsignedByte();
     boolean predefined = (flags & 0x20) != 0;
+    boolean importGlobal = (flags & 0x10) != 0;
     
     // table
-    if ( !predefined) readTable( input);
+    if ( !predefined) readTable( input, importGlobal);
 
     // log
     log.verbosef( "%x.decompress(): predefined=%s", hashCode(), predefined);
@@ -527,10 +554,19 @@ public class TabularCompressor extends AbstractCompressor
   /**
    * Read the hash table from the stream.
    * @param stream The input stream.
+   * @param importGlobal True if global tags should be imported.
    */
-  protected void readTable( CaptureInputStream stream) throws IOException, CompressorException
+  protected void readTable( CaptureInputStream stream, boolean importGlobal) throws IOException, CompressorException
   {
-    table = new ArrayList<String>();
+    if ( importGlobal)
+    {
+      clearTable();
+    }
+    else
+    {
+      map = new LinkedHashMap<String, Integer>();
+      table = new ArrayList<String>();
+    }
     
     // read table size
     int count = readValue( stream);
@@ -556,9 +592,7 @@ public class TabularCompressor extends AbstractCompressor
         b = stream.read();
       }
       
-      String s = sb.toString();
-      map.put( s, table.size());
-      table.add( s);
+      reserveTag( sb.toString());
     }
     
     stream.read();
@@ -570,18 +604,23 @@ public class TabularCompressor extends AbstractCompressor
    */
   protected void writeTable( DataOutputStream stream) throws IOException, CompressorException
   {
+    // write table hash
+    //stream.writeInt( getTableHash());
+    
+    // get global table size
+    int globalCount = globalTable.size();
+    
     // write table size
-    Set<String> keys = map.keySet();
-    writeValue( stream, keys.size());
+    writeValue( stream, table.size() - globalCount);
 
     // write entries
-    for( String key: keys) 
+    for( int i=globalCount; i<table.size(); i++) 
     {
-      stream.write( key.getBytes( charset));
+      stream.write( table.get( i).getBytes( charset));
       stream.write( 0);
     }
     
-    stream.write( "|".getBytes());
+    stream.write( (int)'|');
   }
   
   /**
@@ -698,11 +737,9 @@ public class TabularCompressor extends AbstractCompressor
     {
       log.debugf( "Copying table of largest partially decompressed element, %s", largest.getType());
       
-      map.clear();
-      table.clear();
+      clearTable();
       ByteArrayCachingPolicy cachingPolicy = (ByteArrayCachingPolicy)largest.getCachingPolicy();
-      map.putAll( cachingPolicy.compressor.map);
-      table.addAll( cachingPolicy.compressor.table);
+      for( String tag: cachingPolicy.compressor.table) reserveTag( tag);
     }
     
     long t1 = System.nanoTime();
@@ -734,11 +771,26 @@ public class TabularCompressor extends AbstractCompressor
     StringBuilder sb = new StringBuilder();
     for( int i=0; i<table.size(); i++)
     {
-      sb.append( String.format( "%d = '%s'\n", i, table.get( i)));
+      sb.append( table.get( i));
+      sb.append( ", ");
     }
+    if ( sb.length() > 0) sb.setLength( sb.length() - 2);
     return sb.toString();
   }
   
+  /**
+   * Add a tag to the tag table.
+   * @param tag The element/attribute name.
+   */
+  private void reserveTag( String tag)
+  {
+    if ( !map.containsKey( tag))
+    {
+      map.put( tag, table.size());
+      table.add( tag);
+    }
+  }
+
   /**
    * Clone this compressor and its current map/table.
    * @return Returns the cloned compressor.
@@ -748,13 +800,17 @@ public class TabularCompressor extends AbstractCompressor
     TabularCompressor clone = new TabularCompressor( stateful, shallow);
     clone.predefined = predefined;
     clone.charset = charset;
-    clone.table.addAll( table);
-    for( int i=0; i<table.size(); i++)
-      clone.map.put( table.get( i), i);
+
+    for( int i=globalTable.size(); i<table.size(); i++)
+      clone.reserveTag( table.get( i));
+    
     return clone;
   }
     
-  private final static Log log = Log.getLog( TabularCompressor.class);
+  protected final static Log log = Log.getLog( TabularCompressor.class);
+  
+  private static List<String> globalTable;
+  private static Map<String, Integer> globalMap;
  
   private List<String> table;
   private Map<String, Integer> map;
@@ -776,7 +832,6 @@ public class TabularCompressor extends AbstractCompressor
 //    System.out.println( XmlIO.write( Style.printable, req));
 //    System.exit( 1);
  
-    
     String xml =
       "<A>" +
       "  <B>" +
@@ -793,6 +848,8 @@ public class TabularCompressor extends AbstractCompressor
       "  <E/>" +
       "</A>";
 
+    TabularCompressor.setImplicitTable( new String[] { "G"});
+    
     IModelObject el = new XmlIO().read( xml);
     
     System.out.println( "----- #1 Compressing -----\n");

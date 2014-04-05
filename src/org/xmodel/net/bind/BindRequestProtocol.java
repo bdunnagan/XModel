@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.PathSyntaxException;
@@ -207,6 +208,7 @@ public class BindRequestProtocol
       //reference.setDirty( true);
     }
 
+    @SuppressWarnings("unused")
     private IExternalReference reference;
   }
   

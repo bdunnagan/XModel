@@ -30,6 +30,7 @@ public class TouchAction extends GuardedAction
       case STRING:  touchExpr.evaluateString( context); break;
       case NUMBER:  touchExpr.evaluateNumber( context); break;
       case BOOLEAN: touchExpr.evaluateBoolean( context); break;
+      default: break;
     }
     
     return null;

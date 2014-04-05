@@ -80,6 +80,9 @@ public class PrintAction extends GuardedAction
       case NUMBER:
         sb.append( sourceExpr.evaluateNumber( context));
         break;
+        
+      default:
+        break;
     }
     
     if ( var != null && context instanceof StatefulContext)

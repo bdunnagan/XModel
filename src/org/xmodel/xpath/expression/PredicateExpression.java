@@ -335,6 +335,8 @@ public class PredicateExpression extends Expression implements IPredicate
           if ( !newValue.equals( oldValue)) notifyChange( this, context, newValue, oldValue);
         }
         break;
+        
+        default: break;
       }      
     }
     catch( ExpressionException e)

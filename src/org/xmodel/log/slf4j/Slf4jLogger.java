@@ -5,6 +5,8 @@ import org.xmodel.log.Log;
 
 public class Slf4jLogger extends MarkerIgnoringBase
 {
+  private static final long serialVersionUID = 1414314618184177049L;
+
   public Slf4jLogger( Log log)
   {
     this.log = log;

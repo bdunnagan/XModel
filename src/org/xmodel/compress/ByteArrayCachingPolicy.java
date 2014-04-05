@@ -1,6 +1,7 @@
 package org.xmodel.compress;
 
 import java.io.IOException;
+
 import org.xmodel.external.AbstractCachingPolicy;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.IExternalReference;
@@ -20,7 +21,7 @@ public class ByteArrayCachingPolicy extends AbstractCachingPolicy
   @Override
   public void sync( IExternalReference reference) throws CachingException
   {
-    System.out.println( "Sync: "+reference.getType());
+    TabularCompressor.log.verbosef( "Sync: %s", reference.getType());
     
     try
     {
