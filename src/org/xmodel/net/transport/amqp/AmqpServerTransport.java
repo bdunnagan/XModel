@@ -106,10 +106,6 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     configureEventContext( serverPeer);
     serverChannel.startConsumer( queue, true, false);
     
-    // start sending heartbeats from this server
-//    serverChannel.setHeartbeatOutputQueue();
-//    serverChannel.startHeartbeat( timeout / 2);
-    
     return serverPeer;
   }
 

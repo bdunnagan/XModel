@@ -75,10 +75,8 @@ public class AmqpXioChannel implements IXioChannel
   /**
    * Declare the output queue for this channel.  The queue is purged of records.
    * @param queue The name of the queue.
-   * @param durable True if the queue is durable.
-   * @param autoDelete True if the queue is auto-delete.
    */
-  public void setOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
+  public void setOutputQueue( String queue) throws IOException
   {
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to declare null/empty queue!");
@@ -88,7 +86,7 @@ public class AmqpXioChannel implements IXioChannel
     Channel channel = connection.leaseChannel();
     try
     {
-      channel.queueDeclare( outQueue, durable, false, autoDelete, null);
+      channel.queueDeclare( outQueue, false, false, true, null);
     }
     finally
     {
@@ -116,22 +114,6 @@ public class AmqpXioChannel implements IXioChannel
     return timeoutFuture;
   }
   
-  /**
-   * Remove all pending messages from the output queue.
-   */
-  public void purgeOutputQueue() throws IOException
-  {
-    Channel channel = connection.leaseChannel();
-    try
-    {
-      channel.queuePurge( outQueue);
-    }
-    finally
-    {
-      connection.returnChannel( channel);
-    }
-  }
-
   /**
    * Start the consumer.
    */

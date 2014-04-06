@@ -90,12 +90,12 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor, 0);
     final AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
     initChannel.setPeer( peer);
-    initChannel.setOutputQueue( queue, true, false);
+    initChannel.setOutputQueue( queue);
     
     AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
-    subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
+    subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name));
     subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( AmqpQualifiedNames.createQualifiedName( name)), false, true);
 
     subscribeChannel.getCloseFuture().addListener( new AsyncFuture.IListener<IXioChannel>() {
