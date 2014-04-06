@@ -317,9 +317,10 @@ public class AutoRefreshConnection
    * @param queue The queue.
    * @param durable True if durable.
    * @param autoDelete True if auto-delete.
+   * @param purge True if input queue should be purged before consumer is started.
    * @param consumer The delegate consumer.
    */
-  public void startConsumer( String queue, boolean durable, boolean autoDelete, AmqpXioChannel consumer) throws IOException
+  public void startConsumer( String queue, boolean durable, boolean autoDelete, boolean purge, AmqpXioChannel consumer) throws IOException
   {
     try
     {
@@ -338,6 +339,7 @@ public class AutoRefreshConnection
       //
       channel.basicQos( 1);
       channel.queueDeclare( queue, durable, false, autoDelete, null);
+      if ( purge) channel.queuePurge( queue);
       channel.basicConsume( queue, false, refreshConsumer.getConsumerTag(), refreshConsumer);
     }
     finally

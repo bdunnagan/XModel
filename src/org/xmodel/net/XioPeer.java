@@ -272,7 +272,6 @@ public class XioPeer
    */
   public void connect()
   {
-    
   }
   
   /**

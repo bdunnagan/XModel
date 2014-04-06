@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.IXioChannel;
 import org.xmodel.net.IXioPeerRegistry;
 import org.xmodel.net.XioPeer;
 import org.xmodel.net.execution.ExecutionPrivilege;
@@ -13,16 +12,13 @@ import org.xmodel.xpath.expression.IContext;
 public class AmqpXioPeer extends XioPeer
 {
   public AmqpXioPeer( 
-      IXioChannel channel, 
       IXioPeerRegistry registry, 
       IContext context, 
       Executor executor, 
       ScheduledExecutorService scheduler,
       ExecutionPrivilege privilege)
   {
-    super( channel, registry, context, executor, scheduler, privilege);
-
-    registerChannel = (AmqpXioChannel)channel;
+    super( null, registry, context, executor, scheduler, privilege);
 
     this.executor = executor;
     this.scheduler = scheduler;
@@ -40,9 +36,10 @@ public class AmqpXioPeer extends XioPeer
     
     String name = AmqpQualifiedNames.parseRegistrationName( qName);
     AmqpXioChannel newChannel = channel.deriveRegisteredChannel();
-    newChannel.setOutputQueue( AmqpQueueNames.getOutputQueue( qName));
+    newChannel.setOutputQueue( AmqpQueueNames.getOutputQueue( qName), false, true);
     
-    AmqpXioPeer peer = new AmqpXioPeer( newChannel, getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
+    AmqpXioPeer peer = new AmqpXioPeer( getPeerRegistry(), getNetworkEventContext(), executor, scheduler, privilege);
+    peer.setRegistrationChannel( newChannel);
     peer.qualifiedName = qName;
     newChannel.setPeer( peer);
 
@@ -53,12 +50,23 @@ public class AmqpXioPeer extends XioPeer
       private AmqpXioPeer peer;
     }
     
-    newChannel.startConsumer( AmqpQueueNames.getInputQueue( name), false, true);
+    newChannel.startConsumer( AmqpQueueNames.getInputQueue( name), false, true, false);
     newChannel.startHeartbeatTimeout().addListener( new TimeoutTask( peer));
     
     return peer;
   }
 
+  /**
+   * Set the peer registration channel.
+   * @param channel The channel.
+   */
+  public void setRegistrationChannel( AmqpXioChannel channel)
+  {
+    super.setChannel( channel);
+    channel.setPeer( this);
+    registerChannel = channel;
+  }
+  
   /**
    * Set the subscription channel for this peer.
    * @param channel The channel.

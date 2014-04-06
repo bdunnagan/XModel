@@ -98,13 +98,15 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     AutoRefreshConnection connection = new AutoRefreshConnection( connectionFactory, ioExecutor, brokers);
     connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "amqp-refresh")));
         
+    AmqpXioPeer serverPeer = new AmqpXioPeer( registry, context, context.getExecutor(), null, null);
+    
     AmqpXioChannel serverChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
-    AmqpXioPeer serverPeer = new AmqpXioPeer( serverChannel, registry, context, context.getExecutor(), null, null);
     serverChannel.setPeer( serverPeer);
+    serverPeer.setRegistrationChannel( serverChannel);
 
     // configure event notification context before starting consumer
     configureEventContext( serverPeer);
-    serverChannel.startConsumer( queue, true, false);
+    serverChannel.startConsumer( queue, true, false, true);
     
     return serverPeer;
   }

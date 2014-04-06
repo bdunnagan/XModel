@@ -87,16 +87,18 @@ public class AmqpClientTransport extends AmqpTransport implements IClientTranspo
     AutoRefreshConnection connection = new AutoRefreshConnection( connectionFactory, ioExecutor, brokers);
     connection.startRefreshSchedule( refresh, Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "amqp-refresh")));
 
+    final AmqpXioPeer peer = new AmqpXioPeer( registry, context, context.getExecutor(), null, null);
+    
     AmqpXioChannel initChannel = new AmqpXioChannel( connection, "", ioExecutor, 0);
-    final AmqpXioPeer peer = new AmqpXioPeer( initChannel, registry, context, context.getExecutor(), null, null);
     initChannel.setPeer( peer);
-    initChannel.setOutputQueue( queue);
+    initChannel.setOutputQueue( queue, true, false);
+    peer.setRegistrationChannel( initChannel);
     
     AmqpXioChannel subscribeChannel = new AmqpXioChannel( connection, "", ioExecutor, timeout);
     subscribeChannel.setPeer( peer);
     peer.setSubscribeChannel( subscribeChannel);
-    subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name));
-    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( AmqpQualifiedNames.createQualifiedName( name)), false, true);
+    subscribeChannel.setOutputQueue( AmqpQueueNames.getInputQueue( name), false, true);
+    subscribeChannel.startConsumer( AmqpQueueNames.getOutputQueue( AmqpQualifiedNames.createQualifiedName( name)), false, true, false);
 
     subscribeChannel.getCloseFuture().addListener( new AsyncFuture.IListener<IXioChannel>() {
       public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception

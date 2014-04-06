@@ -75,8 +75,10 @@ public class AmqpXioChannel implements IXioChannel
   /**
    * Declare the output queue for this channel.  The queue is purged of records.
    * @param queue The name of the queue.
+   * @param durable Declare queue durable.
+   * @param autoDelete Declare queue auto-delete.
    */
-  public void setOutputQueue( String queue) throws IOException
+  public void setOutputQueue( String queue, boolean durable, boolean autoDelete) throws IOException
   {
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to declare null/empty queue!");
@@ -86,7 +88,7 @@ public class AmqpXioChannel implements IXioChannel
     Channel channel = connection.leaseChannel();
     try
     {
-      channel.queueDeclare( outQueue, false, false, true, null);
+      channel.queueDeclare( outQueue, durable, false, autoDelete, null);
     }
     finally
     {
@@ -116,14 +118,18 @@ public class AmqpXioChannel implements IXioChannel
   
   /**
    * Start the consumer.
+   * @param queue The name of the queue.
+   * @param durable Declare queue as durable.
+   * @param autoDelete Declare queue as auto-delete.
+   * @param purge True if input queue should be purged before consumer is started.
    */
-  public void startConsumer( String queue, boolean durable, boolean autoDelete) throws IOException
+  public void startConsumer( String queue, boolean durable, boolean autoDelete, boolean purge) throws IOException
   {
     if ( queue == null || queue.length() == 0)
       throw new IllegalArgumentException( "Attempt to start consumer with null/empty queue!");
 
     inQueue = queue;
-    connection.startConsumer( queue, durable, autoDelete, this);
+    connection.startConsumer( queue, durable, autoDelete, purge, this);
   }
 
   /* (non-Javadoc)
