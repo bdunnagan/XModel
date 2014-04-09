@@ -49,7 +49,7 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
     boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false;
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 30000;
-    int refresh = (refreshExpr != null)? (int)refreshExpr.evaluateNumber( context): (30 * 60);
+    int refresh = (refreshExpr != null)? (int)refreshExpr.evaluateNumber( context): (60 * 60);
    
     String queue = queueExpr.evaluateString( context);
     
