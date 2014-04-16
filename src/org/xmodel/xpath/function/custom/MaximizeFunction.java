@@ -11,7 +11,7 @@ import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.Function;
 
 /**
- * An XPath function that finds the node from a node-set that minimizes an expression.
+ * An XPath function that finds the node from a node-set that maximizes an expression.
  */
 public class MaximizeFunction extends Function
 {

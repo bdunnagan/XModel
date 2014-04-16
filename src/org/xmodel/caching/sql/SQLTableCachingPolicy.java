@@ -1010,12 +1010,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
-          // xml column insert
-          addRowUpdate( parent.getParent(), parent.getType());
+          if ( !excluded.contains( parent.getType()))
+          {
+            // xml column insert
+            addRowUpdate( parent.getParent(), parent.getType());
+          }
         }
         else if ( isTable( parent.getParent()))
         {
-          addRowUpdate( parent, child.getType());
+          if ( !excluded.contains( child.getType()))
+          {
+            addRowUpdate( parent, child.getType());
+          }
         }
         else
         {
@@ -1063,12 +1069,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         }
         else if ( xmlColumns.contains( parent.getType()))
         {
-          // xml column delete
-          addRowUpdate( parent.getParent(), parent.getType());
+          if ( !excluded.contains( parent.getType()))
+          {
+            // xml column delete
+            addRowUpdate( parent.getParent(), parent.getType());
+          }
         }
         else if ( isTable( parent.getParent()))
         {
-          addRowUpdate( parent, child.getType());
+          if ( !excluded.contains( child.getType()))
+          {
+            addRowUpdate( parent, child.getType());
+          }
         }
         else
         {
@@ -1106,27 +1118,33 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         // handle indexed column update
         if ( isTable( object.getParent()))
         {
-          if ( attrName.length() > 0)
+          if ( !excluded.contains( attrName))
           {
-            // update to the value of a column
-            addRowUpdate( object, attrName);
-          }
-          else
-          {
-            SLog.errorf( this, "Ignored update to value of table row in table, %s", object.getParent().getType());
+            if ( attrName.length() > 0)
+            {
+              // update to the value of a column
+              addRowUpdate( object, attrName);
+            }
+            else
+            {
+              SLog.errorf( this, "Ignored update to value of table row in table, %s", object.getParent().getType());
+            }
           }
         }
         
         // handle non-indexed column update
         else if ( isColumn( object))
         {
-          if ( attrName.length() == 0)
+          if ( !excluded.contains( object.getType()))
           {
-            addRowUpdate( object.getParent(), object.getType());
-          }
-          else
-          {
-            SLog.errorf( this, "Ignored update to attribute of column, %s, in table, %s", object.getType(), object.getParent().getType());
+            if ( attrName.length() == 0)
+            {
+              addRowUpdate( object.getParent(), object.getType());
+            }
+            else
+            {
+              SLog.errorf( this, "Ignored update to attribute of column, %s, in table, %s", object.getType(), object.getParent().getType());
+            }
           }
         }
 
