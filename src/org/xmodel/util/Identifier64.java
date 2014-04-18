@@ -1,16 +1,20 @@
 package org.xmodel.util;
 
 import java.util.HashSet;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class generates 64-bit identifiers that is roughly similar to a time-based UUID.  42 bits
+ * This class generates 64-bit identifiers that is roughly similar to a time-based UUID.  43 bits
  * of the identifier are the low 42 bits of the timestamp returned by System.currentTimeMillis(). 
  * To prevent overlap between distributed systems, this class can be seeded with a 3-bit number 
  * that uniquely identifies the distributed node.  The remaining 17 bits are generated sequentially
  * using a counter.
  * <p>
- * 0 1      3                                         41               64
+ * 0 1      3                                         47               64
  * +-+------+-----------------------------------------+-----------------+
  * |0| Node |                Timestamp                |      Counter    |
  * +-+------+-----------------------------------------+-----------------+
@@ -33,18 +37,7 @@ public class Identifier64
    */
   public static long generate( int node)
   {
-    long rcount = counter.incrementAndGet();
-    long count = rcount & 0x1FFFF;
-    if ( count == maxCount) try { Thread.sleep( 1);} catch( Exception e) {}
-    
-    long time = System.currentTimeMillis() - 1389925031061L;
-    int mark = (int)(time & 0x7FFF);
-    if ( ((rcount >> 17) & 0x7FFF) != mark)
-    {
-      count = 0;
-      counter.set( mark << 17);
-    }
-    return (time << 17) & 0x0FFFFFFFFFFFFFFFL | ((long)node << 60) | count;
+    return ((long)node << 60) | counter.incrementAndGet();
   }
     
   /**
@@ -98,32 +91,40 @@ public class Identifier64
     'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
   };
   
-  private static int maxCount = 1 << 17 - 1;
-  private static AtomicInteger counter = new AtomicInteger( 0);
+  private static AtomicLong counter = new AtomicLong( ((System.currentTimeMillis() - 1389925031061L) & 0x1FFFFFFFFFL) << 17L);
   
   public static void main( String[] args) throws Exception
   {
-    long x = 1L<<52;
-    System.out.printf( "%15.15f\t%d\n", (double)x, x);
-    
-    long[] b = new long[ 10];
-    for( int i=0; i<b.length; i++)
-      b[ i] = Identifier64.generate( 7);
-    for( int i=0; i<b.length; i++)
-      System.out.printf( "%d %s\n", b[ i], toString( b[ i]));
+    final ConcurrentLinkedQueue<Long> queue = new ConcurrentLinkedQueue<Long>();
+
+    System.out.printf( "%d\n", Identifier64.generate( 1) - Identifier64.generate( 0));
     System.exit( 1);
     
-    for( int j=0; j<100; j++)
+    
+    ExecutorService executor = Executors.newFixedThreadPool( 100);
+    Runnable runnable = new Runnable() {
+      public void run()
+      {
+        queue.offer( Identifier64.generate( 0));
+      }
+    };
+    
+    for( int i=0; i<1000; i++)
     {
-      long[] a = new long[ 5000000];
-      for( int i=0; i<a.length; i++)
-        a[ i] = Identifier64.generate( 7);
-      
-      HashSet<Long> set = new HashSet<Long>();
-      for( int i=0; i<a.length; i++)
-        set.add( a[ i]);
-      
-      System.out.printf( "%d = %d\n", a.length, set.size());
+      executor.execute( runnable);
     }
+
+    Thread.sleep( 1000);
+    Set<Long> set = new HashSet<Long>();
+    for( int i=0; i<1000; i++)
+    {
+      Long id = queue.poll();
+      if ( set.contains( id))
+        throw new IllegalStateException();
+      set.add( id);
+      System.out.printf( "%d\n", id);
+    }
+    
+    executor.shutdownNow();
   }
 }
