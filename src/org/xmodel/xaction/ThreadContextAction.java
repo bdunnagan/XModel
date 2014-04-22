@@ -20,16 +20,14 @@
 package org.xmodel.xaction;
 
 import org.xmodel.GlobalSettings;
-import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
- * An XAction which executes one or more nested actions within an isolated nested context.
- * The nested context is a StatefulContext created with the input context as its parent.
+ * Executes a script in a thread-local context. The life-time of the context, and therefore
+ * its variables, is the same as the life-time of the thread.
  */
-public class ContextAction extends GuardedAction
+public class ThreadContextAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#configure(
@@ -39,9 +37,7 @@ public class ContextAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-
     nameExpr = document.getExpression( "name", true);
-    sourceExpr = document.getExpression( "source", true);
     script = document.createScript( "source");
   }
 
@@ -51,35 +47,10 @@ public class ContextAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    if ( nameExpr != null)
-    {
-      context = GlobalSettings.getInstance().getNamedContext( nameExpr.evaluateString( context));
-    }
-    
-    if ( sourceExpr != null)
-    {
-      IModelObject source = sourceExpr.queryFirst( context);
-      if ( source != null)
-      {
-        StatefulContext nested = new StatefulContext( context, source);
-        return script.run( nested);
-      }
-    }
-    else
-    {
-      StatefulContext nested = new StatefulContext( 
-        context,
-        context.getObject(),
-        context.getPosition(),
-        context.getSize());
-      
-      return script.run( nested);
-    }
-    
-    return null;
+    context = GlobalSettings.getInstance().getModel().getNamedContext( context, nameExpr.evaluateString( context));
+    return script.run( context);
   }
 
   private IExpression nameExpr;
-  private IExpression sourceExpr;
   private ScriptAction script;
 }

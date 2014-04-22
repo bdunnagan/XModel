@@ -22,6 +22,8 @@ package org.xmodel;
 import java.util.List;
 import java.util.Set;
 
+import org.xmodel.xpath.expression.IContext;
+
 /**
  * An interface for managing the global state of a model. A model consists of one or more subtrees
  * which are managed within the context of a single thread. The XModel is not thread-safe. However,
@@ -30,6 +32,20 @@ import java.util.Set;
  */
 public interface IModel
 {
+  /**
+   * Get/create the context with the specified name.
+   * @param parent The parent context.
+   * @param name The name.
+   * @return Returns the context associated with the specified name.
+   */
+  public IContext getNamedContext( IContext parent, String name);
+  
+  /**
+   * Delete the context with the specified name.
+   * @param name The name.
+   */
+  public void deleteContext( String name);
+  
   /**
    * For debugging purposes, set the thread to which this model belongs. This method is useful
    * for debugging incorrect thread access when is serially accessed by different threads (see

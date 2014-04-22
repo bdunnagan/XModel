@@ -71,4 +71,10 @@ public interface ISQLProvider
    * @return Returns a PreparedStatement with the specified query plus vendor-specific implementation of the limit and offset parameters.
    */
   public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException;
+  
+  /**
+   * Close the specified statement.
+   * @param statement The statement.
+   */
+  public void close( PreparedStatement statement);
 }

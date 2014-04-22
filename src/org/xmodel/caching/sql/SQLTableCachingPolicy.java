@@ -38,6 +38,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
+import org.xmodel.caching.sql.transform.SimpleSQLParser;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.MultiByteArrayInputStream;
 import org.xmodel.compress.TabularCompressor;
@@ -142,6 +143,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     // add second stage
     IExpression stageExpr = XPath.createExpression( rowElementName);
     defineNextStage( stageExpr, rowCachingPolicy, stub);
+    
+    // get table meta-data
+    System.out.printf( "Fetching meta-data for table, %s...\n", tableName);
+    fetchMetadata();
   }
 
   /* (non-Javadoc)
@@ -172,9 +177,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     SLog.debugf( this, "sync: %s", reference);
-    
-    // get table meta-data
-    fetchMetadata();
     
     // configure static attributes of SQLRowCachingPolicy
     for( String primaryKey: primaryKeys) rowCachingPolicy.addStaticAttribute( primaryKey);
@@ -477,7 +479,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       provider.releaseConnection( statement.getConnection());
-      statement.close();
+      provider.close( statement);
     }
     catch( SQLException e)
     {
@@ -593,10 +595,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( tableName);
     
     // optional configured predicate
+    Object[] params = null;
     if ( where != null)
     {
       sb.append( " WHERE ");
-      sb.append( where);
+      params = SimpleSQLParser.parameterizePredicate( where);
+      sb.append( (params != null)? params[ 0]: where);
     }
     
     // optional ordering
@@ -613,6 +617,23 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true);
     if ( limit > 0) statement.setMaxRows( limit);
+    
+    if ( params != null)
+    {
+      for( int i=1; i<params.length; i++)
+      {
+        Object param = params[ i];
+        if ( param instanceof Object[])
+        {
+          statement.setArray( i, connection.createArrayOf( "VARCHAR", (Object[])param));
+        }
+        else
+        {
+          statement.setObject( i, param);
+        }
+      }
+    }
+    
     return statement;
   }
   
@@ -1187,7 +1208,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     private boolean enabled;
   }
-    
+  
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
 
   protected ISQLProvider provider;
