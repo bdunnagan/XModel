@@ -68,9 +68,11 @@ public interface ISQLProvider
    * @param offset The offset of the first row to return, or -1.
    * @param stream True if streaming-mode should be used.
    * @param readonly True if statement is for read-only access.
+   * @param cache True if statement should be cached in the database.
+   * @param columnTypes null or the column types (required when cache is true).
    * @return Returns a PreparedStatement with the specified query plus vendor-specific implementation of the limit and offset parameters.
    */
-  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException;
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly, boolean cache, int[] columnTypes) throws SQLException;
   
   /**
    * Close the specified statement.

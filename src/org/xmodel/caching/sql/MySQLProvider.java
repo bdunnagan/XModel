@@ -24,10 +24,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -42,8 +39,6 @@ public class MySQLProvider implements ISQLProvider
   public MySQLProvider() throws ClassNotFoundException
   {
     Class.forName( driverClassName);
-    statementCache = new ThreadLocal<Map<String, PreparedStatement>>();
-    total = new AtomicInteger();
   }
   
   /* (non-Javadoc)
@@ -52,7 +47,7 @@ public class MySQLProvider implements ISQLProvider
   public void configure( IModelObject annotation) throws CachingException
   {
     String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:mysql://%s/?cachePrepStmts=true", host);  
+    url = String.format( "jdbc:mysql://%s/?cachePrepStmts=true&rewriteBatchedStatements=true", host);  
    
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
@@ -124,69 +119,69 @@ public class MySQLProvider implements ISQLProvider
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long, boolean, boolean)
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long, boolean, boolean, boolean, int[])
    */
-  @SuppressWarnings("serial")
   @Override
-  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly, boolean cache, int[] columnTypes) throws SQLException
   {
-    Map<String, PreparedStatement> threadCache = statementCache.get();
-    if ( threadCache == null)
+    if ( cache)
     {
-      threadCache = new LinkedHashMap<String, PreparedStatement>( 16, 0.75f, true) {
-        protected boolean removeEldestEntry( Entry<String, PreparedStatement> eldest)
-        {
-          if ( size() > 10)
-          {
-            total.decrementAndGet();
-            try { eldest.getValue().close();} catch( SQLException e) {}
-            return true;
-          }
-          return false;
-        }
-      };
-      
-      statementCache.set( threadCache);
-    }
-    
-    if ( limit >= 0) 
-    {
-      query = (offset < 0)? 
-        String.format( "%s LIMIT %d", query, limit):
-        String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
-    }
-
-    String cacheKey = query;
-    if ( stream) cacheKey += "[stream]";
-    if ( readonly) cacheKey += "[readonly]";
-    
-    PreparedStatement statement = threadCache.get( cacheKey);
-    if ( statement == null)
-    {
-      System.out.printf( "Creating statement: total=%d, %s\n", total.incrementAndGet(), query);
-      
-      int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
-      statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-      threadCache.put( cacheKey, statement);
-      
-      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      
-      ConnectionPool.log.debugf( "ConnectionPool [%X] -> %s", connection.hashCode(), statement.toString());
+      // check if stored procedure already created (lookup in set)
+      // if not, attempt to create stored procedure (may fail)
+      // return CallableStatement for stored procedure
     }
     else
     {
-      System.out.printf( "From cache: %s\n", query); 
+      if ( limit >= 0) 
+      {
+        query = (offset < 0)? 
+          String.format( "%s LIMIT %d", query, limit):
+          String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
+      }
+  
+      int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
+      PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      
+      ConnectionPool.log.debugf( "ConnectionPool [%X] -> %s", connection.hashCode(), statement.toString());
+      
+      return statement;
+    }
+  }
+  
+  private void createStoredProcedure( Connection connection, String query, int[] paramTypes)
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append( "DELIMITER //\n");
+    sb.append( String.format( "CREATE PROCEDURE `%s` (IN %s %s)", procName));
+    for( int i=0; i<paramTypes.length; i++)
+    {
+      sb.append( String.format( " (IN %s %s)", paramNames[ i], getTypeName( paramTypes[ i]))); 
     }
     
-    return statement;
+    BEGIN
+        SELECT var1 + 2 AS result;
+    END//
   }
-
+  
+  private String getTypeName( int type)
+  {
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.caching.sql.ISQLProvider#close(java.sql.PreparedStatement)
    */
   @Override
   public void close( PreparedStatement statement)
   {
+    try
+    {
+     statement.close();
+    }
+    catch( SQLException e)
+    {
+      log.exception( e);
+    }
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
@@ -197,6 +192,5 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ConnectionPool pool;
-  private ThreadLocal<Map<String, PreparedStatement>> statementCache;
-  private AtomicInteger total;
+  private Set<String> cached;
 }

@@ -115,6 +115,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     rowElementName = Xlate.childGet( annotation, "row", tableName);
     stub = Xlate.childGet( annotation, "stub", true);
     readonly = Xlate.childGet( annotation, "readonly", false);
+    cache = Xlate.childGet( annotation, "cache", false);
     
     attributes = new ArrayList<String>( 3);
     for( IModelObject element: annotation.getChildren( "attribute"))
@@ -615,7 +616,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "table query: %s", sb);
     
-    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true);
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true, cache, columnTypes);
     if ( limit > 0) statement.setMaxRows( limit);
     
     if ( params != null)
@@ -658,7 +659,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "row query: %s", sb);
     
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), 1, 0, false, readonly, false, -1);
     int k=1;
     for( String primaryKey: primaryKeys)
     {
@@ -691,7 +692,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( "=?");
     }
 
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), -1, -1, false, false, cache, columnNames.size());
     
     for( IModelObject node: nodes)
     {
@@ -1214,6 +1215,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected ISQLProvider provider;
   protected boolean stub;
   protected boolean readonly;
+  protected boolean cache;
   protected List<String> excluded;
   protected List<String> attributes;
   protected String where;

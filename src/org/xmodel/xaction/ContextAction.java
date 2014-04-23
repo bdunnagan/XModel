@@ -53,7 +53,7 @@ public class ContextAction extends GuardedAction
   {
     if ( nameExpr != null)
     {
-      context = GlobalSettings.getInstance().getNamedContext( nameExpr.evaluateString( context));
+      context = GlobalSettings.getInstance().getNamedContext( context, nameExpr.evaluateString( context));
     }
     
     if ( sourceExpr != null)
