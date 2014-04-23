@@ -19,12 +19,12 @@
  */
 package org.xmodel.caching.sql;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Set;
 
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
@@ -119,55 +119,37 @@ public class MySQLProvider implements ISQLProvider
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long, boolean, boolean, boolean, int[])
+   * @see org.xmodel.caching.sql.ISQLProvider#createStatement(java.sql.Connection, java.lang.String, long, long, boolean, boolean)
    */
   @Override
-  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly, boolean cache, int[] columnTypes) throws SQLException
+  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException
   {
-    if ( cache)
+    // implement db-specific limit and offset
+    if ( limit >= 0) 
     {
-      // check if stored procedure already created (lookup in set)
-      // if not, attempt to create stored procedure (may fail)
-      // return CallableStatement for stored procedure
+      query = (offset < 0)? 
+        String.format( "%s LIMIT %d", query, limit):
+        String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
+    }
+
+    // configure for read-only and/or streaming
+    int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
+    
+    // distinguish stored procedure call from query or update
+    if ( query.charAt( 0) == '{')
+    {
+      CallableStatement statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      return statement;
     }
     else
     {
-      if ( limit >= 0) 
-      {
-        query = (offset < 0)? 
-          String.format( "%s LIMIT %d", query, limit):
-          String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
-      }
-  
-      int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
       PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
       if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      
-      ConnectionPool.log.debugf( "ConnectionPool [%X] -> %s", connection.hashCode(), statement.toString());
-      
       return statement;
     }
   }
-  
-  private void createStoredProcedure( Connection connection, String query, int[] paramTypes)
-  {
-    StringBuilder sb = new StringBuilder();
-    sb.append( "DELIMITER //\n");
-    sb.append( String.format( "CREATE PROCEDURE `%s` (IN %s %s)", procName));
-    for( int i=0; i<paramTypes.length; i++)
-    {
-      sb.append( String.format( " (IN %s %s)", paramNames[ i], getTypeName( paramTypes[ i]))); 
-    }
     
-    BEGIN
-        SELECT var1 + 2 AS result;
-    END//
-  }
-  
-  private String getTypeName( int type)
-  {
-  }
-  
   /* (non-Javadoc)
    * @see org.xmodel.caching.sql.ISQLProvider#close(java.sql.PreparedStatement)
    */
@@ -192,5 +174,4 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ConnectionPool pool;
-  private Set<String> cached;
 }
