@@ -143,10 +143,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     // add second stage
     IExpression stageExpr = XPath.createExpression( rowElementName);
     defineNextStage( stageExpr, rowCachingPolicy, stub);
-    
-    // get table meta-data
-    System.out.printf( "Fetching meta-data for table, %s...\n", tableName);
-    fetchMetadata();
   }
 
   /* (non-Javadoc)
@@ -177,6 +173,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
     SLog.debugf( this, "sync: %s", reference);
+    
+    // get table meta-data
+    fetchMetadata();
     
     // configure static attributes of SQLRowCachingPolicy
     for( String primaryKey: primaryKeys) rowCachingPolicy.addStaticAttribute( primaryKey);

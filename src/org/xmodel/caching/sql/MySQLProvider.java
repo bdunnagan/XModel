@@ -46,9 +46,6 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:mysql://%s/?cachePrepStmts=true&rewriteBatchedStatements=true", host);  
-   
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
@@ -57,6 +54,9 @@ public class MySQLProvider implements ISQLProvider
     
     database = Xlate.childGet( annotation, "database", (String)null);
     
+    String host = Xlate.childGet( annotation, "host", "localhost");
+    url = String.format( "jdbc:mysql://%s/%s?cachePrepStmts=true&rewriteBatchedStatements=true", host, database);  
+   
     int minPoolSize = Xlate.childGet( annotation, "minPoolSize", 20);
     int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", 80);
     int minPoolWait = Xlate.childGet( annotation, "minPoolWait", 5000);
