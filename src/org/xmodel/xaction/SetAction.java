@@ -72,6 +72,7 @@ public class SetAction extends GuardedAction
         case BOOLEAN: value = sourceExpr.evaluateBoolean( context); break;
         case STRING:  value = sourceExpr.evaluateString( context); break;
         case NUMBER:  value = sourceExpr.evaluateNumber( context); break;
+        default: break;
       }
     }
     
