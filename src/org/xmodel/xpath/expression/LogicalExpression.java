@@ -19,6 +19,8 @@
  */
 package org.xmodel.xpath.expression;
 
+import org.xmodel.IChangeSet;
+import org.xmodel.IModelObjectFactory;
 import org.xmodel.xpath.function.BooleanFunction;
 
 /**
@@ -79,6 +81,28 @@ public class LogicalExpression extends AbstractBinaryBooleanExpression
     boolean result0 = lhs.evaluateBoolean( context);
     boolean result1 = rhs.evaluateBoolean( context);
     return (operator == Operator.OR)? (result0 || result1): (result0 && result1);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object, boolean)
+   */
+  @Override
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
+  {
+    if ( !leafOnly)
+    {
+      if ( operator == Operator.OR)
+      {
+        getArgument( 0).createSubtree( context, factory, undo, setter, false);
+      }
+      else
+      {
+        for( IExpression argument: getArguments())
+        {
+          argument.createSubtree( context, factory, undo, setter, false);
+        }
+      }
+    }
   }
 
   /* (non-Javadoc)

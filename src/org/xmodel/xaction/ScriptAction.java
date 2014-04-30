@@ -226,7 +226,7 @@ public class ScriptAction extends GuardedAction
   /**
    * @return Returns a string that describes the location of this script.
    */
-  private String getScriptLocationString( XActionDocument document)
+  private static String getScriptLocationString( XActionDocument document)
   {
     StringBuilder sb = new StringBuilder();
     IModelObject root = null;
@@ -258,6 +258,27 @@ public class ScriptAction extends GuardedAction
     }
     
     return sb.toString();
+  }
+  
+  public class ScriptException extends RuntimeException
+  {
+    public ScriptException( IXAction script, Throwable cause)
+    {
+      super( cause);
+      this.script = script;
+    }
+    
+    /* (non-Javadoc)
+     * @see java.lang.Throwable#toString()
+     */
+    @Override
+    public String toString()
+    {
+      String location = getScriptLocationString( script.getDocument());
+      return String.format( "Caught RuntimeException at %s: %s", location, super.toString());
+    }
+
+    private IXAction script;
   }
   
   private final static String[] defaultIgnore = {
