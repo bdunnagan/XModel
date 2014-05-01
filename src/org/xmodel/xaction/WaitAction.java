@@ -42,7 +42,7 @@ public class WaitAction extends GuardedAction
         if ( future.isSuccess())
         {
           Object[] result = (Object[])future.getInitiator();
-          if ( result != null) context.getScope().set( var, result[ 0]);
+          if ( result != null && result.length > 0) context.getScope().set( var, result[ 0]);
         }
         else
         {

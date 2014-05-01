@@ -181,7 +181,7 @@ public class AssignAction extends GuardedAction
         case STRING:  scope.set( var, sourceExpr.evaluateString( context)); break;
         case NUMBER:  scope.set( var, sourceExpr.evaluateNumber( context)); break;
         case BOOLEAN: scope.set( var, sourceExpr.evaluateBoolean( context)); break;
-        case UNDEFINED: throw new XActionException( "Expression type is undefined: "+sourceExpr);
+        default: break;
       }
     }
     

@@ -139,15 +139,15 @@ public class IfExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
     if ( getArgument( 0).evaluateBoolean( context))
     {
-      getArgument( 1).createSubtree( context, factory, undo, setter);
+      getArgument( 1).createSubtree( context, factory, undo, setter, leafOnly);
     }
     else
     {
-      getArgument( 2).createSubtree( context, factory, undo, setter);
+      getArgument( 2).createSubtree( context, factory, undo, setter, leafOnly);
     }
   }
 

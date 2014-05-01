@@ -34,6 +34,7 @@ import org.xmodel.external.IExternalReference;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 import org.xmodel.xpath.variable.IVariableScope;
 
 /**
@@ -59,6 +60,7 @@ public class CreateAction extends GuardedAction
     collectionExpr = Xlate.get( config, "collection", (IExpression)null);
     parentExpr = Xlate.get( config, "parent", (IExpression)null);
     nameExpr = Xlate.get( config, "name", (IExpression)null);
+    pathExpr = Xlate.get( config, (IExpression)null);
     
     // get the factory used to create elements
     factory = Conventions.getFactory( config);
@@ -81,54 +83,63 @@ public class CreateAction extends GuardedAction
     List<IModelObject> elements = new ArrayList<IModelObject>( 1);
     
     // create element from name string
-    if ( nameExpr != null)
+    if ( pathExpr != null)
     {
-      String type = nameExpr.evaluateString( context);
-      if ( type.length() == 0) throw new IllegalArgumentException( "Element type name is empty: "+this);
-      elements.add( factory.createObject( parent, type));
+      IContext parentContext = context;
+      if ( parent != null) parentContext = new StatefulContext( context, parent);
+      elements.addAll( ModelAlgorithms.createPathSubtree( parentContext, pathExpr, factory, null, null, false));
     }
-        
-    // create children
-    for( IModelObject child: document.getRoot().getChildren())
+    else
     {
-      IModelObject element = ModelAlgorithms.cloneTree( child, factory, null);
-      replaceTemplateExpressions( context, element);
-      elements.add( element);
-    }
-    
-    // process annotations
-    if ( annotatedExpr == null || annotatedExpr.evaluateBoolean( context))
-    {
-      for( int i=0; i<elements.size(); i++)
+      if ( nameExpr != null)
       {
-        IModelObject element = elements.get( i);
-        AnnotationTransform transform = new AnnotationTransform();
-        transform.setFactory( factory);
-        transform.setParentContext( context);
-        transform.setClassLoader( document.getClassLoader());
-        element = transform.transform( element);
-        elements.set( i, element);
+        String type = nameExpr.evaluateString( context);
+        if ( type.length() == 0) throw new IllegalArgumentException( "Element type name is empty: "+this);
+        elements.add( factory.createObject( parent, type));
       }
-    }
-    
-    // add to parent if not null
-    if ( parent != null) 
-    {
-      if ( parent instanceof IExternalReference)
+          
+      // create children
+      for( IModelObject child: document.getRoot().getChildren())
       {
-        IExternalReference pRef = (IExternalReference)parent;
-        int index = parent.getNumberOfChildren();
+        IModelObject element = ModelAlgorithms.cloneTree( child, factory, null);
+        replaceTemplateExpressions( context, element);
+        elements.add( element);
+      }
+      
+      // process annotations
+      if ( annotatedExpr == null || annotatedExpr.evaluateBoolean( context))
+      {
         for( int i=0; i<elements.size(); i++)
         {
-          pRef.getCachingPolicy().insert( pRef, elements.get( i), index, false);
-          elements.set( i, pRef.getChild( index));
-          index++;
+          IModelObject element = elements.get( i);
+          AnnotationTransform transform = new AnnotationTransform();
+          transform.setFactory( factory);
+          transform.setParentContext( context);
+          transform.setClassLoader( document.getClassLoader());
+          element = transform.transform( element);
+          elements.set( i, element);
         }
       }
-      else
+      
+      // add to parent if not null
+      if ( parent != null) 
       {
-        for( IModelObject element: elements)
-          parent.addChild( element);
+        if ( parent instanceof IExternalReference)
+        {
+          IExternalReference pRef = (IExternalReference)parent;
+          int index = parent.getNumberOfChildren();
+          for( int i=0; i<elements.size(); i++)
+          {
+            pRef.getCachingPolicy().insert( pRef, elements.get( i), index, false);
+            elements.set( i, pRef.getChild( index));
+            index++;
+          }
+        }
+        else
+        {
+          for( IModelObject element: elements)
+            parent.addChild( element);
+        }
       }
     }
     
@@ -223,6 +234,8 @@ public class CreateAction extends GuardedAction
         
       case BOOLEAN:
         return expression.evaluateBoolean( context);
+        
+      default: break;
     }
     
     return null;
@@ -233,5 +246,6 @@ public class CreateAction extends GuardedAction
   private IExpression collectionExpr;
   private IExpression parentExpr;
   private IExpression nameExpr;
+  private IExpression pathExpr;
   private IExpression annotatedExpr;
 }

@@ -48,7 +48,7 @@ public class CreatePathAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    ModelAlgorithms.createPathSubtree( context, sourceExpr, factory, null, null);
+    ModelAlgorithms.createPathSubtree( context, sourceExpr, factory, null, null, true);
     
     return null;
   }
