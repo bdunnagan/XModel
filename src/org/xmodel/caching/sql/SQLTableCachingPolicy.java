@@ -53,6 +53,7 @@ import org.xmodel.external.NonSyncingListener;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
+import org.xmodel.util.ThreadLocalMap;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
@@ -91,7 +92,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
    
-    primaryKeys = new ArrayList<String>( 1);
     rowCachingPolicy = new SQLRowCachingPolicy( this, cache);
     updateMonitor = new SQLEntityListener();
     
@@ -491,62 +491,72 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private void fetchMetadata()
   {
-    Connection connection = provider.leaseConnection();
+    Connection connection = null;
     try
     {
-//      connection.setCatalog( catalog);
-      
-      DatabaseMetaData meta = connection.getMetaData();
-      ResultSet result = meta.getColumns( null, null, tableName, null);
-      columnNames = new ArrayList<String>();
-      columnTypes = new ArrayList<Integer>();
-      while( result.next()) 
+      Metadata metadata = metadataCache.get( tableName);
+      if ( metadata == null)
       {
-        String columnName = result.getString( "COLUMN_NAME").toLowerCase();
-        if ( !excluded.contains( columnName))
-          columnNames.add( columnName.toLowerCase());
+        metadata = new Metadata();
         
-        int columnType = result.getInt( "DATA_TYPE");
-        columnTypes.add( columnType);
-      }
-      
-      StringBuilder sb = new StringBuilder();
-      sb.append( columnNames.get( 0));
-      for( int i=1; i<columnNames.size(); i++)
-      {
-        sb.append( ",");
-        sb.append( columnNames.get( i));
-      }
-      queryColumns = sb.toString();
-      
-      result = meta.getPrimaryKeys( null, null, tableName);
-      while( result.next())
-      {
-        String name = result.getString( "COLUMN_NAME");
-        if ( excluded.contains( name)) 
+        connection = provider.leaseConnection();
+        DatabaseMetaData meta = connection.getMetaData();
+        ResultSet result = meta.getColumns( null, null, tableName, null);
+        while( result.next()) 
         {
-          throw new IllegalArgumentException( String.format(
-            "Primary key columns cannot be excluded."));
+          String columnName = result.getString( "COLUMN_NAME").toLowerCase();
+          if ( !excluded.contains( columnName))
+            metadata.columnNames.add( columnName.toLowerCase());
+          
+          int columnType = result.getInt( "DATA_TYPE");
+          metadata.columnTypes.add( columnType);
         }
         
-        primaryKeys.add( name.toLowerCase());
+        StringBuilder sb = new StringBuilder();
+        sb.append( metadata.columnNames.get( 0));
+        for( int i=1; i<metadata.columnNames.size(); i++)
+        {
+          sb.append( ",");
+          sb.append( metadata.columnNames.get( i));
+        }
+        metadata.queryColumns = sb.toString();
+        
+        result = meta.getPrimaryKeys( null, null, tableName);
+        while( result.next())
+        {
+          String name = result.getString( "COLUMN_NAME");
+          if ( excluded.contains( name)) 
+          {
+            throw new IllegalArgumentException( String.format(
+              "Primary key columns cannot be excluded."));
+          }
+          
+          metadata.primaryKeys.add( name.toLowerCase());
+        }
+        
+        // views do not provide meta-data that reflects the backing tables
+        if ( metadata.primaryKeys.size() == 0) 
+        {
+          if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
+          metadata.primaryKeys.add( attributes.get( 0));
+        }
+        
+        result = meta.getIndexInfo( null, null, tableName, false, false);
+        while( result.next())
+        {
+          String columnName = result.getString( "COLUMN_NAME");
+          if ( columnName != null && !excluded.contains( columnName)) 
+            metadata.otherKeys.add( columnName.toLowerCase());
+        }
+      
+        metadataCache.put( tableName, metadata);
       }
       
-      // views do not provide meta-data that reflects the backing tables
-      if ( primaryKeys.size() == 0) 
-      {
-        if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
-        primaryKeys.add( attributes.get( 0));
-      }
-      
-      otherKeys = new ArrayList<String>( 1);
-      result = meta.getIndexInfo( null, null, tableName, false, false);
-      while( result.next())
-      {
-        String columnName = result.getString( "COLUMN_NAME");
-        if ( columnName != null && !excluded.contains( columnName)) 
-          otherKeys.add( columnName.toLowerCase());
-      }
+      columnNames = metadata.columnNames;
+      columnTypes = metadata.columnTypes;
+      primaryKeys = metadata.primaryKeys;
+      otherKeys = metadata.otherKeys;
+      queryColumns = metadata.queryColumns;
     }
     catch( Exception e)
     {
@@ -554,7 +564,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     finally
     {
-      provider.releaseConnection( connection);
+      if ( connection != null)
+        provider.releaseConnection( connection);
     }
   }
   
@@ -903,7 +914,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -919,7 +930,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -935,7 +946,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -1208,7 +1219,17 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     private boolean enabled;
   }
   
+  private static class Metadata
+  {
+    public List<String> columnNames = new ArrayList<String>();
+    public List<Integer> columnTypes = new ArrayList<Integer>();
+    public List<String> primaryKeys = new ArrayList<String>( 1);
+    public List<String> otherKeys = new ArrayList<String>( 1);
+    public String queryColumns;
+  }
+  
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
+  private static ThreadLocalMap<String, Metadata> metadataCache = new ThreadLocalMap<String, Metadata>();
 
   protected ISQLProvider provider;
   protected boolean stub;

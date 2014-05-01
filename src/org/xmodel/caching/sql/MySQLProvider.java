@@ -19,7 +19,6 @@
  */
 package org.xmodel.caching.sql;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -30,6 +29,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.log.Log;
+import org.xmodel.util.ThreadLocalMap;
 
 /**
  * An implementation of ISQLProvider for the MySQL database.
@@ -39,6 +39,8 @@ public class MySQLProvider implements ISQLProvider
   public MySQLProvider() throws ClassNotFoundException
   {
     Class.forName( driverClassName);
+    cache = new ThreadLocalMap<String, PreparedStatement>();
+    useCache = false;
   }
   
   /* (non-Javadoc)
@@ -105,7 +107,7 @@ public class MySQLProvider implements ISQLProvider
     finally
     {
       long t1 = System.nanoTime();
-      log.debugf( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
+      log.verbosef( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
     }
   }
 
@@ -127,27 +129,34 @@ public class MySQLProvider implements ISQLProvider
     // implement db-specific limit and offset
     if ( limit >= 0) 
     {
-      query = (offset < 0)? 
-        String.format( "%s LIMIT %d", query, limit):
-        String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
+      query += " LIMIT " + limit;
+      if ( offset >= 0) query += " OFFSET " + offset;
     }
 
     // configure for read-only and/or streaming
     int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
     
-    // distinguish stored procedure call from query or update
-    if ( query.charAt( 0) == '{')
+    // check cache
+    String key = query + resultSetConcur;
+    PreparedStatement statement = cache.get( key);
+    if ( statement == null)
     {
-      CallableStatement statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      return statement;
+      // distinguish stored procedure call from query or update
+      if ( query.charAt( 0) == '{')
+      {
+        statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      }
+      else
+      {
+        statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      }
+      
+      if ( useCache) cache.put( key, statement);
     }
-    else
-    {
-      PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      return statement;
-    }
+    
+    return statement;
   }
     
   /* (non-Javadoc)
@@ -156,13 +165,16 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void close( PreparedStatement statement)
   {
-    try
+    if ( !useCache)
     {
-     statement.close();
-    }
-    catch( SQLException e)
-    {
-      log.exception( e);
+      try
+      {
+       statement.close();
+      }
+      catch( SQLException e)
+      {
+        log.exception( e);
+      }
     }
   }
 
@@ -174,4 +186,6 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ConnectionPool pool;
+  private ThreadLocalMap<String, PreparedStatement> cache;
+  private boolean useCache;
 }
