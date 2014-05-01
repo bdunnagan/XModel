@@ -21,13 +21,17 @@ package org.xmodel;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.xmodel.log.SLog;
 import org.xmodel.util.HashMultiMap;
 import org.xmodel.util.MultiMap;
+import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * Base implementation of IModel.
@@ -43,6 +47,36 @@ public class Model implements IModel
 
     // thread-access debugging
     if ( debugMap != null) debugMap.put( this, Thread.currentThread());
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#getNamedContext(org.xmodel.xpath.expression.IContext, java.lang.String)
+   */
+  public IContext getNamedContext( IContext parent, String name)
+  {
+    if ( contexts == null) contexts = new HashMap<String, IContext>();
+    
+    IContext context = contexts.get( name);
+    if ( context == null)
+    {
+      context = new StatefulContext( 
+          parent,
+          parent.getObject(),
+          parent.getPosition(),
+          parent.getSize());
+      
+      contexts.put( name, context);
+    }
+    
+    return context;
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.IModel#deleteContext(java.lang.String)
+   */
+  public void deleteContext( String name)
+  {
+    contexts.remove( name);
   }
   
   /* (non-Javadoc)
@@ -284,6 +318,7 @@ public class Model implements IModel
     }
   }
 
+  private Map<String, IContext> contexts;
   private MultiMap<String, IModelObject> collections;
   private List<Update> updateStack;
   private List<Update> updateObjects;

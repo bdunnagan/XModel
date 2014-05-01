@@ -22,7 +22,14 @@ package org.xmodel.xpath.expression;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.xmodel.*;
+
+import org.xmodel.GlobalSettings;
+import org.xmodel.IChangeSet;
+import org.xmodel.IModel;
+import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.IPath;
+import org.xmodel.IPredicate;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.variable.IVariableSource;
 
@@ -139,10 +146,13 @@ public class PredicateExpression extends Expression implements IPredicate
    * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
-    for( IExpression argument: getArguments())
-      argument.createSubtree( context, factory, undo, setter);
+    if ( !leafOnly)
+    {
+      for( IExpression argument: getArguments())
+        argument.createSubtree( context, factory, undo, setter, false);
+    }
   }
 
   /* (non-Javadoc)

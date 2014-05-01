@@ -22,11 +22,16 @@ package org.xmodel.xpath.function.custom;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.xmodel.IChangeSet;
 import org.xmodel.IModelObject;
+import org.xmodel.IModelObjectFactory;
+import org.xmodel.ModelAlgorithms;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.SubContext;
 import org.xmodel.xpath.function.Function;
 import org.xmodel.xpath.parser.generated.XPathParser;
 
@@ -205,5 +210,24 @@ public class EvaluateFunction extends Function
   public boolean requiresValueNotification( IExpression argument)
   {
     return argument == getArgument( 1);
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object, boolean)
+   */
+  @Override
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
+  {
+    String spec = getArgument( 1).evaluateString( context);
+    IExpression expr = createExpression( spec);
+    if ( expr != null)
+    {
+      List<IModelObject> nodes = getArgument( 0).evaluateNodes( context);
+      for( int i=0; i<nodes.size(); i++)
+      {
+        IContext nodeContext = new SubContext( context, nodes.get( i), i+1, nodes.size());
+        ModelAlgorithms.createPathSubtree( nodeContext, expr, factory, undo, setter, leafOnly);
+      }
+    }
   }
 }

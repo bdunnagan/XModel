@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.zip.CRC32;
+
 import org.xmodel.concurrent.MasterSlaveListener;
 import org.xmodel.diff.XmlDiffer;
 import org.xmodel.external.ICachingPolicy;
@@ -49,6 +50,7 @@ import org.xmodel.xpath.expression.LiteralExpression;
 import org.xmodel.xpath.expression.PathExpression;
 import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.RootExpression;
+import org.xmodel.xpath.expression.SubContext;
 import org.xmodel.xpath.function.CollectionFunction;
 
 
@@ -849,10 +851,28 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
    * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
+   * @param leafOnly True if only leaves should be created.
+   * @return Returns the root of all subtrees created.
    */
-  public static void createPathSubtree( IContext context, IExpression expression, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public static List<IModelObject> createPathSubtree( IContext context, IExpression expression, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
-    expression.createSubtree( context, factory, undo, setter);
+    class ChildListener extends ModelListener
+    {
+      public void notifyAddChild( IModelObject parent, IModelObject child, int index) { list.add( child);}
+      public List<IModelObject> list = new ArrayList<IModelObject>( 1);
+    }
+
+    ChildListener listener = new ChildListener();
+    try
+    {
+      context.getObject().addModelListener( listener);
+      expression.createSubtree( context, factory, undo, setter, leafOnly);
+      return listener.list;
+    }
+    finally
+    {
+      context.getObject().removeModelListener( listener);
+    }
   }
   
   /**
@@ -867,7 +887,7 @@ public class ModelAlgorithms implements IAxis
    */
   public static void createPathSubtree( IModelObject object, IPath path, IModelObjectFactory factory, IChangeSet undo, Object setter)
   {
-    createPathSubtree( new Context( object), path, factory, undo, setter);
+    createPathSubtree( new Context( object), path, factory, undo, setter, true);
   }
   
   /**
@@ -879,8 +899,9 @@ public class ModelAlgorithms implements IAxis
    * @param factory The factory for creating the new objects or null.
    * @param undo A change set where records will be created to undo the changes or null.
    * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
+   * @param leafOnly TODO
    */
-  public static void createPathSubtree( IContext context, IPath path, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public static void createPathSubtree( IContext context, IPath path, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
     if ( factory == null) factory = new ModelObjectFactory();
     
@@ -909,9 +930,17 @@ public class ModelAlgorithms implements IAxis
         element.query( context, layerObject, nextLayer);
       }
       
-      // create object if location step has no predicate and returned zero elements
+      //
+      // TODO: Need to know whether there are any nodes in the next layer without considering the predicate
+      // since we will not create nodes in that case.
+      //
+      
+      //
+      // Create object if location step returned zero elements.  Also, if leafOnly is false,
+      // then invoke createSubtree on predicate expression.
+      //
       IPredicate predicate = element.predicate();
-      if ( predicate == null && nextLayer.size() == 0)
+      if ( nextLayer.size() == 0 && (predicate == null || !leafOnly))
       {
         for ( int j=0; j<currSize; j++)
         {
@@ -928,7 +957,7 @@ public class ModelAlgorithms implements IAxis
             {
               if ( element.type() == null) return;
               IModelObject newObject = factory.createObject( layerObject, element.type());
-              if ( setter != null) newObject.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
+//              if ( setter != null) newObject.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
               layerObject.addChild( newObject);
               nextLayer.add( newObject);
               if ( undo != null) undo.removeChild( layerObject, newObject);
@@ -938,6 +967,30 @@ public class ModelAlgorithms implements IAxis
           {
             SLog.exception( ModelAlgorithms.class, e);
           }
+        }
+        
+        if ( predicate != null)
+        {
+          for( int j=0; j<nextLayer.size(); j++)
+          {
+            SubContext layerContext = new SubContext( context, nextLayer.get( j), j+1, nextLayer.size());
+            ((PredicateExpression)predicate).createSubtree( layerContext, factory, undo, setter, false);
+          }
+        }
+      }
+    }
+    
+    if ( setter != null) 
+    {
+      for( IModelObject element: result)
+      {
+        try
+        {
+          element.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
+        }
+        catch( Exception e)
+        {
+          SLog.exception( ModelAlgorithms.class, e);
         }
       }
     }

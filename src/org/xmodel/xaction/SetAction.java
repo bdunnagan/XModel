@@ -79,7 +79,7 @@ public class SetAction extends GuardedAction
     List<IModelObject> targets = targetExpr.query( context, null);
     if ( targets.size() == 0) 
     {
-      ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null, value);
+      ModelAlgorithms.createPathSubtree( context, targetExpr, factory, null, value, true);
     }
     else
     {

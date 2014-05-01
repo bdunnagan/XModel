@@ -45,9 +45,8 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:mysql://%s/", host);  
-   
+    cache = new BoundedStatementCache( Xlate.childGet( annotation, "cacheSize", 4096));
+    
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
@@ -56,6 +55,9 @@ public class MySQLProvider implements ISQLProvider
     
     database = Xlate.childGet( annotation, "database", (String)null);
     
+    String host = Xlate.childGet( annotation, "host", "localhost");
+    url = String.format( "jdbc:mysql://%s/%s?cachePrepStmts=true&rewriteBatchedStatements=true", host, database);  
+   
     int minPoolSize = Xlate.childGet( annotation, "minPoolSize", 20);
     int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", 80);
     int minPoolWait = Xlate.childGet( annotation, "minPoolWait", 5000);
@@ -104,7 +106,7 @@ public class MySQLProvider implements ISQLProvider
     finally
     {
       long t1 = System.nanoTime();
-      log.debugf( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
+      log.verbosef( "JDBC lease: %1.0fus", ((t1-t0)/1e3));
     }
   }
 
@@ -123,21 +125,56 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException
   {
+    // implement db-specific limit and offset
     if ( limit >= 0) 
     {
-      query = (offset < 0)? 
-        String.format( "%s LIMIT %d", query, limit):
-        String.format( "%s LIMIT %d OFFSET %d", query, limit, offset);
+      query += " LIMIT " + limit;
+      if ( offset >= 0) query += " OFFSET " + offset;
+    }
+
+    // configure for read-only and/or streaming
+    int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
+    
+    // check cache
+    String key = query + resultSetConcur;
+    PreparedStatement statement = cache.get( key);
+    if ( statement == null)
+    {
+      // distinguish stored procedure call from query or update
+      if ( query.charAt( 0) == '{')
+      {
+        statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      }
+      else
+      {
+        statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+      }
+      
+      if ( cache != null) cache.put( key, statement);
     }
     
-    int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
-    PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-    
-    if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-    
-    ConnectionPool.log.debugf( "ConnectionPool [%X] -> %s", connection.hashCode(), statement.toString());
-    
     return statement;
+  }
+    
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#close(java.sql.PreparedStatement)
+   */
+  @Override
+  public void close( PreparedStatement statement)
+  {
+    if ( cache == null)
+    {
+      try
+      {
+       statement.close();
+      }
+      catch( SQLException e)
+      {
+        log.exception( e);
+      }
+    }
   }
 
   private final static String driverClassName = "com.mysql.jdbc.Driver";
@@ -148,4 +185,5 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ConnectionPool pool;
+  private BoundedStatementCache cache;
 }

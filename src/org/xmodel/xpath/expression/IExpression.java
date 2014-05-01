@@ -265,8 +265,9 @@ public interface IExpression
    * @param factory Null or the factory for creating the subtree elements.
    * @param undo Null or a change set containing records which will undo the creation.
    * @param setter Null, the value to assign to the leaf nodes, or a Callable<Object> whose values will be assigned to the leaf nodes.
+   * @param leafOnly True if only the leaf should be created.
    */
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter);
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly);
   
   /**
    * This method is provided as a convenience for performing simple path queries using this expression.

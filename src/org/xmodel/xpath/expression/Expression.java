@@ -471,7 +471,7 @@ public abstract class Expression implements IExpression
    * @see org.xmodel.xpath.expression.IExpression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
   }
 

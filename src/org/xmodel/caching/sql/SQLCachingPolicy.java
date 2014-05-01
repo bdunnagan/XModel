@@ -314,7 +314,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         prototype.addChild( rowElement);
       }
       
-      statement.close();
+      provider.close( statement);
     }
     catch( SQLException e)
     {
@@ -382,7 +382,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         update( reference, rowElement);
       }
       
-      statement.close();
+      provider.close( statement);
     }
     catch( SQLException e)
     {

@@ -136,12 +136,12 @@ public class FilteredExpression extends Expression
    * @see org.xmodel.xpath.expression.Expression#createSubtree(org.xmodel.xpath.expression.IContext, org.xmodel.IModelObjectFactory, org.xmodel.IChangeSet, java.lang.Object)
    */
   @Override
-  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter)
+  public void createSubtree( IContext context, IModelObjectFactory factory, IChangeSet undo, Object setter, boolean leafOnly)
   {
     List<IModelObject> nodes = getArgument( 0).query( context, null);
     for( int i=0; i<nodes.size(); i++)
     {
-      getArgument( 1).createSubtree( new SubContext( context, nodes.get( i), i+1, nodes.size()), factory, undo, setter);
+      getArgument( 1).createSubtree( new SubContext( context, nodes.get( i), i+1, nodes.size()), factory, undo, setter, leafOnly);
     }
   }
 
