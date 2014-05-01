@@ -16,9 +16,9 @@ import org.xmodel.log.SLog;
 /**
  * A JDBC Connection pool.
  */
-public class ConnectionPool
+public class BlockingConnectionPool
 {
-  public ConnectionPool( ISQLProvider provider, int minSize, int maxSize, int minWait, int maxWait)
+  public BlockingConnectionPool( ISQLProvider provider, int minSize, int maxSize, int minWait, int maxWait)
   {
     // Make sure MySQL connect_timeout is larger than validateAfter!!
     this.validateAfter = 30000;
@@ -194,7 +194,7 @@ public class ConnectionPool
     public Connection connection;
   }
 
-  public final static Log log = Log.getLog( ConnectionPool.class);
+  public final static Log log = Log.getLog( BlockingConnectionPool.class);
   
   private ISQLProvider provider;
   private int maxSize;
