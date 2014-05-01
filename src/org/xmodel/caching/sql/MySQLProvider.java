@@ -29,7 +29,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.log.Log;
-import org.xmodel.util.ThreadLocalMap;
 
 /**
  * An implementation of ISQLProvider for the MySQL database.
@@ -39,8 +38,6 @@ public class MySQLProvider implements ISQLProvider
   public MySQLProvider() throws ClassNotFoundException
   {
     Class.forName( driverClassName);
-    cache = new ThreadLocalMap<String, PreparedStatement>();
-    useCache = false;
   }
   
   /* (non-Javadoc)
@@ -48,6 +45,8 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
+    cache = new BoundedStatementCache( Xlate.childGet( annotation, "cacheSize", 4096));
+    
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
@@ -153,7 +152,7 @@ public class MySQLProvider implements ISQLProvider
         if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
       }
       
-      if ( useCache) cache.put( key, statement);
+      if ( cache != null) cache.put( key, statement);
     }
     
     return statement;
@@ -165,7 +164,7 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void close( PreparedStatement statement)
   {
-    if ( !useCache)
+    if ( cache == null)
     {
       try
       {
@@ -186,6 +185,5 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ConnectionPool pool;
-  private ThreadLocalMap<String, PreparedStatement> cache;
-  private boolean useCache;
+  private BoundedStatementCache cache;
 }

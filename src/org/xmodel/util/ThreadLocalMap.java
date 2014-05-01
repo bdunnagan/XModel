@@ -23,7 +23,7 @@ public class ThreadLocalMap<K, V>
     Map<K, V> cache = threadMaps.get();
     if ( cache == null)
     {
-      cache = new HashMap<K, V>();
+      cache = createThreadMap();
       threadMaps.set( cache);
     }
     
@@ -40,11 +40,20 @@ public class ThreadLocalMap<K, V>
     Map<K, V> cache = threadMaps.get();
     if ( cache == null)
     {
-      cache = new HashMap<K, V>();
+      cache = createThreadMap();
       threadMaps.set( cache);
     }
     
     cache.put( key, statement);
+  }
+  
+  /**
+   * Create a new Map instance for uninitialized thread local data.
+   * @return Returns the Map instance.
+   */
+  protected Map<K, V> createThreadMap()
+  {
+    return new HashMap<K, V>();
   }
 
   private ThreadLocal<Map<K, V>> threadMaps;
