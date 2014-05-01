@@ -63,7 +63,7 @@ public class MySQLProvider implements ISQLProvider
     int minPoolWait = Xlate.childGet( annotation, "minPoolWait", 5000);
     int maxPoolWait = Xlate.childGet( annotation, "maxPoolWait", 30000);
     
-    pool = new ConnectionPool( this, minPoolSize, maxPoolSize, minPoolWait, maxPoolWait);
+    pool = new ThreadConnectionPool( this);
   }
 
   /* (non-Javadoc)
@@ -184,6 +184,6 @@ public class MySQLProvider implements ISQLProvider
   private String username;
   private String password;
   private String database;
-  private ConnectionPool pool;
+  private ThreadConnectionPool pool;
   private BoundedStatementCache cache;
 }
