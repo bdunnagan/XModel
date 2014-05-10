@@ -21,7 +21,6 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -363,12 +362,35 @@ public class XioClient extends XioPeer
       delays = lastDelays;
     }
     
-    AsyncFuture<XioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
+    final AsyncFuture<XioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
     if ( future == null) return null;
     
-    UnionFuture<XioPeer, XioClient> wrapperFuture = new UnionFuture<XioPeer, XioClient>( this);
-    wrapperFuture.addTask( future);
-    return wrapperFuture;
+    final AsyncFuture<XioPeer> reconnectFuture = new AsyncFuture<XioPeer>( this) {
+      public void cancel()
+      {
+        future.cancel();
+      }
+    };
+
+    future.addListener( new AsyncFuture.IListener<XioClient>() {
+      public void notifyComplete( AsyncFuture<XioClient> future) throws Exception
+      {
+        if ( future.isSuccess())
+        {
+          reconnectFuture.notifySuccess();
+        }
+        else if ( future.getFailureCause() != null)
+        {
+          reconnectFuture.notifyFailure( future.getFailureCause());
+        }
+        else
+        {
+          reconnectFuture.notifyFailure( future.getFailureMessage());
+        }
+      }
+    });
+    
+    return reconnectFuture;
   }
 
   /**
