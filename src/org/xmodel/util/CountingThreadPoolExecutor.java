@@ -6,10 +6,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-
 import org.xmodel.log.SLog;
 
 /**
@@ -40,6 +38,11 @@ public class CountingThreadPoolExecutor extends ThreadPoolExecutor implements Co
   {
     super( coreSize, maxSize, linger, TimeUnit.SECONDS, createQueue( maxSize), new PrefixThreadFactory( poolName));
     
+    submitRate10 = new Throughput( 10);
+    submitRate1000 = new Throughput( 1000);
+    finishRate10 = new Throughput( 10);
+    finishRate1000 = new Throughput( 1000);
+    
     try
     {
       MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -52,4 +55,67 @@ public class CountingThreadPoolExecutor extends ThreadPoolExecutor implements Co
       SLog.warnf( this, "Failed to register mbean: %s", e.toString());
     }
   }
+
+  /* (non-Javadoc)
+   * @see java.util.concurrent.ThreadPoolExecutor#beforeExecute(java.lang.Thread, java.lang.Runnable)
+   */
+  @Override
+  protected void beforeExecute( Thread t, Runnable r)
+  {
+    super.beforeExecute( t, r);
+    submitRate10.event();
+    submitRate1000.event();
+  }
+
+  /* (non-Javadoc)
+   * @see java.util.concurrent.ThreadPoolExecutor#afterExecute(java.lang.Runnable, java.lang.Throwable)
+   */
+  @Override
+  protected void afterExecute( Runnable r, Throwable t)
+  {
+    super.afterExecute( r, t);
+    finishRate10.event();
+    finishRate1000.event();
+  }
+  
+  /* (non-Javadoc)
+   * @see org.xmodel.util.CountingThreadPoolExecutorMBean#getSubmitRate10()
+   */
+  @Override
+  public float getTenRateIn()
+  {
+    return submitRate10.get();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.util.CountingThreadPoolExecutorMBean#getSubmitRate1000()
+   */
+  @Override
+  public float getThousandRateIn()
+  {
+    return submitRate1000.get();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.util.CountingThreadPoolExecutorMBean#getFinishRate10()
+   */
+  @Override
+  public float getTenRateOut()
+  {
+    return finishRate10.get();
+  }
+
+  /* (non-Javadoc)
+   * @see org.xmodel.util.CountingThreadPoolExecutorMBean#getFinishRate1000()
+   */
+  @Override
+  public float getThousandRateOut()
+  {
+    return finishRate1000.get();
+  }
+
+  private Throughput submitRate10;
+  private Throughput submitRate1000;
+  private Throughput finishRate10;
+  private Throughput finishRate1000;
 }

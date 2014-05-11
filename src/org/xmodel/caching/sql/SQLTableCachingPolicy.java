@@ -505,21 +505,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         while( result.next()) 
         {
           String columnName = result.getString( "COLUMN_NAME").toLowerCase();
-          if ( !excluded.contains( columnName))
-            metadata.columnNames.add( columnName.toLowerCase());
+          metadata.columnNames.add( columnName.toLowerCase());
           
           int columnType = result.getInt( "DATA_TYPE");
           metadata.columnTypes.add( columnType);
         }
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append( metadata.columnNames.get( 0));
-        for( int i=1; i<metadata.columnNames.size(); i++)
-        {
-          sb.append( ",");
-          sb.append( metadata.columnNames.get( i));
-        }
-        metadata.queryColumns = sb.toString();
         
         result = meta.getPrimaryKeys( null, null, tableName);
         while( result.next())
@@ -545,18 +535,46 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         while( result.next())
         {
           String columnName = result.getString( "COLUMN_NAME");
-          if ( columnName != null && !excluded.contains( columnName)) 
+          if ( columnName != null) 
             metadata.otherKeys.add( columnName.toLowerCase());
         }
       
         metadataCache.put( tableName, metadata);
       }
       
-      columnNames = metadata.columnNames;
-      columnTypes = metadata.columnTypes;
-      primaryKeys = metadata.primaryKeys;
-      otherKeys = metadata.otherKeys;
-      queryColumns = metadata.queryColumns;
+      columnNames = new ArrayList<String>( metadata.columnNames);
+      columnTypes = new ArrayList<Integer>( metadata.columnTypes);
+      primaryKeys = new ArrayList<String>( metadata.primaryKeys);
+      otherKeys = new ArrayList<String>( metadata.otherKeys);
+
+      // remove excluded element columns
+      for( int i=0; i<columnNames.size(); i++)
+      {
+        if ( excluded.contains( columnNames.get( i)))
+        {
+          columnNames.remove( i);
+          columnTypes.remove(  i--);
+        }
+      }
+      
+      // remove excluded attribute columns
+      for( int i=0; i<otherKeys.size(); i++)
+      {
+        if ( excluded.contains( otherKeys.get( i)))
+        {
+          otherKeys.remove( i--);
+        }
+      }
+      
+      // create query columns
+      StringBuilder sb = new StringBuilder();
+      sb.append( metadata.columnNames.get( 0));
+      for( int i=1; i<metadata.columnNames.size(); i++)
+      {
+        sb.append( ",");
+        sb.append( metadata.columnNames.get( i));
+      }
+      queryColumns = sb.toString();
     }
     catch( Exception e)
     {
@@ -1225,7 +1243,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     public List<Integer> columnTypes = new ArrayList<Integer>();
     public List<String> primaryKeys = new ArrayList<String>( 1);
     public List<String> otherKeys = new ArrayList<String>( 1);
-    public String queryColumns;
   }
   
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
