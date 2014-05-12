@@ -24,14 +24,14 @@ public class FutureChainListener<T> implements IListener<T>
   {
     try
     {
-      notifyNextComplete( futures, index);
+      notifyNextComplete( futures, index++);
     }
     catch( Exception e)
     {
       SLog.exception( this, e);
     }
     
-    if ( ++index < futures.length)
+    if ( index < futures.length)
     {
       futures[ index].addListener( this);
     }
