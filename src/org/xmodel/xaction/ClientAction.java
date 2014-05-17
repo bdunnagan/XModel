@@ -44,7 +44,7 @@ public class ClientAction extends GuardedAction
     serverPortExpr = document.getExpression( "serverPort", true);
     localAddressExpr = document.getExpression( "localAddress", true);
     localPortExpr = document.getExpression( "localPort", true);
-    clientNameExpr = document.getExpression( "subscribe", true);
+    aliasesExpr = document.getExpression( "subscribe", true);
     threadsExpr = document.getExpression( "threads", true);
     
     sslExpr = document.getExpression( "ssl", true);
@@ -64,7 +64,7 @@ public class ClientAction extends GuardedAction
     final int serverPort = (int)serverPortExpr.evaluateNumber( context);
     final String localAddress = (localAddressExpr != null)? localAddressExpr.evaluateString( context): "";
     final int localPort = (localPortExpr != null)? (int)localPortExpr.evaluateNumber( context): 0;
-    final String clientName = clientNameExpr.evaluateString( context);
+    final String[] aliases = getAliases( context);
     final IXAction onConnect = (onConnectExpr != null)? getScript( context, onConnectExpr): null;
     final IXAction onDisconnect = (onDisconnectExpr != null)? getScript( context, onDisconnectExpr): null;
     final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
@@ -85,7 +85,8 @@ public class ClientAction extends GuardedAction
           public void run()
           {
             if ( onConnect != null) onConnect.run( nested);
-            register( nested, client, clientName, onError);
+            for( String alias: aliases)
+              register( nested, client, alias, onError);
           }
         });
       }
@@ -136,6 +137,17 @@ public class ClientAction extends GuardedAction
     Conventions.putCache( context, var, client);
     
     return null;
+  }
+  
+  /**
+   * Returns the aliases for the client.
+   * @param context The context.
+   * @return Returns a possibly empty array of aliases.
+   */
+  private String[] getAliases( IContext context)
+  {
+    if ( aliasesExpr == null) return new String[ 0];
+    return aliasesExpr.evaluateString( context).split( "\\s*,\\s*");
   }
   
   /**
@@ -202,7 +214,7 @@ public class ClientAction extends GuardedAction
   private IExpression serverPortExpr;
   private IExpression localAddressExpr;
   private IExpression localPortExpr;
-  private IExpression clientNameExpr;
+  private IExpression aliasesExpr;
   private IExpression threadsExpr;
   private IExpression sslExpr;
   private IExpression onConnectExpr;
