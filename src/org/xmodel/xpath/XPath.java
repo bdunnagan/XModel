@@ -23,6 +23,7 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.xmodel.AbstractPath;
 import org.xmodel.IAxis;
 import org.xmodel.IModelObject;
@@ -35,6 +36,7 @@ import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.PathExpression;
 import org.xmodel.xpath.expression.RootExpression;
 import org.xmodel.xpath.parser.generated.ParseException;
+import org.xmodel.xpath.parser.generated.TokenMgrError;
 import org.xmodel.xpath.parser.generated.XPathParser;
 
 
@@ -157,6 +159,11 @@ public class XPath extends AbstractPath implements IAxis
           cache.put( spec, expression);
         }
         catch( ParseException e)
+        {
+          throw new PathSyntaxException( String.format( 
+            "Syntax Error: %s: %s", spec, e.getMessage()), e);
+        }
+        catch( TokenMgrError e)
         {
           throw new PathSyntaxException( String.format( 
             "Syntax Error: %s: %s", spec, e.getMessage()), e);
