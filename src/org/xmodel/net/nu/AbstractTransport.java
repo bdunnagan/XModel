@@ -10,7 +10,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransport
 {
-  protected AbstractTransport( IProtocol protocol, IContextManager contexts)
+  protected AbstractTransport( IProtocol protocol, IContextFactory contexts)
   {
     this.protocol = protocol;
     this.contexts = contexts;
@@ -23,7 +23,7 @@ public abstract class AbstractTransport implements ITransport
    * @see org.xmodel.net.nu.ITransport#getContexts()
    */
   @Override
-  public IContextManager getContexts()
+  public IContextFactory getContexts()
   {
     return contexts;
   }
@@ -150,7 +150,7 @@ public abstract class AbstractTransport implements ITransport
   public final static Log log = Log.getLog( AbstractTransport.class);
   
   private IProtocol protocol;
-  private IContextManager contexts;
+  private IContextFactory contexts;
   private List<IReceiveListener> receiveListeners;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;

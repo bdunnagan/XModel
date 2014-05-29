@@ -14,13 +14,13 @@ import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
-import org.xmodel.net.nu.IContextManager;
+import org.xmodel.net.nu.IContextFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.ITransport;
 
 public class TcpClientTransport extends AbstractChannelTransport
 {
-  public TcpClientTransport( IProtocol protocol, IContextManager contexts)
+  public TcpClientTransport( IProtocol protocol, IContextFactory contexts)
   {
     super( protocol, contexts);
     this.channelRef = new AtomicReference<Channel>();

@@ -19,15 +19,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.IContextManager;
-import org.xmodel.net.nu.IContextManagerFactory;
+import org.xmodel.net.nu.IContextFactory;
+import org.xmodel.net.nu.IContextFactoryFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 
 public class TcpServerRouter implements IRouter
 {
-  public TcpServerRouter( IProtocol protocol, IContextManagerFactory contextManagerFactory)
+  public TcpServerRouter( IProtocol protocol, IContextFactoryFactory contextManagerFactory)
   {
     this.protocol = protocol;
     this.contextManagerFactory = contextManagerFactory;
@@ -47,7 +47,7 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         IContextManager contexts = contextManagerFactory.create();
+         IContextFactory contexts = contextManagerFactory.create();
          channel.pipeline().addLast( new XioInboundHandler( new TcpChildTransport( protocol, contexts, channel)));
        }
      });
@@ -134,7 +134,7 @@ public class TcpServerRouter implements IRouter
   }
 
   private IProtocol protocol;
-  private IContextManagerFactory contextManagerFactory;
+  private IContextFactoryFactory contextManagerFactory;
   private ServerSocketChannel serverChannel;
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;

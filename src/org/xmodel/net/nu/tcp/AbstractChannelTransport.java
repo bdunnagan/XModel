@@ -9,7 +9,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.net.nu.AbstractTransport;
-import org.xmodel.net.nu.IContextManager;
+import org.xmodel.net.nu.IContextFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.ITransport;
 
@@ -17,7 +17,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
 {
   public static final String notConnectedError = "Not connected";
 
-  public AbstractChannelTransport( IProtocol protocol, IContextManager contexts)
+  public AbstractChannelTransport( IProtocol protocol, IContextFactory contexts)
   {
     super( protocol, contexts);
   }

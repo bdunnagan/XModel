@@ -3,7 +3,7 @@ package org.xmodel.net.nu;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 
-public interface IContextManager
+public interface IContextFactory
 {
   public IContext getTransportContext();
   
