@@ -1,11 +1,11 @@
 package org.xmodel.net.nu.run;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.IModelObject;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.IXAction;
@@ -13,26 +13,61 @@ import org.xmodel.xpath.expression.IContext;
 
 public class AsyncExecutionGroup
 {
-  public AsyncExecutionGroup( IContext context, List<ITransport> transports, IXAction onSuccess, IXAction onError, IXAction onComplete, ScheduledExecutorService scheduler)
+  public enum TimeoutMode { all, each};
+  
+  public AsyncExecutionGroup( IContext callContext, Iterator<ITransport> transports, IXAction onSuccess, IXAction onError, IXAction onComplete)
   {
-    this.callingContext = context;
+    this.callContext = callContext;
+    
     this.onSuccess = onSuccess;
     this.onError = onError;
     this.onComplete = onComplete;
-    this.scheduler = scheduler;
     
-    executions = new HashSet<AsyncExecution>( transports.size());
-    for( ITransport transport: transports)
-    {
-      executions.add( new AsyncExecution( this, transport));
-    }
+    this.pendingCount = new AtomicInteger();
+    this.completeCount = new AtomicInteger();
   }
   
-  public ScheduledExecutorService scheduler()
+  public void setTimeoutMode( TimeoutMode mode)
   {
-    return scheduler;
+    this.mode = mode;
   }
+  
+  public AsyncFuture<AsyncExecutionGroup> send( IModelObject script, IContext messageContext, int timeout) throws IOException
+  {
+    AsyncFuture<AsyncExecutionGroup> future = new AsyncFuture<AsyncExecutionGroup>( this) {
+      @Override
+      public void cancel()
+      {
+        AsyncExecutionGroup.this.cancel();
+      }
+    };
+    
+    while( transports.hasNext())
+    {
+      ITransport transport = transports.next();
+      
+      if ( mode == TimeoutMode.each)
+      {
+        transport.send( script, messageContext, timeout);
+      }
+      else
+      {
+        long t0 = System.nanoTime();
 
+        transport.send( script, messageContext, timeout);
+        
+        timeout -= (System.nanoTime() - t0) / 1e6;
+        if ( timeout < 0) timeout = 0;
+      }
+    }
+    
+    return future;
+  }
+  
+  private void cancel()
+  {
+  }
+  
   protected void notifySuccess( AsyncExecution execution, IContext context, IModelObject response)
   {
     if ( onSuccess != null)
@@ -71,22 +106,13 @@ public class AsyncExecutionGroup
       notifyComplete();
   }
   
-  private boolean executionComplete( AsyncExecution execution)
-  {
-    synchronized( executions)
-    {
-      executions.remove( execution);
-      return executions.isEmpty();
-    }
-  }
-  
   private void notifyComplete()
   {
     if ( onComplete != null)
     {
       try
       {
-        onComplete.run( callingContext);
+        onComplete.run( callContext);
       }
       catch( Exception e)
       {
@@ -97,11 +123,13 @@ public class AsyncExecutionGroup
 
   public static Log log = Log.getLog( AsyncExecutionGroup.class);
 
+  private TimeoutMode mode;
   private String var;
-  private IContext callingContext;
-  private Set<AsyncExecution> executions;
+  private IContext callContext;
+  private Iterator<ITransport> transports;
+  private AtomicInteger pendingCount;
+  private AtomicInteger completeCount;
   private IXAction onSuccess;
   private IXAction onError;
   private IXAction onComplete;
-  private ScheduledExecutorService scheduler;
 }

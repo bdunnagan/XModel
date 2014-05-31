@@ -10,7 +10,7 @@ import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xpath.expression.IContext;
 
-public class AsyncExecution implements IReceiveListener, ITimeoutListener
+public final class AsyncExecution implements IReceiveListener, ITimeoutListener
 {
   public static final String timeoutMessage = "Timeout";
   public static final String cancelledMessage = "Cancelled";
