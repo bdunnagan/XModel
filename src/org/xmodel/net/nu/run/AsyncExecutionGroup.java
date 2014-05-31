@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.IModelObject;
-import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.IXAction;
@@ -32,19 +31,13 @@ public class AsyncExecutionGroup
     this.mode = mode;
   }
   
-  public AsyncFuture<AsyncExecutionGroup> send( IModelObject script, IContext messageContext, int timeout) throws IOException
+  public void send( IModelObject script, IContext messageContext, int timeout) throws IOException
   {
-    AsyncFuture<AsyncExecutionGroup> future = new AsyncFuture<AsyncExecutionGroup>( this) {
-      @Override
-      public void cancel()
-      {
-        AsyncExecutionGroup.this.cancel();
-      }
-    };
-    
+    int count = 0;
     while( transports.hasNext())
     {
       ITransport transport = transports.next();
+      count++;
       
       if ( mode == TimeoutMode.each)
       {
@@ -60,12 +53,14 @@ public class AsyncExecutionGroup
         if ( timeout < 0) timeout = 0;
       }
     }
-    
-    return future;
-  }
-  
-  private void cancel()
-  {
+
+    //
+    // REVISIT THIS EXCLUSION
+    //
+    pendingCount.set( count);
+
+    if ( count == completeCount.get())
+      notifyComplete();
   }
   
   protected void notifySuccess( AsyncExecution execution, IContext context, IModelObject response)
@@ -82,9 +77,12 @@ public class AsyncExecutionGroup
         log.exception( e);
       }
     }
-    
-    if ( executionComplete( execution))
-      notifyComplete();
+
+    if ( pendingCount.get() > 0)
+    {
+      if ( completeCount.incrementAndGet() == pendingCount.get())
+        notifyComplete();
+    }
   }
   
   protected void notifyError( AsyncExecution execution, IContext context, Object error)
@@ -102,12 +100,23 @@ public class AsyncExecutionGroup
       }
     }
     
-    if ( executionComplete( execution))
-      notifyComplete();
+    if ( pendingCount.get() > 0)
+    {
+      if ( completeCount.incrementAndGet() == pendingCount.get())
+        notifyComplete();
+    }
   }
   
   private void notifyComplete()
   {
+    IXAction onComplete;
+    
+    synchronized( this)
+    {
+      onComplete = this.onComplete;
+      this.onComplete = null;
+    }
+    
     if ( onComplete != null)
     {
       try

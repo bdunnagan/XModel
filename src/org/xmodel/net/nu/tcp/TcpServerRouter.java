@@ -9,6 +9,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,20 +18,22 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
+
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.IContextFactory;
-import org.xmodel.net.nu.IContextFactoryFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.xpath.expression.IContext;
 
 public class TcpServerRouter implements IRouter
 {
-  public TcpServerRouter( IProtocol protocol, IContextFactoryFactory contextManagerFactory)
+  public TcpServerRouter( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     this.protocol = protocol;
-    this.contextManagerFactory = contextManagerFactory;
+    this.transportContext = transportContext;
+    this.scheduler = scheduler;
     this.routes = new HashMap<String, Set<ITransport>>();
   }
   
@@ -47,8 +50,7 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         IContextFactory contexts = contextManagerFactory.create();
-         channel.pipeline().addLast( new XioInboundHandler( new TcpChildTransport( protocol, contexts, channel)));
+         channel.pipeline().addLast( new XioInboundHandler( new TcpChildTransport( protocol, transportContext, scheduler, channel)));
        }
      });
 
@@ -134,7 +136,8 @@ public class TcpServerRouter implements IRouter
   }
 
   private IProtocol protocol;
-  private IContextFactoryFactory contextManagerFactory;
+  private IContext transportContext;
+  private ScheduledExecutorService scheduler;
   private ServerSocketChannel serverChannel;
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
