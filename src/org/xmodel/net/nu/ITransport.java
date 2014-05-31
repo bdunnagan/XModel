@@ -4,6 +4,9 @@ import java.io.IOException;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 
+/**
+ * (thread-safe)
+ */
 public interface ITransport
 {
   public AsyncFuture<ITransport> connect( int timeout) throws IOException;
@@ -18,11 +21,11 @@ public interface ITransport
   
   public void removeListener( IReceiveListener listener);
   
-  public void addConnectListener( IConnectListener listener);
+  public void addListener( IConnectListener listener);
   
-  public void removeConnectListener( IConnectListener listener);
+  public void removeListener( IConnectListener listener);
   
-  public void addDisconnectListener( IDisconnectListener listener);
+  public void addListener( IDisconnectListener listener);
   
-  public void removeDisconnectListener( IDisconnectListener listener);
+  public void removeListener( IDisconnectListener listener);
 }

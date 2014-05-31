@@ -54,27 +54,27 @@ public abstract class AbstractTransport implements ITransport
   }
 
   @Override
-  public void addConnectListener( IConnectListener listener)
+  public void addListener( IConnectListener listener)
   {
     if ( !connectListeners.contains( listener))
       connectListeners.add( listener);
   }
 
   @Override
-  public void removeConnectListener( IConnectListener listener)
+  public void removeListener( IConnectListener listener)
   {
     connectListeners.remove( listener);
   }
 
   @Override
-  public void addDisconnectListener( IDisconnectListener listener)
+  public void addListener( IDisconnectListener listener)
   {
     if ( !disconnectListeners.contains( listener))
       disconnectListeners.add( listener);
   }
 
   @Override
-  public void removeDisconnectListener( IDisconnectListener listener)
+  public void removeListener( IDisconnectListener listener)
   {
     disconnectListeners.remove( listener);
   }
