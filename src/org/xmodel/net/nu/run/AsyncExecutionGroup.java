@@ -6,29 +6,38 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 
-public class AsyncExecutionGroup
+public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
 {
-  public enum TimeoutMode { all, each};
+  public static final String timeoutMessage = "Timeout";
+  public static final String cancelledMessage = "Cancelled";
   
-  public AsyncExecutionGroup( IContext callContext, Iterator<ITransport> transports, IXAction onSuccess, IXAction onError, IXAction onComplete)
+  public AsyncExecutionGroup( String var, IContext callContext, Iterator<ITransport> transports)
   {
+    this.var = var;
     this.callContext = callContext;
-    
+    this.sentCount = new AtomicInteger();
+    this.doneCount = new AtomicInteger();
+  }
+
+  public void setSuccessScript( IXAction onSuccess)
+  {
     this.onSuccess = onSuccess;
-    this.onError = onError;
-    this.onComplete = onComplete;
-    
-    this.pendingCount = new AtomicInteger();
-    this.completeCount = new AtomicInteger();
   }
   
-  public void setTimeoutMode( TimeoutMode mode)
+  public void setErrorScript( IXAction onError)
   {
-    this.mode = mode;
+    this.onError = onError;
+  }
+  
+  public void setCompleteScript( IXAction onComplete)
+  {
+    this.onComplete = onComplete;
   }
   
   public void send( IModelObject script, IContext messageContext, int timeout) throws IOException
@@ -37,62 +46,31 @@ public class AsyncExecutionGroup
     while( transports.hasNext())
     {
       ITransport transport = transports.next();
+      addListeners( transport);
+      transport.send( script, messageContext, timeout);
       count++;
-      
-      if ( mode == TimeoutMode.each)
-      {
-        transport.send( script, messageContext, timeout);
-      }
-      else
-      {
-        long t0 = System.nanoTime();
-
-        transport.send( script, messageContext, timeout);
-        
-        timeout -= (System.nanoTime() - t0) / 1e6;
-        if ( timeout < 0) timeout = 0;
-      }
     }
 
     //
     // REVISIT THIS EXCLUSION
     //
-    pendingCount.set( count);
+    sentCount.set( count);
 
-    if ( count == completeCount.get())
+    if ( count == doneCount.get())
       notifyComplete();
   }
   
-  protected void notifySuccess( AsyncExecution execution, IContext context, IModelObject response)
+  @Override
+  public final void onReceive( ITransport transport, IModelObject response, IContext messageContext, IModelObject request)
   {
+    removeListeners( transport);
+    
     if ( onSuccess != null)
     {
       try
       {
-        context.getScope().set( var, response);
-        onSuccess.run( context);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
-
-    if ( pendingCount.get() > 0)
-    {
-      if ( completeCount.incrementAndGet() == pendingCount.get())
-        notifyComplete();
-    }
-  }
-  
-  protected void notifyError( AsyncExecution execution, IContext context, Object error)
-  {
-    if ( onError != null)
-    {
-      try
-      {
-        context.getScope().set( var, error);
-        onError.run( context);
+        messageContext.getScope().set( var, response);
+        onSuccess.run( messageContext);
       }
       catch( Exception e)
       {
@@ -100,13 +78,52 @@ public class AsyncExecutionGroup
       }
     }
     
-    if ( pendingCount.get() > 0)
+    notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
+  }
+  
+  @Override
+  public void onTimeout( ITransport transport, IModelObject message, IContext messageContext)
+  {
+    removeListeners( transport);
+    
+    if ( onError != null)
     {
-      if ( completeCount.incrementAndGet() == pendingCount.get())
+      try
+      {
+        messageContext.getScope().set( var, timeoutMessage);
+        onError.run( messageContext);
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+    }
+    
+    notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
+  }
+  
+  private void notifyWhenAllRequestsComplete( int requestsCompleted)
+  {
+    int sent = sentCount.get();
+    if ( sent > 0)
+    {
+      if ( requestsCompleted == sent)
         notifyComplete();
     }
   }
+
+  private void addListeners( ITransport transport)
+  {
+    transport.addListener( (IReceiveListener)this);
+    transport.addListener( (ITimeoutListener)this);
+  }
   
+  private void removeListeners( ITransport transport)
+  {
+    transport.removeListener( (IReceiveListener)this);
+    transport.removeListener( (ITimeoutListener)this);
+  }
+
   private void notifyComplete()
   {
     IXAction onComplete;
@@ -132,12 +149,11 @@ public class AsyncExecutionGroup
 
   public static Log log = Log.getLog( AsyncExecutionGroup.class);
 
-  private TimeoutMode mode;
   private String var;
   private IContext callContext;
   private Iterator<ITransport> transports;
-  private AtomicInteger pendingCount;
-  private AtomicInteger completeCount;
+  private AtomicInteger sentCount;
+  private AtomicInteger doneCount;
   private IXAction onSuccess;
   private IXAction onError;
   private IXAction onComplete;
