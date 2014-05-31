@@ -9,20 +9,23 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
-import org.xmodel.net.nu.IContextFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.xpath.expression.IContext;
 
 public class TcpClientTransport extends AbstractChannelTransport
 {
-  public TcpClientTransport( IProtocol protocol, IContextFactory contexts)
+  public TcpClientTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
-    super( protocol, contexts);
+    super( protocol, transportContext, scheduler);
     this.channelRef = new AtomicReference<Channel>();
   }
   

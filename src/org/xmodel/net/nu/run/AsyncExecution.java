@@ -1,22 +1,19 @@
 package org.xmodel.net.nu.run;
 
 import java.io.IOException;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 
-public class AsyncExecution implements IReceiveListener, Runnable
+public class AsyncExecution implements IReceiveListener, ITimeoutListener
 {
-  public static final String timeout = "Timeout";
-  public static final String cancelled = "Cancelled";
+  public static final String timeoutMessage = "Timeout";
+  public static final String cancelledMessage = "Cancelled";
   
   public AsyncExecution( AsyncExecutionGroup group, ITransport transport)
   {
@@ -24,32 +21,18 @@ public class AsyncExecution implements IReceiveListener, Runnable
     this.transport = transport;
   }
   
-  public AsyncFuture<ITransport> send( IModelObject script, ITransport transport, int timeout) throws IOException
+  public AsyncFuture<ITransport> send( IModelObject script, IContext messageContext, ITransport transport, int timeout) throws IOException
   {
-    this.request = script;
-    
-    transport.addListener( this);
-    
-    timeoutFuture = group.scheduler().schedule( this, timeout, TimeUnit.MILLISECONDS); 
-    return transport.send( script, timeout);
+    addListeners();
+    return transport.send( script, messageContext, timeout);
   }
 
   @Override
-  public final void onReceive( ITransport transport, IModelObject response, IContext context)
+  public final void onReceive( ITransport transport, IModelObject response, IContext messageContext, IModelObject request)
   {
-    // message correlation
-    String id = Xlate.get( response, "id", (String)null);
-    if ( id == null || !id.equals( Xlate.get( request, "id", "")))
-      return;
-    
     try
     {
-      // success/timeout exclusion
-      if ( timeoutFuture.cancel( false))
-      {
-        StatefulContext successContext = new StatefulContext( context);
-        group.notifySuccess( this, successContext, response); 
-      }
+      group.notifySuccess( this, messageContext, response); 
     }
     catch( Exception e)
     {
@@ -57,38 +40,41 @@ public class AsyncExecution implements IReceiveListener, Runnable
     }
     finally
     {
-      transport.removeListener( this);
+      removeListeners();
     }
   }
-
+  
   @Override
-  public void run()
+  public void onTimeout( ITransport transport, IModelObject message, IContext messageContext)
   {
-    transport.removeListener( this);
-    
-    IContext context = transport.getContexts().getMessageContext( request);
-    StatefulContext timeoutContext = new StatefulContext( context);
-    group.notifyError( this, timeoutContext, timeout);
+    try
+    {
+      group.notifyError( this, messageContext, timeoutMessage); 
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+    }
+    finally
+    {
+      removeListeners();
+    }
   }
 
-  public void cancel()
+  private void addListeners()
   {
-    if ( request == null) return;
-    
-    transport.removeListener( this);
-    
-    if ( timeoutFuture.cancel( false))
-    {
-      IContext context = transport.getContexts().getMessageContext( request);
-      StatefulContext cancelContext = new StatefulContext( context);
-      group.notifyError( this, cancelContext, cancelled);
-    }
+    transport.addListener( (IReceiveListener)this);
+    transport.addListener( (ITimeoutListener)this);
+  }
+  
+  private void removeListeners()
+  {
+    transport.removeListener( (IReceiveListener)this);
+    transport.removeListener( (ITimeoutListener)this);
   }
   
   public final static Log log = Log.getLog( AsyncExecution.class);
 
   private AsyncExecutionGroup group;
   private ITransport transport;
-  private IModelObject request;
-  private ScheduledFuture<?> timeoutFuture;
 }

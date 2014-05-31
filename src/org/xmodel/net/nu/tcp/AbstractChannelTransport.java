@@ -3,27 +3,30 @@ package org.xmodel.net.nu.tcp;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+
 import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.net.nu.AbstractTransport;
-import org.xmodel.net.nu.IContextFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractChannelTransport extends AbstractTransport
 {
   public static final String notConnectedError = "Not connected";
 
-  public AbstractChannelTransport( IProtocol protocol, IContextFactory contexts)
+  public AbstractChannelTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
-    super( protocol, contexts);
+    super( protocol, transportContext, scheduler);
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject message, int timeout) throws IOException
+  public AsyncFuture<ITransport> send( IModelObject message) throws IOException
   {
     Channel channel = channelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 

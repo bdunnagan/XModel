@@ -2,17 +2,20 @@ package org.xmodel.net.nu.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
+
 import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
+
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.IContextFactory;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.xpath.expression.IContext;
 
 public class TcpChildTransport extends AbstractChannelTransport
 {
-  public TcpChildTransport( IProtocol protocol, IContextFactory contexts, SocketChannel channel)
+  public TcpChildTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel)
   {
-    super( protocol, contexts);
+    super( protocol, transportContext, scheduler);
     channelRef.set( channel);
   }
   
