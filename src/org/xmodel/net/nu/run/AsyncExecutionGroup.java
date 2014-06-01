@@ -2,6 +2,7 @@ package org.xmodel.net.nu.run;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.xmodel.IModelObject;
@@ -40,24 +41,37 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
     this.onComplete = onComplete;
   }
   
-  public void send( IModelObject script, IContext messageContext, int timeout) throws IOException
+  public void send( IModelObject script, IContext messageContext, int timeout)
   {
     int count = 0;
     while( transports.hasNext())
     {
       ITransport transport = transports.next();
+      
       addListeners( transport);
-      transport.send( script, messageContext, timeout);
       count++;
+      
+      try
+      {
+        transport.send( script, messageContext, timeout);
+      }
+      catch( IOException e)
+      {
+        notifyError( e);
+      }
     }
 
-    //
-    // REVISIT THIS EXCLUSION
-    //
     sentCount.set( count);
 
     if ( count == doneCount.get())
       notifyComplete();
+  }
+
+  public void sendAndWait( IModelObject script, IContext messageContext, int timeout) throws IOException, InterruptedException
+  {
+    semaphore = new Semaphore( 0);
+    send( script, messageContext, timeout);
+    semaphore.acquire();
   }
   
   @Override
@@ -124,6 +138,21 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
     transport.removeListener( (ITimeoutListener)this);
   }
 
+  private void notifyError( Throwable t)
+  {
+    if ( onError != null)
+    {
+      try
+      {
+        onError.run( callContext);
+      }
+      catch( Exception e)
+      {
+        log.exception( e);
+      }
+    }
+  }
+  
   private void notifyComplete()
   {
     IXAction onComplete;
@@ -145,6 +174,8 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
         log.exception( e);
       }
     }
+    
+    if ( semaphore != null) semaphore.release();
   }
 
   public static Log log = Log.getLog( AsyncExecutionGroup.class);
@@ -157,4 +188,5 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
   private IXAction onSuccess;
   private IXAction onError;
   private IXAction onComplete;
+  private Semaphore semaphore;
 }

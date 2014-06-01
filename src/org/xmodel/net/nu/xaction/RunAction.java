@@ -1,24 +1,24 @@
 package org.xmodel.net.nu.xaction;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
 
-import org.xmodel.future.AsyncFuture;
+import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
+import org.xmodel.Reference;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.Routers;
-import org.xmodel.net.nu.run.AsyncExecution;
+import org.xmodel.net.nu.run.AsyncExecutionGroup;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
-import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
+import org.xmodel.xpath.expression.StatefulContext;
 
 public class RunAction extends GuardedAction
 {
@@ -30,109 +30,72 @@ public class RunAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false); 
     atExpr = document.getExpression( "at", true);
     timeoutExpr = document.getExpression( "timeout", true);
-    
-    if ( timeoutExpr == null) 
-    {
-      timeoutExpr = document.getExpression( "timeouts", true);
-      timeoutEach = true;
-    }
-    
   }
 
   @Override
   protected Object[] doAction( IContext context)
   {
-    double timeout = timeoutExpr.evaluateNumber( context);
+    int timeout = (int)timeoutExpr.evaluateNumber( context);
     
-    List<ITransport> transports = resolveTransport( context);
-    for( ITransport transport: transports)
-    {
-      if ( timeoutEach)
-      {
-        Object[] result = runAsync( context, transport, timeout);
-        if ( result != null) return result;
-      }
-      else
-      {
-        long t0 = System.nanoTime();
-        
-        Object[] result = runAsync( context, transport, timeout);
-        if ( result != null) return result;
-        
-        timeout -= (System.nanoTime() - t0) / 1e6;
-        if ( timeout < 0) timeout = 0;
-      }
-    }
+    IContext messageContext = new StatefulContext( context);
+    Iterator<ITransport> transports = resolveTransport( context);
+    
+    AsyncExecutionGroup execution = new AsyncExecutionGroup( var, context, transports);
+    
+    execution.setSuccessScript( Conventions.getScript( document, context, onSuccessExpr));
+    execution.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
+    execution.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
+    
+    execution.send( getMessage(), messageContext, timeout);
 
-    
     return null;
   }
   
-  private List<ITransport> resolveTransport( IContext context)
+  private Iterator<ITransport> resolveTransport( IContext context)
   {
     if ( atExpr.getType() == ResultType.NODES)
     {
-      Object object = Conventions.getCache( context, atExpr);
-      return Collections.singletonList( (ITransport)object).iterator();
+      List<IModelObject> elements = atExpr.evaluateNodes( context);
+      List<ITransport> transports = new ArrayList<ITransport>( elements.size());
+      for( IModelObject element: elements)
+      {
+        Object transport = element.getValue();
+        if ( transport != null && transport instanceof ITransport) 
+          transports.add( (ITransport)transport);
+      }
+      return transports.iterator();
     }
     else
     {
-      IRouter router = Routers.getRootRouter();
-      return router.resolve( atExpr.evaluateString( context));
+      String route = atExpr.evaluateString( context);
+      String[] parts = parseRoute( route);
+      
+      IRouter router = Routers.getRouter( parts[ 0]);
+      if ( router != null) return router.resolve( parts[ 1]);
+      
+      log.warnf( "Router '%s' is not defined.", parts[ 0]);
+      return Collections.<ITransport>emptyList().iterator();
     }
   }
   
-  private Object[] runAsync( IContext context, ITransport transport, double timeout, CompletionListener listener)
+  private IModelObject getMessage()
   {
-    IXAction onSuccess = Conventions.getScript( document, context, onSuccessExpr);
-    IXAction onError = Conventions.getScript( document, context, onErrorExpr);
+    IModelObject message = new ModelObject( "script");
     
-    try
-    {
-      AsyncExecution execution = new AsyncExecution( transport, onSuccess, onError, scheduler);
-      
-      execution.getResponseFuture().addListener( new AsyncFuture.IListener<AsyncExecution>() {
-        @Override
-        public void notifyComplete( AsyncFuture<AsyncExecution> future) throws Exception
-        {
-          
-        }
-      });
-      
-      execution.send( var, document.getRoot(), transport, (int)timeout); // ignoring write future
-      
-      return null;
-    }
-    catch( IOException e)
-    {
-      return handleRunException( context, onError, e);
-    }
-  }
+    for( IModelObject child: document.getRoot().getChildren())
+      message.addChild( new Reference( child));
 
-  private Object[] handleRunException( IContext context, IXAction onError, IOException e)
-  {
-    if ( onError != null)
-    {
-      return onError.run( context);
-    }
-    else
-    {
-      log.exception( e);
-      return null;
-    }
+    return message;
   }
   
-  private void timeout( Iterator<ITransport> transports)
+  private String[] parseRoute( String route)
   {
-  }
-  
-  private class CompletionListener implements AsyncFuture.IListener<AsyncExecution>
-  {
-    @Override
-    public void notifyComplete( AsyncFuture<AsyncExecution> future) throws Exception
-    {
-    }
-    
+    int index = route.indexOf( '.');
+    if ( index < 0) return new String[] { route, ""};
+    return new String[] { 
+      route.substring( 0, index), 
+      route.substring( index+1)
+    };
   }
   
   public final static Log log = Log.getLog( RunAction.class);
@@ -140,9 +103,7 @@ public class RunAction extends GuardedAction
   private String var;
   private IExpression atExpr;
   private IExpression timeoutExpr;
-  private boolean timeoutEach;
   private IExpression onSuccessExpr;  // each
   private IExpression onErrorExpr;    // each
   private IExpression onCompleteExpr; // all
-  private ScheduledExecutorService scheduler;
 }

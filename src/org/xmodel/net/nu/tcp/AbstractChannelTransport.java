@@ -44,7 +44,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     byte[] bytes = getProtocol().encode( message);
     
     // write
-    ChannelFuture channelFuture = channel.write( Unpooled.wrappedBuffer( bytes));
+    ChannelFuture channelFuture = channel.writeAndFlush( Unpooled.wrappedBuffer( bytes));
     
     // future adapter
     channelFuture.addListener( new AsyncFutureAdapter<ITransport>( future));
