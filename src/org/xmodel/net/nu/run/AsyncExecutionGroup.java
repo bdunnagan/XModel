@@ -67,7 +67,7 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
       notifyComplete();
   }
 
-  public void sendAndWait( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout) throws IOException, InterruptedException
+  public void sendAndWait( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
     send( transports, script, messageContext, timeout);
@@ -79,11 +79,12 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
   {
     removeListeners( transport);
     
+    messageContext.getScope().set( var, response);
+    
     if ( onSuccess != null)
     {
       try
       {
-        messageContext.getScope().set( var, response);
         onSuccess.run( messageContext);
       }
       catch( Exception e)
@@ -100,11 +101,12 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
   {
     removeListeners( transport);
     
+    messageContext.getScope().set( var, timeoutMessage);
+    
     if ( onError != null)
     {
       try
       {
-        messageContext.getScope().set( var, timeoutMessage);
         onError.run( messageContext);
       }
       catch( Exception e)

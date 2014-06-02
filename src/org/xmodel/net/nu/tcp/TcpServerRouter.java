@@ -16,12 +16,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.IConnectListener;
+import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
@@ -50,7 +53,11 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         channel.pipeline().addLast( new XioInboundHandler( new TcpChildTransport( protocol, transportContext, scheduler, channel)));
+         TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
+         for( IConnectListener listener: connectListeners) transport.addListener( listener);
+         for( IDisconnectListener listener: disconnectListeners) transport.addListener( listener);
+         transport.connect( 0);
+         channel.pipeline().addLast( new XioInboundHandler( transport));
        }
      });
 
@@ -134,6 +141,28 @@ public class TcpServerRouter implements IRouter
       routesLock.readLock().unlock();
     }
   }
+  
+  public void addListener( IConnectListener listener)
+  {
+    if ( !connectListeners.contains( listener))
+      connectListeners.add( listener);
+  }
+
+  public void removeListener( IConnectListener listener)
+  {
+    connectListeners.remove( listener);
+  }
+
+  public void addListener( IDisconnectListener listener)
+  {
+    if ( !disconnectListeners.contains( listener))
+      disconnectListeners.add( listener);
+  }
+
+  public void removeListener( IDisconnectListener listener)
+  {
+    disconnectListeners.remove( listener);
+  }
 
   private IProtocol protocol;
   private IContext transportContext;
@@ -141,4 +170,6 @@ public class TcpServerRouter implements IRouter
   private ServerSocketChannel serverChannel;
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
+  private List<IConnectListener> connectListeners;
+  private List<IDisconnectListener> disconnectListeners;
 }

@@ -16,12 +16,13 @@ import org.xmodel.util.MultiIterator;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
+import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 import org.xmodel.xpath.expression.StatefulContext;
 
-public class RunAction extends GuardedAction
+public class SendAction extends GuardedAction
 {
   @Override
   public void configure( XActionDocument document)
@@ -31,11 +32,18 @@ public class RunAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false);
     viaExpr = document.getExpression( "via", true);
     atExpr = document.getExpression( "at", true);
+    waitExpr = document.getExpression( "wait", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
 
   @Override
   protected Object[] doAction( IContext context)
+  {
+    boolean wait = waitExpr.evaluateBoolean( context);
+    return send( context, wait);
+  }
+  
+  protected Object[] send( IContext context, boolean wait)
   {
     int timeout = (int)timeoutExpr.evaluateNumber( context);
     
@@ -48,11 +56,25 @@ public class RunAction extends GuardedAction
     execution.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
     execution.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
-    execution.send( transports, getMessage(), messageContext, timeout);
+    if ( wait)
+    {
+      try
+      {
+        execution.sendAndWait( transports, getMessage(), messageContext, timeout);
+      }
+      catch( InterruptedException e)
+      {
+        throw new XActionException( e);
+      }
+    }
+    else
+    {
+      execution.send( transports, getMessage(), messageContext, timeout);
+    }
 
     return null;
   }
-  
+
   private Iterator<ITransport> resolveTransport( IContext context)
   {
     MultiIterator<ITransport> transports = new MultiIterator<ITransport>();
@@ -133,12 +155,13 @@ public class RunAction extends GuardedAction
     return message;
   }
   
-  public final static Log log = Log.getLog( RunAction.class);
+  public final static Log log = Log.getLog( SendAction.class);
   
   private String var;
   private IExpression viaExpr;
   private IExpression atExpr;
   private IExpression timeoutExpr;
+  private IExpression waitExpr;
   private IExpression onSuccessExpr;  // each
   private IExpression onErrorExpr;    // each
   private IExpression onCompleteExpr; // all
