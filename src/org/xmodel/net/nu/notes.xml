@@ -1,0 +1,10 @@
+<tcp var="tcp1" connect=""></tcp>
+
+<run via="$tcp1"/>
+
+<create var="routes">
+  <route via="{$tcp1}" at="'peer1'"/>
+  <route via="{$amqp1}" at="'peer1'"/>
+</create>
+
+<run at="$routes"/>

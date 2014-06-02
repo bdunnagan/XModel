@@ -18,7 +18,7 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
   public static final String timeoutMessage = "Timeout";
   public static final String cancelledMessage = "Cancelled";
   
-  public AsyncExecutionGroup( String var, IContext callContext, Iterator<ITransport> transports)
+  public AsyncExecutionGroup( String var, IContext callContext)
   {
     this.var = var;
     this.callContext = callContext;
@@ -41,7 +41,7 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
     this.onComplete = onComplete;
   }
   
-  public void send( IModelObject script, IContext messageContext, int timeout)
+  public void send( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout)
   {
     int count = 0;
     while( transports.hasNext())
@@ -67,10 +67,10 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
       notifyComplete();
   }
 
-  public void sendAndWait( IModelObject script, IContext messageContext, int timeout) throws IOException, InterruptedException
+  public void sendAndWait( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout) throws IOException, InterruptedException
   {
     semaphore = new Semaphore( 0);
-    send( script, messageContext, timeout);
+    send( transports, script, messageContext, timeout);
     semaphore.acquire();
   }
   
@@ -182,7 +182,6 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
 
   private String var;
   private IContext callContext;
-  private Iterator<ITransport> transports;
   private AtomicInteger sentCount;
   private AtomicInteger doneCount;
   private IXAction onSuccess;

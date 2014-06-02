@@ -10,7 +10,6 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.Routers;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.IXAction;

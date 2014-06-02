@@ -1,17 +1,18 @@
 package org.xmodel.net.nu.xaction;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
+import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.RoutedTransport;
 import org.xmodel.net.nu.run.AsyncExecutionGroup;
+import org.xmodel.util.MultiIterator;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
@@ -27,7 +28,8 @@ public class RunAction extends GuardedAction
   {
     super.configure( document);
 
-    var = Conventions.getVarName( document.getRoot(), false); 
+    var = Conventions.getVarName( document.getRoot(), false);
+    viaExpr = document.getExpression( "via", true);
     atExpr = document.getExpression( "at", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
@@ -40,41 +42,84 @@ public class RunAction extends GuardedAction
     IContext messageContext = new StatefulContext( context);
     Iterator<ITransport> transports = resolveTransport( context);
     
-    AsyncExecutionGroup execution = new AsyncExecutionGroup( var, context, transports);
+    AsyncExecutionGroup execution = new AsyncExecutionGroup( var, context);
     
     execution.setSuccessScript( Conventions.getScript( document, context, onSuccessExpr));
     execution.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
     execution.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
-    execution.send( getMessage(), messageContext, timeout);
+    execution.send( transports, getMessage(), messageContext, timeout);
 
     return null;
   }
   
   private Iterator<ITransport> resolveTransport( IContext context)
   {
-    if ( atExpr.getType() == ResultType.NODES)
+    MultiIterator<ITransport> transports = new MultiIterator<ITransport>();
+    
+    if ( atExpr != null)
     {
-      List<IModelObject> elements = atExpr.evaluateNodes( context);
-      List<ITransport> transports = new ArrayList<ITransport>( elements.size());
-      for( IModelObject element: elements)
+      if ( atExpr.getType() == ResultType.NODES)
       {
-        Object transport = element.getValue();
-        if ( transport != null && transport instanceof ITransport) 
-          transports.add( (ITransport)transport);
+        List<IModelObject> elements = atExpr.evaluateNodes( context);
+        for( IModelObject element: elements)
+        {
+          Object via = element.getAttribute( "via");
+          String at = Xlate.get( element, "at", (String)null);
+          getTransports( via, at, transports);
+        }
       }
-      return transports.iterator();
+      else
+      {
+        String at = atExpr.evaluateString( context);
+        List<IModelObject> viaElements = viaExpr.evaluateNodes( context);
+        for( IModelObject viaElement: viaElements)
+        {
+          Object via = viaElement.getValue();
+          getTransports( via, at, transports);
+        }
+      }
     }
     else
     {
-      String route = atExpr.evaluateString( context);
-      String[] parts = parseRoute( route);
-      
-      IRouter router = Routers.getRouter( parts[ 0]);
-      if ( router != null) return router.resolve( parts[ 1]);
-      
-      log.warnf( "Router '%s' is not defined.", parts[ 0]);
-      return Collections.<ITransport>emptyList().iterator();
+      List<IModelObject> viaElements = viaExpr.evaluateNodes( context);
+      for( IModelObject viaElement: viaElements)
+      {
+        Object via = viaElement.getValue();
+        getTransports( via, null, transports);
+      }
+    }
+    
+    return transports;
+  }
+  
+  private void getTransports( Object via, String at, MultiIterator<ITransport> iterator)
+  {
+    if ( via != null)
+    {
+      if ( via instanceof IRouter)
+      {
+        if ( at != null)
+        {
+          iterator.add( ((IRouter)via).resolve( at));
+        }
+        else
+        {
+          log.warnf( "Route is null.");
+        }
+      }
+      else if ( via instanceof ITransport)
+      {
+        iterator.add( (at != null)? new RoutedTransport( (ITransport)via, at): (ITransport)via);
+      }
+      else
+      {
+        log.warnf( "Via object is not an instance of IRouter or ITransport.");
+      }
+    }
+    else
+    {
+      log.warnf( "Via object is null.");
     }
   }
   
@@ -88,19 +133,10 @@ public class RunAction extends GuardedAction
     return message;
   }
   
-  private String[] parseRoute( String route)
-  {
-    int index = route.indexOf( '.');
-    if ( index < 0) return new String[] { route, ""};
-    return new String[] { 
-      route.substring( 0, index), 
-      route.substring( index+1)
-    };
-  }
-  
   public final static Log log = Log.getLog( RunAction.class);
   
   private String var;
+  private IExpression viaExpr;
   private IExpression atExpr;
   private IExpression timeoutExpr;
   private IExpression onSuccessExpr;  // each

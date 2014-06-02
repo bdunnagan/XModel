@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.xmodel.IModelObject;
+import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.IContext;
@@ -97,33 +98,49 @@ public abstract class AbstractTransport implements ITransport
     // decode
     IModelObject message = protocol.decode( bytes, offset, length);
 
-    // release request
-    Request request = requests.remove( message.getAttribute( "id"));
+    // get route
+    String route = Xlate.get( message, "route", (String)null);
     
-    IModelObject requestMessage = null;
-    IContext messageContext = null;
+    // notify listeners
+    IReceiveListener[] listeners = receiveListeners.toArray( new IReceiveListener[ 0]);
+    
+    // lookup request and free
+    Request request = requests.remove( message.getAttribute( "id"));
     if ( request != null)
     {
-      requestMessage = request.message;
-      messageContext = request.messageContext;
+      // receive/timeout exclusion
+      if ( request.timeoutFuture.cancel( false))
+      {
+        for( IReceiveListener listener: listeners)
+        {
+          try
+          {
+            listener.onReceive( this, message, request.messageContext, request.message);
+          }
+          catch( Exception e)
+          {
+            log.exception( e);
+          }
+        }
+      }
     }
-    
-    // receive/timeout exclusion
-    if ( request.timeoutFuture.cancel( false))
+    else if ( route == null)
     {
-      // notify listeners
-      IReceiveListener[] listeners = receiveListeners.toArray( new IReceiveListener[ 0]);
       for( IReceiveListener listener: listeners)
       {
         try
         {
-          listener.onReceive( this, message, messageContext, requestMessage);
+          listener.onReceive( this, message, request.messageContext, request.message);
         }
         catch( Exception e)
         {
           log.exception( e);
         }
       }
+    }
+    else
+    {
+      
     }
   }
   
