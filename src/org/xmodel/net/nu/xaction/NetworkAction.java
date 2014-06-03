@@ -5,11 +5,9 @@ import org.xmodel.xpath.expression.IContext;
 
 public class NetworkAction extends GuardedAction
 {
-
   @Override
   protected Object[] doAction( IContext context)
   {
     return null;
   }
-
 }

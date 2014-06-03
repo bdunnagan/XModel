@@ -24,6 +24,7 @@ import java.util.*;
 /**
  * An implementation of Map which associates a value with the set of String keys which begin with
  * the prefix to which the value is mapped.
+ * @deprecated
  */
 public class PartialKeyMap<T> implements Map<String, T>
 {

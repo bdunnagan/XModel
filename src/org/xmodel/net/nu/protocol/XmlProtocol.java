@@ -1,10 +1,10 @@
 package org.xmodel.net.nu.protocol;
 
 import java.nio.charset.Charset;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 
 public class XmlProtocol implements IProtocol
@@ -12,6 +12,7 @@ public class XmlProtocol implements IProtocol
   public XmlProtocol()
   {
     charset = Charset.forName( "UTF-8");
+    xmlIO = new XmlIO();
   }
   
   @Override
@@ -22,11 +23,12 @@ public class XmlProtocol implements IProtocol
   }
 
   @Override
-  public IModelObject decode( byte[] message, int offset, int length)
+  public IModelObject decode( byte[] message, int offset, int length) throws XmlException
   {
     String xml = new String( message, offset, length, charset);
-    return null;
+    return xmlIO.read( xml);
   }
   
   private Charset charset;
+  private XmlIO xmlIO;
 }

@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
@@ -22,6 +22,7 @@ public abstract class AbstractTransport implements ITransport
     this.protocol = protocol;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
+    this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     this.receiveListeners = new ArrayList<IReceiveListener>( 1);
     this.timeoutListeners = new ArrayList<ITimeoutListener>( 1);
@@ -96,7 +97,8 @@ public abstract class AbstractTransport implements ITransport
   public void notifyReceive( byte[] bytes, int offset, int length)
   {
     // decode
-    IModelObject message = protocol.decode( bytes, offset, length);
+    IModelObject message = decode( bytes, offset, length);
+    if ( message == null) return;
 
     // get route
     String route = Xlate.get( message, "route", (String)null);
@@ -105,10 +107,11 @@ public abstract class AbstractTransport implements ITransport
     IReceiveListener[] listeners = receiveListeners.toArray( new IReceiveListener[ 0]);
     
     // lookup request and free
-    Request request = requests.remove( message.getAttribute( "id"));
-    if ( request != null)
+    Object id = message.getAttribute( "id");
+    if ( id != null)
     {
       // receive/timeout exclusion
+      Request request = requests.remove( id);
       if ( request.timeoutFuture.cancel( false))
       {
         for( IReceiveListener listener: listeners)
@@ -130,7 +133,7 @@ public abstract class AbstractTransport implements ITransport
       {
         try
         {
-          listener.onReceive( this, message, request.messageContext, request.message);
+          listener.onReceive( this, message, transportContext, null);
         }
         catch( Exception e)
         {
@@ -140,7 +143,20 @@ public abstract class AbstractTransport implements ITransport
     }
     else
     {
-      
+      // TODO
+    }
+  }
+  
+  private IModelObject decode( byte[] bytes, int offset, int length)
+  {
+    try
+    {
+      return protocol.decode( bytes, offset, length);
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+      return null;
     }
   }
   
