@@ -1,11 +1,12 @@
 package org.xmodel.net.nu;
 
+import java.io.IOException;
+
 import org.xmodel.IModelObject;
-import org.xmodel.xml.XmlException;
 
 public interface IProtocol
 {
-  public byte[] encode( IModelObject message);
+  public byte[] encode( IModelObject message) throws IOException;
   
-  public IModelObject decode( byte[] message, int offset, int length) throws XmlException;
+  public IModelObject decode( byte[] message, int offset, int length) throws IOException;
 }
