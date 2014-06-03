@@ -1,9 +1,9 @@
 package org.xmodel.net.nu.protocol;
 
 import java.nio.charset.Charset;
+
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IProtocol;
-import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 
@@ -12,13 +12,13 @@ public class XmlProtocol implements IProtocol
   public XmlProtocol()
   {
     charset = Charset.forName( "UTF-8");
-    xmlIO = new XmlIO();
+    threadXmlIO = new ThreadLocal<XmlIO>();
   }
   
   @Override
   public byte[] encode( IModelObject message)
   {
-    String xml = XmlIO.write( Style.printable, message);
+    String xml = getThreadData().write( message);
     return xml.getBytes( charset);
   }
 
@@ -26,9 +26,20 @@ public class XmlProtocol implements IProtocol
   public IModelObject decode( byte[] message, int offset, int length) throws XmlException
   {
     String xml = new String( message, offset, length, charset);
-    return xmlIO.read( xml);
+    return getThreadData().read( xml);
+  }
+  
+  private XmlIO getThreadData()
+  {
+    XmlIO xmlIO = threadXmlIO.get();
+    if ( xmlIO == null)
+    {
+      xmlIO = new XmlIO();
+      threadXmlIO.set( xmlIO);
+    }
+    return xmlIO;
   }
   
   private Charset charset;
-  private XmlIO xmlIO;
+  private ThreadLocal<XmlIO> threadXmlIO;
 }

@@ -2,27 +2,37 @@ package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransport
 {
+  protected AbstractTransport( IProtocol protocol, IContext transportContext)
+  {
+    this( protocol, transportContext, null);
+  }
+  
   protected AbstractTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
+    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
     this.protocol = protocol;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
-    this.requests = new ConcurrentHashMap<String, Request>();
+    this.requests = Collections.synchronizedMap( new HashMap<String, Request>());
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     this.receiveListeners = new ArrayList<IReceiveListener>( 1);
     this.timeoutListeners = new ArrayList<ITimeoutListener>( 1);
@@ -38,6 +48,7 @@ public abstract class AbstractTransport implements ITransport
     
     Request request = new Request( message, messageContext, timeout);
     requests.put( key, request);
+    System.out.println( key);
     
     return send( message);
   }
@@ -112,7 +123,7 @@ public abstract class AbstractTransport implements ITransport
     {
       // receive/timeout exclusion
       Request request = requests.remove( id);
-      if ( request.timeoutFuture.cancel( false))
+      if ( request != null && request.timeoutFuture.cancel( false))
       {
         for( IReceiveListener listener: listeners)
         {
