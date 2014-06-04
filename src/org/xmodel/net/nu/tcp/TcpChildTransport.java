@@ -5,6 +5,7 @@ import io.netty.channel.socket.SocketChannel;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
@@ -17,6 +18,8 @@ public class TcpChildTransport extends AbstractChannelTransport
   public TcpChildTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel)
   {
     super( protocol, transportContext, scheduler);
+    
+    channelRef = new AtomicReference<Channel>();
     channelRef.set( channel);
   }
   

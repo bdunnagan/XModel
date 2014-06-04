@@ -23,6 +23,11 @@ import org.xmodel.xpath.expression.IContext;
 
 public class TcpClientTransport extends AbstractChannelTransport
 {
+  public TcpClientTransport( IProtocol protocol, IContext transportContext)
+  {
+    this( protocol, transportContext, null);
+  }
+  
   public TcpClientTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     super( protocol, transportContext, scheduler);

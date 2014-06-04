@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -28,16 +29,27 @@ import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 public class TcpServerRouter implements IRouter
 {
+  public TcpServerRouter( IProtocol protocol, IContext transportContext)
+  {
+    this( protocol, transportContext, null);
+  }
+  
   public TcpServerRouter( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
+    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
+    
     this.protocol = protocol;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.routes = new HashMap<String, Set<ITransport>>();
+    
+    this.connectListeners = new ArrayList<IConnectListener>( 3);
+    this.disconnectListeners = new ArrayList<IDisconnectListener>( 3);
   }
   
   public void start( SocketAddress address) throws InterruptedException

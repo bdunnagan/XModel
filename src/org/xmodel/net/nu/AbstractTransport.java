@@ -2,10 +2,9 @@ package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -29,10 +28,11 @@ public abstract class AbstractTransport implements ITransport
   protected AbstractTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
-    this.protocol = protocol;
+    
+    this.protocol = new ThreadSafeProtocol( protocol);
     this.transportContext = transportContext;
     this.scheduler = scheduler;
-    this.requests = Collections.synchronizedMap( new HashMap<String, Request>());
+    this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     this.receiveListeners = new ArrayList<IReceiveListener>( 1);
     this.timeoutListeners = new ArrayList<ITimeoutListener>( 1);
@@ -119,11 +119,11 @@ public abstract class AbstractTransport implements ITransport
     
     // lookup request and free
     Object id = message.getAttribute( "id");
-    if ( id != null)
+    Request request = requests.remove( id);
+    if ( request != null)
     {
       // receive/timeout exclusion
-      Request request = requests.remove( id);
-      if ( request != null && request.timeoutFuture.cancel( false))
+      if ( request.timeoutFuture.cancel( false))
       {
         for( IReceiveListener listener: listeners)
         {
@@ -155,6 +155,7 @@ public abstract class AbstractTransport implements ITransport
     else
     {
       // TODO
+      throw new UnsupportedOperationException();
     }
   }
   

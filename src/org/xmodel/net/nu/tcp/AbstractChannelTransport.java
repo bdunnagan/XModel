@@ -20,7 +20,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
 {
   public static final String notConnectedError = "Not connected";
 
-  public AbstractChannelTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
+  protected AbstractChannelTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     super( protocol, transportContext, scheduler);
   }
