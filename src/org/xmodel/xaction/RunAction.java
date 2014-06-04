@@ -756,7 +756,7 @@ public class RunAction extends GuardedAction
     {
       if ( onSuccess != null) 
       {
-        if ( var != null && results.length > 0) context.getScope().set( var, results[ 0]);
+        if ( var != null && results != null && results.length > 0) context.getScope().set( var, results[ 0]);
         onSuccess.run( context);
       }
     }

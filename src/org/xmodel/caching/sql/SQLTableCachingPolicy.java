@@ -236,7 +236,9 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       
       log.debugf( "query size: %d", count);
       
+      setUpdateMonitorEnabled( false);
       update( reference, parent);
+      setUpdateMonitorEnabled( true);
     }
     catch( SQLException e)
     {
