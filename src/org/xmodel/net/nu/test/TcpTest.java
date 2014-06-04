@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
+import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.XmlProtocol;
@@ -58,9 +59,22 @@ public class TcpTest
       }
     });
     
+    client.addListener( new IDisconnectListener() {
+      public void onDisconnect( ITransport transport, IContext context) throws Exception
+      {
+        System.out.println( "Client disconnected!");
+      }
+    });
+    
     client.connect( 1000).await();
     
     System.out.println( "Sleeping ...");
-    Thread.sleep( 10000);
+    Thread.sleep( 1000);
+    
+    System.out.println( "Disconnecting client ...");
+    client.disconnect();
+    
+    System.out.println( "Sleeping ...");
+    Thread.sleep( 1000);
   }
 }

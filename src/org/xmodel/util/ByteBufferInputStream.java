@@ -1,4 +1,4 @@
-package org.xmodel.net.nu.protocol;
+package org.xmodel.util;
 
 import java.io.IOException;
 import java.io.InputStream;

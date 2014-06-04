@@ -52,7 +52,6 @@ public abstract class AbstractTransport implements ITransport
     
     Request request = new Request( message, messageContext, timeout);
     requests.put( key, request);
-    System.out.println( key);
     
     return send( message);
   }
