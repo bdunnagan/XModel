@@ -3,6 +3,26 @@ package org.xmodel.util;
 public interface CountingThreadPoolExecutorMBean
 {
   /**
+   * @return Returns the throughput over the last ten submitted tasks.
+   */
+  public float getTenRateIn();
+  
+  /**
+   * @return Returns the throughput over the last thousand submitted tasks.
+   */
+  public float getThousandRateIn();
+  
+  /**
+   * @return Returns the throughput over the last ten submitted tasks.
+   */
+  public float getTenRateOut();
+  
+  /**
+   * @return Returns the throughput over the last thousand submitted tasks.
+   */
+  public float getThousandRateOut();
+  
+  /**
    * @return Returns the approximate number of submitted tasks.
    */
   public long getTaskCount();
