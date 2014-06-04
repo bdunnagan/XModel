@@ -6,14 +6,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.xmodel.IModelObject;
-import org.xmodel.net.nu.IProtocol;
+import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.util.ByteBufferInputStream;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 
-public class XmlProtocol implements IProtocol
+public class XmlWireProtocol implements IWireProtocol
 {
-  public XmlProtocol()
+  public XmlWireProtocol()
   {
     xmlIO = new XmlIO();
     stream = new ByteArrayOutputStream();

@@ -12,19 +12,20 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
-import org.xmodel.net.nu.IProtocol;
+import org.xmodel.net.nu.IEnvelopeProtocol;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class TcpChildTransport extends AbstractChannelTransport
 {
-  public TcpChildTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel,
+  public TcpChildTransport( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel,
       List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
       List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
   {
-    super( protocol, transportContext, scheduler, receiveListeners, timeoutListeners, connectListeners, disconnectListeners); 
+    super( wire, envp, transportContext, scheduler, receiveListeners, timeoutListeners, connectListeners, disconnectListeners); 
     
     channelRef = new AtomicReference<Channel>();
     channelRef.set( channel);

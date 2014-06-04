@@ -8,19 +8,19 @@ import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.net.nu.IProtocol;
+import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.util.ByteBufferInputStream;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 
-public class XipProtocol implements IProtocol
+public class XipWireProtocol implements IWireProtocol
 {
-  public XipProtocol()
+  public XipWireProtocol()
   {
     this( new TabularCompressor());
   }
   
-  public XipProtocol( ICompressor compressor)
+  public XipWireProtocol( ICompressor compressor)
   {
     this.compressor = compressor;
   }
@@ -49,7 +49,7 @@ public class XipProtocol implements IProtocol
   
   public static void main( String[] args) throws Exception
   {
-    XipProtocol p = new XipProtocol();
+    XipWireProtocol p = new XipWireProtocol();
     ByteBuffer b = ByteBuffer.allocate( 1024);
     
     for( int i=0; i<3; i++)

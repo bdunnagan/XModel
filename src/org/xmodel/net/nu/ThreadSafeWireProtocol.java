@@ -5,12 +5,12 @@ import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.log.SLog;
 
-final class ThreadSafeProtocol implements IProtocol
+final class ThreadSafeWireProtocol implements IWireProtocol
 {
-  public ThreadSafeProtocol( IProtocol protocol)
+  public ThreadSafeWireProtocol( IWireProtocol protocol)
   {
     this.protocol = protocol;
-    this.threads = new ThreadLocal<IProtocol>();
+    this.threads = new ThreadLocal<IWireProtocol>();
   }
   
   @Override
@@ -34,14 +34,14 @@ final class ThreadSafeProtocol implements IProtocol
     return getThreadProtocol().decode( buffer);
   }
 
-  private IProtocol getThreadProtocol()
+  private IWireProtocol getThreadProtocol()
   {
-    IProtocol protocol = threads.get();
+    IWireProtocol protocol = threads.get();
     if ( protocol == null)
     {
       try
       {
-        protocol = (IProtocol)this.protocol.getClass().newInstance();
+        protocol = (IWireProtocol)this.protocol.getClass().newInstance();
         threads.set( protocol);
       }
       catch( Exception e)
@@ -52,6 +52,6 @@ final class ThreadSafeProtocol implements IProtocol
     return protocol;
   }
 
-  private IProtocol protocol;
-  private ThreadLocal<IProtocol> threads;
+  private IWireProtocol protocol;
+  private ThreadLocal<IWireProtocol> threads;
 }

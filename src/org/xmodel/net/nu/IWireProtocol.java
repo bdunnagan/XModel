@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 
-public interface IProtocol
+public interface IWireProtocol
 {
   public byte[] encode( IModelObject message) throws IOException;
   

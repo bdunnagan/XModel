@@ -7,7 +7,8 @@ import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.protocol.XmlProtocol;
+import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.XmlWireProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xml.IXmlIO.Style;
@@ -39,13 +40,13 @@ public class TcpTest
     
     System.out.println( "Starting server ...");
     IContext context = new StatefulContext();
-    TcpServerRouter server = new TcpServerRouter( new XmlProtocol(), context);
+    TcpServerRouter server = new TcpServerRouter( new XmlWireProtocol(), new BasicEnvelopeProtocol(), context);
     server.addListener( new ConnectListener());
     server.start( new InetSocketAddress( "0.0.0.0", 10000));
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
-    TcpClientTransport client = new TcpClientTransport( new XmlProtocol(), clientContext, null, null, null, null, null);
+    TcpClientTransport client = new TcpClientTransport( new XmlWireProtocol(), new BasicEnvelopeProtocol(), clientContext, null, null, null, null, null);
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
     
     client.addListener( new IConnectListener() {

@@ -6,8 +6,9 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
-import org.xmodel.net.nu.IProtocol;
+import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -44,7 +45,7 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
 
     try
     {
-      TcpServerRouter server = new TcpServerRouter( getProtocol( context), context, scheduler);
+      TcpServerRouter server = new TcpServerRouter( getWireProtocol( context), new BasicEnvelopeProtocol(), context, scheduler);
       Conventions.putCache( context, var, server);
       
       server.addListener( (IConnectListener)this);
@@ -60,7 +61,7 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
     return null;
   }
   
-  private IProtocol getProtocol( IContext context)
+  private IWireProtocol getWireProtocol( IContext context)
   {
     String protocol = (protocolExpr != null)? protocolExpr.evaluateString( context): "xml";
     protocol = protocol.substring( 0, 1).toUpperCase() + protocol.substring( 1);
@@ -68,7 +69,7 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
     try
     {
       Class<?> clss = getClass().getClassLoader().loadClass( className);
-      return (IProtocol)clss.newInstance();
+      return (IWireProtocol)clss.newInstance();
     }
     catch( Exception e)
     {

@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.xmodel.IModelObject;
-import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.util.PrefixThreadFactory;
@@ -22,7 +21,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransport
 {
-  protected AbstractTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler, 
+  protected AbstractTransport( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext, ScheduledExecutorService scheduler, 
      List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
   {
@@ -32,7 +31,8 @@ public abstract class AbstractTransport implements ITransport
     if ( connectListeners == null) connectListeners = Collections.emptyList(); 
     if ( disconnectListeners == null) disconnectListeners = Collections.emptyList(); 
     
-    this.protocol = new ThreadSafeProtocol( protocol);
+    this.wire = new ThreadSafeWireProtocol( wire);
+    this.envp = envp;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
@@ -48,14 +48,23 @@ public abstract class AbstractTransport implements ITransport
   public final AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
-    message.setAttribute( "id", key);
+    IModelObject envelope = getEnvelopeProtocol().buildEnvelope( key, null, message);
     
-    Request request = new Request( message, messageContext, timeout);
+    Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
     
-    return send( message);
+    return send( envelope);
   }
     
+  @Override
+  public final AsyncFuture<ITransport> send( IModelObject message) throws IOException
+  {
+    IModelObject envelope = getEnvelopeProtocol().buildEnvelope( null, null, message);
+    return sendImpl( envelope);
+  }
+  
+  protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException;
+
   @Override
   public void addListener( IReceiveListener listener)
   {
@@ -113,11 +122,11 @@ public abstract class AbstractTransport implements ITransport
     try
     {
       // decode
-      IModelObject message = protocol.decode( bytes, offset, length);
-      if ( message == null) return false;
+      IModelObject envelope = wire.decode( bytes, offset, length);
+      if ( envelope == null) return false;
       
       // deliver
-      return notifyReceive( message);
+      return notifyReceive( envelope);
     }
     catch( Exception e)
     {
@@ -131,11 +140,11 @@ public abstract class AbstractTransport implements ITransport
     try
     {
       // decode
-      IModelObject message = protocol.decode( buffer);
-      if ( message == null) return false;
+      IModelObject envelope = wire.decode( buffer);
+      if ( envelope == null) return false;
       
       // deliver
-      return notifyReceive( message);
+      return notifyReceive( envelope);
     }
     catch( Exception e)
     {
@@ -144,14 +153,17 @@ public abstract class AbstractTransport implements ITransport
     }
   }
   
-  private boolean notifyReceive( IModelObject message) throws IOException
+  private boolean notifyReceive( IModelObject envelope) throws IOException
   {
+    // get body
+    IModelObject message = getEnvelopeProtocol().getMessage( envelope);
+    
     // get route
-    String route = Xlate.get( message, "route", (String)null);
+    String route = getEnvelopeProtocol().getRoute( envelope);
     
     // lookup request and free
-    Object id = message.getAttribute( "id");
-    Request request = (id != null)? requests.remove( id): null;
+    Object key = getEnvelopeProtocol().getKey( envelope);
+    Request request = (key != null)? requests.remove( key): null;
     if ( request != null)
     {
       // receive/timeout exclusion
@@ -161,7 +173,7 @@ public abstract class AbstractTransport implements ITransport
         {
           try
           {
-            listener.onReceive( this, message, request.messageContext, request.message);
+            listener.onReceive( this, message, request.messageContext, request.envelope);
           }
           catch( Exception e)
           {
@@ -193,10 +205,13 @@ public abstract class AbstractTransport implements ITransport
     return true;
   }
   
-  public void notifyTimeout( IModelObject message, IContext messageContext)
+  public void notifyTimeout( IModelObject envelope, IContext messageContext)
   {
+    String key = getEnvelopeProtocol().getKey( envelope);
+    IModelObject message = getEnvelopeProtocol().getMessage( envelope);
+    
     // release request
-    requests.remove( message.getAttribute( "id"));
+    requests.remove( key);
     
     // notify listeners
     for( ITimeoutListener listener: timeoutListeners)
@@ -244,16 +259,21 @@ public abstract class AbstractTransport implements ITransport
     }
   }
 
-  protected IProtocol getProtocol()
+  protected IWireProtocol getWireProtocol()
   {
-    return protocol;
+    return wire;
+  }
+  
+  protected IEnvelopeProtocol getEnvelopeProtocol()
+  {
+    return envp;
   }
   
   private class Request implements Runnable
   {
-    Request( IModelObject message, IContext messageContext, int timeout)
+    Request( IModelObject envelope, IContext messageContext, int timeout)
     {
-      this.message = message;
+      this.envelope = envelope;
       this.messageContext = messageContext;
       this.timeoutFuture = scheduler.schedule( this, timeout, TimeUnit.MILLISECONDS);
     }
@@ -261,17 +281,18 @@ public abstract class AbstractTransport implements ITransport
     @Override
     public void run()
     {
-      notifyTimeout( message, messageContext);
+      notifyTimeout( envelope, messageContext);
     }
     
-    IModelObject message;
+    IModelObject envelope;
     IContext messageContext;
     ScheduledFuture<?> timeoutFuture;
   }
   
   public final static Log log = Log.getLog( AbstractTransport.class);
   
-  private IProtocol protocol;
+  private IWireProtocol wire;
+  private IEnvelopeProtocol envp;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
