@@ -1,6 +1,7 @@
 package org.xmodel.net.nu;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +11,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
@@ -105,12 +105,44 @@ public abstract class AbstractTransport implements ITransport
     disconnectListeners.remove( listener);
   }
   
-  public void notifyReceive( byte[] bytes, int offset, int length)
+  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
   {
-    // decode
-    IModelObject message = decode( bytes, offset, length);
-    if ( message == null) return;
-
+    try
+    {
+      // decode
+      IModelObject message = protocol.decode( bytes, offset, length);
+      if ( message == null) return false;
+      
+      // deliver
+      return notifyReceive( message);
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+      return false;
+    }
+  }
+  
+  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  {
+    try
+    {
+      // decode
+      IModelObject message = protocol.decode( buffer);
+      if ( message == null) return false;
+      
+      // deliver
+      return notifyReceive( message);
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+      return false;
+    }
+  }
+  
+  private boolean notifyReceive( IModelObject message) throws IOException
+  {
     // get route
     String route = Xlate.get( message, "route", (String)null);
     
@@ -119,7 +151,7 @@ public abstract class AbstractTransport implements ITransport
     
     // lookup request and free
     Object id = message.getAttribute( "id");
-    Request request = requests.remove( id);
+    Request request = (id != null)? requests.remove( id): null;
     if ( request != null)
     {
       // receive/timeout exclusion
@@ -157,19 +189,8 @@ public abstract class AbstractTransport implements ITransport
       // TODO
       throw new UnsupportedOperationException();
     }
-  }
-  
-  private IModelObject decode( byte[] bytes, int offset, int length)
-  {
-    try
-    {
-      return protocol.decode( bytes, offset, length);
-    }
-    catch( Exception e)
-    {
-      log.exception( e);
-      return null;
-    }
+    
+    return true;
   }
   
   public void notifyTimeout( IModelObject message, IContext messageContext)

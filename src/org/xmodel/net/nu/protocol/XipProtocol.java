@@ -24,9 +24,12 @@ public class XipProtocol implements IProtocol
   @Override
   public byte[] encode( IModelObject message) throws IOException
   {
-    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    compressor.compress( message, stream);
-    return stream.toByteArray();
+    // TODO: framing
+    throw new UnsupportedOperationException();
+    
+//    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//    compressor.compress( message, stream);
+//    return stream.toByteArray();
   }
 
   @Override

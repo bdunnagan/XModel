@@ -1,7 +1,7 @@
 package org.xmodel.net.nu;
 
 import java.io.IOException;
-
+import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.log.SLog;
 
@@ -25,6 +25,15 @@ final class ThreadSafeProtocol implements IProtocol
     return getThreadProtocol().decode( bytes, offset, length);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IProtocol#decode(java.nio.ByteBuffer)
+   */
+  @Override
+  public IModelObject decode( ByteBuffer buffer) throws IOException
+  {
+    return getThreadProtocol().decode( buffer);
+  }
+
   private IProtocol getThreadProtocol()
   {
     IProtocol protocol = threads.get();

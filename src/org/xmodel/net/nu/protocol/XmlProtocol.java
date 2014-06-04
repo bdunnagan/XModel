@@ -1,8 +1,9 @@
 package org.xmodel.net.nu.protocol;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
-
+import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IProtocol;
 import org.xmodel.xml.XmlException;
@@ -12,24 +13,41 @@ public class XmlProtocol implements IProtocol
 {
   public XmlProtocol()
   {
-    charset = Charset.forName( "UTF-8");
     xmlIO = new XmlIO();
+    stream = new ByteArrayOutputStream();
+    reserve = new byte[ 4];
   }
   
   @Override
-  public byte[] encode( IModelObject message)
+  public byte[] encode( IModelObject message) throws IOException
   {
-    String xml = xmlIO.write( message);
-    return xml.getBytes( charset);
+    stream.reset();
+    stream.write( reserve);
+    try
+    {
+      xmlIO.write( message, stream);
+      byte[] bytes = stream.toByteArray();
+      Header.writeInt( bytes.length-4, bytes, 0);
+      return bytes;
+    }
+    catch( XmlException e)
+    {
+      throw new IOException( e);
+    }
   }
 
   @Override
   public IModelObject decode( byte[] message, int offset, int length) throws IOException
   {
+    if ( length < 4) return null;
+    
+    length -= 4;
+    int messageLength = Header.readInt( message, offset);
+    if ( messageLength > length) return null;
+    
     try
     {
-      String xml = new String( message, offset, length, charset);
-      return xmlIO.read( xml);
+      return xmlIO.read( new ByteArrayInputStream( message, offset + 4, length));
     }
     catch( XmlException e)
     {
@@ -37,6 +55,30 @@ public class XmlProtocol implements IProtocol
     }
   }
   
-  private Charset charset;
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IProtocol#decode(java.nio.ByteBuffer)
+   */
+  @Override
+  public IModelObject decode( ByteBuffer buffer) throws IOException
+  {
+    if ( buffer.remaining() < 4) return null;
+    
+    buffer.get( reserve);
+    
+    int messageLength = Header.readInt( reserve, 0);
+    if ( messageLength > buffer.remaining()) return null;
+    
+    try
+    {
+      return xmlIO.read( new ByteBufferInputStream( buffer));
+    }
+    catch( XmlException e)
+    {
+      throw new IOException( e);
+    }
+  }
+
   private XmlIO xmlIO;
+  private ByteArrayOutputStream stream;
+  private byte[] reserve;
 }

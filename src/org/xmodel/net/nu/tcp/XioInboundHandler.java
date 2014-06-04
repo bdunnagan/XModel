@@ -43,21 +43,14 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     readBuffer.writeBytes( buffer);
     buffer.release();
 
-    // frame
-    int readable = readBuffer.readableBytes(); 
-    if ( readable > 4)
+    // prepare for incomplete message
+    readBuffer.markReaderIndex();
+    
+    // read next message
+    if ( !transport.notifyReceive( readBuffer.nioBuffer()))
     {
-      readBuffer.markReaderIndex();
-      int length = readBuffer.readInt();
-      if ( readable >= length)
-      {
-        // deliver
-        transport.notifyReceive( readBuffer.array(), readBuffer.arrayOffset(), length);
-      }
-      else
-      {
-        readBuffer.resetReaderIndex();
-      }
+      // incomplete message
+      readBuffer.resetReaderIndex();
     }
   }
   
