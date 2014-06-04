@@ -67,6 +67,7 @@ public class TcpClientTransport extends AbstractChannelTransport
     bootstrap.group( workerGroup); 
     bootstrap.channel( NioSocketChannel.class); 
     bootstrap.option( ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout);
+    bootstrap.option( ChannelOption.AUTO_READ, false);
     bootstrap.handler( new ChannelInitializer<SocketChannel>() {
       @Override
       public void initChannel( SocketChannel channel) throws Exception 

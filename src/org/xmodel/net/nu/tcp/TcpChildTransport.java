@@ -33,15 +33,12 @@ public class TcpChildTransport extends AbstractChannelTransport
   @Override
   public AsyncFuture<ITransport> connect( int timeout) throws IOException
   {
-    notifyConnect();
     return new SuccessAsyncFuture<ITransport>( this);
   }
 
   @Override
   public AsyncFuture<ITransport> disconnect() throws IOException
   {
-    notifyDisconnect();
-    
     Channel channel = channelRef.get();
     if ( channel != null) channel.close();
     

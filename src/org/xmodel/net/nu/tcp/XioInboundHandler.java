@@ -3,6 +3,7 @@ package org.xmodel.net.nu.tcp;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+
 import org.xmodel.net.nu.AbstractTransport;
 
 public class XioInboundHandler extends ChannelInboundHandlerAdapter
@@ -12,9 +13,6 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     this.transport = transport;
   }
   
-  /* (non-Javadoc)
-   * @see io.netty.channel.ChannelHandlerAdapter#handlerAdded(io.netty.channel.ChannelHandlerContext)
-   */
   @Override
   public void handlerAdded( ChannelHandlerContext ctx) throws Exception
   {
@@ -22,19 +20,28 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     readBuffer = ctx.alloc().buffer();
   }
 
-  /* (non-Javadoc)
-   * @see io.netty.channel.ChannelHandlerAdapter#handlerRemoved(io.netty.channel.ChannelHandlerContext)
-   */
   @Override
   public void handlerRemoved( ChannelHandlerContext ctx) throws Exception
   {
     super.handlerRemoved( ctx);
     readBuffer.release();
+    transport.notifyDisconnect();
   }
 
-  /* (non-Javadoc)
-   * @see io.netty.channel.ChannelInboundHandlerAdapter#channelRead(io.netty.channel.ChannelHandlerContext, java.lang.Object)
-   */
+  @Override
+  public void channelActive( ChannelHandlerContext ctx) throws Exception
+  {
+    super.channelActive( ctx);
+    transport.notifyConnect();
+    ctx.read();
+  }
+
+  @Override
+  public void channelReadComplete( ChannelHandlerContext ctx) throws Exception
+  {
+    ctx.read();
+  }
+
   @Override
   public void channelRead( ChannelHandlerContext ctx, Object message) throws Exception
   {

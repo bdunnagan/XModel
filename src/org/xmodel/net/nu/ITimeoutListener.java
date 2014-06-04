@@ -5,5 +5,5 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface ITimeoutListener
 {
-  public void onTimeout( ITransport transport, IModelObject message, IContext context);
+  public void onTimeout( ITransport transport, IModelObject message, IContext context) throws Exception;
 }

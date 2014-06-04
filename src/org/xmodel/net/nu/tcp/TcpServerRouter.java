@@ -66,13 +66,14 @@ public class TcpServerRouter implements IRouter
        public void initChannel( SocketChannel channel) throws Exception 
        {
          TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel, null, null, connectListeners, disconnectListeners);
-         transport.connect( 0);
+         transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
      });
 
     // options
     bootstrap.option( ChannelOption.SO_BACKLOG, 128);          
+    bootstrap.childOption( ChannelOption.AUTO_READ, false);
 
     // bind and start accepting connections
     ChannelFuture future = bootstrap.bind( address);

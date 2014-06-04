@@ -46,13 +46,19 @@ public class TcpTest
     IContext clientContext = new StatefulContext();
     TcpClientTransport client = new TcpClientTransport( new XmlProtocol(), clientContext, null, null, null, null, null);
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
-    client.connect( 1000).await();
     
-    client.send( new XmlIO().read( 
-      "<message>"+
-      "  <print>'Hi'</print>"+
-      "</message>"
-    ));
+    client.addListener( new IConnectListener() {
+      public void onConnect( ITransport transport, IContext context) throws Exception
+      {
+        transport.send( new XmlIO().read( 
+            "<message>"+
+            "  <print>'Hi'</print>"+
+            "</message>"
+          ));
+      }
+    });
+    
+    client.connect( 1000).await();
     
     System.out.println( "Sleeping ...");
     Thread.sleep( 10000);
