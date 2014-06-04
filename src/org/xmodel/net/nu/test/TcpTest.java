@@ -44,7 +44,7 @@ public class TcpTest
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
-    TcpClientTransport client = new TcpClientTransport( new XmlProtocol(), clientContext);
+    TcpClientTransport client = new TcpClientTransport( new XmlProtocol(), clientContext, null, null, null, null, null);
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
     client.connect( 1000).await();
     

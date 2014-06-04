@@ -6,7 +6,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.xpath.expression.IContext;
 
-public class RoutedTransport implements ITransport
+public final class RoutedTransport implements ITransport
 {
   public RoutedTransport( ITransport via, String at)
   {

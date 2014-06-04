@@ -65,9 +65,7 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
-         for( IConnectListener listener: connectListeners) transport.addListener( listener);
-         for( IDisconnectListener listener: disconnectListeners) transport.addListener( listener);
+         TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel, null, null, connectListeners, disconnectListeners);
          transport.connect( 0);
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }

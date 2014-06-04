@@ -1,6 +1,7 @@
 package org.xmodel.net.nu.xaction;
 
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -52,14 +53,14 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
 
     try
     {
-      TcpClientTransport transport = new TcpClientTransport( getProtocol( context), context, scheduler);
+      TcpClientTransport transport = new TcpClientTransport( getProtocol( context), context, scheduler, null, null,
+          Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this));
+      
       Conventions.putCache( context, var, transport);
       
       if ( localHost != null) transport.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
       transport.setRemoteAddress( InetSocketAddress.createUnresolved( remoteHost, remotePort));
       
-      transport.addListener( (IConnectListener)this);
-      transport.addListener( (IDisconnectListener)this);
       transport.connect( connectTimeout).await();
     }
     catch( Exception e)

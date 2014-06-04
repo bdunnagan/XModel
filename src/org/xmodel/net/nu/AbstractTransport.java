@@ -2,15 +2,17 @@ package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
@@ -20,24 +22,26 @@ import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransport
 {
-  protected AbstractTransport( IProtocol protocol, IContext transportContext)
-  {
-    this( protocol, transportContext, null);
-  }
-  
-  protected AbstractTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
+  protected AbstractTransport( IProtocol protocol, IContext transportContext, ScheduledExecutorService scheduler, 
+     List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
+     List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
+    if ( receiveListeners == null) receiveListeners = Collections.emptyList(); 
+    if ( timeoutListeners == null) timeoutListeners = Collections.emptyList(); 
+    if ( connectListeners == null) connectListeners = Collections.emptyList(); 
+    if ( disconnectListeners == null) disconnectListeners = Collections.emptyList(); 
     
     this.protocol = new ThreadSafeProtocol( protocol);
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
-    this.receiveListeners = new ArrayList<IReceiveListener>( 1);
-    this.timeoutListeners = new ArrayList<ITimeoutListener>( 1);
-    this.connectListeners = new ArrayList<IConnectListener>( 1);
-    this.disconnectListeners = new ArrayList<IDisconnectListener>( 1);
+    
+    this.receiveListeners = new CopyOnWriteArrayList<IReceiveListener>( receiveListeners);
+    this.timeoutListeners = new CopyOnWriteArrayList<ITimeoutListener>( timeoutListeners);
+    this.connectListeners = new CopyOnWriteArrayList<IConnectListener>( connectListeners);
+    this.disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>( disconnectListeners);
   }
   
   @Override
@@ -146,9 +150,6 @@ public abstract class AbstractTransport implements ITransport
     // get route
     String route = Xlate.get( message, "route", (String)null);
     
-    // notify listeners
-    IReceiveListener[] listeners = receiveListeners.toArray( new IReceiveListener[ 0]);
-    
     // lookup request and free
     Object id = message.getAttribute( "id");
     Request request = (id != null)? requests.remove( id): null;
@@ -157,7 +158,7 @@ public abstract class AbstractTransport implements ITransport
       // receive/timeout exclusion
       if ( request.timeoutFuture.cancel( false))
       {
-        for( IReceiveListener listener: listeners)
+        for( IReceiveListener listener: receiveListeners)
         {
           try
           {
@@ -172,7 +173,7 @@ public abstract class AbstractTransport implements ITransport
     }
     else if ( route == null)
     {
-      for( IReceiveListener listener: listeners)
+      for( IReceiveListener listener: receiveListeners)
       {
         try
         {
@@ -199,8 +200,7 @@ public abstract class AbstractTransport implements ITransport
     requests.remove( message.getAttribute( "id"));
     
     // notify listeners
-    ITimeoutListener[] listeners = timeoutListeners.toArray( new ITimeoutListener[ 0]);
-    for( ITimeoutListener listener: listeners)
+    for( ITimeoutListener listener: timeoutListeners)
     {
       try
       {
@@ -216,8 +216,7 @@ public abstract class AbstractTransport implements ITransport
   public void notifyConnect()
   {
     // notify listeners
-    IConnectListener[] listeners = connectListeners.toArray( new IConnectListener[ 0]);
-    for( IConnectListener listener: listeners)
+    for( IConnectListener listener: connectListeners)
     {
       try
       {
@@ -233,8 +232,7 @@ public abstract class AbstractTransport implements ITransport
   public void notifyDisconnect()
   {
     // notify listeners
-    IDisconnectListener[] listeners = disconnectListeners.toArray( new IDisconnectListener[ 0]);
-    for( IDisconnectListener listener: listeners)
+    for( IDisconnectListener listener: disconnectListeners)
     {
       try
       {

@@ -25,7 +25,7 @@ public class TestTransport extends AbstractTransport
 {
   public TestTransport( IProtocol protocol, IContext transportContext)
   {
-    super( protocol, transportContext);
+    super( protocol, transportContext, null, null, null, null, null);
     transports.add( this);
   }
 
