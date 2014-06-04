@@ -14,7 +14,7 @@ import org.xmodel.net.nu.IProtocol;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.protocol.XmlProtocol;
+import org.xmodel.net.nu.protocol.XipProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
@@ -67,7 +67,7 @@ public class TestTransport extends AbstractTransport
     final ExecutorService executor = Executors.newFixedThreadPool( 4, new PrefixThreadFactory( "worker"));
     final StatefulContext context = new StatefulContext();
     
-    final TestTransport t1 = new TestTransport( new XmlProtocol(), context);
+    final TestTransport t1 = new TestTransport( new XipProtocol(), context);
     t1.addListener( new IReceiveListener() {
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
@@ -105,7 +105,7 @@ public class TestTransport extends AbstractTransport
     });
     
     
-    final TestTransport t2 = new TestTransport( new XmlProtocol(), context);
+    final TestTransport t2 = new TestTransport( new XipProtocol(), context);
     t2.addListener( new IReceiveListener() {
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
