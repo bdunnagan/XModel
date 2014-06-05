@@ -1,11 +1,13 @@
-<network var="tcp1" type="'tcp_client'" localHost="" localPort="" remoteHost="" remotePort="">
-</network>
-
-<send via="$tcp1"/>
-
-<create var="routes">
-  <route via="{$tcp1}" at="'peer1'"/>
-  <route via="{$amqp1}" at="'peer1'"/>
-</create>
-
-<sendWait var="result" at="$routes"/>
+<notes>
+  <network var="tcp1" type="'tcp_client'" localHost="" localPort="" remoteHost="" remotePort="">
+  </network>
+  
+  <send via="$tcp1"/>
+  
+  <create var="routes">
+    <route via="{$tcp1}" at="'peer1'"/>
+    <route via="{$amqp1}" at="'peer1'"/>
+  </create>
+  
+  <sendWait var="result" at="$routes"/>
+</notes>

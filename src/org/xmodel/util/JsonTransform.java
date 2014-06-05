@@ -133,6 +133,8 @@ public class JsonTransform
     return (sb == null)? s: sb.toString();
   }
   
+  private boolean pretty;
+  
   public static void main( String[] args) throws Exception
   {
     String xml = 

@@ -9,7 +9,7 @@ import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
-import org.xmodel.net.nu.protocol.XmlWireProtocol;
+import org.xmodel.net.nu.protocol.XipWireProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xml.IXmlIO.Style;
@@ -50,7 +50,7 @@ public class TcpTest
       }
     }
     
-    Protocol protocol = new Protocol( new XmlWireProtocol(), new BasicEnvelopeProtocol());
+    Protocol protocol = new Protocol( new XipWireProtocol(), new BasicEnvelopeProtocol());
     
     System.out.println( "Starting server ...");
     IContext context = new StatefulContext();

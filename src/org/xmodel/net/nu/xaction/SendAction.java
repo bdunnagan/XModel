@@ -11,7 +11,6 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.RoutedTransport;
-import org.xmodel.net.nu.run.AsyncExecutionGroup;
 import org.xmodel.util.MultiIterator;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -50,17 +49,17 @@ public class SendAction extends GuardedAction
     IContext messageContext = new StatefulContext( context);
     Iterator<ITransport> transports = resolveTransport( context);
     
-    AsyncExecutionGroup execution = new AsyncExecutionGroup( var, context);
+    AsyncSendGroup group = new AsyncSendGroup( var, context);
     
-    execution.setSuccessScript( Conventions.getScript( document, context, onSuccessExpr));
-    execution.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
-    execution.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
+    group.setSuccessScript( Conventions.getScript( document, context, onSuccessExpr));
+    group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
+    group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
     if ( wait)
     {
       try
       {
-        execution.sendAndWait( transports, getMessage(), messageContext, timeout);
+        group.sendAndWait( transports, getMessage(), messageContext, timeout);
       }
       catch( InterruptedException e)
       {
@@ -69,7 +68,7 @@ public class SendAction extends GuardedAction
     }
     else
     {
-      execution.send( transports, getMessage(), messageContext, timeout);
+      group.send( transports, getMessage(), messageContext, timeout);
     }
 
     return null;

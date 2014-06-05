@@ -1,4 +1,4 @@
-package org.xmodel.net.nu.run;
+package org.xmodel.net.nu.xaction;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -13,12 +13,12 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 
-public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
+public class AsyncSendGroup implements IReceiveListener, ITimeoutListener
 {
   public static final String timeoutMessage = "Timeout";
   public static final String cancelledMessage = "Cancelled";
   
-  public AsyncExecutionGroup( String var, IContext callContext)
+  public AsyncSendGroup( String var, IContext callContext)
   {
     this.var = var;
     this.callContext = callContext;
@@ -180,7 +180,7 @@ public class AsyncExecutionGroup implements IReceiveListener, ITimeoutListener
     if ( semaphore != null) semaphore.release();
   }
 
-  public static Log log = Log.getLog( AsyncExecutionGroup.class);
+  public static Log log = Log.getLog( AsyncSendGroup.class);
 
   private String var;
   private IContext callContext;
