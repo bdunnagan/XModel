@@ -328,7 +328,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         //
         if ( value instanceof byte[])
         {
-          if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
+          if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor( false, readonly));
           try
           {
             IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
