@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.xmodel.IModelObject;
-import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.util.ByteBufferInputStream;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;

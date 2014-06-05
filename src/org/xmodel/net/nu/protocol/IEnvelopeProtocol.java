@@ -1,4 +1,4 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.protocol;
 
 import org.xmodel.IModelObject;
 

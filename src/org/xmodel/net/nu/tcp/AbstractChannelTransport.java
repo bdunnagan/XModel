@@ -15,22 +15,21 @@ import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
-import org.xmodel.net.nu.IEnvelopeProtocol;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.IWireProtocol;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractChannelTransport extends AbstractTransport
 {
   public static final String notConnectedError = "Not connected";
 
-  public AbstractChannelTransport( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext, ScheduledExecutorService scheduler,
+  public AbstractChannelTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler,
       List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners,
       List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
   {
-    super( wire, envp, transportContext, scheduler, receiveListeners, timeoutListeners, connectListeners, disconnectListeners);
+    super( protocol, transportContext, scheduler, receiveListeners, timeoutListeners, connectListeners, disconnectListeners);
   }
 
   @Override
@@ -49,7 +48,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     };
   
     // encode
-    byte[] bytes = getWireProtocol().encode( envelope);
+    byte[] bytes = getProtocol().wire().encode( envelope);
     
     // write
     ChannelFuture channelFuture = channel.writeAndFlush( Unpooled.wrappedBuffer( bytes));

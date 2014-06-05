@@ -16,12 +16,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransport
 {
-  protected AbstractTransport( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext, ScheduledExecutorService scheduler, 
+  protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, 
      List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
   {
@@ -31,8 +34,7 @@ public abstract class AbstractTransport implements ITransport
     if ( connectListeners == null) connectListeners = Collections.emptyList(); 
     if ( disconnectListeners == null) disconnectListeners = Collections.emptyList(); 
     
-    this.wire = new ThreadSafeWireProtocol( wire);
-    this.envp = envp;
+    this.protocol = new ThreadSafeProtocol( protocol.wire(), protocol.envelope());
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
@@ -48,7 +50,7 @@ public abstract class AbstractTransport implements ITransport
   public final AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = getEnvelopeProtocol().buildEnvelope( key, null, message);
+    IModelObject envelope = protocol.envelope().buildEnvelope( key, null, message);
     
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
@@ -59,7 +61,7 @@ public abstract class AbstractTransport implements ITransport
   @Override
   public final AsyncFuture<ITransport> send( IModelObject message) throws IOException
   {
-    IModelObject envelope = getEnvelopeProtocol().buildEnvelope( null, null, message);
+    IModelObject envelope = protocol.envelope().buildEnvelope( null, null, message);
     return sendImpl( envelope);
   }
   
@@ -122,7 +124,7 @@ public abstract class AbstractTransport implements ITransport
     try
     {
       // decode
-      IModelObject envelope = wire.decode( bytes, offset, length);
+      IModelObject envelope = protocol.wire().decode( bytes, offset, length);
       if ( envelope == null) return false;
       
       // deliver
@@ -140,7 +142,7 @@ public abstract class AbstractTransport implements ITransport
     try
     {
       // decode
-      IModelObject envelope = wire.decode( buffer);
+      IModelObject envelope = protocol.wire().decode( buffer);
       if ( envelope == null) return false;
       
       // deliver
@@ -155,14 +157,16 @@ public abstract class AbstractTransport implements ITransport
   
   private boolean notifyReceive( IModelObject envelope) throws IOException
   {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    
     // get body
-    IModelObject message = getEnvelopeProtocol().getMessage( envelope);
+    IModelObject message = envelopeProtocol.getMessage( envelope);
     
     // get route
-    String route = getEnvelopeProtocol().getRoute( envelope);
+    String route = envelopeProtocol.getRoute( envelope);
     
     // lookup request and free
-    Object key = getEnvelopeProtocol().getKey( envelope);
+    Object key = envelopeProtocol.getKey( envelope);
     Request request = (key != null)? requests.remove( key): null;
     if ( request != null)
     {
@@ -207,8 +211,9 @@ public abstract class AbstractTransport implements ITransport
   
   public void notifyTimeout( IModelObject envelope, IContext messageContext)
   {
-    String key = getEnvelopeProtocol().getKey( envelope);
-    IModelObject message = getEnvelopeProtocol().getMessage( envelope);
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    String key = envelopeProtocol.getKey( envelope);
+    IModelObject message = envelopeProtocol.getMessage( envelope);
     
     // release request
     requests.remove( key);
@@ -259,14 +264,9 @@ public abstract class AbstractTransport implements ITransport
     }
   }
 
-  protected IWireProtocol getWireProtocol()
+  protected Protocol getProtocol()
   {
-    return wire;
-  }
-  
-  protected IEnvelopeProtocol getEnvelopeProtocol()
-  {
-    return envp;
+    return protocol;
   }
   
   private class Request implements Runnable
@@ -291,8 +291,7 @@ public abstract class AbstractTransport implements ITransport
   
   public final static Log log = Log.getLog( AbstractTransport.class);
   
-  private IWireProtocol wire;
-  private IEnvelopeProtocol envp;
+  private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;

@@ -3,7 +3,6 @@ package org.xmodel.net.nu.protocol;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
-import org.xmodel.net.nu.IEnvelopeProtocol;
 
 public class BasicEnvelopeProtocol implements IEnvelopeProtocol
 {

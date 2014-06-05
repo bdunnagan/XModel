@@ -8,8 +8,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.IWireProtocol;
-import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -54,7 +52,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
 
     try
     {
-      TcpClientTransport transport = new TcpClientTransport( getWireProtocol( context), new BasicEnvelopeProtocol(), context, scheduler, null, null,
+      TcpClientTransport transport = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler, null, null,
           Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this));
       
       Conventions.putCache( context, var, transport);
@@ -70,22 +68,6 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     }
     
     return null;
-  }
-  
-  private IWireProtocol getWireProtocol( IContext context)
-  {
-    String protocol = (protocolExpr != null)? protocolExpr.evaluateString( context): "xml";
-    protocol = protocol.substring( 0, 1).toUpperCase() + protocol.substring( 1);
-    String className = "org.xmodel.net.nu." + protocol + "Protocol";
-    try
-    {
-      Class<?> clss = getClass().getClassLoader().loadClass( className);
-      return (IWireProtocol)clss.newInstance();
-    }
-    catch( Exception e)
-    {
-      throw new XActionException( "Unrecognized protocol.", e);
-    }
   }
   
   @Override

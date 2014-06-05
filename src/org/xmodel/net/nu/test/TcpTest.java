@@ -8,6 +8,7 @@ import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.XmlWireProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
@@ -25,7 +26,7 @@ public class TcpTest
       @Override
       public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request)
       {
-        System.out.println( XmlIO.write( Style.printable, message));
+        System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
       }
     }
     
@@ -34,19 +35,33 @@ public class TcpTest
       @Override
       public void onConnect( ITransport transport, IContext context)
       {
+        System.out.println( "[SERVER] Client connected!");
         transport.addListener( new ReceiveListener());
       }
     }
     
+    class DisconnectListener implements IDisconnectListener
+    {
+      @Override
+      public void onDisconnect( ITransport transport, IContext context)
+      {
+        System.out.println( "[SERVER] Client disconnected!");
+        transport.removeListener( new ReceiveListener());
+      }
+    }
+    
+    Protocol protocol = new Protocol( new XmlWireProtocol(), new BasicEnvelopeProtocol());
+    
     System.out.println( "Starting server ...");
     IContext context = new StatefulContext();
-    TcpServerRouter server = new TcpServerRouter( new XmlWireProtocol(), new BasicEnvelopeProtocol(), context);
+    TcpServerRouter server = new TcpServerRouter( protocol, context);
     server.addListener( new ConnectListener());
-    server.start( new InetSocketAddress( "0.0.0.0", 10000));
+    server.addListener( new DisconnectListener());
+    server.start( new InetSocketAddress( "127.0.0.1", 10000));
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
-    TcpClientTransport client = new TcpClientTransport( new XmlWireProtocol(), new BasicEnvelopeProtocol(), clientContext, null, null, null, null, null);
+    TcpClientTransport client = new TcpClientTransport( protocol, clientContext, null, null, null, null, null);
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
     
     client.addListener( new IConnectListener() {
@@ -63,19 +78,19 @@ public class TcpTest
     client.addListener( new IDisconnectListener() {
       public void onDisconnect( ITransport transport, IContext context) throws Exception
       {
-        System.out.println( "Client disconnected!");
+        System.out.println( "[CLIENT] Disconnected!");
       }
     });
     
     client.connect( 1000).await();
     
     System.out.println( "Sleeping ...");
-    Thread.sleep( 1000);
+    Thread.sleep( 100);
     
     System.out.println( "Disconnecting client ...");
     client.disconnect();
     
     System.out.println( "Sleeping ...");
-    Thread.sleep( 1000);
+    Thread.sleep( 100);
   }
 }

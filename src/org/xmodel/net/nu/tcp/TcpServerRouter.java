@@ -26,26 +26,24 @@ import java.util.concurrent.locks.ReadWriteLock;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
-import org.xmodel.net.nu.IEnvelopeProtocol;
-import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 public class TcpServerRouter implements IRouter
 {
-  public TcpServerRouter( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext)
+  public TcpServerRouter( Protocol protocol, IContext transportContext)
   {
-    this( wire, envp, transportContext, null);
+    this( protocol, transportContext, null);
   }
   
-  public TcpServerRouter( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext, ScheduledExecutorService scheduler)
+  public TcpServerRouter( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
     
-    this.wire = wire;
-    this.envp = envp;
+    this.protocol = protocol;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.routes = new HashMap<String, Set<ITransport>>();
@@ -67,7 +65,7 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         TcpChildTransport transport = new TcpChildTransport( wire, envp, transportContext, scheduler, channel, null, null, connectListeners, disconnectListeners);
+         TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel, null, null, connectListeners, disconnectListeners);
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
@@ -177,8 +175,7 @@ public class TcpServerRouter implements IRouter
     disconnectListeners.remove( listener);
   }
 
-  private IWireProtocol wire;
-  private IEnvelopeProtocol envp;
+  private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private ServerSocketChannel serverChannel;

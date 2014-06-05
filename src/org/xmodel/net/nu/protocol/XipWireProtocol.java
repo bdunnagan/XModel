@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
-import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.util.ByteBufferInputStream;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;

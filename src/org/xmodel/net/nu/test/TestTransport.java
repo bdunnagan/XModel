@@ -11,13 +11,12 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
-import org.xmodel.net.nu.IEnvelopeProtocol;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.IWireProtocol;
 import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
-import org.xmodel.net.nu.protocol.XipWireProtocol;
+import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.net.nu.protocol.XmlWireProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
@@ -26,9 +25,9 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class TestTransport extends AbstractTransport
 {
-  public TestTransport( IWireProtocol wire, IEnvelopeProtocol envp, IContext transportContext)
+  public TestTransport( Protocol protocol, IContext transportContext)
   {
-    super( wire, envp, transportContext, null, null, null, null, null);
+    super( protocol, transportContext, null, null, null, null, null);
     transports.add( this);
   }
 
@@ -50,7 +49,7 @@ public class TestTransport extends AbstractTransport
     for( TestTransport transport: transports)
     {
       if ( transport == this) continue;
-      byte[] bytes = getWireProtocol().encode( envelope);
+      byte[] bytes = getProtocol().wire().encode( envelope);
       transport.notifyReceive( bytes, 0, bytes.length);
     }
     return new SuccessAsyncFuture<ITransport>( this);
@@ -70,7 +69,9 @@ public class TestTransport extends AbstractTransport
     final ExecutorService executor = Executors.newFixedThreadPool( 4, new PrefixThreadFactory( "worker"));
     final StatefulContext context = new StatefulContext();
     
-    final TestTransport t1 = new TestTransport( new XipWireProtocol(), new BasicEnvelopeProtocol(), context);
+    Protocol protocol = new Protocol( new XmlWireProtocol(), new BasicEnvelopeProtocol());
+    
+    final TestTransport t1 = new TestTransport( protocol, context);
     t1.addListener( new IReceiveListener() {
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
@@ -108,7 +109,7 @@ public class TestTransport extends AbstractTransport
     });
     
     
-    final TestTransport t2 = new TestTransport( new XipWireProtocol(), new BasicEnvelopeProtocol(), context);
+    final TestTransport t2 = new TestTransport( protocol, context);
     t2.addListener( new IReceiveListener() {
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
