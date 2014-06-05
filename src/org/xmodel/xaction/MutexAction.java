@@ -32,8 +32,15 @@ public class MutexAction extends GuardedAction
     
     List<IModelObject> nodes = (onExpr != null)? onExpr.evaluateNodes( context): null;
     if ( nodes != null && nodes.size() > 0) lock = nodes.get( 0);
-       
-    synchronized( lock)
+
+    if ( lock != null)
+    {
+      synchronized( lock)
+      {
+        return script.run( context);
+      }
+    }
+    else
     {
       return script.run( context);
     }
