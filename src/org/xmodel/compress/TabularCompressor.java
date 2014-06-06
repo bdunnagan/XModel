@@ -146,8 +146,8 @@ public class TabularCompressor extends AbstractCompressor
     map = new LinkedHashMap<String, Integer>();
     table = new ArrayList<String>();
     predefined = false;
-    table.addAll( globalTable);
-    map.putAll( globalMap);
+    if ( globalTable != null) table.addAll( globalTable);
+    if ( globalMap != null) map.putAll( globalMap);
   }
   
   /* (non-Javadoc)
