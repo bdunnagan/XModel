@@ -1,6 +1,6 @@
 package org.xmodel.net.nu.xaction;
 
-import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.IWireProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xaction.XActionException;
@@ -13,11 +13,11 @@ final class ProtocolSchema
   {
     String protocol = (protocolExpr != null)? protocolExpr.evaluateString( context): "xml";
     protocol = protocol.substring( 0, 1).toUpperCase() + protocol.substring( 1);
-    String className = "org.xmodel.net.nu." + protocol + "WireProtocol";
+    String className = "org.xmodel.net.nu.protocol." + protocol + "WireProtocol";
     try
     {
       Class<?> clss = ProtocolSchema.class.getClassLoader().loadClass( className);
-      return new Protocol( (IWireProtocol)clss.newInstance(), new BasicEnvelopeProtocol());
+      return new Protocol( (IWireProtocol)clss.newInstance(), new SimpleEnvelopeProtocol());
     }
     catch( Exception e)
     {

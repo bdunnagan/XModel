@@ -31,6 +31,7 @@ public class SendAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false);
     viaExpr = document.getExpression( "via", true);
     atExpr = document.getExpression( "at", true);
+    requestExpr = document.getExpression( "request", true);
     waitExpr = document.getExpression( "wait", true);
     timeoutExpr = document.getExpression( "timeout", true);
   }
@@ -38,13 +39,14 @@ public class SendAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    boolean wait = waitExpr.evaluateBoolean( context);
+    boolean wait = (waitExpr != null)? waitExpr.evaluateBoolean( context): false;
     return send( context, wait);
   }
   
   protected Object[] send( IContext context, boolean wait)
   {
-    int timeout = (int)timeoutExpr.evaluateNumber( context);
+    IModelObject request = (requestExpr != null)? requestExpr.queryFirst( context): null;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     
     IContext messageContext = new StatefulContext( context);
     Iterator<ITransport> transports = resolveTransport( context);
@@ -159,6 +161,7 @@ public class SendAction extends GuardedAction
   private String var;
   private IExpression viaExpr;
   private IExpression atExpr;
+  private IExpression requestExpr;
   private IExpression timeoutExpr;
   private IExpression waitExpr;
   private IExpression onSuccessExpr;  // each

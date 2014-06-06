@@ -28,7 +28,7 @@ public class XmlWireProtocol implements IWireProtocol
     {
       xmlIO.write( message, stream);
       byte[] bytes = stream.toByteArray();
-      Header.writeInt( bytes.length-4, bytes, 0);
+      writeInt( bytes.length-4, bytes, 0);
       return bytes;
     }
     catch( XmlException e)
@@ -43,7 +43,7 @@ public class XmlWireProtocol implements IWireProtocol
     if ( length < 4) return null;
     
     length -= 4;
-    int messageLength = Header.readInt( message, offset);
+    int messageLength = readInt( message, offset);
     if ( messageLength > length) return null;
     
     try
@@ -66,7 +66,7 @@ public class XmlWireProtocol implements IWireProtocol
     
     buffer.get( reserve);
     
-    int messageLength = Header.readInt( reserve, 0);
+    int messageLength = readInt( reserve, 0);
     if ( messageLength > buffer.remaining()) return null;
     
     try
@@ -77,6 +77,24 @@ public class XmlWireProtocol implements IWireProtocol
     {
       throw new IOException( e);
     }
+  }
+  
+  private static int readInt( byte[] bytes, int offset)
+  {
+    int i;
+    i = (int)bytes[ offset++] & 0xFF;
+    i |= ((int)bytes[ offset++] & 0xFF) << 8;
+    i |= ((int)bytes[ offset++] & 0xFF) << 16;
+    i |= ((int)bytes[ offset++] & 0xFF) << 24;
+    return i;
+  }
+  
+  private static void writeInt( int i, byte[] bytes, int offset)
+  {
+    bytes[ offset++] = (byte)(i & 0xFF); i >>= 8;
+    bytes[ offset++] = (byte)(i & 0xFF); i >>= 8;
+    bytes[ offset++] = (byte)(i & 0xFF); i >>= 8;
+    bytes[ offset++] = (byte)(i & 0xFF);
   }
 
   private XmlIO xmlIO;

@@ -4,8 +4,11 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
+import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
@@ -15,8 +18,9 @@ import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
-public class TcpServerAction extends GuardedAction implements IConnectListener, IDisconnectListener
+public class TcpServerAction extends GuardedAction implements IReceiveListener, ITimeoutListener, IConnectListener, IDisconnectListener
 {
   @Override
   public void configure( XActionDocument document)
@@ -28,6 +32,8 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
     bindPortExpr = document.getExpression( "bindPort", true);
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
+    onReceiveExpr = document.getExpression( "onReceive", true);
+    onTimeoutExpr = document.getExpression( "onTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
   }
@@ -38,7 +44,7 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
     String bindHost = (bindHostExpr != null)? bindHostExpr.evaluateString( context): null;
     int bindPort = (bindPortExpr != null)? (int)bindPortExpr.evaluateNumber( context): 0;
         
-    ScheduledExecutorService scheduler = (ScheduledExecutorService)Conventions.getCache( context, schedulerExpr);
+    ScheduledExecutorService scheduler = (schedulerExpr != null)? (ScheduledExecutorService)Conventions.getCache( context, schedulerExpr): null;
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
 
     try
@@ -46,10 +52,12 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
       TcpServerRouter server = new TcpServerRouter( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
       Conventions.putCache( context, var, server);
       
+      server.addListener( (IReceiveListener)this);
+      server.addListener( (ITimeoutListener)this);
       server.addListener( (IConnectListener)this);
       server.addListener( (IDisconnectListener)this);
       
-      server.start( InetSocketAddress.createUnresolved( bindHost, bindPort));
+      server.start( new InetSocketAddress( bindHost, bindPort));
     }
     catch( Exception e)
     {
@@ -57,6 +65,30 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
     }
     
     return null;
+  }
+  
+  @Override
+  public void onTimeout( ITransport transport, IModelObject message, IContext context) throws Exception
+  {
+    IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
+    if ( onTimeout != null) 
+    {
+      IContext messageContext = new StatefulContext( context);
+      messageContext.set( "message", message);
+      onTimeout.run( messageContext);
+    }
+  }
+
+  @Override
+  public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request) throws Exception
+  {
+    IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
+    if ( onReceive != null) 
+    {
+      Conventions.putCache( messageContext, "via", transport);
+      messageContext.set( "message", message);
+      onReceive.run( messageContext);
+    }
   }
   
   @Override
@@ -78,6 +110,8 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
   private IExpression bindPortExpr;
   private IExpression protocolExpr;
   private IExpression schedulerExpr;
+  private IExpression onReceiveExpr;
+  private IExpression onTimeoutExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
 }

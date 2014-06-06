@@ -14,7 +14,7 @@ import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.protocol.BasicEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.XmlWireProtocol;
 import org.xmodel.util.PrefixThreadFactory;
@@ -69,7 +69,7 @@ public class TestTransport extends AbstractTransport
     final ExecutorService executor = Executors.newFixedThreadPool( 4, new PrefixThreadFactory( "worker"));
     final StatefulContext context = new StatefulContext();
     
-    Protocol protocol = new Protocol( new XmlWireProtocol(), new BasicEnvelopeProtocol());
+    Protocol protocol = new Protocol( new XmlWireProtocol(), new SimpleEnvelopeProtocol());
     
     final TestTransport t1 = new TestTransport( protocol, context);
     t1.addListener( new IReceiveListener() {
@@ -126,9 +126,8 @@ public class TestTransport extends AbstractTransport
             try
             {
               IModelObject next = new XmlIO().read( xml);
-              next.setAttribute( "id", message.getAttribute( "id"));
               Thread.sleep( 50);
-              transport.send( next);
+              transport.send( next, message);
             }
             catch( Exception e)
             {

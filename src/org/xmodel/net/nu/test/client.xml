@@ -1,0 +1,35 @@
+<script>
+  <package>org.xmodel.net.nu.xaction</package>
+
+  <assign var="onReceive">
+    <script>
+      <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
+    </script>
+  </assign>
+
+  <assign var="onTimeout">
+    <script>
+      <logi>format( '[CLIENT] Timeout:\n%s', $message)</logi>
+    </script>
+  </assign>
+
+  <assign var="onConnect">
+    <script>
+      <logi>'[CLIENT] Connected'</logi>
+    </script>
+  </assign>
+  
+  <assign var="onDisconnect">
+    <script>
+      <logi>'[CLIENT] Disconnected'</logi>
+    </script>
+  </assign>
+  
+  <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" onConnect="$onConnect" onDisconnect="$onDisconnect"/>
+  
+  <send via="$client">
+    <print>'Hi'</print>
+  </send>
+  
+  <sleep>10000</sleep>
+</script>

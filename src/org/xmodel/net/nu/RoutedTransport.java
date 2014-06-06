@@ -27,10 +27,10 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message) throws IOException
+  public AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException
   {
     message.setAttribute( "route", at);
-    return via.send( message);
+    return via.send( message, request);
   }
   
   @Override

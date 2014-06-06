@@ -11,6 +11,8 @@ public interface IEnvelopeProtocol
   
   public IModelObject getMessage( IModelObject envelope);
   
+  public IModelObject getEnvelope( IModelObject message);
+  
   public String getKey( IModelObject envelope);
   
   public String getRoute( IModelObject envelope);

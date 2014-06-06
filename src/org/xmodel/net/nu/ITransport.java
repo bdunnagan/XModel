@@ -15,7 +15,7 @@ public interface ITransport
   
   public AsyncFuture<ITransport> disconnect() throws IOException;
 
-  public AsyncFuture<ITransport> send( IModelObject message) throws IOException;
+  public AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException;
   
   public AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException;
   

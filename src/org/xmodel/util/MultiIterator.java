@@ -1,10 +1,16 @@
 package org.xmodel.util;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class MultiIterator<E> implements Iterator<E>
 {
+  public MultiIterator()
+  {
+    list = new ArrayList<Object>();
+  }
+  
   public void add( Iterator<E> iterator)
   {
     list.add( iterator);

@@ -47,6 +47,25 @@ public abstract class AbstractTransport implements ITransport
   }
   
   @Override
+  public final AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    
+    String key = null;
+    String route = null;
+    
+    if ( request != null)
+    {
+      IModelObject envelope = envelopeProtocol.getEnvelope( request);
+      key = envelopeProtocol.getKey( envelope);
+      route = envelopeProtocol.getRoute( envelope);
+    }
+    
+    IModelObject envelope = envelopeProtocol.buildEnvelope( key, route, message);
+    return sendImpl( envelope);
+  }
+  
+  @Override
   public final AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
@@ -55,16 +74,9 @@ public abstract class AbstractTransport implements ITransport
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
     
-    return send( envelope);
-  }
-    
-  @Override
-  public final AsyncFuture<ITransport> send( IModelObject message) throws IOException
-  {
-    IModelObject envelope = protocol.envelope().buildEnvelope( null, null, message);
     return sendImpl( envelope);
   }
-  
+    
   protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException;
 
   @Override
