@@ -4,20 +4,16 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 
-public class AsyncSendGroup implements IReceiveListener, ITimeoutListener
+public class AsyncSendGroup implements IReceiveListener, IErrorListener
 {
-  public static final String timeoutMessage = "Timeout";
-  public static final String cancelledMessage = "Cancelled";
-  
   public AsyncSendGroup( String var, IContext callContext)
   {
     this.var = var;
@@ -97,11 +93,11 @@ public class AsyncSendGroup implements IReceiveListener, ITimeoutListener
   }
   
   @Override
-  public void onTimeout( ITransport transport, IModelObject message, IContext messageContext)
+  public void onError( ITransport transport, IContext messageContext, ITransport.Error error)
   {
     removeListeners( transport);
     
-    messageContext.getScope().set( var, timeoutMessage);
+    messageContext.getScope().set( var, error.toString());
     
     if ( onError != null)
     {
@@ -131,13 +127,13 @@ public class AsyncSendGroup implements IReceiveListener, ITimeoutListener
   private void addListeners( ITransport transport)
   {
     transport.addListener( (IReceiveListener)this);
-    transport.addListener( (ITimeoutListener)this);
+    transport.addListener( (IErrorListener)this);
   }
   
   private void removeListeners( ITransport transport)
   {
     transport.removeListener( (IReceiveListener)this);
-    transport.removeListener( (ITimeoutListener)this);
+    transport.removeListener( (IErrorListener)this);
   }
 
   private void notifyError( Throwable t)

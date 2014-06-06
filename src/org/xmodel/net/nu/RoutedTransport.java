@@ -53,18 +53,6 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public void addListener( ITimeoutListener listener)
-  {
-    via.addListener( listener);
-  }
-  
-  @Override
-  public void removeListener( ITimeoutListener listener)
-  {
-    via.removeListener( listener);
-  }
-  
-  @Override
   public void addListener( IConnectListener listener)
   {
     via.addListener( listener);
@@ -84,6 +72,18 @@ public final class RoutedTransport implements ITransport
   
   @Override
   public void removeListener( IDisconnectListener listener)
+  {
+    via.removeListener( listener);
+  }
+
+  @Override
+  public void addListener( IErrorListener listener)
+  {
+    via.addListener( listener);
+  }
+  
+  @Override
+  public void removeListener( IErrorListener listener)
   {
     via.removeListener( listener);
   }

@@ -3,7 +3,6 @@ package org.xmodel.net.nu.tcp;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
 import org.xmodel.net.nu.AbstractTransport;
 
 public class XioInboundHandler extends ChannelInboundHandlerAdapter
@@ -25,7 +24,6 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   {
     super.handlerRemoved( ctx);
     readBuffer.release();
-    transport.notifyDisconnect();
   }
 
   @Override
@@ -34,6 +32,13 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     super.channelActive( ctx);
     transport.notifyConnect();
     ctx.read();
+  }
+
+  @Override
+  public void channelInactive( ChannelHandlerContext ctx) throws Exception
+  {
+    super.channelInactive( ctx);
+    transport.notifyDisconnect();
   }
 
   @Override

@@ -2,18 +2,16 @@ package org.xmodel.net.nu.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
@@ -21,10 +19,10 @@ import org.xmodel.xpath.expression.IContext;
 public class TcpChildTransport extends AbstractChannelTransport
 {
   public TcpChildTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel,
-      List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
-      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
+      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners,
+      List<IReceiveListener> receiveListeners, List<IErrorListener> errorListeners) 
   {
-    super( protocol, transportContext, scheduler, receiveListeners, timeoutListeners, connectListeners, disconnectListeners); 
+    super( protocol, transportContext, scheduler, connectListeners, disconnectListeners, receiveListeners, errorListeners); 
     
     channelRef = new AtomicReference<Channel>();
     channelRef.set( channel);

@@ -5,17 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XmlWireProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xml.IXmlIO.Style;
@@ -101,10 +100,10 @@ public class TestTransport extends AbstractTransport
       }
     });
     
-    t1.addListener( new ITimeoutListener() {
-      public void onTimeout( ITransport transport, IModelObject message, IContext context)
+    t1.addListener( new IErrorListener() {
+      public void onError( ITransport transport, IContext context, ITransport.Error error)
       {
-        log.infof( "Timeout #1");
+        log.infof( "Error #1");
       }
     });
     
@@ -138,10 +137,10 @@ public class TestTransport extends AbstractTransport
       }
     });
 
-    t2.addListener( new ITimeoutListener() {
-      public void onTimeout( ITransport transport, IModelObject message, IContext context)
+    t2.addListener( new IErrorListener() {
+      public void onError( ITransport transport, IContext context, ITransport.Error error)
       {
-        log.infof( "Timeout #2");
+        log.infof( "Error #2");
       }
     });
     

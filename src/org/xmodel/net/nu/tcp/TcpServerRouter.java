@@ -9,7 +9,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,13 +21,12 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.IRouter;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
@@ -50,10 +48,10 @@ public class TcpServerRouter implements IRouter
     this.scheduler = scheduler;
     this.routes = new HashMap<String, Set<ITransport>>();
     
-    this.receiveListeners = new ArrayList<IReceiveListener>( 3);
-    this.timeoutListeners = new ArrayList<ITimeoutListener>( 3);
     this.connectListeners = new ArrayList<IConnectListener>( 3);
     this.disconnectListeners = new ArrayList<IDisconnectListener>( 3);
+    this.receiveListeners = new ArrayList<IReceiveListener>( 3);
+    this.errorListeners = new ArrayList<IErrorListener>( 3);
   }
   
   public void start( SocketAddress address) throws InterruptedException
@@ -70,7 +68,7 @@ public class TcpServerRouter implements IRouter
        public void initChannel( SocketChannel channel) throws Exception 
        {
          TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel, 
-             receiveListeners, timeoutListeners, connectListeners, disconnectListeners);
+             connectListeners, disconnectListeners, receiveListeners, errorListeners);
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
@@ -158,28 +156,6 @@ public class TcpServerRouter implements IRouter
     }
   }
   
-  public void addListener( IReceiveListener listener)
-  {
-    if ( !receiveListeners.contains( listener))
-      receiveListeners.add( listener);
-  }
-
-  public void removeListener( IReceiveListener listener)
-  {
-    receiveListeners.remove( listener);
-  }
-
-  public void addListener( ITimeoutListener listener)
-  {
-    if ( !timeoutListeners.contains( listener))
-      timeoutListeners.add( listener);
-  }
-
-  public void removeListener( ITimeoutListener listener)
-  {
-    timeoutListeners.remove( listener);
-  }
-
   public void addListener( IConnectListener listener)
   {
     if ( !connectListeners.contains( listener))
@@ -202,14 +178,36 @@ public class TcpServerRouter implements IRouter
     disconnectListeners.remove( listener);
   }
 
+  public void addListener( IReceiveListener listener)
+  {
+    if ( !receiveListeners.contains( listener))
+      receiveListeners.add( listener);
+  }
+
+  public void removeListener( IReceiveListener listener)
+  {
+    receiveListeners.remove( listener);
+  }
+
+  public void addListener( IErrorListener listener)
+  {
+    if ( !errorListeners.contains( listener))
+      errorListeners.add( listener);
+  }
+
+  public void removeListener( IErrorListener listener)
+  {
+    errorListeners.remove( listener);
+  }
+
   private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private ServerSocketChannel serverChannel;
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
-  private List<IReceiveListener> receiveListeners;
-  private List<ITimeoutListener> timeoutListeners;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;
+  private List<IReceiveListener> receiveListeners;
+  private List<IErrorListener> errorListeners;
 }

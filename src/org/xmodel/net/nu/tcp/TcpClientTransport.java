@@ -9,19 +9,17 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
@@ -29,12 +27,12 @@ import org.xmodel.xpath.expression.IContext;
 public class TcpClientTransport extends AbstractChannelTransport
 {
   public TcpClientTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler,
-      List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
-      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
+      List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners,
+      List<IReceiveListener> receiveListeners, List<IErrorListener> errorListeners)
   {
     super( protocol, transportContext, scheduler,
-        receiveListeners, timeoutListeners,
-        connectListeners, disconnectListeners);
+        connectListeners, disconnectListeners,
+        receiveListeners, errorListeners);
     
     this.channelRef = new AtomicReference<Channel>();
   }
@@ -92,7 +90,13 @@ public class TcpClientTransport extends AbstractChannelTransport
       public void operationComplete( ChannelFuture channelFuture) throws Exception
       {
         if ( channelFuture.isSuccess())
+        {
           channelRef.set( channelFuture.channel());
+        }
+        else
+        {
+        }
+        
         super.operationComplete( channelFuture);
       }
     });

@@ -12,7 +12,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
@@ -25,14 +24,14 @@ import org.xmodel.xpath.expression.IContext;
 public abstract class AbstractTransport implements ITransport
 {
   protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, 
-     List<IReceiveListener> receiveListeners, List<ITimeoutListener> timeoutListeners, 
-     List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners)
+     List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners,
+     List<IReceiveListener> receiveListeners, List<IErrorListener> errorListeners)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
-    if ( receiveListeners == null) receiveListeners = Collections.emptyList(); 
-    if ( timeoutListeners == null) timeoutListeners = Collections.emptyList(); 
     if ( connectListeners == null) connectListeners = Collections.emptyList(); 
     if ( disconnectListeners == null) disconnectListeners = Collections.emptyList(); 
+    if ( receiveListeners == null) receiveListeners = Collections.emptyList(); 
+    if ( errorListeners == null) errorListeners = Collections.emptyList(); 
     
     this.protocol = new ThreadSafeProtocol( protocol.wire(), protocol.envelope());
     this.transportContext = transportContext;
@@ -40,10 +39,10 @@ public abstract class AbstractTransport implements ITransport
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     
-    this.receiveListeners = new CopyOnWriteArrayList<IReceiveListener>( receiveListeners);
-    this.timeoutListeners = new CopyOnWriteArrayList<ITimeoutListener>( timeoutListeners);
     this.connectListeners = new CopyOnWriteArrayList<IConnectListener>( connectListeners);
     this.disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>( disconnectListeners);
+    this.receiveListeners = new CopyOnWriteArrayList<IReceiveListener>( receiveListeners);
+    this.errorListeners = new CopyOnWriteArrayList<IErrorListener>( errorListeners);
   }
   
   @Override
@@ -80,32 +79,6 @@ public abstract class AbstractTransport implements ITransport
   protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException;
 
   @Override
-  public void addListener( IReceiveListener listener)
-  {
-    if ( !receiveListeners.contains( listener))
-      receiveListeners.add( listener);
-  }
-
-  @Override
-  public void removeListener( IReceiveListener listener)
-  {
-    receiveListeners.remove( listener);
-  }
-
-  @Override
-  public void addListener( ITimeoutListener listener)
-  {
-    if ( !timeoutListeners.contains( listener))
-      timeoutListeners.add( listener);
-  }
-
-  @Override
-  public void removeListener( ITimeoutListener listener)
-  {
-    timeoutListeners.remove( listener);
-  }
-
-  @Override
   public void addListener( IConnectListener listener)
   {
     if ( !connectListeners.contains( listener))
@@ -131,6 +104,32 @@ public abstract class AbstractTransport implements ITransport
     disconnectListeners.remove( listener);
   }
   
+  @Override
+  public void addListener( IReceiveListener listener)
+  {
+    if ( !receiveListeners.contains( listener))
+      receiveListeners.add( listener);
+  }
+
+  @Override
+  public void removeListener( IReceiveListener listener)
+  {
+    receiveListeners.remove( listener);
+  }
+
+  @Override
+  public void addListener( IErrorListener listener)
+  {
+    if ( !errorListeners.contains( listener))
+      errorListeners.add( listener);
+  }
+
+  @Override
+  public void removeListener( IErrorListener listener)
+  {
+    errorListeners.remove( listener);
+  }
+
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
   {
     try
@@ -225,17 +224,16 @@ public abstract class AbstractTransport implements ITransport
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     String key = envelopeProtocol.getKey( envelope);
-    IModelObject message = envelopeProtocol.getMessage( envelope);
     
     // release request
     requests.remove( key);
     
     // notify listeners
-    for( ITimeoutListener listener: timeoutListeners)
+    for( IErrorListener listener: errorListeners)
     {
       try
       {
-        listener.onTimeout( this, message, messageContext);
+        listener.onError( this, messageContext, Error.timeout);
       }
       catch( Exception e)
       {
@@ -308,8 +306,8 @@ public abstract class AbstractTransport implements ITransport
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
-  private List<IReceiveListener> receiveListeners;
-  private List<ITimeoutListener> timeoutListeners;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;
+  private List<IReceiveListener> receiveListeners;
+  private List<IErrorListener> errorListeners;
 }

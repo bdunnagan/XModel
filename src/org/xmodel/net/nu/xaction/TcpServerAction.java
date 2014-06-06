@@ -3,12 +3,11 @@ package org.xmodel.net.nu.xaction;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
+import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
-import org.xmodel.net.nu.ITimeoutListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
@@ -20,7 +19,7 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
-public class TcpServerAction extends GuardedAction implements IReceiveListener, ITimeoutListener, IConnectListener, IDisconnectListener
+public class TcpServerAction extends GuardedAction implements IConnectListener, IDisconnectListener, IReceiveListener, IErrorListener
 {
   @Override
   public void configure( XActionDocument document)
@@ -52,10 +51,10 @@ public class TcpServerAction extends GuardedAction implements IReceiveListener, 
       TcpServerRouter server = new TcpServerRouter( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
       Conventions.putCache( context, var, server);
       
-      server.addListener( (IReceiveListener)this);
-      server.addListener( (ITimeoutListener)this);
       server.addListener( (IConnectListener)this);
       server.addListener( (IDisconnectListener)this);
+      server.addListener( (IReceiveListener)this);
+      server.addListener( (IErrorListener)this);
       
       server.start( new InetSocketAddress( bindHost, bindPort));
     }
@@ -68,15 +67,17 @@ public class TcpServerAction extends GuardedAction implements IReceiveListener, 
   }
   
   @Override
-  public void onTimeout( ITransport transport, IModelObject message, IContext context) throws Exception
+  public void onConnect( ITransport transport, IContext context)
   {
-    IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
-    if ( onTimeout != null) 
-    {
-      IContext messageContext = new StatefulContext( context);
-      messageContext.set( "message", message);
-      onTimeout.run( messageContext);
-    }
+    IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
+    if ( onConnect != null) onConnect.run( context);
+  }
+
+  @Override
+  public void onDisconnect( ITransport transport, IContext context)
+  {
+    IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
+    if ( onDisconnect != null) onDisconnect.run( context);
   }
 
   @Override
@@ -92,17 +93,15 @@ public class TcpServerAction extends GuardedAction implements IReceiveListener, 
   }
   
   @Override
-  public void onConnect( ITransport transport, IContext context)
+  public void onError( ITransport transport, IContext context, ITransport.Error error) throws Exception
   {
-    IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
-    if ( onConnect != null) onConnect.run( context);
-  }
-
-  @Override
-  public void onDisconnect( ITransport transport, IContext context)
-  {
-    IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
-    if ( onDisconnect != null) onDisconnect.run( context);
+    IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
+    if ( onTimeout != null) 
+    {
+      IContext messageContext = new StatefulContext( context);
+      messageContext.set( "error", error.toString());
+      onTimeout.run( messageContext);
+    }
   }
 
   private String var;
