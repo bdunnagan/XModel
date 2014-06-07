@@ -26,18 +26,27 @@ public final class RoutedTransport implements ITransport
     return via.disconnect();
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.ITransport#send(org.xmodel.IModelObject)
+   */
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException
+  public AsyncFuture<ITransport> send( IModelObject message)
+  {
+    return via.send( message);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
     message.setAttribute( "route", at);
-    return via.send( message, request);
+    return via.request( message, messageContext, timeout);
   }
   
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException
+  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
     message.setAttribute( "route", at);
-    return via.send( message, messageContext, timeout);
+    return via.respond( message, request);
   }
   
   @Override

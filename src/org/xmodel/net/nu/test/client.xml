@@ -3,19 +3,25 @@
 
   <assign var="onReceive">
     <script>
-      <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
+      <logi>format( '[CLIENT] Received:\n%s', $result)</logi>
     </script>
   </assign>
 
-  <assign var="onTimeout">
+  <assign var="onError">
     <script>
-      <logi>format( '[CLIENT] Timeout:\n%s', $message)</logi>
+      <logi>format( '[CLIENT] Error: %s', $error)</logi>
     </script>
   </assign>
 
   <assign var="onConnect">
     <script>
       <logi>'[CLIENT] Connected'</logi>
+      
+      <request var="result" via="$client" onReceive="$onReceive">
+        <script>
+          <print>'Hi'</print>
+        </script>
+      </request>
     </script>
   </assign>
   
@@ -25,11 +31,11 @@
     </script>
   </assign>
   
-  <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" onConnect="$onConnect" onDisconnect="$onDisconnect"/>
-  
-  <send via="$client">
-    <print>'Hi'</print>
-  </send>
+  <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" connectTimeout="3000">
+    <onConnect>$onConnect</onConnect>
+    <onDisconnect>$onDisconnect</onDisconnect>
+    <onError>$onError</onError>
+  </tcpClient>
   
   <sleep>10000</sleep>
 </script>

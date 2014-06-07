@@ -43,13 +43,20 @@ public class TestTransport extends AbstractTransport
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
     for( TestTransport transport: transports)
     {
       if ( transport == this) continue;
-      byte[] bytes = getProtocol().wire().encode( envelope);
-      transport.notifyReceive( bytes, 0, bytes.length);
+      try
+      {
+        byte[] bytes = getProtocol().wire().encode( envelope);
+        transport.notifyReceive( bytes, 0, bytes.length);
+      }
+      catch( IOException e)
+      {
+        notifyError( getTransportContext(), ITransport.Error.encodeFailed);
+      }
     }
     return new SuccessAsyncFuture<ITransport>( this);
   }
@@ -89,7 +96,7 @@ public class TestTransport extends AbstractTransport
               Thread.sleep( 50);
               StatefulContext messageContext = new StatefulContext( context);
               IModelObject next = new XmlIO().read( xml);
-              transport.send( next, messageContext, 100);
+              transport.request( next, messageContext, 100);
             }
             catch( Exception e)
             {
@@ -126,7 +133,7 @@ public class TestTransport extends AbstractTransport
             {
               IModelObject next = new XmlIO().read( xml);
               Thread.sleep( 50);
-              transport.send( next, message);
+              transport.respond( next, message);
             }
             catch( Exception e)
             {
@@ -152,7 +159,7 @@ public class TestTransport extends AbstractTransport
         {
           StatefulContext messageContext = new StatefulContext( context);
           IModelObject message = new XmlIO().read( xml);
-          t1.send( message, messageContext, 100);
+          t1.request( message, messageContext, 100);
         }
         catch( Exception e)
         {

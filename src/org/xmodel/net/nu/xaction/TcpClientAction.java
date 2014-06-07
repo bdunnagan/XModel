@@ -58,7 +58,8 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     try
     {
       TcpClientTransport transport = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler,
-          Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this), null, null);
+          Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this), 
+          Collections.singletonList( (IReceiveListener)this), Collections.singletonList( (IErrorListener)this)); 
       
       Conventions.putCache( context, var, transport);
       

@@ -31,7 +31,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
     Channel channel = channelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 
@@ -46,15 +46,31 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     };
   
     // encode
-    byte[] bytes = getProtocol().wire().encode( envelope);
-    
-    // write
-    ChannelFuture channelFuture = channel.writeAndFlush( Unpooled.wrappedBuffer( bytes));
-    
-    // future adapter
-    channelFuture.addListener( new AsyncFutureAdapter<ITransport>( future));
+    byte[] bytes = encode( envelope, future);
+    if ( bytes != null)
+    {
+      // write
+      ChannelFuture channelFuture = channel.writeAndFlush( Unpooled.wrappedBuffer( bytes));
+      
+      // future adapter
+      channelFuture.addListener( new AsyncFutureAdapter<ITransport>( future));
+    }
     
     return future;
+  }
+  
+  private byte[] encode( IModelObject envelope, AsyncFuture<ITransport> future)
+  {
+    try
+    {
+      return getProtocol().wire().encode( envelope);
+    }
+    catch( IOException e)
+    {
+      future.notifyFailure( e);
+      notifyError( getTransportContext(), ITransport.Error.encodeFailed);
+      return null;
+    }
   }
   
   protected AtomicReference<Channel> channelRef;

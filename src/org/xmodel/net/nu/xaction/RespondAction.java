@@ -1,24 +1,24 @@
 package org.xmodel.net.nu.xaction;
 
-import java.util.Iterator;
 import org.xmodel.IModelObject;
+import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
+import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
-public class SendAction extends GuardedAction
+public class RespondAction extends GuardedAction
 {
   @Override
   public void configure( XActionDocument document)
   {
     super.configure( document);
 
-    viaExpr = document.getExpression( "via", true);
-    atExpr = document.getExpression( "at", true);
-    onErrorExpr = document.getExpression( "onError", true);
+    requestExpr = document.getExpression( "request", true);
+    if ( requestExpr == null) requestExpr = XPath.createExpression( "$message");
 
     if ( document.getRoot().getNumberOfChildren() == 0)
       messageExpr = document.getExpression();
@@ -27,19 +27,20 @@ public class SendAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    IModelObject request = requestExpr.queryFirst( context);
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): MessageSchema.getMessage( document.getRoot());
     
-    AsyncSendGroup group = new AsyncSendGroup( null, context);
-    group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
-    
-    Iterator<ITransport> transports = MessageSchema.resolveTransport( context, viaExpr, atExpr);
-    group.send( transports, message);
+    Object object = Conventions.getCache( context, "via");
+    if ( object != null && object instanceof ITransport)
+    {
+      ((ITransport)object).respond( message, request);
+    }
 
     return null;
   }
-
-  private IExpression viaExpr;
-  private IExpression atExpr;
+  
+  public final static Log log = Log.getLog( RespondAction.class);
+  
   private IExpression messageExpr;
-  private IExpression onErrorExpr;
+  private IExpression requestExpr;
 }

@@ -67,7 +67,7 @@ public class TcpTest
     client.addListener( new IConnectListener() {
       public void onConnect( ITransport transport, IContext context) throws Exception
       {
-        transport.send( new XmlIO().read( 
+        transport.respond( new XmlIO().read( 
             "<message>"+
             "  <print>'Hi'</print>"+
             "</message>"

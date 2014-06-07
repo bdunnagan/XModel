@@ -10,6 +10,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -95,6 +96,7 @@ public class TcpClientTransport extends AbstractChannelTransport
         }
         else
         {
+          notifyError( getTransportContext(), translateConnectError( channelFuture.cause()));
         }
         
         super.operationComplete( channelFuture);
@@ -102,6 +104,18 @@ public class TcpClientTransport extends AbstractChannelTransport
     });
     
     return future;
+  }
+  
+  private ITransport.Error translateConnectError( Throwable t)
+  {
+    if ( t instanceof ConnectException)
+    {
+      String message = ((ConnectException)t).getMessage();
+      if ( message.contains( "refused")) return ITransport.Error.connectRefused;
+    }
+    
+    t.printStackTrace( System.out);
+    return ITransport.Error.connectError;
   }
 
   /* (non-Javadoc)

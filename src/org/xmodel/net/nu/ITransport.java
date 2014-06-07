@@ -11,15 +11,17 @@ import org.xmodel.xpath.expression.IContext;
  */
 public interface ITransport
 {
-  public enum Error { timeout};
+  public enum Error { timeout, connectRefused, connectError, encodeFailed};
   
   public AsyncFuture<ITransport> connect( int timeout) throws IOException;
   
   public AsyncFuture<ITransport> disconnect() throws IOException;
 
-  public AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException;
+  public AsyncFuture<ITransport> send( IModelObject message);
   
-  public AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException;
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout);
+  
+  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request);
   
   public void addListener( IConnectListener listener);
   

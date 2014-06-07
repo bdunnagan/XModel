@@ -45,14 +45,42 @@ public abstract class AbstractTransport implements ITransport
     this.errorListeners = new CopyOnWriteArrayList<IErrorListener>( errorListeners);
   }
   
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.ITransport#send(org.xmodel.IModelObject)
+   */
   @Override
-  public final AsyncFuture<ITransport> send( IModelObject message, IModelObject request) throws IOException
+  public AsyncFuture<ITransport> send( IModelObject message)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    IModelObject envelope = envelopeProtocol.buildEnvelope( null, null, message);
+    return sendImpl( envelope);
+  }
+
+  @Override
+  public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
+  {
+    String key = Long.toHexString( requestCounter.incrementAndGet());
+    IModelObject envelope = protocol.envelope().buildEnvelope( key, null, message);
+    
+    Request request = new Request( envelope, messageContext, timeout);
+    requests.put( key, request);
+    
+    return sendImpl( envelope);
+  }
+    
+  @Override
+  public final AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     
     String key = null;
     String route = null;
     
+    //
+    // The envelope of the original request message is retrieved and its correlation key
+    // extracted using the IEnvelopeProtocol.  This means that the IEnvelopeProtocol
+    // must be able to find the envelope given the message body.
+    //
     if ( request != null)
     {
       IModelObject envelope = envelopeProtocol.getEnvelope( request);
@@ -64,19 +92,7 @@ public abstract class AbstractTransport implements ITransport
     return sendImpl( envelope);
   }
   
-  @Override
-  public final AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout) throws IOException
-  {
-    String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildEnvelope( key, null, message);
-    
-    Request request = new Request( envelope, messageContext, timeout);
-    requests.put( key, request);
-    
-    return sendImpl( envelope);
-  }
-    
-  protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope) throws IOException;
+  protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope);
 
   @Override
   public void addListener( IConnectListener listener)
@@ -220,20 +236,14 @@ public abstract class AbstractTransport implements ITransport
     return true;
   }
   
-  public void notifyTimeout( IModelObject envelope, IContext messageContext)
+  public void notifyError( IContext context, ITransport.Error error)
   {
-    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    String key = envelopeProtocol.getKey( envelope);
-    
-    // release request
-    requests.remove( key);
-    
     // notify listeners
     for( IErrorListener listener: errorListeners)
     {
       try
       {
-        listener.onError( this, messageContext, Error.timeout);
+        listener.onError( this, context, error);
       }
       catch( Exception e)
       {
@@ -273,10 +283,26 @@ public abstract class AbstractTransport implements ITransport
       }
     }
   }
+  
+  private void notifyTimeout( IModelObject envelope, IContext messageContext)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    String key = envelopeProtocol.getKey( envelope);
+    
+    // release request
+    requests.remove( key);
+    
+    notifyError( messageContext, ITransport.Error.timeout);
+  }
 
   protected Protocol getProtocol()
   {
     return protocol;
+  }
+  
+  protected IContext getTransportContext()
+  {
+    return transportContext;
   }
   
   private class Request implements Runnable

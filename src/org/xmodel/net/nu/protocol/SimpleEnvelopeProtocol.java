@@ -33,7 +33,7 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public String getKey( IModelObject envelope)
   {
-    return Xlate.get( envelope, "id", (String)null);
+    return Xlate.get( envelope, "key", (String)null);
   }
 
   @Override

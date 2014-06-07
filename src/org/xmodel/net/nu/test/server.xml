@@ -4,10 +4,14 @@
   <assign var="onReceive">
     <script>
       <logi>format( '[SERVER] Received:\n%s', $message)</logi>
-      <run var="result">$message</run>
-      <send via="$via">
-        <print>'Hi'</print>
-      </send>
+      
+      <run>$message</run>
+      
+      <respond via="$via">
+        <script>
+          <print>'Hi'</print>
+        </script>
+      </respond>
     </script>
   </assign>
 

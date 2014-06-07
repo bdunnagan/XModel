@@ -1,6 +1,5 @@
 package org.xmodel.net.nu.xaction;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,9 +21,9 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     this.doneCount = new AtomicInteger();
   }
 
-  public void setSuccessScript( IXAction onSuccess)
+  public void setReceiveScript( IXAction onSuccess)
   {
-    this.onSuccess = onSuccess;
+    this.onReceive = onSuccess;
   }
   
   public void setErrorScript( IXAction onError)
@@ -37,7 +36,18 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     this.onComplete = onComplete;
   }
   
-  public void send( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout)
+  public void send( Iterator<ITransport> transports, IModelObject message)
+  {
+    while( transports.hasNext())
+    {
+      ITransport transport = transports.next();
+      addListeners( transport);
+      transport.send( message);
+      removeListeners( transport);
+    }
+  }
+
+  public void send( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout)
   {
     int count = 0;
     while( transports.hasNext())
@@ -47,14 +57,7 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
       addListeners( transport);
       count++;
       
-      try
-      {
-        transport.send( script, messageContext, timeout);
-      }
-      catch( IOException e)
-      {
-        notifyError( e);
-      }
+      transport.request( message, messageContext, timeout);
     }
 
     sentCount.set( count);
@@ -63,10 +66,10 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
       notifyComplete();
   }
 
-  public void sendAndWait( Iterator<ITransport> transports, IModelObject script, IContext messageContext, int timeout) throws InterruptedException
+  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
-    send( transports, script, messageContext, timeout);
+    send( transports, message, messageContext, timeout);
     semaphore.acquire();
   }
   
@@ -77,11 +80,11 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     
     messageContext.getScope().set( var, response);
     
-    if ( onSuccess != null)
+    if ( onReceive != null)
     {
       try
       {
-        onSuccess.run( messageContext);
+        onReceive.run( messageContext);
       }
       catch( Exception e)
       {
@@ -136,21 +139,6 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     transport.removeListener( (IErrorListener)this);
   }
 
-  private void notifyError( Throwable t)
-  {
-    if ( onError != null)
-    {
-      try
-      {
-        onError.run( callContext);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
-  }
-  
   private void notifyComplete()
   {
     IXAction onComplete;
@@ -182,7 +170,7 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
   private IContext callContext;
   private AtomicInteger sentCount;
   private AtomicInteger doneCount;
-  private IXAction onSuccess;
+  private IXAction onReceive;
   private IXAction onError;
   private IXAction onComplete;
   private Semaphore semaphore;
