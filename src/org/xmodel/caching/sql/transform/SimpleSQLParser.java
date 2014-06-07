@@ -268,16 +268,16 @@ public class SimpleSQLParser
   
   private static Pattern keywordRegex = Pattern.compile( "(?i)select|from|where|order by|group by");
   private static Pattern conditionRegex = Pattern.compile( "(?i)\\s++(and|or|between)\\s++");
-  private static Pattern opRegex = Pattern.compile( "(?i)\\s*([=<>]|[!][=]|(?<=[ ])in|(?<=[ ])is not null|(?<=[ ])is null)\\s*+");
+  private static Pattern opRegex = Pattern.compile( "(?i)\\s*([!=<>]+|(?<=[ ])in|(?<=[ ])is not null|(?<=[ ])is null)\\s*+");
   
   public static void main( String[] args) throws Exception
   {
     SimpleSQLParser parser = new SimpleSQLParser(
     		"SELECT count(*) count, first_name f, last_name l , format( from_ltime( created_on)) c " +
     		"FROM user u JOIN monitor m on m.user_id = u.id " +
-    		"WHERE id = 1093984938576 and user_id in ( '1', '1');");
+    		"WHERE (raised_on > 1 and raised_on < 2)");
     
-    Object[] objects = SimpleSQLParser.parameterizePredicate( "WHERE login_on IS NOT NULL AND x in ('1','2','3','4','5')");
+    Object[] objects = SimpleSQLParser.parameterizePredicate( "WHERE (raised_on > 1 and raised_on < 2)");
     for( Object object: objects)
       System.out.println( object);
     
