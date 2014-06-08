@@ -31,13 +31,13 @@ public class TestTransport extends AbstractTransport
   }
 
   @Override
-  public AsyncFuture<ITransport> connect( int timeout) throws IOException
+  public AsyncFuture<ITransport> connect( int timeout)
   {
     return null;
   }
 
   @Override
-  public AsyncFuture<ITransport> disconnect() throws IOException
+  public AsyncFuture<ITransport> disconnect()
   {
     return null;
   }

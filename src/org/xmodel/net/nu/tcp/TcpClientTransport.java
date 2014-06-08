@@ -9,7 +9,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.List;
@@ -53,7 +52,7 @@ public class TcpClientTransport extends AbstractChannelTransport
    * @see org.xmodel.net.nu.ITransport#connect(int)
    */
   @Override
-  public AsyncFuture<ITransport> connect( int timeout) throws IOException
+  public AsyncFuture<ITransport> connect( int timeout)
   {
     Channel channel = channelRef.get();
     if ( channel != null && channel.isOpen()) 
@@ -122,7 +121,7 @@ public class TcpClientTransport extends AbstractChannelTransport
    * @see org.xmodel.net.nu.ITransport#disconnect()
    */
   @Override
-  public AsyncFuture<ITransport> disconnect() throws IOException
+  public AsyncFuture<ITransport> disconnect()
   {
     Channel channel = channelRef.get();
     if ( channel != null) channel.close();

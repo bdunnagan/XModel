@@ -95,6 +95,12 @@ public abstract class AbstractTransport implements ITransport
   protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope);
 
   @Override
+  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
+  {
+    return scheduler.schedule( runnable, delay, TimeUnit.MILLISECONDS);
+  }
+
+  @Override
   public void addListener( IConnectListener listener)
   {
     if ( !connectListeners.contains( listener))

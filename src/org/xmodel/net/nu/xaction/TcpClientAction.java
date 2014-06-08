@@ -10,6 +10,7 @@ import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.PersistentTransport;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -35,6 +36,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     connectTimeoutExpr = document.getExpression( "connectTimeout", true);
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
+    retryExpr = document.getExpression( "retry", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
@@ -51,10 +53,11 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     int remotePort = (int)remotePortExpr.evaluateNumber( context);
     
     int connectTimeout = (connectTimeoutExpr != null)? (int)connectTimeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    boolean retry = (retryExpr != null)? retryExpr.evaluateBoolean( context): true;
     
     ScheduledExecutorService scheduler = (schedulerExpr != null)? (ScheduledExecutorService)Conventions.getCache( context, schedulerExpr): null;
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
-
+    
     try
     {
       TcpClientTransport transport = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler,
@@ -66,7 +69,15 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
       if ( localHost != null) transport.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
       transport.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
       
-      transport.connect( connectTimeout).await();
+      if ( retry)
+      {
+        PersistentTransport persistTransport = new PersistentTransport( transport);
+        persistTransport.connect( connectTimeout).await();
+      }
+      else
+      {
+        transport.connect( connectTimeout).await();
+      }
     }
     catch( Exception e)
     {
@@ -122,6 +133,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
   private IExpression connectTimeoutExpr;
   private IExpression protocolExpr;
   private IExpression schedulerExpr;
+  private IExpression retryExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onReceiveExpr;

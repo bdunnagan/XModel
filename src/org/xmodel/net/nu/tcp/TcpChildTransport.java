@@ -2,7 +2,6 @@ package org.xmodel.net.nu.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,13 +28,13 @@ public class TcpChildTransport extends AbstractChannelTransport
   }
   
   @Override
-  public AsyncFuture<ITransport> connect( int timeout) throws IOException
+  public AsyncFuture<ITransport> connect( int timeout)
   {
     return new SuccessAsyncFuture<ITransport>( this);
   }
 
   @Override
-  public AsyncFuture<ITransport> disconnect() throws IOException
+  public AsyncFuture<ITransport> disconnect()
   {
     Channel channel = channelRef.get();
     if ( channel != null) channel.close();

@@ -1,7 +1,6 @@
 package org.xmodel.net.nu;
 
-import java.io.IOException;
-
+import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.xpath.expression.IContext;
@@ -15,13 +14,13 @@ public final class RoutedTransport implements ITransport
   }
 
   @Override
-  public AsyncFuture<ITransport> connect( int timeout) throws IOException
+  public AsyncFuture<ITransport> connect( int timeout)
   {
     return via.connect( timeout);
   }
   
   @Override
-  public AsyncFuture<ITransport> disconnect() throws IOException
+  public AsyncFuture<ITransport> disconnect()
   {
     return via.disconnect();
   }
@@ -49,6 +48,12 @@ public final class RoutedTransport implements ITransport
     return via.respond( message, request);
   }
   
+  @Override
+  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
+  {
+    return via.schedule( runnable, delay);
+  }
+
   @Override
   public void addListener( IReceiveListener listener)
   {

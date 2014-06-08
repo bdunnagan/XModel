@@ -30,7 +30,7 @@
       <logi>'[CLIENT] Disconnected'</logi>
     </script>
   </assign>
-  
+
   <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" connectTimeout="3000">
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>

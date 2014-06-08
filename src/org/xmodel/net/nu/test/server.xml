@@ -15,9 +15,9 @@
     </script>
   </assign>
 
-  <assign var="onTimeout">
+  <assign var="onError">
     <script>
-      <logi>format( '[SERVER] Timeout:\n%s', $message)</logi>
+      <logi>format( '[SERVER] Error:\n%s', $error)</logi>
     </script>
   </assign>
 
@@ -33,5 +33,5 @@
     </script>
   </assign>
   
-  <tcpServer var="server" bindHost="'127.0.0.1'" bindPort="10000" onReceive="$onReceive" onTimeout="$onTimeout" onConnect="$onConnect" onDisconnect="$onDisconnect"/>
+  <tcpServer var="server" bindHost="'127.0.0.1'" bindPort="10000" onReceive="$onReceive" onError="$onError" onConnect="$onConnect" onDisconnect="$onDisconnect"/>
 </script>
