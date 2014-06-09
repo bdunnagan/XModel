@@ -3,8 +3,10 @@ package org.xmodel.net.nu;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -44,23 +46,18 @@ public abstract class AbstractTransport implements ITransport
     this.receiveListeners = new CopyOnWriteArrayList<IReceiveListener>( receiveListeners);
     this.errorListeners = new CopyOnWriteArrayList<IErrorListener>( errorListeners);
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.ITransport#send(org.xmodel.IModelObject)
-   */
-  @Override
-  public AsyncFuture<ITransport> send( IModelObject message)
-  {
-    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    IModelObject envelope = envelopeProtocol.buildEnvelope( null, null, message);
-    return sendImpl( envelope);
-  }
 
+  @Override
+  public Protocol getProtocol()
+  {
+    return protocol;
+  }
+  
   @Override
   public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildEnvelope( key, null, message);
+    IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
     
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
@@ -68,6 +65,21 @@ public abstract class AbstractTransport implements ITransport
     return sendImpl( envelope);
   }
     
+  @Override
+  public AsyncFuture<ITransport> ack( IModelObject request)
+  {
+    if ( request == null) throw new IllegalArgumentException();
+    
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    
+    IModelObject envelope = envelopeProtocol.getEnvelope( request);
+    String key = envelopeProtocol.getKey( envelope);
+    String route = envelopeProtocol.getRoute( envelope);
+    
+    IModelObject ack = envelopeProtocol.buildAck( key, route);
+    return sendImpl( ack);
+  }
+
   @Override
   public final AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
@@ -88,7 +100,7 @@ public abstract class AbstractTransport implements ITransport
       route = envelopeProtocol.getRoute( envelope);
     }
     
-    IModelObject envelope = envelopeProtocol.buildEnvelope( key, route, message);
+    IModelObject envelope = envelopeProtocol.buildResponseEnvelope( key, route, message);
     return sendImpl( envelope);
   }
   
@@ -192,29 +204,29 @@ public abstract class AbstractTransport implements ITransport
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     
-    // get body
     IModelObject message = envelopeProtocol.getMessage( envelope);
-    
-    // get route
     String route = envelopeProtocol.getRoute( envelope);
-    
-    // lookup request and free
-    Object key = envelopeProtocol.getKey( envelope);
-    Request request = (key != null)? requests.remove( key): null;
-    if ( request != null)
+    if ( envelopeProtocol.isRequest( envelope))
     {
-      // receive/timeout exclusion
-      if ( request.timeoutFuture.cancel( false))
+      Object key = envelopeProtocol.getKey( envelope);
+      if ( key != null)
       {
-        for( IReceiveListener listener: receiveListeners)
+        Request request = requests.remove( key);
+        
+        // receive/timeout exclusion
+        if ( request != null && request.timeoutFuture.cancel( false))
         {
-          try
+          for( IReceiveListener listener: receiveListeners)
           {
-            listener.onReceive( this, message, request.messageContext, request.envelope);
-          }
-          catch( Exception e)
-          {
-            log.exception( e);
+            try
+            {
+              IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
+              listener.onReceive( this, message, request.messageContext, requestMessage);
+            }
+            catch( Exception e)
+            {
+              log.exception( e);
+            }
           }
         }
       }
@@ -242,14 +254,15 @@ public abstract class AbstractTransport implements ITransport
     return true;
   }
   
-  public void notifyError( IContext context, ITransport.Error error)
+  @Override
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
   {
     // notify listeners
     for( IErrorListener listener: errorListeners)
     {
       try
       {
-        listener.onError( this, context, error);
+        listener.onError( this, context, error, request);
       }
       catch( Exception e)
       {
@@ -276,6 +289,8 @@ public abstract class AbstractTransport implements ITransport
   
   public void notifyDisconnect()
   {
+    failPendingRequests();
+    
     // notify listeners
     for( IDisconnectListener listener: disconnectListeners)
     {
@@ -290,6 +305,29 @@ public abstract class AbstractTransport implements ITransport
     }
   }
   
+  private void failPendingRequests()
+  {
+    //
+    // Fail pending requests.  ConcurrentHashMap guarantees that all requests sent before
+    // the iterator is created will be returned.  Subsequent requests should fail because
+    // the channel is "inactive".
+    //
+    IEnvelopeProtocol envelopeProtocol = getProtocol().envelope();
+    
+    Iterator<Entry<String, Request>> iter = requests.entrySet().iterator();
+    while( iter.hasNext())
+    {
+      Entry<String, Request> entry = iter.next();
+      Request request = entry.getValue();
+      if ( request.timeoutFuture.cancel( false))
+      {
+        iter.remove();
+        IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
+        notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
+      }
+    }
+  }
+  
   private void notifyTimeout( IModelObject envelope, IContext messageContext)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
@@ -298,14 +336,9 @@ public abstract class AbstractTransport implements ITransport
     // release request
     requests.remove( key);
     
-    notifyError( messageContext, ITransport.Error.timeout);
+    notifyError( messageContext, ITransport.Error.timeout, envelope);
   }
 
-  protected Protocol getProtocol()
-  {
-    return protocol;
-  }
-  
   protected IContext getTransportContext()
   {
     return transportContext;

@@ -83,6 +83,9 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
   @Override
   public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request) throws Exception
   {
+    // ignore acks
+    if ( message == null) return;
+    
     IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
     if ( onReceive != null) 
     {
@@ -93,7 +96,7 @@ public class TcpServerAction extends GuardedAction implements IConnectListener, 
   }
   
   @Override
-  public void onError( ITransport transport, IContext context, ITransport.Error error) throws Exception
+  public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request) throws Exception
   {
     IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
     if ( onTimeout != null) 

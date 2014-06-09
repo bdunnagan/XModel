@@ -55,7 +55,7 @@ public class TestTransport extends AbstractTransport
       }
       catch( IOException e)
       {
-        notifyError( getTransportContext(), ITransport.Error.encodeFailed);
+        notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
       }
     }
     return new SuccessAsyncFuture<ITransport>( this);
@@ -79,6 +79,10 @@ public class TestTransport extends AbstractTransport
     
     final TestTransport t1 = new TestTransport( protocol, context);
     t1.addListener( new IReceiveListener() {
+      public void onAck( ITransport transport, IContext messageContext, IModelObject request) throws Exception
+      {
+      }
+
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #1:\nRequest:\n%s\nMessage:\n%s", 
@@ -108,7 +112,7 @@ public class TestTransport extends AbstractTransport
     });
     
     t1.addListener( new IErrorListener() {
-      public void onError( ITransport transport, IContext context, ITransport.Error error)
+      public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
       {
         log.infof( "Error #1");
       }
@@ -117,6 +121,10 @@ public class TestTransport extends AbstractTransport
     
     final TestTransport t2 = new TestTransport( protocol, context);
     t2.addListener( new IReceiveListener() {
+      public void onAck( ITransport transport, IContext messageContext, IModelObject request) throws Exception
+      {
+      }
+
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #2:\nRequest:\n%s\nMessage:\n%s\n", 
@@ -145,7 +153,7 @@ public class TestTransport extends AbstractTransport
     });
 
     t2.addListener( new IErrorListener() {
-      public void onError( ITransport transport, IContext context, ITransport.Error error)
+      public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
       {
         log.infof( "Error #2");
       }

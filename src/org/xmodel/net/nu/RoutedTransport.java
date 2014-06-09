@@ -3,6 +3,7 @@ package org.xmodel.net.nu;
 import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public final class RoutedTransport implements ITransport
@@ -11,6 +12,12 @@ public final class RoutedTransport implements ITransport
   {
     this.via = via;
     this.at = at;
+  }
+
+  @Override
+  public Protocol getProtocol()
+  {
+    return via.getProtocol();
   }
 
   @Override
@@ -25,13 +32,10 @@ public final class RoutedTransport implements ITransport
     return via.disconnect();
   }
   
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.ITransport#send(org.xmodel.IModelObject)
-   */
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message)
+  public AsyncFuture<ITransport> ack( IModelObject message)
   {
-    return via.send( message);
+    return via.ack( message);
   }
 
   @Override
@@ -100,6 +104,10 @@ public final class RoutedTransport implements ITransport
   public void removeListener( IErrorListener listener)
   {
     via.removeListener( listener);
+  }
+
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
+  {
   }
 
   private ITransport via;

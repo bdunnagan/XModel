@@ -3,6 +3,7 @@ package org.xmodel.net.nu;
 import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class PersistentTransport implements ITransport, IConnectListener, IDisconnectListener, IErrorListener, Runnable
@@ -20,7 +21,7 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   }
 
   @Override
-  public void onError( ITransport transport, IContext context, Error error) throws Exception
+  public void onError( ITransport transport, IContext context, Error error, IModelObject request) throws Exception
   {
     switch( error)
     {
@@ -61,6 +62,12 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   }
   
   @Override
+  public Protocol getProtocol()
+  {
+    return transport.getProtocol();
+  }
+
+  @Override
   public AsyncFuture<ITransport> connect( int timeout)
   {
     connectTimeout = timeout;
@@ -74,15 +81,15 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   }
 
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message)
-  {
-    return transport.send( message);
-  }
-
-  @Override
   public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
     return transport.request( message, messageContext, timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> ack( IModelObject request)
+  {
+    return transport.ack( request);
   }
 
   @Override
@@ -95,6 +102,12 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   public ScheduledFuture<?> schedule( Runnable runnable, int delay)
   {
     return transport.schedule( runnable, delay);
+  }
+
+  @Override
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
+  {
+    transport.notifyError( context, error, request);
   }
 
   @Override

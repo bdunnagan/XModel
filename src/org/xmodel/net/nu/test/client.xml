@@ -17,7 +17,7 @@
     <script>
       <logi>'[CLIENT] Connected'</logi>
       
-      <request var="result" via="$client" onReceive="$onReceive">
+      <request var="result" via="$client" timeout="10000" onReceive="$onReceive">
         <script>
           <print>'Hi'</print>
         </script>

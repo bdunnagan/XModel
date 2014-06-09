@@ -3,6 +3,7 @@ package org.xmodel.net.nu;
 import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -10,19 +11,23 @@ import org.xmodel.xpath.expression.IContext;
  */
 public interface ITransport
 {
-  public enum Error { timeout, connectRefused, connectError, encodeFailed};
+  public enum Error { timeout, connectRefused, connectError, encodeFailed, channelClosed, messageExpired};
+
+  public Protocol getProtocol();
   
   public AsyncFuture<ITransport> connect( int timeout);
   
   public AsyncFuture<ITransport> disconnect();
 
-  public AsyncFuture<ITransport> send( IModelObject message);
-  
   public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout);
+  
+  public AsyncFuture<ITransport> ack( IModelObject request);
   
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request);
   
   public ScheduledFuture<?> schedule( Runnable runnable, int delay);
+  
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request);
   
   public void addListener( IConnectListener listener);
   

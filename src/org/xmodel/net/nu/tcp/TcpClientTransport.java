@@ -95,7 +95,7 @@ public class TcpClientTransport extends AbstractChannelTransport
         }
         else
         {
-          notifyError( getTransportContext(), translateConnectError( channelFuture.cause()));
+          notifyError( getTransportContext(), translateConnectError( channelFuture.cause()), null);
         }
         
         super.operationComplete( channelFuture);

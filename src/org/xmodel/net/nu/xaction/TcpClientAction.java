@@ -11,6 +11,7 @@ import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.PersistentTransport;
+import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -37,6 +38,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
     retryExpr = document.getExpression( "retry", true);
+    reliableExpr = document.getExpression( "reliable", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
@@ -54,30 +56,27 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     
     int connectTimeout = (connectTimeoutExpr != null)? (int)connectTimeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     boolean retry = (retryExpr != null)? retryExpr.evaluateBoolean( context): true;
+    boolean reliable = (reliableExpr != null)? reliableExpr.evaluateBoolean( context): true;
     
     ScheduledExecutorService scheduler = (schedulerExpr != null)? (ScheduledExecutorService)Conventions.getCache( context, schedulerExpr): null;
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
     
     try
     {
-      TcpClientTransport transport = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler,
+      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler,
           Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this), 
           Collections.singletonList( (IReceiveListener)this), Collections.singletonList( (IErrorListener)this)); 
       
-      Conventions.putCache( context, var, transport);
+      Conventions.putCache( context, var, tcpClient);
       
-      if ( localHost != null) transport.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
-      transport.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
+      if ( localHost != null) tcpClient.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
+      tcpClient.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
       
-      if ( retry)
-      {
-        PersistentTransport persistTransport = new PersistentTransport( transport);
-        persistTransport.connect( connectTimeout).await();
-      }
-      else
-      {
-        transport.connect( connectTimeout).await();
-      }
+      ITransport transport = tcpClient;
+      if ( retry) transport = new PersistentTransport( transport);
+      if ( reliable) transport = new ReliableTransport( transport);
+      
+      transport.connect( connectTimeout).await();
     }
     catch( Exception e)
     {
@@ -104,6 +103,9 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
   @Override
   public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request) throws Exception
   {
+    // ignore acks
+    if ( message == null) return;
+    
     IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
     if ( onReceive != null) 
     {
@@ -113,7 +115,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
   }
   
   @Override
-  public void onError( ITransport transport, IContext context, ITransport.Error error) throws Exception
+  public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request) throws Exception
   {
     IXAction onError = Conventions.getScript( document, context, onErrorExpr);
     if ( onError != null) 
@@ -134,6 +136,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
   private IExpression protocolExpr;
   private IExpression schedulerExpr;
   private IExpression retryExpr;
+  private IExpression reliableExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onReceiveExpr;

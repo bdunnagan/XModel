@@ -1,7 +1,6 @@
 package org.xmodel.net.nu.test;
 
 import java.net.InetSocketAddress;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;

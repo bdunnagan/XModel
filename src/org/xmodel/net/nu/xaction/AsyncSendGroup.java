@@ -36,17 +36,6 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     this.onComplete = onComplete;
   }
   
-  public void send( Iterator<ITransport> transports, IModelObject message)
-  {
-    while( transports.hasNext())
-    {
-      ITransport transport = transports.next();
-      addListeners( transport);
-      transport.send( message);
-      removeListeners( transport);
-    }
-  }
-
   public void send( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout)
   {
     int count = 0;
@@ -96,7 +85,7 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
   }
   
   @Override
-  public void onError( ITransport transport, IContext messageContext, ITransport.Error error)
+  public void onError( ITransport transport, IContext messageContext, ITransport.Error error, IModelObject request)
   {
     removeListeners( transport);
     
