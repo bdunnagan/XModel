@@ -38,7 +38,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
-import org.xmodel.caching.sql.transform.SimpleSQLParser;
+import org.xmodel.caching.sql.transform.SQLPredicateParser;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.MultiByteArrayInputStream;
 import org.xmodel.compress.TabularCompressor;
@@ -242,7 +242,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( SQLException e)
     {
-      throw new CachingException( "Unable to cache reference: "+reference, e);
+      throw new CachingException( "Unable to cache reference: "+ reference, e);
     }
     finally
     {
@@ -625,12 +625,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( tableName);
     
     // optional configured predicate
-    Object[] params = null;
+    List<String> params = null;
     if ( where != null)
     {
       sb.append( " WHERE ");
-      params = SimpleSQLParser.parameterizePredicate( where);
-      sb.append( (params != null)? params[ 0]: where);
+      
+      SQLPredicateParser parser = new SQLPredicateParser();
+      parser.parse( where);
+     
+      sb.append( parser.getParameterizedPredicate());
+      params = parser.getParameters();
+      
+      log.debugf( "Parameterized predicate: %s", parser.getParameterizedPredicate());
     }
     
     // optional ordering
@@ -650,17 +656,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     if ( params != null)
     {
-      for( int i=1; i<params.length; i++)
+      for( int i=0; i<params.size(); i++)
       {
-        Object param = params[ i];
-        if ( param instanceof Object[])
-        {
-          statement.setArray( i, connection.createArrayOf( "VARCHAR", (Object[])param));
-        }
-        else
-        {
-          statement.setObject( i, param);
-        }
+        String param = params.get( i);
+        statement.setObject( i+1, param);
       }
     }
     
