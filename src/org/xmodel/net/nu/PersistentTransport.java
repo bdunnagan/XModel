@@ -1,13 +1,21 @@
 package org.xmodel.net.nu;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ScheduledFuture;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class PersistentTransport implements ITransport, IConnectListener, IDisconnectListener, IErrorListener, Runnable
+public class PersistentTransport implements ITransportImpl, IConnectListener, IDisconnectListener, IErrorListener, Runnable
 {
   public PersistentTransport( ITransportImpl transport)
   {
+    // redirect notifications to this transport
+    transport.getNotifier().setTransport( this);
+    
     transport.addListener( (IConnectListener)this);
     transport.addListener( (IDisconnectListener)this);
     transport.addListener( (IErrorListener)this);
@@ -138,6 +146,72 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
     transport.removeListener( listener);
   }
   
+  @Override
+  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
+  {
+    return transport.schedule( runnable, delay);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  {
+    return transport.sendImpl( envelope);
+  }
+
+  @Override
+  public Protocol getProtocol()
+  {
+    return transport.getProtocol();
+  }
+
+  @Override
+  public IContext getTransportContext()
+  {
+    return transport.getTransportContext();
+  }
+
+  @Override
+  public TransportNotifier getNotifier()
+  {
+    return transport.getNotifier();
+  }
+
+  @Override
+  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
+  {
+    return transport.notifyReceive( bytes, offset, length);
+  }
+
+  @Override
+  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  {
+    return transport.notifyReceive( buffer);
+  }
+
+  @Override
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+  {
+    transport.notifyReceive( message, messageContext, request);
+  }
+
+  @Override
+  public void notifyError( IContext context, Error error, IModelObject request)
+  {
+    transport.notifyError( context, error, request);
+  }
+
+  @Override
+  public void notifyConnect()
+  {
+    transport.notifyConnect();
+  }
+
+  @Override
+  public void notifyDisconnect()
+  {
+    transport.notifyDisconnect();
+  }
+
   private ITransportImpl transport;
   private int connectTimeout;
   private int retryDelay;

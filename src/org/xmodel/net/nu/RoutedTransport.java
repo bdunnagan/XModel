@@ -1,23 +1,18 @@
 package org.xmodel.net.nu;
 
-import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public final class RoutedTransport implements ITransport
 {
-  public RoutedTransport( ITransport via, String at)
+  public RoutedTransport( ITransportImpl via, String at)
   {
+    // redirect notifications to this transport
+    via.getNotifier().setTransport( this);
+    
     this.via = via;
     this.at = at;
-  }
-
-  @Override
-  public Protocol getProtocol()
-  {
-    return via.getProtocol();
   }
 
   @Override
@@ -52,12 +47,6 @@ public final class RoutedTransport implements ITransport
     return via.respond( message, request);
   }
   
-  @Override
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
-  {
-    return via.schedule( runnable, delay);
-  }
-
   @Override
   public void addListener( IReceiveListener listener)
   {
@@ -110,6 +99,6 @@ public final class RoutedTransport implements ITransport
   {
   }
 
-  private ITransport via;
+  private ITransportImpl via;
   private String at;
 }

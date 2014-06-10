@@ -18,6 +18,8 @@ public interface ITransportImpl extends ITransport
   
   public IContext getTransportContext();
   
+  public TransportNotifier getNotifier();
+  
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException;
   
   public boolean notifyReceive( ByteBuffer buffer) throws IOException;

@@ -152,6 +152,12 @@ public abstract class AbstractTransport implements ITransportImpl
   }
 
   @Override
+  public TransportNotifier getNotifier()
+  {
+    return notifier;
+  }
+
+  @Override
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
   {
     try
@@ -192,26 +198,26 @@ public abstract class AbstractTransport implements ITransportImpl
   @Override
   public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
   {
-    notifier.notifyReceive( this, message, messageContext, request);
+    notifier.notifyReceive( message, messageContext, request);
   }
 
   @Override
   public void notifyError( IContext context, Error error, IModelObject request)
   {
-    notifier.notifyError( this, context, error, request);
+    notifier.notifyError( context, error, request);
   }
 
   @Override
   public void notifyConnect()
   {
-    notifier.notifyConnect( this, transportContext);
+    notifier.notifyConnect( transportContext);
   }
 
   @Override
   public void notifyDisconnect()
   {
     failPendingRequests();
-    notifier.notifyDisconnect( this, transportContext);
+    notifier.notifyDisconnect( transportContext);
   }
 
   private boolean notifyReceive( IModelObject envelope) throws IOException
@@ -231,13 +237,13 @@ public abstract class AbstractTransport implements ITransportImpl
         if ( request != null && request.timeoutFuture.cancel( false))
         {
           IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
-          notifier.notifyReceive( this, message, request.messageContext, requestMessage);
+          notifier.notifyReceive( message, request.messageContext, requestMessage);
         }
       }
     }
     else if ( route == null)
     {
-      notifier.notifyReceive( this, message, transportContext, null);
+      notifier.notifyReceive( message, transportContext, null);
     }
     else
     {
@@ -266,7 +272,7 @@ public abstract class AbstractTransport implements ITransportImpl
       {
         iter.remove();
         IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
-        notifier.notifyError( this, request.messageContext, ITransport.Error.channelClosed, requestMessage);
+        notifier.notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
       }
     }
   }
@@ -279,7 +285,7 @@ public abstract class AbstractTransport implements ITransportImpl
     // release request
     requests.remove( key);
     
-    notifier.notifyError( this, messageContext, ITransport.Error.timeout, envelope);
+    notifier.notifyError( messageContext, ITransport.Error.timeout, envelope);
   }
 
   private class Request implements Runnable

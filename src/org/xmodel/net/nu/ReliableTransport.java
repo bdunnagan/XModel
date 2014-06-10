@@ -8,16 +8,11 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class ReliableTransport implements ITransport, IConnectListener, IReceiveListener, IErrorListener
+public class ReliableTransport implements ITransportImpl
 {
-  public ReliableTransport( ITransport transport, TransportNotifier notifier)
+  public ReliableTransport( ITransportImpl transport)
   {
-    transport.addListener( (IConnectListener)this);
-    transport.addListener( (IReceiveListener)this);
-    transport.addListener( (IErrorListener)this);
-    
     this.transport = transport;
-    this.notifier = notifier;
   }
   
   @Override
@@ -53,7 +48,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
         }
         else
         {
-          notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+          this.transport.notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
         }
       }
       else
@@ -65,12 +60,6 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
         if ( item != null) putMessageInBacklog( item);
       }
     }
-  }
-
-  @Override
-  public Protocol getProtocol()
-  {
-    return transport.getProtocol();
   }
 
   @Override
@@ -111,12 +100,6 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
     return transport.respond( message, request);
-  }
-
-  @Override
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
-  {
-    return transport.schedule( runnable, delay);
   }
 
   @Override
@@ -172,12 +155,12 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
     if ( timeRemaining > 0)
     {
-      item.expireFuture = schedule( new ExpireTask( item), timeRemaining);
+      item.expireFuture = transport.schedule( new ExpireTask( item), timeRemaining);
       queue.offer( item);
     }
     else
     {
-      notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
   }
   
@@ -225,7 +208,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
     @Override
     public void run()
     {
-      notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
 
     private QueuedMessage item;
@@ -239,8 +222,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
     }
   };
   
-  private ITransport transport;
-  private TransportNotifier notifier;
+  private ITransportImpl transport;
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
 }

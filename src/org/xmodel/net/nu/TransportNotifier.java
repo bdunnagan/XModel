@@ -9,12 +9,19 @@ import org.xmodel.xpath.expression.IContext;
 
 public class TransportNotifier
 {
-  public TransportNotifier()
+  public TransportNotifier( ITransport transport)
   {
+    this.transport = transport;
+    
     connectListeners = new CopyOnWriteArrayList<IConnectListener>();
     disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>();
     receiveListeners = new CopyOnWriteArrayList<IReceiveListener>();
     errorListeners = new CopyOnWriteArrayList<IErrorListener>();
+  }
+  
+  public void setTransport( ITransport transport)
+  {
+    this.transport = transport;
   }
   
   public void setConnectListeners( List<IConnectListener> listeners)
@@ -89,7 +96,7 @@ public class TransportNotifier
     errorListeners.remove( listener);
   }
 
-  public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request)
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
   {
     for( IReceiveListener listener: receiveListeners)
     {
@@ -104,7 +111,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
   {
     for( IErrorListener listener: errorListeners)
     {
@@ -119,7 +126,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyConnect( ITransport transport, IContext transportContext)
+  public void notifyConnect( IContext transportContext)
   {
     for( IConnectListener listener: connectListeners)
     {
@@ -134,7 +141,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyDisconnect( ITransport transport, IContext transportContext)
+  public void notifyDisconnect( IContext transportContext)
   {
     for( IDisconnectListener listener: disconnectListeners)
     {
@@ -151,6 +158,7 @@ public class TransportNotifier
   
   public final static Log log = Log.getLog( TransportNotifier.class);
   
+  private ITransport transport;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;
   private List<IReceiveListener> receiveListeners;
