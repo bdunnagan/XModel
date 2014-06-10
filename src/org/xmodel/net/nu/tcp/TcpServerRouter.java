@@ -34,9 +34,10 @@ import org.xmodel.xpath.expression.IContext;
 
 public class TcpServerRouter implements IRouter
 {
-  public TcpServerRouter( Protocol protocol, IContext transportContext)
+  public TcpServerRouter( Protocol protocol, IContext transportContext, boolean reliable)
   {
     this( protocol, transportContext, null);
+    this.reliable = reliable;
   }
   
   public TcpServerRouter( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
@@ -69,6 +70,8 @@ public class TcpServerRouter implements IRouter
        {
          TcpChildTransport transport = new TcpChildTransport( protocol, transportContext, scheduler, channel, 
              connectListeners, disconnectListeners, receiveListeners, errorListeners);
+         //if ( reliable) transport = new ReliableTransport
+         
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
@@ -206,6 +209,7 @@ public class TcpServerRouter implements IRouter
   private ServerSocketChannel serverChannel;
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
+  private boolean reliable;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;
   private List<IReceiveListener> receiveListeners;

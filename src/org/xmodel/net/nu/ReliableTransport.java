@@ -10,13 +10,14 @@ import org.xmodel.xpath.expression.IContext;
 
 public class ReliableTransport implements ITransport, IConnectListener, IReceiveListener, IErrorListener
 {
-  public ReliableTransport( ITransport transport)
+  public ReliableTransport( ITransport transport, TransportNotifier notifier)
   {
     transport.addListener( (IConnectListener)this);
     transport.addListener( (IReceiveListener)this);
     transport.addListener( (IErrorListener)this);
     
     this.transport = transport;
+    this.notifier = notifier;
   }
   
   @Override
@@ -119,12 +120,6 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
   }
 
   @Override
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
-  {
-    transport.notifyError( context, error, request);
-  }
-
-  @Override
   public void addListener( IConnectListener listener)
   {
     transport.addListener( listener);
@@ -182,7 +177,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
     }
     else
     {
-      notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
     }
   }
   
@@ -230,7 +225,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
     @Override
     public void run()
     {
-      notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
     }
 
     private QueuedMessage item;
@@ -245,6 +240,7 @@ public class ReliableTransport implements ITransport, IConnectListener, IReceive
   };
   
   private ITransport transport;
+  private TransportNotifier notifier;
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
 }

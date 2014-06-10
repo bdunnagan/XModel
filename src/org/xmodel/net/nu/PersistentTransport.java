@@ -1,14 +1,12 @@
 package org.xmodel.net.nu;
 
-import java.util.concurrent.ScheduledFuture;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class PersistentTransport implements ITransport, IConnectListener, IDisconnectListener, IErrorListener, Runnable
 {
-  public PersistentTransport( ITransport transport)
+  public PersistentTransport( ITransportImpl transport)
   {
     transport.addListener( (IConnectListener)this);
     transport.addListener( (IDisconnectListener)this);
@@ -27,7 +25,7 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
     {
       case connectRefused:
       case connectError:
-        schedule( this, retryDelay);
+        this.transport.schedule( this, retryDelay);
         increaseRetryDelay();
         break;
       
@@ -45,7 +43,7 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   @Override
   public void onDisconnect( ITransport transport, IContext context) throws Exception
   {
-    schedule( this, retryDelay);
+    this.transport.schedule( this, retryDelay);
     increaseRetryDelay();
   }
   
@@ -61,12 +59,6 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
     connect( connectTimeout);
   }
   
-  @Override
-  public Protocol getProtocol()
-  {
-    return transport.getProtocol();
-  }
-
   @Override
   public AsyncFuture<ITransport> connect( int timeout)
   {
@@ -96,18 +88,6 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
     return transport.respond( message, request);
-  }
-
-  @Override
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
-  {
-    return transport.schedule( runnable, delay);
-  }
-
-  @Override
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
-  {
-    transport.notifyError( context, error, request);
   }
 
   @Override
@@ -158,7 +138,7 @@ public class PersistentTransport implements ITransport, IConnectListener, IDisco
     transport.removeListener( listener);
   }
   
-  private ITransport transport;
+  private ITransportImpl transport;
   private int connectTimeout;
   private int retryDelay;
   private int retryMinDelay;

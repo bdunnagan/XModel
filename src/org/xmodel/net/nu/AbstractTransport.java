@@ -2,13 +2,10 @@ package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -23,36 +20,20 @@ import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
-public abstract class AbstractTransport implements ITransport
+public abstract class AbstractTransport implements ITransportImpl
 {
-  protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, 
-     List<IConnectListener> connectListeners, List<IDisconnectListener> disconnectListeners,
-     List<IReceiveListener> receiveListeners, List<IErrorListener> errorListeners)
+  protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, TransportNotifier notifier) 
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
-    if ( connectListeners == null) connectListeners = Collections.emptyList(); 
-    if ( disconnectListeners == null) disconnectListeners = Collections.emptyList(); 
-    if ( receiveListeners == null) receiveListeners = Collections.emptyList(); 
-    if ( errorListeners == null) errorListeners = Collections.emptyList(); 
     
     this.protocol = new ThreadSafeProtocol( protocol.wire(), protocol.envelope());
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
-    
-    this.connectListeners = new CopyOnWriteArrayList<IConnectListener>( connectListeners);
-    this.disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>( disconnectListeners);
-    this.receiveListeners = new CopyOnWriteArrayList<IReceiveListener>( receiveListeners);
-    this.errorListeners = new CopyOnWriteArrayList<IErrorListener>( errorListeners);
+    this.notifier = notifier;
   }
 
-  @Override
-  public Protocol getProtocol()
-  {
-    return protocol;
-  }
-  
   @Override
   public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
@@ -104,7 +85,53 @@ public abstract class AbstractTransport implements ITransport
     return sendImpl( envelope);
   }
   
-  protected abstract AsyncFuture<ITransport> sendImpl( IModelObject envelope);
+  @Override
+  public void addListener( IConnectListener listener)
+  {
+    notifier.addListener( listener);
+  }
+
+  @Override
+  public void removeListener( IConnectListener listener)
+  {
+    notifier.removeListener( listener);
+  }
+
+  @Override
+  public void addListener( IDisconnectListener listener)
+  {
+    notifier.addListener( listener);
+  }
+
+  @Override
+  public void removeListener( IDisconnectListener listener)
+  {
+    notifier.removeListener( listener);
+  }
+  
+  @Override
+  public void addListener( IReceiveListener listener)
+  {
+    notifier.addListener( listener);
+  }
+
+  @Override
+  public void removeListener( IReceiveListener listener)
+  {
+    notifier.removeListener( listener);
+  }
+
+  @Override
+  public void addListener( IErrorListener listener)
+  {
+    notifier.addListener( listener);
+  }
+
+  @Override
+  public void removeListener( IErrorListener listener)
+  {
+    notifier.removeListener( listener);
+  }
 
   @Override
   public ScheduledFuture<?> schedule( Runnable runnable, int delay)
@@ -113,57 +140,18 @@ public abstract class AbstractTransport implements ITransport
   }
 
   @Override
-  public void addListener( IConnectListener listener)
+  public Protocol getProtocol()
   {
-    if ( !connectListeners.contains( listener))
-      connectListeners.add( listener);
-  }
-
-  @Override
-  public void removeListener( IConnectListener listener)
-  {
-    connectListeners.remove( listener);
-  }
-
-  @Override
-  public void addListener( IDisconnectListener listener)
-  {
-    if ( !disconnectListeners.contains( listener))
-      disconnectListeners.add( listener);
-  }
-
-  @Override
-  public void removeListener( IDisconnectListener listener)
-  {
-    disconnectListeners.remove( listener);
+    return protocol;
   }
   
   @Override
-  public void addListener( IReceiveListener listener)
+  public IContext getTransportContext()
   {
-    if ( !receiveListeners.contains( listener))
-      receiveListeners.add( listener);
+    return transportContext;
   }
 
   @Override
-  public void removeListener( IReceiveListener listener)
-  {
-    receiveListeners.remove( listener);
-  }
-
-  @Override
-  public void addListener( IErrorListener listener)
-  {
-    if ( !errorListeners.contains( listener))
-      errorListeners.add( listener);
-  }
-
-  @Override
-  public void removeListener( IErrorListener listener)
-  {
-    errorListeners.remove( listener);
-  }
-
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
   {
     try
@@ -182,6 +170,7 @@ public abstract class AbstractTransport implements ITransport
     }
   }
   
+  @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     try
@@ -200,6 +189,31 @@ public abstract class AbstractTransport implements ITransport
     }
   }
   
+  @Override
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+  {
+    notifier.notifyReceive( this, message, messageContext, request);
+  }
+
+  @Override
+  public void notifyError( IContext context, Error error, IModelObject request)
+  {
+    notifier.notifyError( this, context, error, request);
+  }
+
+  @Override
+  public void notifyConnect()
+  {
+    notifier.notifyConnect( this, transportContext);
+  }
+
+  @Override
+  public void notifyDisconnect()
+  {
+    failPendingRequests();
+    notifier.notifyDisconnect( this, transportContext);
+  }
+
   private boolean notifyReceive( IModelObject envelope) throws IOException
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
@@ -216,34 +230,14 @@ public abstract class AbstractTransport implements ITransport
         // receive/timeout exclusion
         if ( request != null && request.timeoutFuture.cancel( false))
         {
-          for( IReceiveListener listener: receiveListeners)
-          {
-            try
-            {
-              IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
-              listener.onReceive( this, message, request.messageContext, requestMessage);
-            }
-            catch( Exception e)
-            {
-              log.exception( e);
-            }
-          }
+          IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
+          notifier.notifyReceive( this, message, request.messageContext, requestMessage);
         }
       }
     }
     else if ( route == null)
     {
-      for( IReceiveListener listener: receiveListeners)
-      {
-        try
-        {
-          listener.onReceive( this, message, transportContext, null);
-        }
-        catch( Exception e)
-        {
-          log.exception( e);
-        }
-      }
+      notifier.notifyReceive( this, message, transportContext, null);
     }
     else
     {
@@ -252,57 +246,6 @@ public abstract class AbstractTransport implements ITransport
     }
     
     return true;
-  }
-  
-  @Override
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
-  {
-    // notify listeners
-    for( IErrorListener listener: errorListeners)
-    {
-      try
-      {
-        listener.onError( this, context, error, request);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
-  }
-  
-  public void notifyConnect()
-  {
-    // notify listeners
-    for( IConnectListener listener: connectListeners)
-    {
-      try
-      {
-        listener.onConnect( this, transportContext);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
-  }
-  
-  public void notifyDisconnect()
-  {
-    failPendingRequests();
-    
-    // notify listeners
-    for( IDisconnectListener listener: disconnectListeners)
-    {
-      try
-      {
-        listener.onDisconnect( this, transportContext);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
   }
   
   private void failPendingRequests()
@@ -323,7 +266,7 @@ public abstract class AbstractTransport implements ITransport
       {
         iter.remove();
         IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
-        notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
+        notifier.notifyError( this, request.messageContext, ITransport.Error.channelClosed, requestMessage);
       }
     }
   }
@@ -336,14 +279,9 @@ public abstract class AbstractTransport implements ITransport
     // release request
     requests.remove( key);
     
-    notifyError( messageContext, ITransport.Error.timeout, envelope);
+    notifier.notifyError( this, messageContext, ITransport.Error.timeout, envelope);
   }
 
-  protected IContext getTransportContext()
-  {
-    return transportContext;
-  }
-  
   private class Request implements Runnable
   {
     Request( IModelObject envelope, IContext messageContext, int timeout)
@@ -371,8 +309,5 @@ public abstract class AbstractTransport implements ITransport
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
-  private List<IConnectListener> connectListeners;
-  private List<IDisconnectListener> disconnectListeners;
-  private List<IReceiveListener> receiveListeners;
-  private List<IErrorListener> errorListeners;
+  private TransportNotifier notifier;
 }
