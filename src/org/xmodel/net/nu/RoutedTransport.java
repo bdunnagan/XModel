@@ -8,7 +8,7 @@ public final class RoutedTransport implements ITransport
 {
   public RoutedTransport( ITransportImpl via, String at)
   {
-    // redirect notifications to this transport
+    // invoke listeners with this transport
     via.getNotifier().setTransport( this);
     
     this.via = via;

@@ -1,17 +1,19 @@
 package org.xmodel.net.nu.xaction;
 
 import java.net.InetSocketAddress;
-import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
 import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.PersistentTransport;
 import org.xmodel.net.nu.ReliableTransport;
+import org.xmodel.net.nu.TransportNotifier;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -63,16 +65,20 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     
     try
     {
-      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler,
-          Collections.singletonList( (IConnectListener)this), Collections.singletonList( (IDisconnectListener)this), 
-          Collections.singletonList( (IReceiveListener)this), Collections.singletonList( (IErrorListener)this)); 
+      TransportNotifier notifier = new TransportNotifier();
+      notifier.addListener( (IConnectListener)this);
+      notifier.addListener( (IDisconnectListener)this);
+      notifier.addListener( (IReceiveListener)this);
+      notifier.addListener( (IErrorListener)this);
       
+      
+      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler, notifier);
       Conventions.putCache( context, var, tcpClient);
       
       if ( localHost != null) tcpClient.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
       tcpClient.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
       
-      ITransport transport = tcpClient;
+      ITransportImpl transport = tcpClient;
       if ( retry) transport = new PersistentTransport( transport);
       if ( reliable) transport = new ReliableTransport( transport);
       

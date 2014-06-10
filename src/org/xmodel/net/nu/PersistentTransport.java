@@ -13,7 +13,7 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
 {
   public PersistentTransport( ITransportImpl transport)
   {
-    // redirect notifications to this transport
+    // invoke listeners with this transport
     transport.getNotifier().setTransport( this);
     
     transport.addListener( (IConnectListener)this);

@@ -3,11 +3,12 @@ package org.xmodel.net.nu.tcp;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.xmodel.net.nu.AbstractTransport;
+
+import org.xmodel.net.nu.ITransportImpl;
 
 public class XioInboundHandler extends ChannelInboundHandlerAdapter
 {
-  public XioInboundHandler( AbstractTransport transport)
+  public XioInboundHandler( ITransportImpl transport)
   {
     this.transport = transport;
   }
@@ -66,6 +67,6 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     }
   }
   
-  private AbstractTransport transport;
+  private ITransportImpl transport;
   private ByteBuf readBuffer;
 }

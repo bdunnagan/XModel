@@ -2,6 +2,7 @@ package org.xmodel.net.nu.xaction;
 
 import java.util.Iterator;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Reference;
@@ -9,6 +10,7 @@ import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.RoutedTransport;
 import org.xmodel.util.MultiIterator;
 import org.xmodel.xpath.expression.IContext;
@@ -88,9 +90,9 @@ final class MessageSchema
           log.warnf( "Route is null.");
         }
       }
-      else if ( via instanceof ITransport)
+      else if ( via instanceof ITransportImpl)
       {
-        iterator.add( (at != null)? new RoutedTransport( (ITransport)via, at): (ITransport)via);
+        iterator.add( (at != null)? new RoutedTransport( (ITransportImpl)via, at): (ITransportImpl)via);
       }
       else
       {

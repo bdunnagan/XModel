@@ -9,10 +9,8 @@ import org.xmodel.xpath.expression.IContext;
 
 public class TransportNotifier
 {
-  public TransportNotifier( ITransport transport)
+  public TransportNotifier()
   {
-    this.transport = transport;
-    
     connectListeners = new CopyOnWriteArrayList<IConnectListener>();
     disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>();
     receiveListeners = new CopyOnWriteArrayList<IReceiveListener>();
