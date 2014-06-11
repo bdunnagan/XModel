@@ -25,6 +25,7 @@ public abstract class AbstractTransport implements ITransportImpl
   protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, TransportNotifier notifier) 
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
+    if ( notifier == null) notifier = new TransportNotifier( this);
     
     this.protocol = new ThreadSafeProtocol( protocol.wire(), protocol.envelope());
     this.transportContext = transportContext;
@@ -226,7 +227,7 @@ public abstract class AbstractTransport implements ITransportImpl
     
     IModelObject message = envelopeProtocol.getMessage( envelope);
     String route = envelopeProtocol.getRoute( envelope);
-    if ( envelopeProtocol.isRequest( envelope))
+    if ( !envelopeProtocol.isRequest( envelope))
     {
       Object key = envelopeProtocol.getKey( envelope);
       if ( key != null)

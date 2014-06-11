@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -19,6 +20,11 @@ public class ReliableTransport implements ITransportImpl
     transport.getNotifier().setTransport( this);
     
     this.transport = transport;
+    
+    // TODO: overkill?
+    this.queue = new ConcurrentLinkedQueue<QueuedMessage>();
+    this.sent = new ConcurrentHashMap<IModelObject, QueuedMessage>();
+    
   }
   
   @Override
@@ -109,6 +115,108 @@ public class ReliableTransport implements ITransportImpl
     transport.removeListener( listener);
   }
 
+  @Override
+  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
+  {
+    return transport.schedule( runnable, delay);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  {
+    return transport.sendImpl( envelope);
+  }
+
+  @Override
+  public Protocol getProtocol()
+  {
+    return transport.getProtocol();
+  }
+
+  @Override
+  public IContext getTransportContext()
+  {
+    return transport.getTransportContext();
+  }
+
+  @Override
+  public TransportNotifier getNotifier()
+  {
+    return transport.getNotifier();
+  }
+
+  @Override
+  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
+  {
+    return transport.notifyReceive( bytes, offset, length);
+  }
+
+  @Override
+  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  {
+    return transport.notifyReceive( buffer);
+  }
+
+  @Override
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+  {
+    if ( request != null) sent.remove( request);
+    
+    transport.notifyReceive( message, messageContext, request);
+  }
+
+  @Override
+  public void notifyError( IContext context, Error error, IModelObject request)
+  {
+    if ( request != null)
+    {
+      if ( error.equals( ITransport.Error.timeout))
+      {
+        //
+        // Remote host was busy, so re-send message unless it has expired.
+        //
+        QueuedMessage item = sent.get( request);
+        int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
+        if ( timeRemaining > 0) 
+        {
+          request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout));
+        }
+        else
+        {
+          transport.notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+        }
+      }
+      else
+      {
+        //
+        // Connection is offline, so queue message until connection is re-established.
+        //
+        QueuedMessage item = sent.remove( request);
+        if ( item != null) putMessageInBacklog( item);
+        
+        transport.notifyError( context, error, request);
+      }
+    }
+    else
+    {
+      transport.notifyError( context, error, request);
+    }
+  }
+
+  @Override
+  public void notifyConnect()
+  {
+    transport.notifyConnect();
+    
+    sendNextFromBacklog();
+  }
+
+  @Override
+  public void notifyDisconnect()
+  {
+    transport.notifyDisconnect();
+  }
+  
   private void putMessageInBacklog( QueuedMessage item)
   {
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
@@ -182,96 +290,6 @@ public class ReliableTransport implements ITransportImpl
   };
   
   private ITransportImpl transport;
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
-  {
-    return transport.schedule( runnable, delay);
-  }
-
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
-  {
-    return transport.sendImpl( envelope);
-  }
-
-  public Protocol getProtocol()
-  {
-    return transport.getProtocol();
-  }
-
-  public IContext getTransportContext()
-  {
-    return transport.getTransportContext();
-  }
-
-  public TransportNotifier getNotifier()
-  {
-    return transport.getNotifier();
-  }
-
-  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
-  {
-    return transport.notifyReceive( bytes, offset, length);
-  }
-
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
-  {
-    return transport.notifyReceive( buffer);
-  }
-
-  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
-  {
-    if ( request != null) sent.remove( request);
-    
-    transport.notifyReceive( message, messageContext, request);
-  }
-
-  public void notifyError( IContext context, Error error, IModelObject request)
-  {
-    if ( request != null)
-    {
-      if ( error.equals( ITransport.Error.timeout))
-      {
-        //
-        // Remote host was busy, so re-send message unless it has expired.
-        //
-        QueuedMessage item = sent.get( request);
-        int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
-        if ( timeRemaining > 0) 
-        {
-          request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout));
-        }
-        else
-        {
-          transport.notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
-        }
-      }
-      else
-      {
-        //
-        // Connection is offline, so queue message until connection is re-established.
-        //
-        QueuedMessage item = sent.remove( request);
-        if ( item != null) putMessageInBacklog( item);
-        
-        transport.notifyError( context, error, request);
-      }
-    }
-    else
-    {
-      transport.notifyError( context, error, request);
-    }
-  }
-
-  public void notifyConnect()
-  {
-    transport.notifyConnect();
-    
-    sendNextFromBacklog();
-  }
-
-  public void notifyDisconnect()
-  {
-    transport.notifyDisconnect();
-  }
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
 }

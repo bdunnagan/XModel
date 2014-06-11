@@ -7,12 +7,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XmlWireProtocol;
@@ -24,9 +27,10 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class TestTransport extends AbstractTransport
 {
-  public TestTransport( Protocol protocol, IContext transportContext)
+  public TestTransport( Protocol protocol, IContext transportContext, int fail)
   {
-    super( protocol, transportContext, null, null, null, null, null);
+    super( protocol, transportContext, null, null);
+    this.count = fail;
     transports.add( this);
   }
 
@@ -45,6 +49,12 @@ public class TestTransport extends AbstractTransport
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
+    if ( count-- == 0) 
+    {
+      notifyError( getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
+      return new FailureAsyncFuture<ITransport>( this, "dummy");
+    }
+    
     for( TestTransport transport: transports)
     {
       if ( transport == this) continue;
@@ -63,6 +73,8 @@ public class TestTransport extends AbstractTransport
   
   private static List<TestTransport> transports = new ArrayList<TestTransport>();
   
+  private int count;
+  
   public static void main( String[] args) throws Exception
   {
     final Log log = Log.getLog( "Test");
@@ -77,21 +89,14 @@ public class TestTransport extends AbstractTransport
     
     Protocol protocol = new Protocol( new XmlWireProtocol(), new SimpleEnvelopeProtocol());
     
-    final TestTransport t1 = new TestTransport( protocol, context);
+    final ITransport t1 = new ReliableTransport( new TestTransport( protocol, context, -1));
     t1.addListener( new IReceiveListener() {
-      public void onAck( ITransport transport, IContext messageContext, IModelObject request) throws Exception
-      {
-      }
-
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #1:\nRequest:\n%s\nMessage:\n%s", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
           XmlIO.write( Style.printable, message));
-        
-        if ( request != null && !message.getAttribute( "id").equals( request.getAttribute( "id")))
-          throw new IllegalStateException();
-       
+               
         executor.execute( new Runnable() {
           public void run()
           {
@@ -100,7 +105,7 @@ public class TestTransport extends AbstractTransport
               Thread.sleep( 50);
               StatefulContext messageContext = new StatefulContext( context);
               IModelObject next = new XmlIO().read( xml);
-              transport.request( next, messageContext, 100);
+              transport.request( next, messageContext, 1000);
             }
             catch( Exception e)
             {
@@ -114,26 +119,19 @@ public class TestTransport extends AbstractTransport
     t1.addListener( new IErrorListener() {
       public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
       {
-        log.infof( "Error #1");
+        log.infof( "Error #1: %s", error);
       }
     });
     
     
-    final TestTransport t2 = new TestTransport( protocol, context);
+    final ITransport t2 = new ReliableTransport( new TestTransport( protocol, context, 0));
     t2.addListener( new IReceiveListener() {
-      public void onAck( ITransport transport, IContext messageContext, IModelObject request) throws Exception
-      {
-      }
-
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #2:\nRequest:\n%s\nMessage:\n%s\n", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
           XmlIO.write( Style.printable, message));
        
-        if ( request != null && !message.getAttribute( "id").equals( request.getAttribute( "id")))
-          throw new IllegalStateException();
-        
         executor.execute( new Runnable() {
           public void run()
           {
@@ -155,7 +153,7 @@ public class TestTransport extends AbstractTransport
     t2.addListener( new IErrorListener() {
       public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
       {
-        log.infof( "Error #2");
+        log.infof( "Error #2: %s", error);
       }
     });
     
@@ -167,7 +165,7 @@ public class TestTransport extends AbstractTransport
         {
           StatefulContext messageContext = new StatefulContext( context);
           IModelObject message = new XmlIO().read( xml);
-          t1.request( message, messageContext, 100);
+          t1.request( message, messageContext, 1000);
         }
         catch( Exception e)
         {

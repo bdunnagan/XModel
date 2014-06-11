@@ -11,12 +11,19 @@ public class TransportNotifier
 {
   public TransportNotifier()
   {
+    this( null);
+  }
+  
+  public TransportNotifier( AbstractTransport transport)
+  {
+    this.transport = transport;
+    
     connectListeners = new CopyOnWriteArrayList<IConnectListener>();
     disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>();
     receiveListeners = new CopyOnWriteArrayList<IReceiveListener>();
     errorListeners = new CopyOnWriteArrayList<IErrorListener>();
   }
-  
+
   public void setTransport( ITransport transport)
   {
     this.transport = transport;

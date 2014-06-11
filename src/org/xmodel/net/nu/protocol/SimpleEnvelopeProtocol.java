@@ -56,8 +56,8 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject getEnvelope( IModelObject message)
   {
-    IModelObject envelope = message.getParent();
-    if ( envelope.isType( "envelope")) return envelope;
+    IModelObject envelope = message.getRoot();
+    if ( envelope.isType( "request") || envelope.isType( "response")) return envelope;
     throw new IllegalArgumentException();
   }
 
