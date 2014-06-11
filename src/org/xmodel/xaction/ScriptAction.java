@@ -228,33 +228,51 @@ public class ScriptAction extends GuardedAction
    */
   private static String getScriptLocationString( XActionDocument document)
   {
-    StringBuilder sb = new StringBuilder();
-    IModelObject root = null;
+    List<IModelObject> elements = new ArrayList<IModelObject>();
     
     while ( document != null)
     {
-      root = document.getRoot();
-      if ( root == null) continue;
-      
-      if ( sb.length() > 0) sb.append( " <- ");
-      
-      String name = Xlate.get( root, "name", (String)null);
-      if ( name != null) 
+      IModelObject root = document.getRoot();
+      if ( root != null) elements.add( 0, root);
+      document = document.getParentDocument();
+    }
+    
+    StringBuilder sb = new StringBuilder();
+    
+    IModelObject element = elements.get( 0);
+    sb.append( element.getType());
+    if ( element.getParent() != null)
+    {
+      sb.append( '[');
+      sb.append( element.getParent().getChildren().indexOf( element) + 1);
+      sb.append( ']');
+      sb.append( '\n');
+    }
+    
+    for( int i=1; i<elements.size(); i++)
+    {
+      if ( element.isType( "script"))
       {
-        sb.append( name);
+        String name = Xlate.get( element, "name", (String)null);
+        if ( name != null)
+        {
+          sb.append( name);
+          sb.append( '\n');
+        }
       }
       else
       {
-        sb.append( root.getType());
-        if ( root.getParent() != null)
+        sb.append( '<'); sb.append( element.getType()); sb.append( ' ');
+        for( String attrName: element.getAttributeNames())
         {
-          sb.append( '[');
-          sb.append( root.getParent().getChildren( root.getType()).indexOf( root) + 1);
-          sb.append( ']');
+          Object attrValue = element.getAttribute( attrName);
+          if ( attrValue != null)
+          {
+            sb.append( attrName); sb.append( '='); sb.append( attrValue);
+          }
         }
+        sb.append( ">");
       }
-      
-      document = document.getParentDocument();
     }
     
     return sb.toString();
@@ -262,6 +280,8 @@ public class ScriptAction extends GuardedAction
   
   public class ScriptException extends RuntimeException
   {
+    private static final long serialVersionUID = 9000111268511851458L;
+
     public ScriptException( IXAction script, Throwable cause)
     {
       super( cause);
