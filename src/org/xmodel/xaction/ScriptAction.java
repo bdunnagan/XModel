@@ -21,10 +21,10 @@ package org.xmodel.xaction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -200,19 +200,27 @@ public class ScriptAction extends GuardedAction
     else
     {
       Debugger debugger = getDebugger();
+      debugger.push( context, this);
       try
       {
-        debugger.push( context, this);
         for( int i=0; i<actions.length; i++)
         {
-          Object[] result = debugger.run( context, actions[ i]);
-          if ( result != null) return result;
+          try
+          {
+            Object[] result = debugger.run( context, actions[ i]);
+            if ( result != null) return result;
+          }
+          catch( ScriptException e)
+          {
+            throw e;
+          }
+          catch( RuntimeException e)
+          {
+            String location = getScriptLocationString( actions[ i].getDocument());
+            SLog.errorf( this, "Caught next exception at:\n%s", location);
+            throw new ScriptException( actions[ i], e);
+          }
         }
-      }
-      catch( RuntimeException e)
-      {
-        SLog.errorf( this, "Caught next exception at %s ...", getScriptLocationString( getDocument()));
-        throw e;
       }
       finally
       {
@@ -228,32 +236,32 @@ public class ScriptAction extends GuardedAction
    */
   private static String getScriptLocationString( XActionDocument document)
   {
-    List<IModelObject> elements = new ArrayList<IModelObject>();
+    LinkedHashSet<IModelObject> elements = new LinkedHashSet<IModelObject>();
     
     while ( document != null)
     {
       IModelObject root = document.getRoot();
-      if ( root != null) elements.add( 0, root);
+      if ( root != null) elements.add( root);
       document = document.getParentDocument();
     }
     
     StringBuilder sb = new StringBuilder();
-    
-    IModelObject element = elements.get( 0);
-    sb.append( element.getType());
-    if ( element.getParent() != null)
+
+    IModelObject[] array = elements.toArray( new IModelObject[ 0]);
+    sb.append( array[ 0].getType());
+    if ( array[ 0].getParent() != null)
     {
       sb.append( '[');
-      sb.append( element.getParent().getChildren().indexOf( element) + 1);
+      sb.append( array[ 0].getParent().getChildren().indexOf( array[ 0]) + 1);
       sb.append( ']');
       sb.append( '\n');
     }
     
-    for( int i=1; i<elements.size(); i++)
+    for( int i=1; i<array.length; i++)
     {
-      if ( element.isType( "script"))
+      if ( array[ i].isType( "script"))
       {
-        String name = Xlate.get( element, "name", (String)null);
+        String name = Xlate.get( array[ i], "name", (String)null);
         if ( name != null)
         {
           sb.append( name);
@@ -262,16 +270,25 @@ public class ScriptAction extends GuardedAction
       }
       else
       {
-        sb.append( '<'); sb.append( element.getType()); sb.append( ' ');
-        for( String attrName: element.getAttributeNames())
+        sb.append( '<'); sb.append( array[ i].getType());
+        for( String attrName: array[ i].getAttributeNames())
         {
-          Object attrValue = element.getAttribute( attrName);
-          if ( attrValue != null)
+          if ( attrName.length() != 0 && !attrName.equals( "xaction") && !attrName.equals( "xm:compiled"))
           {
-            sb.append( attrName); sb.append( '='); sb.append( attrValue);
+            Object attrValue = array[ i].getAttribute( attrName);
+            if ( attrValue != null)
+            {
+              sb.append( ' ');
+              sb.append( attrName); 
+              sb.append( '='); 
+              sb.append( '"');
+              sb.append( attrValue);
+              sb.append( '"');
+            }
           }
         }
         sb.append( ">");
+        sb.append( '\n');
       }
     }
     
@@ -282,23 +299,18 @@ public class ScriptAction extends GuardedAction
   {
     private static final long serialVersionUID = 9000111268511851458L;
 
-    public ScriptException( IXAction script, Throwable cause)
+    public ScriptException( IXAction xaction, Throwable cause)
     {
       super( cause);
-      this.script = script;
+      this.xaction = xaction;
     }
     
-    /* (non-Javadoc)
-     * @see java.lang.Throwable#toString()
-     */
-    @Override
-    public String toString()
+    public IXAction getScript()
     {
-      String location = getScriptLocationString( script.getDocument());
-      return String.format( "Caught RuntimeException at %s: %s", location, super.toString());
+      return xaction;
     }
-
-    private IXAction script;
+    
+    private IXAction xaction;
   }
   
   private final static String[] defaultIgnore = {
