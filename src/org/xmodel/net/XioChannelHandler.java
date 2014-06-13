@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -21,6 +22,7 @@ import org.xmodel.net.bind.BindProtocol;
 import org.xmodel.net.echo.EchoProtocol;
 import org.xmodel.net.execution.ExecutionProtocol;
 import org.xmodel.net.register.RegisterProtocol;
+import org.xmodel.util.HexDump;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -314,40 +316,7 @@ public class XioChannelHandler extends SimpleChannelHandler
    */
   public final static String toString( String indent, ChannelBuffer buffer)
   {
-    StringBuilder sb = new StringBuilder();
-    sb.append( "\n");
-    
-    for( int i=0, n=0; i<buffer.readableBytes(); i++, n++)
-    {
-      if ( i > 0 && (n % 64) == 0) sb.append( "\n");
-      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
-    }
-    
-    sb.append( "\n");
-    
-//    sb.append( indent);
-//    
-//    int bpl = 64;
-//    for( int i=0, n=0; i<buffer.readableBytes(); i++)
-//    {
-//      if ( n == 0)
-//      {
-//        for( int j=0; j<bpl && (i + j) < buffer.readableBytes(); j+=4)
-//          sb.append( String.format( "|%-8d", i + j));
-//        sb.append( String.format( "\n%s", indent));
-//      }
-//      
-//      if ( (n % 4) == 0) sb.append( "|");
-//      sb.append( String.format( "%02x", buffer.getByte( buffer.readerIndex() + i)));
-//        
-//      if ( ++n == bpl) 
-//      { 
-//        sb.append( String.format( "\n%s", indent));
-//        n=0;
-//      }
-//    }
-    
-    return sb.toString();
+    return HexDump.toString( buffer);
   }
 
   private final static Log log = Log.getLog( XioChannelHandler.class);

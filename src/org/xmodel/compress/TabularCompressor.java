@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -38,6 +39,7 @@ import java.util.zip.CRC32;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
@@ -45,7 +47,6 @@ import org.xmodel.storage.ByteArrayStorageClass;
 import org.xmodel.storage.IStorageClass;
 import org.xmodel.util.ByteCounterInputStream;
 import org.xmodel.util.HexDump;
-import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
 
 /**
@@ -822,7 +823,7 @@ public class TabularCompressor extends AbstractCompressor
   
   public static void main( String[] args) throws Exception
   {
-    log.setLevel( Log.all);
+    log.setLevel( Log.debug);
     //Log.getLog( ByteCounterInputStream.class).setLevel( Log.all);
 
 //    System.out.println( "\n\n----- #2 Decompressing (shallow) -----\n");
@@ -832,61 +833,46 @@ public class TabularCompressor extends AbstractCompressor
 //    System.out.println( XmlIO.write( Style.printable, req));
 //    System.exit( 1);
  
-    String xml =
-      "<A>" +
-      "  <B>" +
-      "    <F/>" +
-      "  </B>" +
-      "  <C>" +
-      "    <G>" +
-      "      <I/>" +      
-      "    </G>" +
-      "  </C>" +
-      "  <D>" +
-      "    <H/>" +
-      "  </D>" +
-      "  <E/>" +
-      "</A>";
-
-    TabularCompressor.setImplicitTable( new String[] { "G"});
+    IModelObject el = new ModelObject( "result");
+    el.setAttribute( "type", "nodes");
+    for( int i=0; i<1; i++)
+    {
+      IModelObject item = new ModelObject( "item");
+      IModelObject sample = item.getCreateChild( "sample");
+      Xlate.childSet( sample, "created_on", 1402604221077L);
+      Xlate.childSet( sample, "avg_http_4", 5012L);
+      Xlate.childSet( sample, "avg_http_6", 5013L);
+      Xlate.childSet( sample, "avg_ping_4", 0L);
+      Xlate.childSet( sample, "avg_ping_6", -1L);
+      el.addChild( item);
+    }
     
-    IModelObject el = new XmlIO().read( xml);
+    String[] tags = { 
+        "result", "", "item", "response", "summary", "http4", "http6", "url", "ping4", "ping6", "min", "max", "avg", "interfaces",
+        "exception", "request"," assign", "name", "connections", "script", "package", "logi", "logd", "logecreate", "var", "info",
+        "id", "version", "localAddress", "remoteAddress", "nic", "add", "delete", "move", "source", "target", "return", "address",
+        "mac", "prefix", "scope", "ipv4", "ipv6", "status", "results", "type", "timestamp", "error", "load", "start", "dns", "connect",
+        "first", "size", "redirect", "landing"
+      };
+    Arrays.sort( tags);
+    TabularCompressor.setImplicitTable( tags);
     
-    System.out.println( "----- #1 Compressing -----\n");
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
     TabularCompressor c = new TabularCompressor( false, false);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
     c.compress( el, out);
     out.close();
     
     byte[] b1 = out.toByteArray();
-    System.out.printf( "%s\n", HexDump.toString( b1));
+    System.out.printf( "%s\n\n\n", HexDump.toString( b1));
     
-    System.out.println( "\n\n----- #2 Decompressing (shallow) -----\n");
     ByteCounterInputStream in = new ByteCounterInputStream( new ByteArrayInputStream( b1));
     c = new TabularCompressor( false, true);
     el = c.decompress( in);
 
-//    IModelObject n1 = el.getChild( 0);
-    //n1.removeChild( 0);
-//    el.getChild( 1).getChild( 0).getChild( 0);
-    
-    System.out.println( "\n\n----- #3 Compressing -----\n");
+    c = new TabularCompressor( false, true);
     out = new ByteArrayOutputStream();
-    c = new TabularCompressor( false, false);
     c.compress( el, out);
     out.close();
-    
-    byte[] b2 = out.toByteArray();
-    System.out.printf( "\n\n%s\n", HexDump.toString( b2));
-    System.out.println( XmlIO.write( Style.printable, el));
-    
-    
-    
-    System.out.println( "\n\n----- #4 Decompressing (shallow) -----\n");
-    in = new ByteCounterInputStream( new ByteArrayInputStream( b2));
-    c = new TabularCompressor( false, true);
-    el = c.decompress( in);
-
-    System.out.println( XmlIO.write( Style.printable, el));
+    System.out.printf( "%s\n", HexDump.toString( b1));
   }
 }

@@ -88,6 +88,7 @@ public class RunAction extends GuardedAction
     portExpr = document.getExpression( "port", true);
     serverExpr = document.getExpression( "server", true);
     clientsExpr = document.getExpression( "clients", true);
+    peerExpr = document.getExpression( "peer", true);
     
     timeoutExpr = document.getExpression( "timeout", true);
     delayExpr = document.getExpression( "delay", true);
@@ -115,7 +116,11 @@ public class RunAction extends GuardedAction
   @Override 
   protected Object[] doAction( IContext context)
   {
-    if ( serverExpr != null)
+    if ( peerExpr != null)
+    {
+      runRemote( context, (XioPeer)Conventions.getCache( context, peerExpr));
+    }
+    else if ( serverExpr != null)
     {
       if ( clientsExpr != null)
       {
@@ -389,6 +394,55 @@ public class RunAction extends GuardedAction
     }
   }
 
+  /**
+   * Perform remote execution at the specified clients.
+   * @param context The context.
+   * @param peer The peer.
+   */
+  private void runRemote( final IContext context, final XioPeer peer)
+  {
+    final int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+
+    final IXAction onComplete = (onCompleteExpr != null)? getScript( context, onCompleteExpr): null;
+    final IXAction onSuccess = (onSuccessExpr != null)? getScript( context, onSuccessExpr): null;
+    final IXAction onError = (onErrorExpr != null)? getScript( context, onErrorExpr): null;
+    
+    String vars = (varsExpr != null)? varsExpr.evaluateString( context): "";
+    final String[] varArray = vars.split( "\\s*,\\s*");
+    final IModelObject scriptNode = getScriptNode( context);
+
+    try
+    {
+      if ( !isAsynchronous())
+      {
+        Object[] result = peer.execute( (StatefulContext)context, varArray, scriptNode, timeout);
+        if ( var != null && result != null && result.length > 0) context.getScope().set( var, result[ 0]);
+      }
+      else
+      {
+        final StatefulContext runContext = new StatefulContext( context.getObject());
+        runContext.getScope().copyFrom( context.getScope());
+        runContext.setExecutor( context.getExecutor());
+        
+        final int correlation = correlationCounter.getAndIncrement();
+        if ( cancelVar != null)
+        {
+          IModelObject asyncInvocation = new ModelObject( "asyncInvocation");
+          asyncInvocation.setAttribute( "peer", peer);
+          asyncInvocation.setAttribute( "correlation", correlation);
+          context.set( cancelVar, asyncInvocation);
+        }
+        
+        AsyncCallback callback = new AsyncCallback( onComplete, onSuccess, onError);
+        peer.execute( runContext, correlation, varArray, scriptNode, callback, timeout);
+      }
+    }
+    catch( Exception e)
+    {
+      handleException( e, context, onComplete, onError);
+    }    
+  }
+  
   /**
    * Perform remote execution at the specified clients.
    * @param context The context.
@@ -804,6 +858,7 @@ public class RunAction extends GuardedAction
   private IExpression portExpr;
   private IExpression serverExpr;
   private IExpression clientsExpr;
+  private IExpression peerExpr;
   private IExpression timeoutExpr;
   private IExpression delayExpr;
   private IExpression scriptExpr;
