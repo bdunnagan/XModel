@@ -414,8 +414,7 @@ public class TabularCompressor extends AbstractCompressor
       for( String attrName: attrNames)
       {
         writeHash( stream, attrName);
-        if ( attrName.length() == 0) serializer.writeValue( stream, node); 
-        else serializer.writeObject( stream, node.getAttribute( attrName));
+        serializer.writeObject( stream, (attrName.length() == 0)? node.getValue(): node.getAttribute( attrName));
       }
     }
     else
@@ -840,10 +839,10 @@ public class TabularCompressor extends AbstractCompressor
       IModelObject item = new ModelObject( "item");
       IModelObject sample = item.getCreateChild( "sample");
       Xlate.childSet( sample, "created_on", 1402604221077L);
-      Xlate.childSet( sample, "avg_http_4", 5012L);
-      Xlate.childSet( sample, "avg_http_6", 5013L);
-      Xlate.childSet( sample, "avg_ping_4", 0L);
-      Xlate.childSet( sample, "avg_ping_6", -1L);
+      Xlate.childSet( sample, "avg_http_4", (short)5012);
+      Xlate.childSet( sample, "avg_http_6", (short)5013);
+      Xlate.childSet( sample, "avg_ping_4", (short)0);
+      Xlate.childSet( sample, "avg_ping_6", (short)-1);
       el.addChild( item);
     }
     
@@ -861,12 +860,36 @@ public class TabularCompressor extends AbstractCompressor
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     c.compress( el, out);
     out.close();
+
+    String hexDump = 
+      "|0       |4       |8       |12\n"+      
+      "|01000000|00000000|9d000000|03100673  ....  ....  ....  ...s\n"+  
+      "|16      |20      |24      |28      \n"+
+      "|616d706c|65730063|72656174|65645f6f  ampl  es.c  reat  ed_o\n"+  
+      "|32      |36      |40      |44      \n"+
+      "|6e006176|675f6874|74705f34|00617667  n.av  g_ht  tp_4  .avg\n"+  
+      "|48      |52      |56      |60      \n"+
+      "|5f687474|705f3600|6176675f|70696e67  _htt  p_6.  avg_  ping\n"+  
+      "|64      |68      |72      |76      \n"+
+      "|5f340061|76675f70|696e675f|36007c27  _4.a  vg_p  ing_  6.|'\n"+  
+      "|80      |84      |88      |92      \n"+
+      "|00012900|01280134|056e6f64|65730113  ..).  .(.4  .nod  es..\n"+  
+      "|96      |100     |104     |108     \n"+
+      "|00013800|05398100|02040000|0146954b  ..8.  .9..  ....  .F.K\n"+  
+      "|112     |116     |120     |124     \n"+
+      "|6af2003a|81000215|02d8f000|00000400  j..:  ....  ....  ....\n"+  
+      "|128     |132     |136     |140     \n"+
+      "|3b810002|1502d8f0|00000004|003c8100  ;...  ....  ....  .<..\n"+  
+      "|144     |148     |152     |156     \n"+
+      "|02150100|00000004|003d8100|021502d8  ....  ....  .=..  ....\n"+  
+      "|160     |164     \n"+
+      "|f0000000|0400\n";
     
-    byte[] b1 = out.toByteArray();
+    byte[] b1 = HexDump.parse( hexDump);
     System.out.printf( "%s\n\n\n", HexDump.toString( b1));
     
-    ByteCounterInputStream in = new ByteCounterInputStream( new ByteArrayInputStream( b1));
-    c = new TabularCompressor( false, true);
+    ByteCounterInputStream in = new ByteCounterInputStream( new ByteArrayInputStream( b1, 13, b1.length - 13));
+    c = new TabularCompressor( false, false);
     el = c.decompress( in);
 
     c = new TabularCompressor( false, true);
@@ -874,5 +897,9 @@ public class TabularCompressor extends AbstractCompressor
     c.compress( el, out);
     out.close();
     System.out.printf( "%s\n", HexDump.toString( b1));
+    
+    in = new ByteCounterInputStream( new ByteArrayInputStream( b1));
+    c = new TabularCompressor( false, true);
+    el = c.decompress( in);
   }
 }

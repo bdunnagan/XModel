@@ -2,17 +2,49 @@ package org.xmodel.util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.xmodel.log.SLog;
 
 public class HexDump
 {
+  public static byte[] parse( String hexDump)
+  {
+    Pattern regex = Pattern.compile( "[|]([a-zA-Z0-9]{2,8})");
+    Matcher matcher = regex.matcher( hexDump);
+    
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    int eol = hexDump.indexOf( '\n'), neol;
+    int line = 0;
+    while( eol >= 0)
+    {
+      neol = hexDump.indexOf( '\n', eol + 1);
+      
+      if ( (line % 2) == 0)
+      {
+        matcher.region( eol+1, neol);
+        while ( matcher.find())
+        {
+          String hex = matcher.group( 1);
+          for( int i=0; i<hex.length(); i+=2)
+            out.write( Integer.parseInt( hex.substring( i, i+2), 16));
+        }
+      }
+      
+      eol = neol;
+      line++;
+    }
+    
+    return out.toByteArray();
+  }
+  
   public static String toString( byte[] bytes)
   {
     return toString( bytes, 0, bytes.length);
