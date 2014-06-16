@@ -7,15 +7,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.TransportNotifier;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public class TcpChildTransport extends AbstractChannelTransport
 {
-  public TcpChildTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, TransportNotifier notifier, SocketChannel channel)
+  public TcpChildTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, SocketChannel channel)
   {
-    super( protocol, transportContext, scheduler, notifier); 
+    super( protocol, transportContext, scheduler); 
     
     channelRef = new AtomicReference<Channel>();
     channelRef.set( channel);

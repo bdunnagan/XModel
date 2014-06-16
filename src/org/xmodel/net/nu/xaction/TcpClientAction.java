@@ -3,7 +3,6 @@ package org.xmodel.net.nu.xaction;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
@@ -13,7 +12,6 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.PersistentTransport;
 import org.xmodel.net.nu.ReliableTransport;
-import org.xmodel.net.nu.TransportNotifier;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -65,14 +63,7 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
     
     try
     {
-      TransportNotifier notifier = new TransportNotifier();
-      notifier.addListener( (IConnectListener)this);
-      notifier.addListener( (IDisconnectListener)this);
-      notifier.addListener( (IReceiveListener)this);
-      notifier.addListener( (IErrorListener)this);
-      
-      
-      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler, notifier);
+      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
       Conventions.putCache( context, var, tcpClient);
       
       if ( localHost != null) tcpClient.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
@@ -81,6 +72,11 @@ public class TcpClientAction extends GuardedAction implements IConnectListener, 
       ITransportImpl transport = tcpClient;
       if ( retry) transport = new PersistentTransport( transport);
       if ( reliable) transport = new ReliableTransport( transport);
+      
+      transport.addListener( (IConnectListener)this);
+      transport.addListener( (IDisconnectListener)this);
+      transport.addListener( (IReceiveListener)this);
+      transport.addListener( (IErrorListener)this);
       
       transport.connect( connectTimeout).await();
     }

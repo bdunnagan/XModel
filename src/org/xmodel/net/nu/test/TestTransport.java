@@ -14,7 +14,6 @@ import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IErrorListener;
 import org.xmodel.net.nu.IReceiveListener;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
@@ -29,7 +28,7 @@ public class TestTransport extends AbstractTransport
 {
   public TestTransport( Protocol protocol, IContext transportContext, int fail)
   {
-    super( protocol, transportContext, null, null);
+    super( protocol, transportContext, null);
     this.count = fail;
     transports.add( this);
   }
@@ -51,7 +50,7 @@ public class TestTransport extends AbstractTransport
   {
     if ( count-- == 0) 
     {
-      notifyError( getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
+      getNotifier().notifyError( this, getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
       return new FailureAsyncFuture<ITransport>( this, "dummy");
     }
     
@@ -65,7 +64,7 @@ public class TestTransport extends AbstractTransport
       }
       catch( IOException e)
       {
-        notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
+        getNotifier().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
       }
     }
     return new SuccessAsyncFuture<ITransport>( this);

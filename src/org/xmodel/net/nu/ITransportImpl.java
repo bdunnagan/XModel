@@ -10,25 +10,21 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface ITransportImpl extends ITransport
 {
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay);
-  
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope);
-  
-  public Protocol getProtocol();
-  
-  public IContext getTransportContext();
-  
-  public TransportNotifier getNotifier();
   
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException;
   
   public boolean notifyReceive( ByteBuffer buffer) throws IOException;
   
-  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request);
+  public void notifyConnect() throws IOException;
   
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request);
+  public void notifyDisconnect() throws IOException;
   
-  public void notifyConnect();
+  public void notifyError( IContext context, ITransport.Error error, IModelObject request) throws Exception;
   
-  public void notifyDisconnect();
+  public ScheduledFuture<?> schedule( Runnable runnable, int delay);
+  
+  public Protocol getProtocol();
+  
+  public IContext getTransportContext();
 }

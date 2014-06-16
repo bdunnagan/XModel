@@ -4,15 +4,37 @@ import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.xpath.expression.IContext;
 
-public final class RoutedTransport implements ITransport
+public final class RoutedTransport implements ITransport, IConnectListener, IDisconnectListener, IReceiveListener, IErrorListener
 {
   public RoutedTransport( ITransportImpl via, String at)
   {
-    // invoke listeners with this transport
-    via.getNotifier().setTransport( this);
-    
+    this.notifier = new TransportNotifier();
     this.via = via;
     this.at = at;
+  }
+
+  @Override
+  public void onConnect( ITransport transport, IContext context) throws Exception
+  {
+    notifier.notifyConnect( this, context);
+  }
+
+  @Override
+  public void onDisconnect( ITransport transport, IContext context) throws Exception
+  {
+    notifier.notifyDisconnect( this, context);
+  }
+
+  @Override
+  public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request) throws Exception
+  {
+    notifier.notifyReceive( this, message, messageContext, request);
+  }
+
+  @Override
+  public void onError( ITransport transport, IContext context, Error error, IModelObject request) throws Exception
+  {
+    notifier.notifyError( this, context, error, request);
   }
 
   @Override
@@ -50,55 +72,52 @@ public final class RoutedTransport implements ITransport
   @Override
   public void addListener( IReceiveListener listener)
   {
-    via.addListener( listener);
+    notifier.addListener( listener);
   }
   
   @Override
   public void removeListener( IReceiveListener listener)
   {
-    via.removeListener( listener);
+    notifier.removeListener( listener);
   }
   
   @Override
   public void addListener( IConnectListener listener)
   {
-    via.addListener( listener);
+    notifier.addListener( listener);
   }
   
   @Override
   public void removeListener( IConnectListener listener)
   {
-    via.removeListener( listener);
+    notifier.removeListener( listener);
   }
   
   @Override
   public void addListener( IDisconnectListener listener)
   {
-    via.addListener( listener);
+    notifier.addListener( listener);
   }
   
   @Override
   public void removeListener( IDisconnectListener listener)
   {
-    via.removeListener( listener);
+    notifier.removeListener( listener);
   }
 
   @Override
   public void addListener( IErrorListener listener)
   {
-    via.addListener( listener);
+    notifier.addListener( listener);
   }
   
   @Override
   public void removeListener( IErrorListener listener)
   {
-    via.removeListener( listener);
+    notifier.removeListener( listener);
   }
 
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
-  {
-  }
-
+  private TransportNotifier notifier;
   private ITransportImpl via;
   private String at;
 }

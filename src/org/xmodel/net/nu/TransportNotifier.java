@@ -1,6 +1,5 @@
 package org.xmodel.net.nu;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.xmodel.IModelObject;
@@ -11,24 +10,12 @@ public class TransportNotifier
 {
   public TransportNotifier()
   {
-    this( null);
-  }
-  
-  public TransportNotifier( AbstractTransport transport)
-  {
-    this.transport = transport;
-    
     connectListeners = new CopyOnWriteArrayList<IConnectListener>();
     disconnectListeners = new CopyOnWriteArrayList<IDisconnectListener>();
     receiveListeners = new CopyOnWriteArrayList<IReceiveListener>();
     errorListeners = new CopyOnWriteArrayList<IErrorListener>();
   }
 
-  public void setTransport( ITransport transport)
-  {
-    this.transport = transport;
-  }
-  
   public void setConnectListeners( List<IConnectListener> listeners)
   {
     connectListeners = new CopyOnWriteArrayList<IConnectListener>( listeners);
@@ -51,8 +38,6 @@ public class TransportNotifier
 
   public void addListener( IConnectListener listener)
   {
-    if ( connectListeners == null) connectListeners = new ArrayList<IConnectListener>( 3);
-    
     if ( !connectListeners.contains( listener))
       connectListeners.add( listener);
   }
@@ -64,8 +49,6 @@ public class TransportNotifier
 
   public void addListener( IDisconnectListener listener)
   {
-    if ( disconnectListeners == null) disconnectListeners = new ArrayList<IDisconnectListener>( 3);
-    
     if ( !disconnectListeners.contains( listener))
       disconnectListeners.add( listener);
   }
@@ -77,8 +60,6 @@ public class TransportNotifier
   
   public void addListener( IReceiveListener listener)
   {
-    if ( receiveListeners == null) receiveListeners = new ArrayList<IReceiveListener>( 3);
-    
     if ( !receiveListeners.contains( listener))
       receiveListeners.add( listener);
   }
@@ -90,8 +71,6 @@ public class TransportNotifier
 
   public void addListener( IErrorListener listener)
   {
-    if ( errorListeners == null) errorListeners = new ArrayList<IErrorListener>( 3);
-    
     if ( !errorListeners.contains( listener))
       errorListeners.add( listener);
   }
@@ -101,7 +80,7 @@ public class TransportNotifier
     errorListeners.remove( listener);
   }
 
-  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+  public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request)
   {
     for( IReceiveListener listener: receiveListeners)
     {
@@ -116,7 +95,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyError( IContext context, ITransport.Error error, IModelObject request)
+  public void notifyError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
   {
     for( IErrorListener listener: errorListeners)
     {
@@ -131,7 +110,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyConnect( IContext transportContext)
+  public void notifyConnect( ITransport transport, IContext transportContext)
   {
     for( IConnectListener listener: connectListeners)
     {
@@ -146,7 +125,7 @@ public class TransportNotifier
     }
   }
   
-  public void notifyDisconnect( IContext transportContext)
+  public void notifyDisconnect( ITransport transport, IContext transportContext)
   {
     for( IDisconnectListener listener: disconnectListeners)
     {
@@ -163,7 +142,6 @@ public class TransportNotifier
   
   public final static Log log = Log.getLog( TransportNotifier.class);
   
-  private ITransport transport;
   private List<IConnectListener> connectListeners;
   private List<IDisconnectListener> disconnectListeners;
   private List<IReceiveListener> receiveListeners;

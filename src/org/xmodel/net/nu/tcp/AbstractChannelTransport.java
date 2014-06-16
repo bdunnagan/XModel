@@ -11,7 +11,6 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.TransportNotifier;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -19,9 +18,9 @@ public abstract class AbstractChannelTransport extends AbstractTransport
 {
   public static final String notConnectedError = "Not connected";
 
-  public AbstractChannelTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, TransportNotifier notifier)
+  public AbstractChannelTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
-    super( protocol, transportContext, scheduler, notifier);
+    super( protocol, transportContext, scheduler);
   }
 
   @Override
@@ -62,7 +61,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     catch( IOException e)
     {
       future.notifyFailure( e);
-      notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
+      getNotifier().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
       return null;
     }
   }

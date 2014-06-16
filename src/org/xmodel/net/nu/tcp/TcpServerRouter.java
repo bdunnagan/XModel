@@ -9,7 +9,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IConnectListener;
 import org.xmodel.net.nu.IDisconnectListener;
@@ -32,7 +30,6 @@ import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.ReliableTransport;
-import org.xmodel.net.nu.TransportNotifier;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -73,15 +70,14 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         TransportNotifier notifier = new TransportNotifier();
-         notifier.setConnectListeners( connectListeners);
-         notifier.setDisconnectListeners( disconnectListeners);
-         notifier.setReceiveListeners( receiveListeners);
-         notifier.setErrorListeners( errorListeners);
-         
-         ITransportImpl transport = new TcpChildTransport( protocol, transportContext, scheduler, notifier, channel);
+         ITransportImpl transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
          if ( reliable) transport = new ReliableTransport( transport);
          
+         for( IConnectListener listener: connectListeners) transport.addListener( listener);
+         for( IDisconnectListener listener: disconnectListeners) transport.addListener( listener);
+         for( IReceiveListener listener: receiveListeners) transport.addListener( listener);
+         for( IErrorListener listener: errorListeners) transport.addListener( listener);
+           
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
