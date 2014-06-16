@@ -88,7 +88,7 @@ public class TestTransport extends AbstractTransport
     
     Protocol protocol = new Protocol( new XmlWireProtocol(), new SimpleEnvelopeProtocol());
     
-    final ITransport t1 = new ReliableTransport( new TestTransport( protocol, context, -1));
+    final ReliableTransport t1 = new ReliableTransport( new TestTransport( protocol, context, -1));
     t1.addListener( new IReceiveListener() {
       public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
@@ -96,22 +96,22 @@ public class TestTransport extends AbstractTransport
           (request != null)? XmlIO.write( Style.printable, request): "null",
           XmlIO.write( Style.printable, message));
                
-        executor.execute( new Runnable() {
-          public void run()
-          {
-            try
-            {
-              Thread.sleep( 50);
-              StatefulContext messageContext = new StatefulContext( context);
-              IModelObject next = new XmlIO().read( xml);
-              transport.request( next, messageContext, 1000);
-            }
-            catch( Exception e)
-            {
-              log.exception( e);
-            }
-          }
-        });
+//        executor.execute( new Runnable() {
+//          public void run()
+//          {
+//            try
+//            {
+//              Thread.sleep( 50);
+//              StatefulContext messageContext = new StatefulContext( context);
+//              IModelObject next = new XmlIO().read( xml);
+//              transport.request( next, messageContext, 1000);
+//            }
+//            catch( Exception e)
+//            {
+//              log.exception( e);
+//            }
+//          }
+//        });
       }
     });
     
@@ -164,7 +164,7 @@ public class TestTransport extends AbstractTransport
         {
           StatefulContext messageContext = new StatefulContext( context);
           IModelObject message = new XmlIO().read( xml);
-          t1.request( message, messageContext, 1000);
+          t1.request( message, messageContext, 1000, Integer.MAX_VALUE);
         }
         catch( Exception e)
         {

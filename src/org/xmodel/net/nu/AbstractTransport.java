@@ -278,7 +278,8 @@ public abstract class AbstractTransport implements ITransportImpl
     // release request
     requests.remove( key);
     
-    notifier.notifyError( this, messageContext, ITransport.Error.timeout, envelope);
+    IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
+    notifier.notifyError( this, messageContext, ITransport.Error.timeout, requestMessage);
   }
 
   private class Request implements Runnable

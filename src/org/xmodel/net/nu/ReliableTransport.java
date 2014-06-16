@@ -59,14 +59,17 @@ public class ReliableTransport implements ITransportImpl, IConnectListener, IDis
         // Remote host was busy, so re-send message unless it has expired.
         //
         QueuedMessage item = sent.get( request);
-        int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
-        if ( timeRemaining > 0) 
+        if ( item != null)
         {
-          request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout));
-        }
-        else
-        {
-          notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+          int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
+          if ( timeRemaining > 0) 
+          {
+            request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), timeRemaining);
+          }
+          else
+          {
+            notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+          }
         }
       }
       else
@@ -75,9 +78,14 @@ public class ReliableTransport implements ITransportImpl, IConnectListener, IDis
         // Connection is offline, so queue message until connection is re-established.
         //
         QueuedMessage item = sent.remove( request);
-        if ( item != null) putMessageInBacklog( item);
-        
-        notifier.notifyError( this, context, error, request);
+        if ( item != null) 
+        {
+          putMessageInBacklog( item);
+        }
+        else
+        {
+          notifier.notifyError( this, context, error, request);
+        }
       }
     }
     else
