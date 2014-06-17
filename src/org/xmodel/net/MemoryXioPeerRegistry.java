@@ -15,7 +15,7 @@ import org.xmodel.log.SLog;
 
 public class MemoryXioPeerRegistry implements IXioPeerRegistry
 {
-  public MemoryXioPeerRegistry( XioServer server)
+  public MemoryXioPeerRegistry()
   {
     peersByName = new HashMap<String, Set<XioPeer>>();
     namesByPeer = new HashMap<XioPeer, Set<String>>();
@@ -98,6 +98,8 @@ public class MemoryXioPeerRegistry implements IXioPeerRegistry
       Set<String> set = namesByPeer.get( peer);
       if ( set != null) names.addAll( set);
     }
+    
+    System.out.println( "Names: "+names);
     
     for( String name: names)
       unregister( peer, name);

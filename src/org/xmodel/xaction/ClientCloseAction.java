@@ -1,7 +1,7 @@
 package org.xmodel.xaction;
 
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioClient;
+import org.xmodel.net.XioPeer;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -26,11 +26,10 @@ public class ClientCloseAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    XioClient client = (XioClient)Conventions.getCache( context, clientExpr);
+    XioPeer client = (XioPeer)Conventions.getCache( context, clientExpr);
     if ( client != null) 
     {
       try { client.unregisterAll();} catch( Exception e) { SLog.exception( this, e);}
-      client.setAutoReconnect( false);
       client.close();
     }
     return null;

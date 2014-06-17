@@ -47,7 +47,6 @@ import org.xmodel.storage.ByteArrayStorageClass;
 import org.xmodel.storage.IStorageClass;
 import org.xmodel.util.ByteCounterInputStream;
 import org.xmodel.util.HexDump;
-import org.xmodel.xml.XmlIO;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the

@@ -16,5 +16,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/slf4j-api-1.7.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/netty-3.6.6.Final.jar" sourcepath="/Users/bdunnagan/.m2/repository/io/netty/netty/3.6.6.Final/netty-3.6.6.Final-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/rabbitmq-client.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

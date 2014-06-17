@@ -36,7 +36,7 @@ public class JdbcStreamingAction extends GuardedAction
     for( IModelObject element: onExpr.evaluateNodes( context))
     {
       ICachingPolicy cachingPolicy = element.getCachingPolicy();
-      if ( cachingPolicy instanceof SQLCachingPolicy)
+      if ( cachingPolicy != null && cachingPolicy instanceof SQLCachingPolicy)
       {
         SQLCachingPolicy sqlCachingPolicy = (SQLCachingPolicy)cachingPolicy; 
         sqlCachingPolicy.setStreamingEnabled( true);

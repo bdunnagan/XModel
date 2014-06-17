@@ -6,21 +6,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
-import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.HeaderProtocol.Type;
+import org.xmodel.net.IXioChannel;
 
 public class BindResponseProtocol
 {
   public BindResponseProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.pending = new ConcurrentHashMap<Integer, BindRecord>();
   }
   
@@ -41,7 +39,7 @@ public class BindResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( Channel channel, int correlation, IModelObject element) throws IOException
+  public void send( IXioChannel channel, int correlation, IModelObject element) throws IOException
   {
     log.debugf( "BindResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -71,7 +69,7 @@ public class BindResponseProtocol
    * @param buffer The buffer.
    * @param length The message length.
    */
-  public void handle( Channel channel, ChannelBuffer buffer, long length) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer, long length) throws IOException
   {
     int correlation = buffer.readInt();
     
@@ -92,7 +90,7 @@ public class BindResponseProtocol
    */
   protected synchronized int nextCorrelation( IExternalReference reference)
   {
-    int correlation = counter.incrementAndGet();
+    int correlation = bundle.headerProtocol.correlation();
     pending.put( correlation, new BindRecord( reference));
     return correlation;
   }
@@ -103,11 +101,11 @@ public class BindResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns the element that was received or null if timoeut occurs.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( int correlation, int timeout) throws InterruptedException
   {
     try
     {
-      BindRecord record = pending.get( (int)correlation);
+      BindRecord record = pending.get( correlation);
       if ( record != null) return record.semaphore.tryAcquire( timeout, TimeUnit.MILLISECONDS)? record.received: null;
       return null;
     }
@@ -133,6 +131,5 @@ public class BindResponseProtocol
   private final static Log log = Log.getLog( BindResponseProtocol.class);
   
   private BindProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BindRecord> pending;
 }

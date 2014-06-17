@@ -1,4 +1,4 @@
-package org.xmodel.net;
+package org.xmodel.net.transport.netty;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -19,6 +19,10 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.log.SLog;
+import org.xmodel.net.IXioPeerRegistry;
+import org.xmodel.net.IXioPeerRegistryListener;
+import org.xmodel.net.MemoryXioPeerRegistry;
+import org.xmodel.net.XioPeer;
 import org.xmodel.net.execution.ExecutionPrivilege;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -26,7 +30,7 @@ import org.xmodel.xpath.expression.IContext;
 /**
  * This class provides an interface for the server-side of the protocol.
  */
-public class XioServer
+public class NettyXioServer
 {
   public interface IListener
   {
@@ -62,7 +66,7 @@ public class XioServer
    * The executors for both protocols use GlobalSettings.getInstance().getModel().getExecutor() of this thread.
    * @param context The context.
    */
-  public XioServer( IContext context)
+  public NettyXioServer( IContext context)
   {
     this( null, context, null, null);
   }
@@ -73,7 +77,7 @@ public class XioServer
    * @param SSLContext An SSLContext.
    * @param context The context.
    */
-  public XioServer( SSLContext sslContext, IContext context)
+  public NettyXioServer( SSLContext sslContext, IContext context)
   {
     this( sslContext, context, null, null);
   }
@@ -92,12 +96,15 @@ public class XioServer
    * @param scheduler Optional scheduler used for protocol timers.
    * @param bossExecutor Optional The channel factory.
    */
-  public XioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, ServerSocketChannelFactory channelFactory)
+  public NettyXioServer( final SSLContext sslContext, final IContext context, final ScheduledExecutorService scheduler, ServerSocketChannelFactory channelFactory)
   {
     this.listeners = new ArrayList<IListener>( 1);
     
-    this.registry = new MemoryXioPeerRegistry( this);
+    this.registry = new MemoryXioPeerRegistry();
     this.registry.addListener( registryListener);
+    
+    this.context = context;
+    this.scheduler = scheduler;
     
     if ( channelFactory == null) channelFactory = getDefaultChannelFactory();
     
@@ -120,8 +127,7 @@ public class XioServer
         pipeline.addLast( "idleStateHandler", new IdleStateHandler( Heartbeat.timer, 60, 15, 60));
         pipeline.addLast( "heartbeatHandler", new Heartbeat());
         
-        XioChannelHandler handler = new XioChannelHandler( context, context.getExecutor(), scheduler, registry);
-        handler.getExecuteProtocol().requestProtocol.setPrivilege( executionPrivilege);
+        XioChannelHandler handler = new XioChannelHandler();
         pipeline.addLast( "xio", handler);
         
         handler.addListener( channelConnectionListener);
@@ -189,7 +195,23 @@ public class XioServer
   }
   
   /**
-   * @return Returns the peer registry for this server.
+   * Create an XioPeer instance for the specified client channel.
+   * @param channel The channel.
+   * @return Returns the new peer instance.
+   */
+  public XioPeer createConnectionPeer( Channel channel)
+  {
+    return new NettyXioServerPeer( 
+      new NettyXioChannel( channel), 
+      registry, 
+      context, 
+      context.getExecutor(), 
+      scheduler, 
+      executionPrivilege);
+  }
+
+  /**
+   * @return Returns the registry for this server.
    */
   public IXioPeerRegistry getPeerRegistry()
   {
@@ -284,7 +306,7 @@ public class XioServer
   private XioChannelHandler.IListener channelConnectionListener = new XioChannelHandler.IListener() {
     public void notifyConnect( XioPeer peer)
     {
-      SslHandler sslHandler = peer.getChannel().getPipeline().get( SslHandler.class);
+      SslHandler sslHandler = peer.getChannel().getSslHandler();
       if ( sslHandler == null) notifyChannelConnected( peer);
     }      
     public void notifyDisconnect( XioPeer peer)
@@ -298,6 +320,8 @@ public class XioServer
   private ServerBootstrap bootstrap;
   private Channel serverChannel;
   private IXioPeerRegistry registry;
+  private IContext context;
+  private ScheduledExecutorService scheduler;
   private ExecutionPrivilege executionPrivilege;
   private List<IListener> listeners;
 }

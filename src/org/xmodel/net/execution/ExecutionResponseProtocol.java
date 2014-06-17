@@ -10,20 +10,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 import org.xmodel.IModelObject;
 import org.xmodel.NullObject;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.TabularCompressor;
+import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.HeaderProtocol.Type;
 import org.xmodel.net.IXioCallback;
-import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioExecutionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -33,7 +32,6 @@ public class ExecutionResponseProtocol
   public ExecutionResponseProtocol( ExecutionProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
     this.tasks = new ConcurrentHashMap<Integer, ResponseTask>();
   }
@@ -75,7 +73,7 @@ public class ExecutionResponseProtocol
    * @param context The execution context.
    * @param results The execution results.
    */
-  public void send( Channel channel, int correlation, IContext context, Object[] results) throws IOException
+  public void send( IXioChannel channel, int correlation, IContext context, Object[] results) throws IOException
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d", correlation);
     
@@ -101,7 +99,7 @@ public class ExecutionResponseProtocol
    * @param context The execution context.
    * @param throwable An exception thrown during remote execution.
    */
-  public void send( Channel channel, int correlation, IContext context, Throwable throwable) throws IOException, InterruptedException
+  public void send( IXioChannel channel, int correlation, IContext context, Throwable throwable) throws IOException, InterruptedException
   {
     log.debugf( "ExecutionResponseProtocol.send: corr=%d, exception=%s: %s", correlation, throwable.getClass().getName(), throwable.getMessage());
     
@@ -125,7 +123,7 @@ public class ExecutionResponseProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
     
@@ -164,21 +162,12 @@ public class ExecutionResponseProtocol
   }
   
   /**
-   * Allocates the next correlation without associating a queue or task.
-   * @return Returns the allocated correlation number.
-   */
-  public int allocCorrelation()
-  {
-    return counter.incrementAndGet();
-  }
-  
-  /**
    * Allocates the next correlation number for a synchronous execution.
    * @return Returns the correlation number.
    */
   protected int nextCorrelation()
   {
-    int correlation = counter.incrementAndGet();
+    int correlation = bundle.headerProtocol.correlation();
     queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
@@ -243,14 +232,14 @@ public class ExecutionResponseProtocol
 
   public static class ResponseTask implements Runnable
   {
-    public ResponseTask( Channel channel, IContext context, IXioCallback callback)
+    public ResponseTask( IXioChannel channel, IContext context, IXioCallback callback)
     {
       this.channel = channel;
       this.context = context;
       this.callback = callback;
       
-      closeListener = new ChannelFutureListener() {
-        public void operationComplete( ChannelFuture future) throws Exception
+      closeListener = new AsyncFuture.IListener<IXioChannel>() {
+        public void notifyComplete( AsyncFuture<IXioChannel> future) throws Exception
         {
           if ( cancelTimer())
           {
@@ -306,7 +295,7 @@ public class ExecutionResponseProtocol
      */
     @Override
     public void run()
-    {      
+    { 
       channel.getCloseFuture().removeListener( closeListener);
       
       IContext context = new StatefulContext( this.context);
@@ -333,8 +322,8 @@ public class ExecutionResponseProtocol
       }
     }
 
-    private Channel channel;
-    private ChannelFutureListener closeListener;
+    private IXioChannel channel;
+    private AsyncFuture.IListener<IXioChannel> closeListener;
     private IContext context;
     private IXioCallback callback;
     private ScheduledFuture<?> timer;
@@ -346,7 +335,6 @@ public class ExecutionResponseProtocol
   private final static IModelObject closedQueueIndicator = new NullObject();
 
   private ExecutionProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BlockingQueue<IModelObject>> queues;
   private Map<Integer, ResponseTask> tasks;
 }

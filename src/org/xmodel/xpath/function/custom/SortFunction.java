@@ -269,8 +269,7 @@ public class SortFunction extends Function
               break;
             }
             
-            default:
-              break;
+            default: break;
           }
         }
         return result;

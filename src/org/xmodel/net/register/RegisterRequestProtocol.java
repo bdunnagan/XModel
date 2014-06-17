@@ -4,10 +4,9 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.log.Log;
-import org.xmodel.net.XioChannelHandler.Type;
-import org.xmodel.net.XioPeer;
+import org.xmodel.net.HeaderProtocol.Type;
+import org.xmodel.net.IXioChannel;
 
 public class RegisterRequestProtocol
 {
@@ -29,7 +28,7 @@ public class RegisterRequestProtocol
    * @param channel The channel.
    * @param name The name to associate with this peer.
    */
-  public void send( Channel channel, String name) throws IOException, InterruptedException
+  public void send( IXioChannel channel, String name) throws IOException, InterruptedException
   {
     log.debugf( "RegisterRequestProtocol.send: name=%s", name);
     
@@ -43,7 +42,7 @@ public class RegisterRequestProtocol
     buffer.writeBytes( bytes);
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.write(buffer);
   }
   
   /**
@@ -51,7 +50,7 @@ public class RegisterRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int length = buffer.readByte();
     if ( length < 0) length += 256;
@@ -62,7 +61,7 @@ public class RegisterRequestProtocol
     String name = new String( bytes, charset);
     log.debugf( "RegisterRequestProtocol.handle: name=%s", name);
     
-    bundle.registry.register( (XioPeer)channel.getAttachment(), name);
+    bundle.registry.register( channel.getPeer(), name);
   }
   
   private final static Log log = Log.getLog( RegisterRequestProtocol.class);

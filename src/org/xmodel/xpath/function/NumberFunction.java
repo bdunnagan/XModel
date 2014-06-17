@@ -74,7 +74,8 @@ public class NumberFunction extends Function
       case NODES:   return numericValue( argument.evaluateNodes( context));
       case NUMBER:  return argument.evaluateNumber( context);   
       case STRING:  return numericValue( argument.evaluateString( context));     
-      case BOOLEAN: return numericValue( argument.evaluateBoolean( context));   
+      case BOOLEAN: return numericValue( argument.evaluateBoolean( context));
+      default: break;
     }
     return 0;
   }

@@ -251,7 +251,7 @@ public class JsonParser
       }
       
       Object value = parseValue( json, null);
-      if ( value == arrayEndToken) throw new ParseException( unexpectedCharacter, index);
+      if ( value == arrayEndToken) break;
       if ( value == commaToken) throw new ParseException( unexpectedCharacter, index);
       if ( value == objectEndToken) throw new ParseException( unexpectedCharacter, index);
      

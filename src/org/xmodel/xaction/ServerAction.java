@@ -1,36 +1,51 @@
 package org.xmodel.xaction;
 
-import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 
-import javax.net.ssl.SSLContext;
-
-import org.jboss.netty.channel.socket.ServerSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioServerBossPool;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioWorkerPool;
-import org.jboss.netty.util.ThreadNameDeterminer;
 import org.xmodel.IModelObject;
-import org.xmodel.log.Log;
-import org.xmodel.net.XioPeer;
-import org.xmodel.net.XioServer;
-import org.xmodel.util.PrefixThreadFactory;
+import org.xmodel.net.IXioPeerRegistry;
+import org.xmodel.net.transport.amqp.AmqpServerTransport;
+import org.xmodel.net.transport.netty.NettyServerTransport;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * An XAction that creates an XIO server.
  */
 public class ServerAction extends GuardedAction
 {
-  public ServerAction()
+  public interface IServerTransport
   {
-    notifyContexts = new HashMap<XioPeer, StatefulContext>();
+    /**
+     * Configure from the specified element.
+     * @param config The configuration element.
+     */
+    public void configure( IModelObject config);
+    
+    /**
+     * Start a server on the specified port and return its registry.
+     * @param context The execution context.
+     * @param onConnect Called when the connection is established.
+     * @param onDisconnect Called when the client is disconnected.
+     * @param onRegister Called when a peer registers with a specified name.
+     * @param onUnregister Called when a peer unregisters.
+     */
+    public IXioPeerRegistry listen( IContext context, IXAction onConnect, IXAction onDisconnect, IXAction onRegister, IXAction onUnregister)
+      throws IOException;
+  }
+  
+  /**
+   * Register a new transport.
+   * @param name The name of the transport configuration element.
+   * @param transport The transport class.
+   */
+  public static void registerTransport( String name, Class<? extends IServerTransport> transport)
+  {
+    transports.put( name, transport);
   }
   
   /* (non-Javadoc)
@@ -43,15 +58,29 @@ public class ServerAction extends GuardedAction
     
     var = Conventions.getVarName( document.getRoot(), false);
     
-    addressExpr = document.getExpression( "address", true);
-    portExpr = document.getExpression( "port", true);
-    sslExpr = document.getExpression( "ssl", true);
-    threadsExpr = document.getExpression( "threads", true);
-    
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onRegisterExpr = document.getExpression( "onRegister", true);
     onUnregisterExpr = document.getExpression( "onUnregister", true);
+    
+    for( IModelObject child: document.getRoot().getChildren())
+    {
+      Class<?> clss = transports.get( child.getType());
+      if ( clss != null)
+      {
+        try
+        {
+          transport = (IServerTransport)clss.newInstance(); 
+          transport.configure( child);
+        }
+        catch( Exception e)
+        {
+          throw new XActionException( "Problem with server transport implementation: ", e);
+        }
+      }
+    }
+    
+    if ( transport == null) throw new XActionException( "Transport not defined.");
   }
   
   /* (non-Javadoc)
@@ -65,100 +94,15 @@ public class ServerAction extends GuardedAction
     final IXAction onRegister = (onRegisterExpr != null)? getScript( context, onRegisterExpr): null;
     final IXAction onUnregister = (onUnregisterExpr != null)? getScript( context, onUnregisterExpr): null;
     
-    String address = addressExpr.evaluateString( context);
-    int port = (int)portExpr.evaluateNumber( context);
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
-    if ( threads == 0) threads = 2;
-    
-    PrefixThreadFactory bossThreadFactory = new PrefixThreadFactory( String.format( "xio-server-boss-%s:%d", address, port));
-    PrefixThreadFactory workThreadFactory = new PrefixThreadFactory( String.format( "xio-server-work-%s:%d", address, port));
-    
-    NioServerBossPool bossPool = new NioServerBossPool( Executors.newCachedThreadPool( bossThreadFactory), 1, ThreadNameDeterminer.CURRENT);
-    NioWorkerPool workerPool = new NioWorkerPool( Executors.newCachedThreadPool( workThreadFactory), threads, ThreadNameDeterminer.CURRENT);
-    ServerSocketChannelFactory channelFactory = new NioServerSocketChannelFactory( bossPool, workerPool);
-    
-    final XioServer server = new XioServer( getSSLContext( context), context, null, channelFactory);
-    
-    if ( onConnect != null || onDisconnect != null || onRegister != null || onUnregister != null)
+    try
     {
-      XioServer.IListener listener = new XioServer.IListener() {
-        public void notifyConnect( final XioPeer peer)
-        {
-          if ( onConnect != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                onConnect.run( nested);
-              }
-            });
-          }
-        }
-        public void notifyDisconnect( final XioPeer peer)
-        {
-          if ( onDisconnect != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                if ( nested != null) onDisconnect.run( nested);
-                removeNotifyContext( peer);
-              }
-            });
-          }
-        }
-        public void notifyRegister( final XioPeer peer, final String name)
-        {
-          if ( onRegister != null) 
-          {
-            if ( name.equals( getIdentityRegistration( peer)))
-              return;
-            
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                if ( nested != null)
-                {
-                  nested.set( "name", (name != null)? name: "");
-                  onRegister.run( nested);
-                }
-              }
-            });
-          }
-        }
-        public void notifyUnregister( final XioPeer peer, final String name)
-        {
-          if ( name.equals( getIdentityRegistration( peer)))
-            return;
-          
-          if ( onUnregister != null) 
-          {
-            context.getExecutor().execute( new Runnable() {
-              public void run() 
-              {
-                StatefulContext nested = getNotifyContext( context, server, peer);
-                if ( nested != null) 
-                {
-                  nested.set( "name", (name != null)? name: "");
-                  onUnregister.run( nested);
-                }
-              }
-            });
-          }
-        }
-      };
-      
-      server.addListener( listener);
+      IXioPeerRegistry registry = transport.listen( context, onConnect, onDisconnect, onRegister, onUnregister);
+      if ( var != null) Conventions.putCache( context, var, registry);
     }
-    
-    // servers that support client registration must be accessible
-    if ( var != null) Conventions.putCache( context, var, server);
-    
-    // bind server
-    server.start( address, port);
+    catch( IOException e)
+    {
+      throw new XActionException( "Unable to create client: ", e);
+    }
     
     return null;
   }
@@ -176,76 +120,18 @@ public class ServerAction extends GuardedAction
     return new ScriptAction( elements);
   }
   
-  /**
-   * Get the SSLContext if ssl is requested.
-   * @param context The context.
-   * @return Returns null or the SSLContext.
-   */
-  private SSLContext getSSLContext( IContext context)
-  {
-    boolean ssl = (sslExpr != null)? sslExpr.evaluateBoolean( context): false; 
-    if ( !ssl) return null;
-    
-    try
-    {
-      return SSLContext.getDefault();
-    }
-    catch( NoSuchAlgorithmException e)
-    {
-      throw new XActionException( e);
-    }
-  }
+  private static Map<String, Class<?>> transports = Collections.synchronizedMap( new HashMap<String, Class<?>>());
   
-  private StatefulContext getNotifyContext( IContext context, XioServer server, XioPeer peer)
+  static
   {
-    synchronized( notifyContexts)
-    {
-      StatefulContext nested = notifyContexts.get( peer);
-      if ( nested == null)
-      {
-        nested = new StatefulContext( context);
-        notifyContexts.put( peer, nested);
-        log.debugf( "Added notification context, map size=%d", notifyContexts.size());
-        
-        InetSocketAddress localAddress = peer.getLocalAddress();
-        nested.set( "localAddress", String.format( "%s:%d", localAddress.getAddress().getHostAddress(), localAddress.getPort()));
-        
-        InetSocketAddress remoteAddress = peer.getRemoteAddress();
-        nested.set( "remoteAddress", String.format( "%s:%d", remoteAddress.getAddress().getHostAddress(), remoteAddress.getPort()));
-
-        String unique = getIdentityRegistration( peer);
-        server.getPeerRegistry().register( peer, unique);
-        nested.set( "peer", unique);
-      }
-      return nested;
-    }
-  }
-  
-  private void removeNotifyContext( XioPeer peer)
-  {
-    synchronized( notifyContexts)
-    {
-      notifyContexts.remove( peer);
-      log.debugf( "Removed notification context, map size=%d", notifyContexts.size());
-    }    
-  }
-  
-  private String getIdentityRegistration( XioPeer peer)
-  {
-    return String.format( "%X", System.identityHashCode( peer));
+    registerTransport( "tcp", NettyServerTransport.class);
+    registerTransport( "amqp", AmqpServerTransport.class);
   }
 
-  private final static Log log = Log.getLog( ServerAction.class);
-  
   private String var;
-  
-  private IExpression addressExpr;
-  private IExpression portExpr;
-  private IExpression sslExpr;
-  private IExpression threadsExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onRegisterExpr;
   private IExpression onUnregisterExpr;
-  private Map<XioPeer, StatefulContext> notifyContexts;
+  private IServerTransport transport;
 }

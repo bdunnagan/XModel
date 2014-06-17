@@ -70,6 +70,6 @@ public class ModelListener implements IModelListener
   public void notifyDirty( IModelObject object, boolean dirty)
   {
     // default behavior is to resync the object since generic listener is interested in everything
-    if ( dirty) object.getChildren();
+    //if ( dirty) object.getChildren();
   }
 }

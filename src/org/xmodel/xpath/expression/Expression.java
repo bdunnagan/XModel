@@ -360,6 +360,7 @@ public abstract class Expression implements IExpression
       case NODES:   return NumberFunction.numericValue( evaluateNodes( context));
       case STRING:  return NumberFunction.numericValue( evaluateString( context));
       case BOOLEAN: return NumberFunction.numericValue( evaluateBoolean( context));
+      default: break;
     }
     throw new ExpressionException( this, "Expression implementation error.");
   }
@@ -376,6 +377,7 @@ public abstract class Expression implements IExpression
       case NODES:   return StringFunction.stringValue( evaluateNodes( context));
       case NUMBER:  return StringFunction.stringValue( evaluateNumber( context));
       case BOOLEAN: return StringFunction.stringValue( evaluateBoolean( context));
+      default: break;
     }
     throw new UnsupportedOperationException();
   }
@@ -392,6 +394,7 @@ public abstract class Expression implements IExpression
       case NODES:  return BooleanFunction.booleanValue( evaluateNodes( context));
       case NUMBER: return BooleanFunction.booleanValue( evaluateNumber( context));
       case STRING: return BooleanFunction.booleanValue( evaluateString( context));
+      default: break;
     }
     throw new UnsupportedOperationException();
   }

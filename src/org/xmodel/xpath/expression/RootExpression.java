@@ -372,6 +372,8 @@ public class RootExpression extends Expression
         case BOOLEAN:
           listener.notifyChange( this, context, evaluateBoolean( context));
           break;
+          
+        default: break;
       }
     }
     catch( ExpressionException e)
@@ -415,6 +417,8 @@ public class RootExpression extends Expression
         case BOOLEAN:
           listener.notifyChange( this, context, !evaluateBoolean( context));
           break;
+          
+        default: break;
       }
     }
     catch( ExpressionException e)

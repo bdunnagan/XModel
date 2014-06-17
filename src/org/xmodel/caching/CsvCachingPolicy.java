@@ -2,6 +2,7 @@ package org.xmodel.caching;
 
 import java.io.File;
 import java.io.IOException;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -9,6 +10,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.ExternalReference;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.log.SLog;
 import org.xmodel.util.FileUtil;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
@@ -26,6 +28,11 @@ import org.xmodel.xml.XmlIO;
 public class CsvCachingPolicy extends ConfiguredCachingPolicy
 {
   public final static int maxDelimiterSearch = 10;
+
+  public CsvCachingPolicy()
+  {
+    setStaticAttributes( new String[] { "path"});
+  }
   
   /* (non-Javadoc)
    * @see org.xmodel.external.ConfiguredCachingPolicy#syncImpl(org.xmodel.external.IExternalReference)
@@ -33,16 +40,18 @@ public class CsvCachingPolicy extends ConfiguredCachingPolicy
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
-    File path = new File( Xlate.get( reference, "path", ""));
+    File path = new File( Xlate.get( reference, "path", reference.getType()));
     
     try
     {
       String content = FileUtil.readAll( path);
       
       char delimiter = findDelimiter( content);
-      if ( delimiter == 0) 
-        throw new CachingException( 
-          "Auto-detection of CSV delimiter failed.");
+      if ( delimiter == 0)
+      {
+        SLog.warnf( this, "Auto-detection of CSV delimiter failed - using comma.");
+        delimiter = ',';
+      }
       
       IModelObject element = parse( content, delimiter);
       update( reference, element);
@@ -82,7 +91,7 @@ public class CsvCachingPolicy extends ConfiguredCachingPolicy
       }
       else if ( !squote && !dquote)
       {
-        if ( c == delimiter || c == '\n')
+        if ( c == delimiter || c == '\n' || c == '\r')
         {
           if ( (c != '\t' && c != ' ') || field.length() != 0)
           {
@@ -105,7 +114,7 @@ public class CsvCachingPolicy extends ConfiguredCachingPolicy
         }
       }
       
-      if ( c == '\n') row = null;
+      if ( c == '\n' || c == '\r') row = null;
     }
     
     return table;

@@ -226,14 +226,9 @@ public class CreateAction extends GuardedAction
         IModelObject node = expression.queryFirst( context);
         return (node != null)? node.getValue(): null;
         
-      case NUMBER:
-        return expression.evaluateNumber( context);
-        
-      case STRING:
-        return expression.evaluateString( context);
-        
-      case BOOLEAN:
-        return expression.evaluateBoolean( context);
+      case NUMBER: return expression.evaluateNumber( context);
+      case STRING: return expression.evaluateString( context);
+      case BOOLEAN: return expression.evaluateBoolean( context);
         
       default: break;
     }

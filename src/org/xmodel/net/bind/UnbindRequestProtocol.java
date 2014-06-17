@@ -1,11 +1,11 @@
 package org.xmodel.net.bind;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.HeaderProtocol.Type;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.XioException;
 
 public class UnbindRequestProtocol
@@ -29,7 +29,7 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @return Returns null or the query result.
    */
-  public void send( Channel channel, int netID) throws InterruptedException
+  public void send( IXioChannel channel, int netID) throws InterruptedException
   {
     log.debugf( "UnbindRequestProtocol.send: element=%X", netID);
     
@@ -40,7 +40,7 @@ public class UnbindRequestProtocol
     bundle.requestCompressor.freeRemote( bundle.requestCompressor.findRemote( netID));
     
     // ignoring write buffer overflow for this type of messaging
-    channel.write( buffer);
+    channel.write(buffer);
   }
   
   /**
@@ -48,7 +48,7 @@ public class UnbindRequestProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws XioException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws XioException
   {
     int netID = buffer.readInt();
     
@@ -66,7 +66,7 @@ public class UnbindRequestProtocol
    * @param netID The network identifier.
    * @param element The element.
    */
-  private void unbind( Channel channel, long netID, IModelObject element)
+  private void unbind( IXioChannel channel, long netID, IModelObject element)
   {
     synchronized( bundle.context)
     {
@@ -87,7 +87,7 @@ public class UnbindRequestProtocol
   
   private class UnbindRunnable implements Runnable
   {
-    public UnbindRunnable( Channel channel, long netID, IModelObject element)
+    public UnbindRunnable( IXioChannel channel, long netID, IModelObject element)
     {
       this.channel = channel;
       this.netID = netID;
@@ -103,7 +103,7 @@ public class UnbindRequestProtocol
       unbind( channel, netID, element);
     }
     
-    private Channel channel;
+    private IXioChannel channel;
     private long netID;
     private IModelObject element;
   }
