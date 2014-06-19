@@ -28,21 +28,28 @@ public class MutexAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    Object lock = context;
-    
-    List<IModelObject> nodes = (onExpr != null)? onExpr.evaluateNodes( context): null;
-    if ( nodes != null && nodes.size() > 0) lock = nodes.get( 0);
-
-    if ( lock != null)
+    if ( onExpr == null)
     {
-      synchronized( lock)
+      synchronized( context)
       {
         return script.run( context);
       }
     }
     else
     {
-      return script.run( context);
+      List<IModelObject> nodes = (onExpr != null)? onExpr.evaluateNodes( context): null;
+      Object lock = (nodes != null && nodes.size() > 0)? nodes.get( 0): null;
+      if ( lock != null)
+      {
+        synchronized( lock)
+        {
+          return script.run( context);
+        }
+      }
+      else
+      {
+        return script.run( context);
+      }
     }
   }
   
