@@ -19,9 +19,11 @@
  */
 package org.xmodel.compress;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,6 +32,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,14 +42,13 @@ import java.util.zip.CRC32;
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
-import org.xmodel.ModelObject;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.storage.ByteArrayStorageClass;
 import org.xmodel.storage.IStorageClass;
-import org.xmodel.util.ByteCounterInputStream;
-import org.xmodel.util.HexDump;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 
 /**
  * An implementation of ICompressor which creates a table of element tags so that the text of the
@@ -593,8 +595,6 @@ public class TabularCompressor extends AbstractCompressor
       
       reserveTag( sb.toString());
     }
-    
-    stream.read();
   }
   
   /**
@@ -618,8 +618,6 @@ public class TabularCompressor extends AbstractCompressor
       stream.write( table.get( i).getBytes( charset));
       stream.write( 0);
     }
-    
-    stream.write( (int)'|');
   }
   
   /**
@@ -808,8 +806,8 @@ public class TabularCompressor extends AbstractCompressor
     
   protected final static Log log = Log.getLog( TabularCompressor.class);
   
-  private static List<String> globalTable;
-  private static Map<String, Integer> globalMap;
+  private static List<String> globalTable = Collections.emptyList();
+  private static Map<String, Integer> globalMap = Collections.emptyMap();
  
   private List<String> table;
   private Map<String, Integer> map;
@@ -831,19 +829,6 @@ public class TabularCompressor extends AbstractCompressor
 //    System.out.println( XmlIO.write( Style.printable, req));
 //    System.exit( 1);
  
-    IModelObject el = new ModelObject( "result");
-    el.setAttribute( "type", "nodes");
-    for( int i=0; i<1; i++)
-    {
-      IModelObject item = new ModelObject( "item");
-      IModelObject sample = item.getCreateChild( "sample");
-      Xlate.childSet( sample, "created_on", 1402604221077L);
-      Xlate.childSet( sample, "avg_http_4", (short)5012);
-      Xlate.childSet( sample, "avg_http_6", (short)5013);
-      Xlate.childSet( sample, "avg_ping_4", (short)0);
-      Xlate.childSet( sample, "avg_ping_6", (short)-1);
-      el.addChild( item);
-    }
     
     String[] tags = { 
         "result", "", "item", "response", "summary", "http4", "http6", "url", "ping4", "ping6", "min", "max", "avg", "interfaces",
@@ -855,50 +840,11 @@ public class TabularCompressor extends AbstractCompressor
     Arrays.sort( tags);
     TabularCompressor.setImplicitTable( tags);
     
-    TabularCompressor c = new TabularCompressor( false, false);
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    c.compress( el, out);
-    out.close();
-
-    String hexDump = 
-      "|0       |4       |8       |12\n"+      
-      "|01000000|00000000|9d000000|03100673  ....  ....  ....  ...s\n"+  
-      "|16      |20      |24      |28      \n"+
-      "|616d706c|65730063|72656174|65645f6f  ampl  es.c  reat  ed_o\n"+  
-      "|32      |36      |40      |44      \n"+
-      "|6e006176|675f6874|74705f34|00617667  n.av  g_ht  tp_4  .avg\n"+  
-      "|48      |52      |56      |60      \n"+
-      "|5f687474|705f3600|6176675f|70696e67  _htt  p_6.  avg_  ping\n"+  
-      "|64      |68      |72      |76      \n"+
-      "|5f340061|76675f70|696e675f|36007c27  _4.a  vg_p  ing_  6.|'\n"+  
-      "|80      |84      |88      |92      \n"+
-      "|00012900|01280134|056e6f64|65730113  ..).  .(.4  .nod  es..\n"+  
-      "|96      |100     |104     |108     \n"+
-      "|00013800|05398100|02040000|0146954b  ..8.  .9..  ....  .F.K\n"+  
-      "|112     |116     |120     |124     \n"+
-      "|6af2003a|81000215|02d8f000|00000400  j..:  ....  ....  ....\n"+  
-      "|128     |132     |136     |140     \n"+
-      "|3b810002|1502d8f0|00000004|003c8100  ;...  ....  ....  .<..\n"+  
-      "|144     |148     |152     |156     \n"+
-      "|02150100|00000004|003d8100|021502d8  ....  ....  .=..  ....\n"+  
-      "|160     |164     \n"+
-      "|f0000000|0400\n";
+    File file = new File( "/Users/bdunnagan/git/SonarServer/IP6SonarServer/bob-purchases.gz");
     
-    byte[] b1 = HexDump.parse( hexDump);
-    System.out.printf( "%s\n\n\n", HexDump.toString( b1));
+    ICompressor c = new ZipCompressor( new TabularCompressor( false, false));
+    IModelObject purchases = c.decompress( new BufferedInputStream( new FileInputStream( file)));
+    System.out.println( XmlIO.write( Style.printable, purchases));
     
-    ByteCounterInputStream in = new ByteCounterInputStream( new ByteArrayInputStream( b1, 13, b1.length - 13));
-    c = new TabularCompressor( false, false);
-    el = c.decompress( in);
-
-    c = new TabularCompressor( false, true);
-    out = new ByteArrayOutputStream();
-    c.compress( el, out);
-    out.close();
-    System.out.printf( "%s\n", HexDump.toString( b1));
-    
-    in = new ByteCounterInputStream( new ByteArrayInputStream( b1));
-    c = new TabularCompressor( false, true);
-    el = c.decompress( in);
   }
 }

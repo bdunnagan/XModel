@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -21,7 +23,6 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.xmodel.GlobalSettings;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.future.UnionFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.ConnectionRetryFuture;
 import org.xmodel.net.IXioChannel;
@@ -378,9 +379,10 @@ public class NettyXioClient extends XioPeer
     AsyncFuture<NettyXioClient> future = (lastAddress != null)? connect( address, retries, delays): null;
     if ( future == null) return null;
     
-    UnionFuture<XioPeer, NettyXioClient> wrapperFuture = new UnionFuture<XioPeer, NettyXioClient>( this);
-    wrapperFuture.addTask( future);
-    return wrapperFuture;
+//    UnionFuture<XioPeer, NettyXioClient> wrapperFuture = new UnionFuture<XioPeer, NettyXioClient>( this);
+//    wrapperFuture.addTask( future);
+//    return wrapperFuture;
+    throw new UnsupportedOperationException();
   }
 
   /* (non-Javadoc)
