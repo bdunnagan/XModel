@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -38,7 +39,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.CRC32;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -248,7 +248,7 @@ public class TabularCompressor extends AbstractCompressor
    * @param cachingPolicy The caching policy.
    * @return Returns the new element.
    */
-  public IModelObject readElementShallow( CaptureInputStream stream, ByteArrayCachingPolicy cachingPolicy) throws IOException, CompressorException
+  private IModelObject readElementShallow( CaptureInputStream stream, ByteArrayCachingPolicy cachingPolicy) throws IOException, CompressorException
   {
     if ( cachingPolicy == null) cachingPolicy = new ByteArrayCachingPolicy( cloneThis());
     
@@ -573,17 +573,17 @@ public class TabularCompressor extends AbstractCompressor
     int count = readValue( stream);
     
     // read entries
-    StringBuilder sb = new StringBuilder();
+    ByteBuffer buf = ByteBuffer.allocate( 512);
     for( int i=0; i<count; i++)
     {
-      sb.setLength( 0);
+      buf.clear();
       
       int b = stream.read();
       while( b != 0)
       {
         if ( (b & 0x80) == 0)
         {
-          sb.append( (char)b);
+          buf.put( (byte)b);
         }
         else
         {
@@ -593,7 +593,10 @@ public class TabularCompressor extends AbstractCompressor
         b = stream.read();
       }
       
-      reserveTag( sb.toString());
+      String tag = new String( buf.array(), 0, buf.position(), charset);
+      log.infof( "Tag: %s", tag);
+      
+      reserveTag( tag);
     }
   }
   
@@ -797,8 +800,10 @@ public class TabularCompressor extends AbstractCompressor
     TabularCompressor clone = new TabularCompressor( stateful, shallow);
     clone.predefined = predefined;
     clone.charset = charset;
-
-    for( int i=globalTable.size(); i<table.size(); i++)
+    
+    clone.map = new LinkedHashMap<String, Integer>();
+    clone.table = new ArrayList<String>();
+    for( int i=0; i<table.size(); i++)
       clone.reserveTag( table.get( i));
     
     return clone;
@@ -840,9 +845,9 @@ public class TabularCompressor extends AbstractCompressor
     Arrays.sort( tags);
     TabularCompressor.setImplicitTable( tags);
     
-    File file = new File( "/Users/bdunnagan/git/SonarServer/IP6SonarServer/bob-purchases.gz");
+    File file = new File( "/Users/bdunnagan/git/Sonar/IP6Sonar2/src/com/nephos6/ip6sonar/web/ipsonar-scripts.xip");
     
-    ICompressor c = new ZipCompressor( new TabularCompressor( false, false));
+    ICompressor c = new TabularCompressor( false, true);
     IModelObject purchases = c.decompress( new BufferedInputStream( new FileInputStream( file)));
     System.out.println( XmlIO.write( Style.printable, purchases));
     
