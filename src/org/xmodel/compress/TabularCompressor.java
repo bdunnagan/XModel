@@ -594,7 +594,7 @@ public class TabularCompressor extends AbstractCompressor
       }
       
       String tag = new String( buf.array(), 0, buf.position(), charset);
-      log.infof( "Tag: %s", tag);
+      log.debugf( "Tag: %s", tag);
       
       reserveTag( tag);
     }
