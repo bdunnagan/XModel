@@ -45,8 +45,6 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    //cache = new BoundedStatementCache( Xlate.childGet( annotation, "cacheSize", 4096));
-    
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
@@ -57,12 +55,7 @@ public class MySQLProvider implements ISQLProvider
     
     String host = Xlate.childGet( annotation, "host", "localhost");
     url = String.format( "jdbc:mysql://%s/%s?cachePrepStmts=true&rewriteBatchedStatements=true", host, database);  
-   
-    int minPoolSize = Xlate.childGet( annotation, "minPoolSize", 20);
-    int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", 80);
-    int minPoolWait = Xlate.childGet( annotation, "minPoolWait", 5000);
-    int maxPoolWait = Xlate.childGet( annotation, "maxPoolWait", 30000);
-    
+       
     pool = new ThreadConnectionPool( this);
   }
 
@@ -135,24 +128,18 @@ public class MySQLProvider implements ISQLProvider
     // configure for read-only and/or streaming
     int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
     
-    // check cache
-    String key = query + resultSetConcur;
-    PreparedStatement statement = (cache != null)? cache.get( key): null;
-    if ( statement == null)
+    PreparedStatement statement;
+    
+    // distinguish stored procedure call from query or update
+    if ( query.charAt( 0) == '{')
     {
-      // distinguish stored procedure call from query or update
-      if ( query.charAt( 0) == '{')
-      {
-        statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      }
-      else
-      {
-        statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-        if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-      }
-      
-      if ( cache != null) cache.put( key, statement);
+      statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
+    }
+    else
+    {
+      statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
     }
     
     return statement;
@@ -164,16 +151,13 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void close( PreparedStatement statement)
   {
-    if ( cache == null)
+    try
     {
-      try
-      {
-        statement.close();
-      }
-      catch( SQLException e)
-      {
-        log.exception( e);
-      }
+      statement.close();
+    }
+    catch( SQLException e)
+    {
+      log.exception( e);
     }
   }
 
@@ -185,5 +169,4 @@ public class MySQLProvider implements ISQLProvider
   private String password;
   private String database;
   private ThreadConnectionPool pool;
-  private BoundedStatementCache cache;
 }

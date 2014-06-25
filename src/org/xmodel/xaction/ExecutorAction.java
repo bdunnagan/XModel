@@ -22,6 +22,7 @@ public class ExecutorAction extends XAction
     var = Conventions.getVarName( document.getRoot(), false);
     nameExpr = document.getExpression( "name", true);
     threadsExpr = document.getExpression( "threads", true);
+    lingerExpr = document.getExpression( "linger", true);
     targetExpr = document.getExpression( "target", true);
   }
 
@@ -32,11 +33,12 @@ public class ExecutorAction extends XAction
   public Object[] doRun( IContext context)
   {
     int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
+    int linger = (lingerExpr != null)? (int)lingerExpr.evaluateNumber( context): Integer.MAX_VALUE;
     
     IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
     String name = (nameExpr != null)? nameExpr.evaluateString( context): ((target != null)? target.getType(): "model");
     
-    Executor executor = new ThreadPoolExecutor( name, threads);
+    Executor executor = new ThreadPoolExecutor( name, threads, linger);
     
     if ( target == null) target = new ModelObject( "executor");
     target.setValue( executor);
@@ -49,4 +51,5 @@ public class ExecutorAction extends XAction
   private IExpression nameExpr;
   private IExpression threadsExpr;
   private IExpression targetExpr;
+  private IExpression lingerExpr;
 }

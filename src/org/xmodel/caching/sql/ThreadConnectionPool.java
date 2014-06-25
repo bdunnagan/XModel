@@ -33,11 +33,11 @@ public class ThreadConnectionPool
       long now = System.currentTimeMillis();
       if ( (now - item.validated) > validateAfter)
       {
-        log.debugf( "Validating JDBC connection, %d", item.id);
+        log.debugf( "Validating JDBC connection: id=%d, n=%d", item.id, counter.get());
         if ( !validate( item.connection))
         {
           item.connection = provider.newConnection();
-          log.debugf( "Renewed invalid JDBC connection, %d", item.id);
+          log.debugf( "Renewed invalid JDBC connection: id=%d, n=%d", item.id, counter.get());
         }
         else
         {
@@ -54,7 +54,7 @@ public class ThreadConnectionPool
     }
 
     ConnectionPools.getInstance().incrementLeasedCount();
-    log.verbosef( "Leasing JDBC connection, %d", item.id);
+    log.verbosef( "Leasing JDBC connection: id=%d, n=%d", item.id, counter.get());
     return item.connection;
   }
   
