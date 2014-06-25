@@ -32,5 +32,5 @@ public class AmqpQualifiedNames
     return name.substring( 0, index);
   }
   
-  private static String unique = Identifier.generate( new Random(), 8);
+  private static String unique = Identifier.generate( new Random(), 12);
 }

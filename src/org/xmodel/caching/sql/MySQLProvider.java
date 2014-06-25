@@ -45,7 +45,7 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    cache = new BoundedStatementCache( Xlate.childGet( annotation, "cacheSize", 4096));
+    //cache = new BoundedStatementCache( Xlate.childGet( annotation, "cacheSize", 4096));
     
     username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
@@ -137,7 +137,7 @@ public class MySQLProvider implements ISQLProvider
     
     // check cache
     String key = query + resultSetConcur;
-    PreparedStatement statement = cache.get( key);
+    PreparedStatement statement = (cache != null)? cache.get( key): null;
     if ( statement == null)
     {
       // distinguish stored procedure call from query or update
@@ -168,7 +168,7 @@ public class MySQLProvider implements ISQLProvider
     {
       try
       {
-       statement.close();
+        statement.close();
       }
       catch( SQLException e)
       {

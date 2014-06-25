@@ -429,6 +429,7 @@ public class RunAction extends GuardedAction
           {
             StatefulContext runContext = new StatefulContext( context.getObject());
             runContext.getScope().copyFrom( context.getScope());
+            runContext.setExecutor( context.getExecutor());
             runContext.set( "error", error);
             if ( onError != null) onError.run( runContext); else log.warn( error);
             if ( onComplete != null) onComplete.run( runContext);
