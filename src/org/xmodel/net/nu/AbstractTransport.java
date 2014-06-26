@@ -22,10 +22,10 @@ import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransportImpl
 {
-  protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler) 
+  protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
-    
+
     this.protocol = new ThreadSafeProtocol( protocol.wire(), protocol.envelope());
     this.transportContext = transportContext;
     this.scheduler = scheduler;
@@ -149,6 +149,17 @@ public abstract class AbstractTransport implements ITransportImpl
   public IContext getTransportContext()
   {
     return transportContext;
+  }
+
+  @Override
+  public void setNext( IEventHandler next)
+  {
+    this.nextEventHandler = next;
+  }
+  
+  protected IEventHandler getNextEventHandler()
+  {
+    return nextEventHandler;
   }
 
   @Override
@@ -303,11 +314,12 @@ public abstract class AbstractTransport implements ITransportImpl
   }
   
   public final static Log log = Log.getLog( AbstractTransport.class);
-  
+ 
   private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
   private TransportNotifier notifier;
+  private IEventHandler nextEventHandler;
 }
