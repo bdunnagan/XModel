@@ -8,7 +8,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface IEventHandler
 {
-  public void setNext( IEventHandler next);
+  public void setNextEventHandler( IEventHandler next);
   
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException;
   

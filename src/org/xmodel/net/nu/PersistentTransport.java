@@ -181,6 +181,11 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   }
 
   @Override
+  public void setNextEventHandler( IEventHandler next)
+  {
+  }
+
+  @Override
   public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
   {
     return transport.notifyReceive( bytes, offset, length);

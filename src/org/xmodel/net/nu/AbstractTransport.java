@@ -152,7 +152,7 @@ public abstract class AbstractTransport implements ITransportImpl
   }
 
   @Override
-  public void setNext( IEventHandler next)
+  public void setNextEventHandler( IEventHandler next)
   {
     this.nextEventHandler = next;
   }
