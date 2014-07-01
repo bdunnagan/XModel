@@ -152,36 +152,6 @@ public abstract class AbstractTransport implements ITransportImpl
   }
 
   @Override
-  public void setNextEventHandler( IEventHandler next)
-  {
-    this.nextEventHandler = next;
-  }
-  
-  protected IEventHandler getNextEventHandler()
-  {
-    return nextEventHandler;
-  }
-
-  @Override
-  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
-  {
-    try
-    {
-      // decode
-      IModelObject envelope = protocol.wire().decode( bytes, offset, length);
-      if ( envelope == null) return false;
-      
-      // deliver
-      return notifyReceive( envelope);
-    }
-    catch( Exception e)
-    {
-      log.exception( e);
-      return false;
-    }
-  }
-  
-  @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     try
@@ -191,16 +161,17 @@ public abstract class AbstractTransport implements ITransportImpl
       if ( envelope == null) return false;
       
       // deliver
-      return notifyReceive( envelope);
+      notifyReceive( envelope);
     }
     catch( Exception e)
     {
       log.exception( e);
-      return false;
     }
+    
+    return true;
   }
   
-  private boolean notifyReceive( IModelObject envelope) throws IOException
+  private void notifyReceive( IModelObject envelope) throws IOException
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     
@@ -230,27 +201,25 @@ public abstract class AbstractTransport implements ITransportImpl
       // TODO
       throw new UnsupportedOperationException();
     }
-    
-    return true;
   }
   
   @Override
-  public void notifyError( IContext context, Error error, IModelObject request) throws Exception
+  public boolean notifyError( IContext context, Error error, IModelObject request) throws Exception
   {
-    notifier.notifyError( this, context, error, request);
+    return false;
   }
 
   @Override
-  public void notifyConnect() throws IOException
+  public boolean notifyConnect() throws IOException
   {
-    notifier.notifyConnect( this, transportContext);
+    return false;
   }
 
   @Override
-  public void notifyDisconnect() throws IOException
+  public boolean notifyDisconnect() throws IOException
   {
     failPendingRequests();
-    notifier.notifyDisconnect( this, transportContext);
+    return false;
   }
 
   public void failPendingRequests()
@@ -271,14 +240,9 @@ public abstract class AbstractTransport implements ITransportImpl
       {
         iter.remove();
         IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
-        notifier.notifyError( this, request.messageContext, ITransport.Error.channelClosed, requestMessage);
+        notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
       }
     }
-  }
-  
-  protected TransportNotifier getNotifier()
-  {
-    return notifier;
   }
   
   private void notifyTimeout( IModelObject envelope, IContext messageContext)
@@ -290,7 +254,7 @@ public abstract class AbstractTransport implements ITransportImpl
     requests.remove( key);
     
     IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
-    notifier.notifyError( this, messageContext, ITransport.Error.timeout, requestMessage);
+    notifyError( messageContext, ITransport.Error.timeout, requestMessage);
   }
 
   private class Request implements Runnable
@@ -320,6 +284,4 @@ public abstract class AbstractTransport implements ITransportImpl
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
-  private TransportNotifier notifier;
-  private IEventHandler nextEventHandler;
 }
