@@ -181,20 +181,9 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   }
 
   @Override
-  public void setNextEventHandler( IEventHandler next)
+  public void notifyReceive( ByteBuffer buffer) throws IOException
   {
-  }
-
-  @Override
-  public boolean notifyReceive( byte[] bytes, int offset, int length) throws IOException
-  {
-    return transport.notifyReceive( bytes, offset, length);
-  }
-
-  @Override
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
-  {
-    return transport.notifyReceive( buffer);
+    transport.notifyReceive( buffer);
   }
 
   @Override
@@ -210,7 +199,7 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   }
 
   @Override
-  public void notifyError( IContext context, Error error, IModelObject request) throws Exception
+  public void notifyError( IContext context, Error error, IModelObject request)
   {
     transport.notifyError( context, error, request);
   }

@@ -21,19 +21,5 @@ public interface ITransport
   
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request);
   
-  public void addListener( IConnectListener listener);
-  
-  public void removeListener( IConnectListener listener);
-  
-  public void addListener( IDisconnectListener listener);
-  
-  public void removeListener( IDisconnectListener listener);
-  
-  public void addListener( IReceiveListener listener);
-  
-  public void removeListener( IReceiveListener listener);
-  
-  public void addListener( IErrorListener listener);
-  
-  public void removeListener( IErrorListener listener);
+  public TransportNotifier getNotifier();
 }
