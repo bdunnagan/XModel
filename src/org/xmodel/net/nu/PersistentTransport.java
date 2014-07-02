@@ -8,21 +8,18 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class PersistentTransport implements ITransportImpl, IConnectListener, IDisconnectListener, IReceiveListener, IErrorListener, Runnable
+public class PersistentTransport implements ITransportImpl, IEventHandler, Runnable
 {
   public PersistentTransport( ITransportImpl transport)
   {
     notifier = new TransportNotifier();
     
-    transport.addListener( (IConnectListener)this);
-    transport.addListener( (IDisconnectListener)this);
-    transport.addListener( (IReceiveListener)this);
-    transport.addListener( (IErrorListener)this);
-    
     this.transport = transport;
     this.retryMinDelay = 1000;
     this.retryMaxDelay = 10000;
     this.retryDelay = retryMinDelay;
+    
+    transport.setEventHandler( this);
   }
 
   @Override
@@ -109,54 +106,6 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   }
 
   @Override
-  public void addListener( IConnectListener listener)
-  {
-    notifier.addListener( listener);
-  }
-
-  @Override
-  public void removeListener( IConnectListener listener)
-  {
-    notifier.removeListener( listener);
-  }
-
-  @Override
-  public void addListener( IDisconnectListener listener)
-  {
-    notifier.addListener( listener);
-  }
-
-  @Override
-  public void removeListener( IDisconnectListener listener)
-  {
-    notifier.removeListener( listener);
-  }
-
-  @Override
-  public void addListener( IReceiveListener listener)
-  {
-    notifier.addListener( listener);
-  }
-
-  @Override
-  public void removeListener( IReceiveListener listener)
-  {
-    notifier.removeListener( listener);
-  }
-
-  @Override
-  public void addListener( IErrorListener listener)
-  {
-    notifier.addListener( listener);
-  }
-
-  @Override
-  public void removeListener( IErrorListener listener)
-  {
-    notifier.removeListener( listener);
-  }
-  
-  @Override
   public ScheduledFuture<?> schedule( Runnable runnable, int delay)
   {
     return transport.schedule( runnable, delay);
@@ -187,8 +136,16 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   }
 
   @Override
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+  {
+  }
+
+  @Override
   public void notifyConnect() throws IOException
   {
+    retryDelay = retryMinDelay;
+    notifier.notifyConnect( this, transport.getTransportContext());
+    
     transport.notifyConnect();
   }
 
@@ -202,6 +159,11 @@ public class PersistentTransport implements ITransportImpl, IConnectListener, ID
   public void notifyError( IContext context, Error error, IModelObject request)
   {
     transport.notifyError( context, error, request);
+  }
+
+  @Override
+  public void notifyException( IOException e)
+  {
   }
 
   private ITransportImpl transport;

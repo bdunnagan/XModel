@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
@@ -20,7 +21,7 @@ import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
-public abstract class AbstractTransport implements ITransportImpl
+public abstract class AbstractTransport implements ITransportImpl, IEventHandler
 {
   protected AbstractTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
@@ -31,9 +32,11 @@ public abstract class AbstractTransport implements ITransportImpl
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
+    this.eventHandler = this;
+    
     this.notifier = new TransportNotifier();
   }
-  
+
   @Override
   public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
@@ -88,7 +91,13 @@ public abstract class AbstractTransport implements ITransportImpl
   @Override
   public void setEventHandler( IEventHandler handler)
   {
-    this.enclosing = handler;
+    this.eventHandler = handler;
+  }
+
+  @Override
+  public IEventHandler getEventHandler()
+  {
+    return eventHandler;
   }
 
   @Override
@@ -124,7 +133,7 @@ public abstract class AbstractTransport implements ITransportImpl
     }
     catch( IOException e)
     {
-      enclosing.notifyException( e);
+      eventHandler.notifyException( e);
     }
   }
   
@@ -145,13 +154,13 @@ public abstract class AbstractTransport implements ITransportImpl
         if ( request != null && request.timeoutFuture.cancel( false))
         {
           IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
-          enclosing.notifyReceive( message, request.messageContext, requestMessage);
+          eventHandler.notifyReceive( message, request.messageContext, requestMessage);
         }
       }
     }
     else if ( route == null)
     {
-      enclosing.notifyReceive( message, transportContext, null);
+      eventHandler.notifyReceive( message, transportContext, null);
     }
     else
     {
@@ -163,20 +172,18 @@ public abstract class AbstractTransport implements ITransportImpl
   @Override
   public void notifyError( IContext context, Error error, IModelObject request)
   {
-    enclosing.notifyError( context, error, request);
   }
 
   @Override
   public void notifyConnect() throws IOException
   {
-    enclosing.notifyConnect();
   }
 
   @Override
   public void notifyDisconnect() throws IOException
   {
     failPendingRequests();
-    enclosing.notifyDisconnect();
+    eventHandler.notifyDisconnect();
   }
 
   public void failPendingRequests()
@@ -197,7 +204,7 @@ public abstract class AbstractTransport implements ITransportImpl
       {
         iter.remove();
         IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
-        enclosing.notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
+        eventHandler.notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
       }
     }
   }
@@ -211,7 +218,7 @@ public abstract class AbstractTransport implements ITransportImpl
     requests.remove( key);
     
     IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
-    enclosing.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
+    eventHandler.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
   }
 
   private class Request implements Runnable
@@ -241,6 +248,5 @@ public abstract class AbstractTransport implements ITransportImpl
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
-  private IEventHandler enclosing;
-  private TransportNotifier notifier;
+  private IEventHandler eventHandler;
 }

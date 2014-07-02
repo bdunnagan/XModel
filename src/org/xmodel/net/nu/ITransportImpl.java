@@ -7,9 +7,11 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public interface ITransportImpl extends ITransport, IEventHandler
+public interface ITransportImpl extends ITransport
 {
   public void setEventHandler( IEventHandler handler);
+  
+  public IEventHandler getEventHandler();
   
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope);
   
