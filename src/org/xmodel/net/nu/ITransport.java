@@ -20,6 +20,4 @@ public interface ITransport
   public AsyncFuture<ITransport> ack( IModelObject request);
   
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request);
-  
-  public TransportNotifier getNotifier();
 }

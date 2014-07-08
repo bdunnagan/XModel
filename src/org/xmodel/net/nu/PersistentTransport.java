@@ -12,60 +12,12 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
 {
   public PersistentTransport( ITransportImpl transport)
   {
-    notifier = new TransportNotifier();
-    
     this.transport = transport;
+    transport.getEventPipe().addLast( this);
+    
     this.retryMinDelay = 1000;
     this.retryMaxDelay = 10000;
     this.retryDelay = retryMinDelay;
-    
-    transport.setEventHandler( this);
-  }
-
-  @Override
-  public void onConnect( ITransport transport, IContext context) throws Exception
-  {
-    retryDelay = retryMinDelay;
-    notifier.notifyConnect( this, context);
-  }
-
-  @Override
-  public void onDisconnect( ITransport transport, IContext context) throws Exception
-  {
-    this.transport.schedule( this, retryDelay);
-    increaseRetryDelay();
-    
-    notifier.notifyDisconnect( this, context);
-  }
-  
-  private void increaseRetryDelay()
-  {
-    retryDelay *= 2;
-    if ( retryDelay > retryMaxDelay) retryDelay = retryMaxDelay;
-  }
-  
-  @Override
-  public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request) throws Exception
-  {
-    notifier.notifyReceive( this, message, messageContext, request);
-  }
-
-  @Override
-  public void onError( ITransport transport, IContext context, Error error, IModelObject request) throws Exception
-  {
-    switch( error)
-    {
-      case connectRefused:
-      case connectError:
-        this.transport.schedule( this, retryDelay);
-        increaseRetryDelay();
-        break;
-      
-      default:
-        break;
-    }
-    
-    notifier.notifyError( this, context, error, request);
   }
 
   @Override
@@ -130,44 +82,69 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   }
 
   @Override
-  public void notifyReceive( ByteBuffer buffer) throws IOException
+  public EventPipe getEventPipe()
   {
-    transport.notifyReceive( buffer);
+    return transport.getEventPipe();
   }
 
   @Override
-  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+  public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
+    return false;
   }
 
   @Override
-  public void notifyConnect() throws IOException
+  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyConnect() throws IOException
   {
     retryDelay = retryMinDelay;
-    notifier.notifyConnect( this, transport.getTransportContext());
+    return false;
+  }
+
+  @Override
+  public boolean notifyDisconnect() throws IOException
+  {
+    this.transport.schedule( this, retryDelay);
+    increaseRetryDelay();
+    return false;
+  }
+
+  private void increaseRetryDelay()
+  {
+    retryDelay *= 2;
+    if ( retryDelay > retryMaxDelay) retryDelay = retryMaxDelay;
+  }
+  
+  @Override
+  public boolean notifyError( IContext context, Error error, IModelObject request)
+  {
+    switch( error)
+    {
+      case connectRefused:
+      case connectError:
+        this.transport.schedule( this, retryDelay);
+        increaseRetryDelay();
+        break;
+      
+      default:
+        break;
+    }
     
-    transport.notifyConnect();
+    return false;
   }
 
   @Override
-  public void notifyDisconnect() throws IOException
+  public boolean notifyException( IOException e)
   {
-    transport.notifyDisconnect();
-  }
-
-  @Override
-  public void notifyError( IContext context, Error error, IModelObject request)
-  {
-    transport.notifyError( context, error, request);
-  }
-
-  @Override
-  public void notifyException( IOException e)
-  {
+    return false;
   }
 
   private ITransportImpl transport;
-  private TransportNotifier notifier;
   private int connectTimeout;
   private int retryDelay;
   private int retryMinDelay;

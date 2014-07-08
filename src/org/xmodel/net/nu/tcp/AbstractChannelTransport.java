@@ -61,7 +61,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     catch( IOException e)
     {
       future.notifyFailure( e);
-      getNotifier().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
+      getEventPipe().notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
       return null;
     }
   }

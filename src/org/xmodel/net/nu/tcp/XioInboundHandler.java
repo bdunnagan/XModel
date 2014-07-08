@@ -31,7 +31,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void channelActive( ChannelHandlerContext ctx) throws Exception
   {
     super.channelActive( ctx);
-    transport.notifyConnect();
+    transport.getEventPipe().notifyConnect();
     ctx.read();
   }
 
@@ -39,7 +39,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void channelInactive( ChannelHandlerContext ctx) throws Exception
   {
     super.channelInactive( ctx);
-    transport.notifyDisconnect();
+    transport.getEventPipe().notifyDisconnect();
   }
 
   @Override
@@ -60,7 +60,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     readBuffer.markReaderIndex();
     
     // read next message
-    if ( !transport.notifyReceive( readBuffer.nioBuffer()))
+    if ( !transport.getEventPipe().notifyReceive( readBuffer.nioBuffer()))
     {
       // incomplete message
       readBuffer.resetReaderIndex();

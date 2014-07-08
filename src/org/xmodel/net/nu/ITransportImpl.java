@@ -9,9 +9,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface ITransportImpl extends ITransport
 {
-  public void setEventHandler( IEventHandler handler);
-  
-  public IEventHandler getEventHandler();
+  public EventPipe getEventPipe();
   
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope);
   

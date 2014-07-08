@@ -32,9 +32,8 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
-    this.eventHandler = this;
     
-    this.notifier = new TransportNotifier();
+    eventPipe.addFirst( this);
   }
 
   @Override
@@ -89,15 +88,9 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
 
   @Override
-  public void setEventHandler( IEventHandler handler)
+  public EventPipe getEventPipe()
   {
-    this.eventHandler = handler;
-  }
-
-  @Override
-  public IEventHandler getEventHandler()
-  {
-    return eventHandler;
+    return eventPipe;
   }
 
   @Override
@@ -119,7 +112,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
 
   @Override
-  public void notifyReceive( ByteBuffer buffer) throws IOException
+  public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     try
     {
@@ -129,12 +122,15 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       {
         // deliver
         notifyReceive( envelope);
+        return true;
       }
     }
     catch( IOException e)
     {
-      eventHandler.notifyException( e);
+      eventPipe.notifyException( e);
     }
+    
+    return false;
   }
   
   private void notifyReceive( IModelObject envelope) throws IOException
@@ -154,13 +150,13 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
         if ( request != null && request.timeoutFuture.cancel( false))
         {
           IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
-          eventHandler.notifyReceive( message, request.messageContext, requestMessage);
+          eventPipe.notifyReceive( message, request.messageContext, requestMessage);
         }
       }
     }
     else if ( route == null)
     {
-      eventHandler.notifyReceive( message, transportContext, null);
+      eventPipe.notifyReceive( message, transportContext, null);
     }
     else
     {
@@ -170,20 +166,22 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
   
   @Override
-  public void notifyError( IContext context, Error error, IModelObject request)
+  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
+    return false;
   }
 
   @Override
-  public void notifyConnect() throws IOException
+  public boolean notifyConnect() throws IOException
   {
+    return false;
   }
 
   @Override
-  public void notifyDisconnect() throws IOException
+  public boolean notifyDisconnect() throws IOException
   {
     failPendingRequests();
-    eventHandler.notifyDisconnect();
+    return false;
   }
 
   public void failPendingRequests()
@@ -204,11 +202,23 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       {
         iter.remove();
         IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);        
-        eventHandler.notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
+        eventPipe.notifyError( request.messageContext, ITransport.Error.channelClosed, requestMessage);
       }
     }
   }
   
+  @Override
+  public boolean notifyError( IContext context, Error error, IModelObject request)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyException( IOException e)
+  {
+    return false;
+  }
+
   private void notifyTimeout( IModelObject envelope, IContext messageContext)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
@@ -218,7 +228,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     requests.remove( key);
     
     IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
-    eventHandler.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
+    eventPipe.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
   }
 
   private class Request implements Runnable
@@ -248,5 +258,5 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
   private AtomicLong requestCounter;
-  private IEventHandler eventHandler;
+  private EventPipe eventPipe;
 }
