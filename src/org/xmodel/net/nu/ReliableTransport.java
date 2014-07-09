@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -140,7 +141,7 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
           }
           else
           {
-            notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+            getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
           }
         }
       }
@@ -156,13 +157,13 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
         }
         else
         {
-          notifier.notifyError( this, context, error, request);
+          getEventPipe().notifyError( context, error, request);
         }
       }
     }
     else
     {
-      notifier.notifyError( this, context, error, request);
+      getEventPipe().notifyError( context, error, request);
     }    
     
     return false;
@@ -184,7 +185,7 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
     }
     else
     {
-      notifier.notifyError( this, item.messageContext, ITransport.Error.messageExpired, item.message);
+      getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
   }
   
@@ -232,7 +233,7 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
     @Override
     public void run()
     {
-      notifier.notifyError( ReliableTransport.this, item.messageContext, ITransport.Error.messageExpired, item.message);
+      getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
 
     private QueuedMessage item;
@@ -247,7 +248,6 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   };
   
   private ITransportImpl transport;
-  private TransportNotifier notifier;
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
 }

@@ -1,13 +1,15 @@
 package org.xmodel.net.nu.test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+
 import org.xmodel.IModelObject;
-import org.xmodel.net.nu.IConnectListener;
-import org.xmodel.net.nu.IDisconnectListener;
-import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XipWireProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
@@ -20,32 +22,47 @@ public class TcpTest
 {
   public static void main( String[] args) throws Exception
   {
-    class ReceiveListener implements IReceiveListener
+    class EventHandler implements IEventHandler
     {
       @Override
-      public void onReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject request)
+      public boolean notifyReceive( ByteBuffer buffer) throws IOException
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
+        return false;
       }
-    }
-    
-    class ConnectListener implements IConnectListener
-    {
+
       @Override
-      public void onConnect( ITransport transport, IContext context)
+      public boolean notifyConnect() throws IOException
       {
         System.out.println( "[SERVER] Client connected!");
-        transport.addListener( new ReceiveListener());
+        return false;
       }
-    }
-    
-    class DisconnectListener implements IDisconnectListener
-    {
+
       @Override
-      public void onDisconnect( ITransport transport, IContext context)
+      public boolean notifyDisconnect() throws IOException
       {
         System.out.println( "[SERVER] Client disconnected!");
-        transport.removeListener( new ReceiveListener());
+        return false;
+      }
+
+      @Override
+      public boolean notifyError( IContext context, Error error, IModelObject request)
+      {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+      @Override
+      public boolean notifyException( IOException e)
+      {
+        // TODO Auto-generated method stub
+        return false;
       }
     }
     
