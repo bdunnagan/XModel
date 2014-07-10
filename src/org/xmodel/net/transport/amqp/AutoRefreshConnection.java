@@ -267,7 +267,10 @@ public class AutoRefreshConnection
     try
     {
       connectionLock.readLock().lock();
-    
+
+      if ( activeConnection == null || !activeConnection.isOpen())
+        throw new IOException( "Connection is closed.");
+      
       ThreadItem item = threadItems.get();
       if ( item == null || item.channel == null)
       {
