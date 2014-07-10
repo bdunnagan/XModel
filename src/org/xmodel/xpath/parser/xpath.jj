@@ -315,6 +315,19 @@ void ParsePath( AbstractPath path):
   <EOF>
 }
 
+List<IExpression> ParseExpressions():
+{
+  List<IExpression> expressions = new ArrayList<IExpression>( 5);
+  IExpression expression = null;
+}
+{
+  (expression = Expr())      { expressions.add( expression);}
+  ((",") expression = Expr() { expressions.add( expression);} )* 
+  <EOF>
+  {
+    return expressions;  }
+}
+
 IExpression ParseExpression():
 {
   boolean hasLet = false;

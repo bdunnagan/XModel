@@ -24,6 +24,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.IPath;
 import org.xmodel.ModelAlgorithms;
@@ -286,6 +287,36 @@ public class XActionDocument
   }
 
   /**
+   * Returns the expression(s) defined in one or more elements or an attribute. If the flexible flag
+   * is false then the expression is taken from the value of the child element(s) with the
+   * specified name. If the flexible flag is true, then the expression is taken from 
+   * either the attribute with the specified name or the child element.
+   * @param name The name of the child element and/or attribute.
+   * @param flexible True if attribute definition is allowed.
+   * @return Returns the expression.
+   */
+  public List<IExpression> getExpressions( String name, boolean flexible)
+  {
+    IModelObject root = getRoot();
+    if ( root == null) return null;
+
+    List<IExpression> result = new ArrayList<IExpression>();
+    
+    if ( flexible)
+    {
+      IModelObject node = root.getAttributeNode( name);
+      result.addAll( getExpressions( node));
+    }
+    
+    for( IModelObject object: root.getChildren( name))
+    {
+      result.addAll( getExpressions( object));
+    }
+    
+    return result;
+  }
+  
+  /**
    * Returns the expression defined by the first node in the specified path relative to the root.
    * @param path The path which identifies the location of the expression.
    * @return Returns the expression identified by the specified path.
@@ -364,6 +395,32 @@ public class XActionDocument
       try { object.setAttribute( cachedExpressionAttribute, expression);} catch( UnsupportedOperationException e) {}
     }
     return expression;
+  }
+  
+  /**
+   * Returns the expression(s) defined in the value of the specified object.
+   * @param object The object containing the expression.
+   * @return Returns the expression defined in the value of the specified object.
+   */
+  @SuppressWarnings("unchecked")
+  public List<IExpression> getExpressions( IModelObject object)
+  {
+    if ( object == null) return null;
+
+    // get expression text
+    String string = Xlate.get( object, "").trim();
+    if ( string.length() == 0) return null;
+    
+    // create expression and cache
+    List<IExpression> expressions = null;
+    try { expressions = (List<IExpression>)object.getAttribute( cachedExpressionAttribute);} catch( ClassCastException e) {}
+    if ( expressions == null)
+    {
+      expressions = XPath.createExpressions( string);
+      try { object.setAttribute( cachedExpressionAttribute, expressions);} catch( UnsupportedOperationException e) {}
+    }
+    return expressions;
+    
   }
    
   /**
