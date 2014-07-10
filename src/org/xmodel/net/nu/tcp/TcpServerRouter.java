@@ -23,6 +23,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
 
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
@@ -35,18 +36,23 @@ public class TcpServerRouter implements IRouter
 {
   public TcpServerRouter( Protocol protocol, IContext transportContext, boolean reliable)
   {
-    this( protocol, transportContext, null);
-    this.reliable = reliable;
+    this( protocol, transportContext, null, reliable);
   }
   
-  public TcpServerRouter( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
+  public TcpServerRouter( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler, boolean reliable)
   {
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler"));
     
     this.protocol = protocol;
     this.transportContext = transportContext;
     this.scheduler = scheduler;
+    this.reliable = reliable;
     this.routes = new HashMap<String, Set<ITransport>>();
+  }
+  
+  public void setEventHandler( IEventHandler eventHandler)
+  {
+    this.eventHandler = eventHandler;
   }
   
   public void start( SocketAddress address) throws InterruptedException
@@ -64,6 +70,8 @@ public class TcpServerRouter implements IRouter
        {
          ITransportImpl transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
          if ( reliable) transport = new ReliableTransport( transport);
+         
+         if ( eventHandler != null) transport.getEventPipe().addLast( eventHandler);
          
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
@@ -159,4 +167,5 @@ public class TcpServerRouter implements IRouter
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
   private boolean reliable;
+  private IEventHandler eventHandler;
 }

@@ -14,6 +14,7 @@ import org.xmodel.net.nu.protocol.XipWireProtocol;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -22,7 +23,7 @@ public class TcpTest
 {
   public static void main( String[] args) throws Exception
   {
-    class EventHandler implements IEventHandler
+    class ServerEventHandler implements IEventHandler
     {
       @Override
       public boolean notifyReceive( ByteBuffer buffer) throws IOException
@@ -54,49 +55,97 @@ public class TcpTest
       @Override
       public boolean notifyError( IContext context, Error error, IModelObject request)
       {
-        // TODO Auto-generated method stub
+        System.out.printf( "[SERVER] Error: %s\n", error);
         return false;
       }
 
       @Override
       public boolean notifyException( IOException e)
       {
-        // TODO Auto-generated method stub
+        System.out.printf( "[SERVER] Exception: %s\n", e);
         return false;
       }
+    }
+    
+    class ClientEventHandler implements IEventHandler
+    {
+      public ClientEventHandler( ITransport transport)
+      {
+        this.transport = transport;
+      }
+      
+      @Override
+      public boolean notifyReceive( ByteBuffer buffer) throws IOException
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      {
+        System.out.printf( "[CLIENT] %s\n", XmlIO.write( Style.printable, message));
+        return false;
+      }
+
+      @Override
+      public boolean notifyConnect() throws IOException
+      {
+        System.out.println( "[CLIENT] Connected!");
+        
+        try
+        {
+          transport.respond( new XmlIO().read( 
+              "<message>"+
+              "  <print>'Hi'</print>"+
+              "</message>"
+            ), null);
+        }
+        catch( XmlException e)
+        {
+          throw new IOException( e);
+        }
+        
+        return false;
+      }
+
+      @Override
+      public boolean notifyDisconnect() throws IOException
+      {
+        System.out.println( "[CLIENT] Disconnected!");
+        return false;
+      }
+
+      @Override
+      public boolean notifyError( IContext context, Error error, IModelObject request)
+      {
+        System.out.printf( "[CLIENT] Error: %s\n", error);
+        return false;
+      }
+
+      @Override
+      public boolean notifyException( IOException e)
+      {
+        System.out.printf( "[CLIENT] Exception: %s\n", e);
+        return false;
+      }
+      
+      private ITransport transport;
     }
     
     Protocol protocol = new Protocol( new XipWireProtocol(), new SimpleEnvelopeProtocol());
     
     System.out.println( "Starting server ...");
     IContext context = new StatefulContext();
-    TcpServerRouter server = new TcpServerRouter( protocol, context);
-    server.addListener( new ConnectListener());
-    server.addListener( new DisconnectListener());
+    TcpServerRouter server = new TcpServerRouter( protocol, context, true);
+    server.setEventHandler( new ServerEventHandler());
     server.start( new InetSocketAddress( "127.0.0.1", 10000));
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
-    TcpClientTransport client = new TcpClientTransport( protocol, clientContext, null, null, null, null, null);
+    TcpClientTransport client = new TcpClientTransport( protocol, clientContext, null);
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
     
-    client.addListener( new IConnectListener() {
-      public void onConnect( ITransport transport, IContext context) throws Exception
-      {
-        transport.respond( new XmlIO().read( 
-            "<message>"+
-            "  <print>'Hi'</print>"+
-            "</message>"
-          ), null);
-      }
-    });
-    
-    client.addListener( new IDisconnectListener() {
-      public void onDisconnect( ITransport transport, IContext context) throws Exception
-      {
-        System.out.println( "[CLIENT] Disconnected!");
-      }
-    });
+    client.getEventPipe().addLast( new ClientEventHandler( client));
     
     client.connect( 1000).await();
     
