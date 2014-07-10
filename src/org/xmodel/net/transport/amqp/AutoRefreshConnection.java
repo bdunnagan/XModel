@@ -63,7 +63,10 @@ public class AutoRefreshConnection
       }
     };
     
-    refreshSchedule = scheduler.scheduleAtFixedRate( refreshRunnable, period, period, TimeUnit.SECONDS);
+    if ( period > 0)
+    {
+      refreshSchedule = scheduler.scheduleAtFixedRate( refreshRunnable, period, period, TimeUnit.SECONDS);
+    }
   }
   
   /**
