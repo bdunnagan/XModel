@@ -89,7 +89,7 @@ public class SQLPredicateParser
             
           if ( k > 0 && text.charAt( k-1) != '\\')
           {
-            emitToken( Token.literal, text, index+1, k);
+            emitToken( Token.literal, text, index, k+1);
             index = k+1;
           }
           break;
@@ -304,7 +304,7 @@ public class SQLPredicateParser
   public static void main( String[] args) throws Exception
   {
     SQLPredicateParser p = new SQLPredicateParser();
-    p.parse( "cleared_on IS NULL and user_id in ('1', '1592665958776835') and type = 'Agent Offline'");
+    p.parse( "user = 'bob'");
     
     System.out.println( p.getParameterizedPredicate());
     
