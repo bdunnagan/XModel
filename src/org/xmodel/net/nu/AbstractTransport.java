@@ -33,6 +33,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     this.requests = new ConcurrentHashMap<String, Request>();
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     
+    eventPipe = new EventPipe();
     eventPipe.addFirst( this);
   }
 

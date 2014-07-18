@@ -138,10 +138,11 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
           if ( timeRemaining > 0) 
           {
             request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), timeRemaining);
+            return true;
           }
           else
           {
-            getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+            return false;
           }
         }
       }
@@ -154,17 +155,14 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
         if ( item != null) 
         {
           putMessageInBacklog( item);
+          return true;
         }
         else
         {
-          getEventPipe().notifyError( context, error, request);
+          return false;
         }
       }
     }
-    else
-    {
-      getEventPipe().notifyError( context, error, request);
-    }    
     
     return false;
   }

@@ -59,11 +59,11 @@ public class EventPipe implements IEventHandler
   }
 
   @Override
-  public boolean notifyConnect(IContext transportContext) throws IOException
+  public boolean notifyConnect( IContext transportContext) throws IOException
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyConnect(null))
+      if ( handler.notifyConnect( transportContext))
         return true;
     }
     return false;
@@ -74,7 +74,7 @@ public class EventPipe implements IEventHandler
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyDisconnect(null))
+      if ( handler.notifyDisconnect( transportContext))
         return true;
     }
     return false;
