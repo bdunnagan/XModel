@@ -1,17 +1,20 @@
 package org.xmodel.net.nu.xaction;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.IErrorListener;
-import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xpath.expression.IContext;
 
-public class AsyncSendGroup implements IReceiveListener, IErrorListener
+public class AsyncSendGroup
 {
   public AsyncSendGroup( String var, IContext callContext)
   {
@@ -43,7 +46,7 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     {
       ITransport transport = transports.next();
       
-      addListeners( transport);
+      transport.getEventPipe().addLast( new EventHandler( transport));
       count++;
       
       transport.request( message, messageContext, timeout);
@@ -62,12 +65,9 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     semaphore.acquire();
   }
   
-  @Override
-  public final void onReceive( ITransport transport, IModelObject response, IContext messageContext, IModelObject request)
+  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
-    removeListeners( transport);
-    
-    messageContext.getScope().set( var, response);
+    messageContext.getScope().set( var, message);
     
     if ( onReceive != null)
     {
@@ -83,19 +83,16 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
   }
-  
-  @Override
-  public void onError( ITransport transport, IContext messageContext, ITransport.Error error, IModelObject request)
+
+  private void notifyError( IContext context, Error error, IModelObject request)
   {
-    removeListeners( transport);
-    
-    messageContext.getScope().set( var, error.toString());
+    context.getScope().set( var, error.toString());
     
     if ( onError != null)
     {
       try
       {
-        onError.run( messageContext);
+        onError.run( context);
       }
       catch( Exception e)
       {
@@ -105,7 +102,7 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
   }
-  
+
   private void notifyWhenAllRequestsComplete( int requestsCompleted)
   {
     int sent = sentCount.get();
@@ -114,18 +111,6 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
       if ( requestsCompleted == sent)
         notifyComplete();
     }
-  }
-
-  private void addListeners( ITransport transport)
-  {
-    transport.addListener( (IReceiveListener)this);
-    transport.addListener( (IErrorListener)this);
-  }
-  
-  private void removeListeners( ITransport transport)
-  {
-    transport.removeListener( (IReceiveListener)this);
-    transport.removeListener( (IErrorListener)this);
   }
 
   private void notifyComplete()
@@ -153,6 +138,56 @@ public class AsyncSendGroup implements IReceiveListener, IErrorListener
     if ( semaphore != null) semaphore.release();
   }
 
+  class EventHandler implements IEventHandler
+  {
+    public EventHandler( ITransport transport)
+    {
+      this.transport = transport;
+    }
+    
+    @Override
+    public boolean notifyConnect() throws IOException
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyDisconnect() throws IOException
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyReceive( ByteBuffer buffer) throws IOException
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+    {
+      transport.getEventPipe().remove( this);
+      AsyncSendGroup.this.notifyReceive( message, messageContext, requestMessage);
+      return false;
+    }
+
+    @Override
+    public boolean notifyError( IContext context, Error error, IModelObject request)
+    {
+      transport.getEventPipe().remove( this);
+      AsyncSendGroup.this.notifyError( context, error, request);
+      return false;
+    }
+
+    @Override
+    public boolean notifyException( IOException e)
+    {
+      return false;
+    }
+    
+    private ITransport transport;
+  }
+  
   public static Log log = Log.getLog( AsyncSendGroup.class);
 
   private String var;

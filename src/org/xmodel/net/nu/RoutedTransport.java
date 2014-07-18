@@ -44,6 +44,12 @@ public final class RoutedTransport implements ITransport
     return via.respond( message, request);
   }
   
+  @Override
+  public EventPipe getEventPipe()
+  {
+    return via.getEventPipe();
+  }
+
   private ITransportImpl via;
   private String at;
 }

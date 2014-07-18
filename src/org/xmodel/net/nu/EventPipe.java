@@ -16,20 +16,30 @@ public class EventPipe implements IEventHandler
     handlers = new ArrayDeque<IEventHandler>( 3);
   }
   
-  public void addFirst( IEventHandler handler)
+  public synchronized void addFirst( IEventHandler handler)
   {
     handlers.addFirst( handler);
   }
   
-  public void addLast( IEventHandler handler)
+  public synchronized void addLast( IEventHandler handler)
   {
     handlers.addLast( handler);
+  }
+  
+  public synchronized void remove( IEventHandler handler)
+  {
+    handlers.remove( handler);
+  }
+  
+  private synchronized IEventHandler[] getHandlers()
+  {
+    return handlers.toArray( new IEventHandler[ 0]);
   }
   
   @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyReceive( buffer))
         return true;
@@ -40,7 +50,7 @@ public class EventPipe implements IEventHandler
   @Override
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyReceive( message, messageContext, requestMessage))
         return true;
@@ -51,7 +61,7 @@ public class EventPipe implements IEventHandler
   @Override
   public boolean notifyConnect() throws IOException
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyConnect())
         return true;
@@ -62,7 +72,7 @@ public class EventPipe implements IEventHandler
   @Override
   public boolean notifyDisconnect() throws IOException
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyDisconnect())
         return true;
@@ -73,7 +83,7 @@ public class EventPipe implements IEventHandler
   @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyError( context, error, request))
         return true;
@@ -84,7 +94,7 @@ public class EventPipe implements IEventHandler
   @Override
   public boolean notifyException( IOException e)
   {
-    for( IEventHandler handler: handlers)
+    for( IEventHandler handler: getHandlers())
     {
       if ( handler.notifyException( e))
         return true;
