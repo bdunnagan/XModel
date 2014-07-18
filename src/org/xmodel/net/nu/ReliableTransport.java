@@ -109,14 +109,14 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   }
 
   @Override
-  public boolean notifyConnect() throws IOException
+  public boolean notifyConnect(IContext transportContext) throws IOException
   {
     sendNextFromBacklog();
     return false;
   }
 
   @Override
-  public boolean notifyDisconnect() throws IOException
+  public boolean notifyDisconnect(IContext transportContext) throws IOException
   {
     return false;
   }

@@ -5,13 +5,13 @@ import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.Conventions;
+import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
-import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
-public class RequestWaitAction extends SendAction
+public class RequestWaitAction extends GuardedAction
 {
   @Override
   public void configure( XActionDocument document)
@@ -19,11 +19,12 @@ public class RequestWaitAction extends SendAction
     super.configure( document);
 
     var = Conventions.getVarName( document.getRoot(), false);
+    
     viaExpr = document.getExpression( "via", true);
     atExpr = document.getExpression( "at", true);
     timeoutExpr = document.getExpression( "timeout", true);
     
-    onSuccessExpr = document.getExpression( "onSuccess", true);
+    onReceiveExpr = document.getExpression( "onReceive", true);
     onErrorExpr = document.getExpression( "onError", true);
     onCompleteExpr = document.getExpression( "onComplete", true);
 
@@ -41,19 +42,12 @@ public class RequestWaitAction extends SendAction
     context.set( "request", message);
     
     AsyncSendGroup group = new AsyncSendGroup( var, context);
-    group.setReceiveScript( Conventions.getScript( document, context, onSuccessExpr));
+    group.setReceiveScript( Conventions.getScript( document, context, onReceiveExpr));
     group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
     group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
     Iterator<ITransport> transports = MessageSchema.resolveTransport( context, viaExpr, atExpr);
-    try
-    {
-      group.sendAndWait( transports, message, messageContext, timeout);
-    }
-    catch( InterruptedException e)
-    {
-      throw new XActionException( e);
-    }
+    group.send( transports, message, messageContext, timeout);
 
     return null;
   }
@@ -65,7 +59,7 @@ public class RequestWaitAction extends SendAction
   private IExpression atExpr;
   private IExpression messageExpr;
   private IExpression timeoutExpr;
-  private IExpression onSuccessExpr;  // each
+  private IExpression onReceiveExpr;  // each
   private IExpression onErrorExpr;    // each
   private IExpression onCompleteExpr; // all
 }

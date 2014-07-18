@@ -100,14 +100,14 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   }
 
   @Override
-  public boolean notifyConnect() throws IOException
+  public boolean notifyConnect(IContext transportContext) throws IOException
   {
     retryDelay = retryMinDelay;
     return false;
   }
 
   @Override
-  public boolean notifyDisconnect() throws IOException
+  public boolean notifyDisconnect(IContext transportContext) throws IOException
   {
     this.transport.schedule( this, retryDelay);
     increaseRetryDelay();

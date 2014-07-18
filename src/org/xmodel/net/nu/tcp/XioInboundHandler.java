@@ -31,7 +31,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void channelActive( ChannelHandlerContext ctx) throws Exception
   {
     super.channelActive( ctx);
-    transport.getEventPipe().notifyConnect();
+    transport.getEventPipe().notifyConnect( transport.getTransportContext());
     ctx.read();
   }
 
@@ -39,7 +39,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void channelInactive( ChannelHandlerContext ctx) throws Exception
   {
     super.channelInactive( ctx);
-    transport.getEventPipe().notifyDisconnect();
+    transport.getEventPipe().notifyDisconnect( transport.getTransportContext());
   }
 
   @Override

@@ -146,13 +146,13 @@ public class AsyncSendGroup
     }
     
     @Override
-    public boolean notifyConnect() throws IOException
+    public boolean notifyConnect(IContext transportContext) throws IOException
     {
       return false;
     }
 
     @Override
-    public boolean notifyDisconnect() throws IOException
+    public boolean notifyDisconnect(IContext transportContext) throws IOException
     {
       return false;
     }

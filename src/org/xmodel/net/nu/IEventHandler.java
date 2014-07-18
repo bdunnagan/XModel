@@ -12,9 +12,9 @@ public interface IEventHandler
 
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage);
   
-  public boolean notifyConnect() throws IOException;
+  public boolean notifyConnect( IContext transportContext) throws IOException;
   
-  public boolean notifyDisconnect() throws IOException;
+  public boolean notifyDisconnect( IContext transportContext) throws IOException;
   
   public boolean notifyError( IContext context, ITransport.Error error, IModelObject request);
 

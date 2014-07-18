@@ -11,6 +11,7 @@ import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XipWireProtocol;
+import org.xmodel.net.nu.tcp.ITcpServerEventHandler;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xml.IXmlIO.Style;
@@ -23,47 +24,36 @@ public class TcpTest
 {
   public static void main( String[] args) throws Exception
   {
-    class ServerEventHandler implements IEventHandler
+    class ServerEventHandler implements ITcpServerEventHandler
     {
       @Override
-      public boolean notifyReceive( ByteBuffer buffer) throws IOException
-      {
-        return false;
-      }
-
-      @Override
-      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
-        return false;
       }
 
       @Override
-      public boolean notifyConnect() throws IOException
+      public void notifyConnect( ITransport transport, IContext transportContext) throws IOException
       {
         System.out.println( "[SERVER] Client connected!");
-        return false;
       }
 
       @Override
-      public boolean notifyDisconnect() throws IOException
+      public void notifyDisconnect( ITransport transport, IContext transportContext) throws IOException
       {
         System.out.println( "[SERVER] Client disconnected!");
-        return false;
       }
 
       @Override
-      public boolean notifyError( IContext context, Error error, IModelObject request)
+      public void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
       {
         System.out.printf( "[SERVER] Error: %s\n", error);
-        return false;
       }
 
       @Override
-      public boolean notifyException( IOException e)
+      public void notifyException( ITransport transport, IOException e)
       {
         System.out.printf( "[SERVER] Exception: %s\n", e);
-        return false;
       }
     }
     
@@ -88,7 +78,7 @@ public class TcpTest
       }
 
       @Override
-      public boolean notifyConnect() throws IOException
+      public boolean notifyConnect( IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Connected!");
         
@@ -109,7 +99,7 @@ public class TcpTest
       }
 
       @Override
-      public boolean notifyDisconnect() throws IOException
+      public boolean notifyDisconnect( IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Disconnected!");
         return false;

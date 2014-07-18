@@ -2,14 +2,13 @@ package org.xmodel.net.nu.xaction;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.IModelObject;
-import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.tcp.ITcpServerEventHandler;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -20,7 +19,7 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
-public class TcpServerAction extends GuardedAction
+public class TcpServerAction extends GuardedAction implements ITcpServerEventHandler
 {
   @Override
   public void configure( XActionDocument document)
@@ -55,7 +54,7 @@ public class TcpServerAction extends GuardedAction
       TcpServerRouter server = new TcpServerRouter( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler, reliable);
       Conventions.putCache( context, var, server);
  
-      server.setEventHandler( new EventHandler( context));
+      server.setEventHandler( this);
       server.start( new InetSocketAddress( bindHost, bindPort));
     }
     catch( Exception e)
@@ -66,76 +65,50 @@ public class TcpServerAction extends GuardedAction
     return null;
   }
   
-  class EventHandler implements IEventHandler
+  @Override
+  public void notifyConnect( ITransport transport, IContext transportContext) throws IOException
   {
-    public EventHandler( ITransport transport, IContext context)
-    {
-      this.transport = transport;
-      this.context = context;
-    }
+    IXAction onConnect = Conventions.getScript( document, transportContext, onConnectExpr);
+    if ( onConnect != null) onConnect.run( transportContext);
+  }
+  
+  @Override
+  public void notifyDisconnect( ITransport transport, IContext transportContext) throws IOException
+  {
+    IXAction onDisconnect = Conventions.getScript( document, transportContext, onDisconnectExpr);
+    if ( onDisconnect != null) onDisconnect.run( transportContext);
+  }
+  
+  @Override
+  public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
+  {
+    // ignore acks
+    if ( message == null) return;
     
-    @Override
-    public boolean notifyConnect() throws IOException
+    IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
+    if ( onReceive != null) 
     {
-      IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
-      if ( onConnect != null) onConnect.run( context);
-      return false;
+      Conventions.putCache( messageContext, "via", transport);
+      messageContext.set( "message", message);
+      onReceive.run( messageContext);
     }
-    
-    @Override
-    public boolean notifyDisconnect() throws IOException
+  }
+  
+  @Override
+  public void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
+  {
+    IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
+    if ( onTimeout != null) 
     {
-      IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
-      if ( onDisconnect != null) onDisconnect.run( context);
-      return false;
+      IContext messageContext = new StatefulContext( context);
+      messageContext.set( "error", error.toString());
+      onTimeout.run( messageContext);
     }
-    
-    @Override
-    public boolean notifyReceive( ByteBuffer buffer) throws IOException
-    {
-      return false;
-    }
-    
-    @Override
-    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
-    {
-      // ignore acks
-      if ( message == null) return false;
-      
-      IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
-      if ( onReceive != null) 
-      {
-        Conventions.putCache( messageContext, "via", transport);
-        messageContext.set( "message", message);
-        onReceive.run( messageContext);
-      }
-      
-      return false;
-    }
-    
-    @Override
-    public boolean notifyError( IContext context, Error error, IModelObject request)
-    {
-      IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
-      if ( onTimeout != null) 
-      {
-        IContext messageContext = new StatefulContext( context);
-        messageContext.set( "error", error.toString());
-        onTimeout.run( messageContext);
-      }
-      
-      return false;
-    }
-    
-    @Override
-    public boolean notifyException( IOException e)
-    {
-      // TODO Auto-generated method stub
-      return false;
-    }
-
-    private ITransport transport;
-    private IContext context;    
+  }
+  
+  @Override
+  public void notifyException( ITransport transport, IOException e)
+  {
   }
   
   private String var;

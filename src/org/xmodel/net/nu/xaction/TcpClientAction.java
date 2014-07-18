@@ -96,7 +96,7 @@ public class TcpClientAction extends GuardedAction
     }
     
     @Override
-    public boolean notifyConnect() throws IOException
+    public boolean notifyConnect(IContext transportContext) throws IOException
     {
       IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
       if ( onConnect != null) onConnect.run( context);
@@ -105,7 +105,7 @@ public class TcpClientAction extends GuardedAction
     }
   
     @Override
-    public boolean notifyDisconnect() throws IOException
+    public boolean notifyDisconnect(IContext transportContext) throws IOException
     {
       IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
       if ( onDisconnect != null) onDisconnect.run( context);

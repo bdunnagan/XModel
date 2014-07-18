@@ -10,7 +10,9 @@ import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,12 +24,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.ReliableTransport;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -50,7 +54,7 @@ public class TcpServerRouter implements IRouter
     this.routes = new HashMap<String, Set<ITransport>>();
   }
   
-  public void setEventHandler( IEventHandler eventHandler)
+  public void setEventHandler( ITcpServerEventHandler eventHandler)
   {
     this.eventHandler = eventHandler;
   }
@@ -71,7 +75,7 @@ public class TcpServerRouter implements IRouter
          ITransportImpl transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
          if ( reliable) transport = new ReliableTransport( transport);
          
-         if ( eventHandler != null) transport.getEventPipe().addLast( eventHandler);
+         if ( eventHandler != null) transport.getEventPipe().addLast( new EventHandler( transport, eventHandler));
          
          transport.connect( 0); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
@@ -160,6 +164,59 @@ public class TcpServerRouter implements IRouter
     }
   }
 
+  static class EventHandler implements IEventHandler
+  {
+    public EventHandler( ITransport transport, ITcpServerEventHandler eventHandler)
+    {
+      this.transport = transport;
+      this.eventHandler = eventHandler;
+    }
+    
+    @Override
+    public boolean notifyConnect( IContext transportContext) throws IOException
+    {
+      eventHandler.notifyConnect( transport, transportContext);
+      return false;
+    }
+
+    @Override
+    public boolean notifyDisconnect( IContext transportContext) throws IOException
+    {
+      eventHandler.notifyDisconnect( transport, transportContext);
+      return false;
+    }
+
+    @Override
+    public boolean notifyReceive( ByteBuffer buffer) throws IOException
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+    {
+      eventHandler.notifyReceive( transport, message, messageContext, request);
+      return false;
+    }
+
+    @Override
+    public boolean notifyError( IContext context, Error error, IModelObject request)
+    {
+      eventHandler.notifyError( transport, context, error, request);
+      return false;
+    }
+
+    @Override
+    public boolean notifyException( IOException e)
+    {
+      eventHandler.notifyException( transport, e);
+      return false;
+    }
+
+    private ITransport transport;
+    private ITcpServerEventHandler eventHandler;
+  }
+  
   private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
@@ -167,5 +224,5 @@ public class TcpServerRouter implements IRouter
   private Map<String, Set<ITransport>> routes;
   private ReadWriteLock routesLock;
   private boolean reliable;
-  private IEventHandler eventHandler;
+  private ITcpServerEventHandler eventHandler;
 }
