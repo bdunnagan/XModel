@@ -1,18 +1,19 @@
 package org.xmodel.net.nu.test;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
-import org.xmodel.net.nu.IErrorListener;
-import org.xmodel.net.nu.IReceiveListener;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -50,7 +51,7 @@ public class TestTransport extends AbstractTransport
   {
     if ( count-- == 0) 
     {
-      getNotifier().notifyError( this, getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
+      getEventPipe().notifyError( getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
       return new FailureAsyncFuture<ITransport>( this, "dummy");
     }
     
@@ -60,11 +61,11 @@ public class TestTransport extends AbstractTransport
       try
       {
         byte[] bytes = getProtocol().wire().encode( envelope);
-        transport.notifyReceive( bytes, 0, bytes.length);
+        transport.getEventPipe().notifyReceive( ByteBuffer.wrap( bytes, 0, bytes.length));
       }
       catch( IOException e)
       {
-        getNotifier().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
+        transport.getEventPipe().notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
       }
     }
     return new SuccessAsyncFuture<ITransport>( this);
@@ -89,13 +90,13 @@ public class TestTransport extends AbstractTransport
     Protocol protocol = new Protocol( new XmlWireProtocol(), new SimpleEnvelopeProtocol());
     
     final ReliableTransport t1 = new ReliableTransport( new TestTransport( protocol, context, -1));
-    t1.addListener( new IReceiveListener() {
-      public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
+    t1.getEventPipe().addLast( new DefaultEventHandler() {
+      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
       {
         log.infof( "Transport #1:\nRequest:\n%s\nMessage:\n%s", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
           XmlIO.write( Style.printable, message));
-               
+        
 //        executor.execute( new Runnable() {
 //          public void run()
 //          {
@@ -112,20 +113,21 @@ public class TestTransport extends AbstractTransport
 //            }
 //          }
 //        });
+        
+        return false;
       }
-    });
-    
-    t1.addListener( new IErrorListener() {
-      public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
+      
+      public boolean notifyError( IContext context, ITransport.Error error, IModelObject request)
       {
         log.infof( "Error #1: %s", error);
+        return false;
       }
     });
     
     
     final ITransport t2 = new ReliableTransport( new TestTransport( protocol, context, 0));
-    t2.addListener( new IReceiveListener() {
-      public void onReceive( final ITransport transport, final IModelObject message, IContext messageContext, final IModelObject request)
+    t2.getEventPipe().addLast( new DefaultEventHandler() {
+      public boolean notifyReceive( final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #2:\nRequest:\n%s\nMessage:\n%s\n", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
@@ -137,8 +139,8 @@ public class TestTransport extends AbstractTransport
             try
             {
               IModelObject next = new XmlIO().read( xml);
-              Thread.sleep( 50);
-              transport.respond( next, message);
+              Thread.sleep( 1000);
+              t2.respond( next, message);
             }
             catch( Exception e)
             {
@@ -146,17 +148,17 @@ public class TestTransport extends AbstractTransport
             }
           }
         });
+        
+        return false;
+      }
+      
+      public boolean notifyError( IContext context, ITransport.Error error, IModelObject request)
+      {
+        log.infof( "Error #2: %s", error);
+        return false;
       }
     });
 
-    t2.addListener( new IErrorListener() {
-      public void onError( ITransport transport, IContext context, ITransport.Error error, IModelObject request)
-      {
-        log.infof( "Error #2: %s", error);
-      }
-    });
-    
-    
     executor.execute( new Runnable() {
       public void run()
       {
