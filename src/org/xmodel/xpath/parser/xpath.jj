@@ -318,11 +318,12 @@ void ParsePath( AbstractPath path):
 List<IExpression> ParseExpressions():
 {
   List<IExpression> expressions = new ArrayList<IExpression>( 5);
+  RootExpression root = null;
   IExpression expression = null;
 }
 {
-  (expression = Expr())      { expressions.add( expression);}
-  ((",") expression = Expr() { expressions.add( expression);} )* 
+  (expression = Expr())      { root = new RootExpression( expression); expressions.add( root);}
+  ((",") expression = Expr() { root = new RootExpression( expression); expressions.add( root);} )* 
   <EOF>
   {
     return expressions;  }

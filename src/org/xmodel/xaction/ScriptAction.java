@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -132,6 +133,14 @@ public class ScriptAction extends GuardedAction
     for( int i=0; i<ignore.length; i++) 
       this.ignore.add( ignore[ i]);
   }
+
+  /**
+   * @return Returns null or the array of input variables.
+   */
+  public String[] getInVars()
+  {
+    return inVars;
+  }
   
   /**
    * Returns the actions in the script.
@@ -153,6 +162,13 @@ public class ScriptAction extends GuardedAction
     
     // optionally create local variable context
     privateScope = Xlate.get( document.getRoot(), "scope", "public").equals( "private");
+    
+    // input-only variables
+    if ( document.getRoot().isType( "script"))
+    {
+      String in = Xlate.get( document.getRoot(), "in", (String)null);
+      inVars = (in != null)? in.split( "\\s*,\\s*"): null;
+    }
 
     // create script operations
     List<IXAction> list = new ArrayList<IXAction>();
@@ -230,7 +246,7 @@ public class ScriptAction extends GuardedAction
       return null;
     }
   }
-  
+    
   /**
    * @return Returns a string that describes the location of this script.
    */
@@ -323,6 +339,7 @@ public class ScriptAction extends GuardedAction
   };
 
   private boolean privateScope;
+  private String[] inVars;
   private Set<String> ignore;
   private IXAction[] actions;
 }

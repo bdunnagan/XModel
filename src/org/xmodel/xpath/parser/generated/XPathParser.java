@@ -257,9 +257,10 @@ public class XPathParser implements XPathParserConstants {
 
   final public List<IExpression> ParseExpressions() throws ParseException {
   List<IExpression> expressions = new ArrayList<IExpression>( 5);
+  RootExpression root = null;
   IExpression expression = null;
     expression = Expr();
-                               expressions.add( expression);
+                               root = new RootExpression( expression); expressions.add( root);
     label_1:
     while (true) {
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -272,7 +273,7 @@ public class XPathParser implements XPathParserConstants {
       }
       jj_consume_token(52);
       expression = Expr();
-                               expressions.add( expression);
+                               root = new RootExpression( expression); expressions.add( root);
     }
     jj_consume_token(0);
     {if (true) return expressions;}
