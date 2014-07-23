@@ -45,7 +45,6 @@ public class FunctionFactory implements IFunctionFactory
       AbsFunction.class,
       AvgFunction.class,
       BooleanFunction.class,
-      CallFunction.class,
       CeilingFunction.class,
       CollectionFunction.class,
       ConcatFunction.class,
