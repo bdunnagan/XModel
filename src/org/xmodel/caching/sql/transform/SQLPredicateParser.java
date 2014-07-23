@@ -89,7 +89,7 @@ public class SQLPredicateParser
             
           if ( k > 0 && text.charAt( k-1) != '\\')
           {
-            emitToken( Token.literal, text, index, k+1);
+            emitToken( Token.literal, text, index+1, k);
             index = k+1;
           }
           break;
@@ -304,7 +304,7 @@ public class SQLPredicateParser
   public static void main( String[] args) throws Exception
   {
     SQLPredicateParser p = new SQLPredicateParser();
-    p.parse( "user = 'bob'");
+    p.parse( "meter =  and created between 0 and 1");
     
     System.out.println( p.getParameterizedPredicate());
     
