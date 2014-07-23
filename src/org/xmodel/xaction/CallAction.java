@@ -15,7 +15,6 @@ public class CallAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-
     
     argExprs = document.getExpressions( "args", true);
     scriptExpr = document.getExpression();
