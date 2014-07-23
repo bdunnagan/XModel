@@ -305,7 +305,7 @@ public class XActionDocument
     if ( flexible)
     {
       IModelObject node = root.getAttributeNode( name);
-      result.addAll( getExpressions( node));
+      if ( node != null) result.addAll( getExpressions( node));
     }
     
     for( IModelObject object: root.getChildren( name))
