@@ -242,7 +242,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( SQLException e)
     {
-      throw new CachingException( "Unable to cache reference: "+ reference, e);
+      String message = String.format( "Unable to cache reference, %s[%s], with statement, %s",
+        reference.getType(),
+        reference.getAttribute( "id"),
+        statement);    
+          
+      throw new CachingException( message, e);
     }
     finally
     {
@@ -931,6 +936,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         statement.executeBatch();
       }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Delete statement failed: %s", statement);
+        throw e;
+      }
       finally
       {
         provider.close( statement);
@@ -947,6 +957,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         statement.executeBatch();
       }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Insert statement failed: %s", statement);
+        throw e;
+      }
       finally
       {
         provider.close( statement);
@@ -962,6 +977,11 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       try
       {
         statement.execute();
+      }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Update statement failed: %s", statement);
+        throw e;
       }
       finally
       {
