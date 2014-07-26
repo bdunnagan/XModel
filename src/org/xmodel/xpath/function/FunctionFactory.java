@@ -79,6 +79,7 @@ public class FunctionFactory implements IFunctionFactory
       NameFunction.class,
       NosyncFunction.class,
       ParseXmlFunction.class,
+      PosFunction.class,
       PositionFunction.class,
       PrintfFunction.class,
       RandomFunction.class,
