@@ -62,33 +62,33 @@ public class AmqpServerTransport extends AmqpTransport implements IServerTranspo
     registry.addListener( new IXioPeerRegistryListener() {
       public void onRegister( final XioPeer peer, final String name)
       {
-        SLog.infof( this, "Registering %s", peer.hashCode());
-        context.getExecutor().execute( new Runnable() {
-          public void run() 
-          {
+        SLog.infof( this, "Registering %X by %s", peer.hashCode(), name);
+//        context.getExecutor().execute( new Runnable() {
+//          public void run() 
+//          {
             StatefulContext eventContext = peer.getNetworkEventContext(); 
             if ( eventContext != null)
             {
               eventContext.set( "name", (name != null)? name: "");
               if ( onRegister != null) onRegister.run( eventContext);
             }
-          }
-        });
+//          }
+//        });
       }
       public void onUnregister( final XioPeer peer, final String name)
       {
-        SLog.infof( this, "Un-registering %s", peer.hashCode());
-        context.getExecutor().execute( new Runnable() {
-          public void run() 
-          {
+        SLog.infof( this, "Un-registering %X by %s", peer.hashCode(), name);
+//        context.getExecutor().execute( new Runnable() {
+//          public void run() 
+//          {
             StatefulContext eventContext = peer.getNetworkEventContext(); 
             if ( eventContext != null)
             {
               eventContext.set( "name", (name != null)? name: "");
               if ( onUnregister != null) onUnregister.run( eventContext);
             }
-          }
-        });
+//          }
+//        });
       }
     });
     
