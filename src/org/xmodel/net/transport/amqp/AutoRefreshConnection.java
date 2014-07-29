@@ -365,7 +365,11 @@ public class AutoRefreshConnection
       connectionLock.readLock().lock();
       
       AutoRefreshConsumer refreshConsumer = consumers.remove( consumer);
-      refreshConsumer.getChannel().close();
+      if ( refreshConsumer != null)
+      {
+        Channel channel = refreshConsumer.getChannel();
+        if ( channel != null) channel.close();
+      }
     }
     finally
     {
