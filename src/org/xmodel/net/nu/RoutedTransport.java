@@ -6,10 +6,10 @@ import org.xmodel.xpath.expression.IContext;
 
 public final class RoutedTransport implements ITransport
 {
-  public RoutedTransport( ITransportImpl via, String at)
+  public RoutedTransport( ITransportImpl via, String to)
   {
     this.via = via;
-    this.at = at;
+    this.to = to;
   }
 
   @Override
@@ -25,6 +25,20 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    // TODO: Is this correct???
+    return via.register( name, messageContext, timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    // TODO: Is this correct???
+    return via.deregister( name, messageContext, timeout);
+  }
+
+  @Override
   public AsyncFuture<ITransport> ack( IModelObject message)
   {
     return via.ack( message);
@@ -33,14 +47,14 @@ public final class RoutedTransport implements ITransport
   @Override
   public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
-    message.setAttribute( "route", at);
+    message.setAttribute( "route", to);
     return via.request( message, messageContext, timeout);
   }
   
   @Override
   public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
-    message.setAttribute( "route", at);
+    message.setAttribute( "route", to);
     return via.respond( message, request);
   }
   
@@ -51,5 +65,5 @@ public final class RoutedTransport implements ITransport
   }
 
   private ITransportImpl via;
-  private String at;
+  private String to;
 }

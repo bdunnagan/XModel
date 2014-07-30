@@ -2,6 +2,7 @@ package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -11,12 +12,15 @@ import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.AbstractTransport;
+import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP.Queue.DeclareOk;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -24,7 +28,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
-public class AbstractAmqpTransport extends AbstractTransport
+public class AbstractAmqpTransport extends AbstractTransport implements IRouter
 {
   public static final String notConnectedError = "Not connected";
 
@@ -32,11 +36,14 @@ public class AbstractAmqpTransport extends AbstractTransport
   {
     super( protocol, transportContext, scheduler);
   
-    exchange = "";
-    queue = "xio";
+    publishExchange = "";
+    publishQueue = "xio";
     
     connectionFactory = new ConnectionFactory();
     connectionFactory.setHost( "localhost");
+    
+    router = new SimpleRouter();
+    setRouter( this);
   }
   
   public void setRemoteAddress( String host)
@@ -44,20 +51,38 @@ public class AbstractAmqpTransport extends AbstractTransport
     connectionFactory.setHost( host);
   }
   
-  public void setExchange( String exchange)
+  public void setPublishExchange( String exchange)
   {
-    this.exchange = exchange;
+    this.publishExchange = exchange;
   }
   
-  public void setQueue( String queue)
+  public void setPublishQueue( String queue)
   {
-    this.queue = queue;
+    this.publishQueue = queue;
+  }
+  
+  public void setConsumeQueue( String queue)
+  {
+    this.consumeQueue = queue;
   }
   
   @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
+    
+    // close consumer
+    // undeclare consumeQueue
+    // set consumeQueue = name
+    // declare consumeQueue
+    
+    return future;
+  }
+
+  @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
-    Channel channel = sendChannelRef.get();
+    Channel channel = publishChannelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 
   
     final AsyncFuture<ITransport> future = new AsyncFuture<ITransport>( this) {
@@ -75,7 +100,8 @@ public class AbstractAmqpTransport extends AbstractTransport
       try
       {
         // publish
-        channel.basicPublish( exchange, queue, null, bytes);
+        BasicProperties properties = new BasicProperties().builder().replyTo( consumeQueue).build();
+        channel.basicPublish( publishExchange, publishQueue, properties, bytes);
       }
       catch( IOException e)
       {
@@ -89,15 +115,26 @@ public class AbstractAmqpTransport extends AbstractTransport
   @Override
   public AsyncFuture<ITransport> connect( int timeout)
   {
-    Channel channel = sendChannelRef.get();
-    if ( channel != null && channel.isOpen()) 
+    Channel publishChannel = publishChannelRef.get();
+    if ( publishChannel != null && publishChannel.isOpen()) 
       return new SuccessAsyncFuture<ITransport>( this);
     
     try
     {
+      // connection
       connectionFactory.setConnectionTimeout( timeout);
       connection = connectionFactory.newConnection(); // use connection pool, or define connection separately
-      sendChannelRef.set( connection.createChannel());
+
+      // consume
+      Channel consumeChannel = connection.createChannel();
+      DeclareOk declare = consumeChannel.queueDeclare();
+      consumeQueue = declare.getQueue();
+      consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( publishChannel));
+
+      // publish
+      publishChannel = connection.createChannel();
+      publishChannelRef.set( publishChannel);
+      
       return new SuccessAsyncFuture<ITransport>( this);
     }
     catch( IOException e)
@@ -111,7 +148,7 @@ public class AbstractAmqpTransport extends AbstractTransport
   {
     try
     {
-      sendChannelRef.set( null);
+      publishChannelRef.set( null);
       connection.close();
     }
     catch( IOException e)
@@ -138,6 +175,24 @@ public class AbstractAmqpTransport extends AbstractTransport
     }
   }
   
+  @Override
+  public void addRoute( String route, ITransport transport)
+  {
+    router.addRoute( route, transport);
+  }
+
+  @Override
+  public void removeRoute( String route, ITransport transport)
+  {
+    router.removeRoute( route, transport);
+  }
+
+  @Override
+  public Iterator<ITransport> resolve( String route)
+  {
+    return router.resolve( route);
+  }
+
   private class TransportConsumer extends DefaultConsumer
   {
     public TransportConsumer( Channel channel)
@@ -173,7 +228,9 @@ public class AbstractAmqpTransport extends AbstractTransport
   
   private ConnectionFactory connectionFactory;
   private Connection connection;
-  private String exchange;
-  private String queue;
-  private AtomicReference<Channel> sendChannelRef;
+  private String publishExchange;
+  private String publishQueue;
+  private String consumeQueue;
+  private AtomicReference<Channel> publishChannelRef;
+  private IRouter router;
 }

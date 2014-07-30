@@ -36,6 +36,35 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     eventPipe = new EventPipe();
     eventPipe.addFirst( this);
   }
+  
+  protected void setRouter( IRouter router)
+  {
+    this.router = router;
+  }
+
+  @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    String key = Long.toHexString( requestCounter.incrementAndGet());
+    IModelObject envelope = protocol.envelope().buildRegisterEnvelope( key, name);
+    
+    Request request = new Request( envelope, messageContext, timeout);
+    requests.put( key, request);
+    
+    return sendImpl( envelope);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    String key = Long.toHexString( requestCounter.incrementAndGet());
+    IModelObject envelope = protocol.envelope().buildDeregisterEnvelope( key, name);
+    
+    Request request = new Request( envelope, messageContext, timeout);
+    requests.put( key, request);
+    
+    return sendImpl( envelope);
+  }
 
   @Override
   public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
@@ -137,25 +166,55 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   private void notifyReceive( IModelObject envelope) throws IOException
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    
+    IEnvelopeProtocol.Type type = envelopeProtocol.getType( envelope);
+    switch( type)
+    {
+      case register:   handleRegister( envelope); break;
+      case deregister: handleDeregister( envelope); break;
+      case request:    handleRequest( envelope); break;
+      case response:   
+      case ack:        handleResponse( envelope); break;
+    }
+  }
+
+  private void handleRegister( IModelObject envelope)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    String route = envelopeProtocol.getRoute( envelope);
+    if ( route == null)
+    {
+      String name = envelopeProtocol.getRegistrationName( envelope);
+      if ( router != null) router.addRoute( name, this);
+    }
+    else
+    {
+      // TODO
+      throw new UnsupportedOperationException();
+    }
+  }
+  
+  private void handleDeregister( IModelObject envelope)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    String route = envelopeProtocol.getRoute( envelope);
+    if ( route == null)
+    {
+      String name = envelopeProtocol.getRegistrationName( envelope);
+      if ( router != null) router.removeRoute( name, this);
+    }
+    else
+    {
+      // TODO
+      throw new UnsupportedOperationException();
+    }
+  }
+  
+  private void handleRequest( IModelObject envelope)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     IModelObject message = envelopeProtocol.getMessage( envelope);
     String route = envelopeProtocol.getRoute( envelope);
-    if ( !envelopeProtocol.isRequest( envelope))
-    {
-      Object key = envelopeProtocol.getKey( envelope);
-      if ( key != null)
-      {
-        Request request = requests.remove( key);
-        
-        // receive/timeout exclusion
-        if ( request != null && request.timeoutFuture.cancel( false))
-        {
-          IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
-          eventPipe.notifyReceive( message, request.messageContext, requestMessage);
-        }
-      }
-    }
-    else if ( route == null)
+    if ( route == null)
     {
       eventPipe.notifyReceive( message, transportContext, null);
     }
@@ -163,6 +222,24 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     {
       // TODO
       throw new UnsupportedOperationException();
+    }
+  }
+  
+  private void handleResponse( IModelObject envelope)
+  {
+    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+    IModelObject message = envelopeProtocol.getMessage( envelope);
+    Object key = envelopeProtocol.getKey( envelope);
+    if ( key != null)
+    {
+      Request request = requests.remove( key);
+      
+      // receive/timeout exclusion
+      if ( request != null && request.timeoutFuture.cancel( false))
+      {
+        IModelObject requestMessage = envelopeProtocol.getMessage( request.envelope);
+        eventPipe.notifyReceive( message, request.messageContext, requestMessage);
+      }
     }
   }
   
@@ -254,6 +331,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     
   public final static Log log = Log.getLog( AbstractTransport.class);
  
+  private IRouter router;
   private Protocol protocol;
   private IContext transportContext;
   private ScheduledExecutorService scheduler;

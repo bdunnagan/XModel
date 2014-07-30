@@ -9,22 +9,29 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+
 import java.net.ConnectException;
 import java.net.SocketAddress;
+import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
+import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class TcpClientTransport extends AbstractChannelTransport
+public class TcpClientTransport extends AbstractChannelTransport implements IRouter
 {
   public TcpClientTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     super( protocol, transportContext, scheduler);
     this.channelRef = new AtomicReference<Channel>();
+    this.router = new SimpleRouter();
+    setRouter( this);
   }
 
   public void setLocalAddress( SocketAddress address)
@@ -94,6 +101,24 @@ public class TcpClientTransport extends AbstractChannelTransport
     return future;
   }
   
+  @Override
+  public void addRoute( String route, ITransport transport)
+  {
+    router.addRoute( route, transport);
+  }
+
+  @Override
+  public void removeRoute( String route, ITransport transport)
+  {
+    router.removeRoute( route, transport);
+  }
+
+  @Override
+  public Iterator<ITransport> resolve( String route)
+  {
+    return router.resolve( route);
+  }
+
   private ITransport.Error translateConnectError( Throwable t)
   {
     if ( t instanceof ConnectException)
@@ -119,4 +144,5 @@ public class TcpClientTransport extends AbstractChannelTransport
   
   private SocketAddress localAddress;
   private SocketAddress remoteAddress;
+  private IRouter router;
 }

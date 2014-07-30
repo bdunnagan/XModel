@@ -7,13 +7,21 @@ import org.xmodel.IModelObject;
  */
 public interface IEnvelopeProtocol
 {
+  public enum Type { request, response, ack, register, deregister};
+  
+  public IModelObject buildRegisterEnvelope( String key, String name);
+  
+  public IModelObject buildDeregisterEnvelope( String key, String name);
+  
   public IModelObject buildRequestEnvelope( String key, String route, IModelObject message);
   
   public IModelObject buildResponseEnvelope( String key, String route, IModelObject message);
   
   public IModelObject buildAck( String key, String route);
   
-  public boolean isRequest( IModelObject envelope);
+  public Type getType( IModelObject envelope);
+    
+  public String getRegistrationName( IModelObject envelope);
   
   public IModelObject getMessage( IModelObject envelope);
   
@@ -22,6 +30,4 @@ public interface IEnvelopeProtocol
   public String getKey( IModelObject envelope);
   
   public String getRoute( IModelObject envelope);
-  
-  public boolean isAck( IModelObject envelope);
 }

@@ -21,7 +21,7 @@ public class RequestWaitAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false);
     
     viaExpr = document.getExpression( "via", true);
-    atExpr = document.getExpression( "at", true);
+    toExpr = document.getExpression( "to", true);
     timeoutExpr = document.getExpression( "timeout", true);
     
     onReceiveExpr = document.getExpression( "onReceive", true);
@@ -46,7 +46,7 @@ public class RequestWaitAction extends GuardedAction
     group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
     group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
-    Iterator<ITransport> transports = MessageSchema.resolveTransport( context, viaExpr, atExpr);
+    Iterator<ITransport> transports = MessageSchema.resolveTransport( context, viaExpr, toExpr);
     group.send( transports, message, messageContext, timeout);
 
     return null;
@@ -56,7 +56,7 @@ public class RequestWaitAction extends GuardedAction
   
   private String var;
   private IExpression viaExpr;
-  private IExpression atExpr;
+  private IExpression toExpr;
   private IExpression messageExpr;
   private IExpression timeoutExpr;
   private IExpression onReceiveExpr;  // each

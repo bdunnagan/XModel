@@ -3,6 +3,7 @@ package org.xmodel.net.nu;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledFuture;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -37,6 +38,18 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   public AsyncFuture<ITransport> disconnect()
   {
     return transport.disconnect();
+  }
+
+  @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    return transport.register( name, messageContext, timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    return transport.deregister( name, messageContext, timeout);
   }
 
   @Override

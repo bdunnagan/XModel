@@ -37,6 +37,18 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
     return transport.disconnect();
   }
 
+  @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    return transport.register( name, messageContext, timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    return transport.deregister( name, messageContext, timeout);
+  }
+
   public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int life)
   {
     long expiry = System.currentTimeMillis() + life;

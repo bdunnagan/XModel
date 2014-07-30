@@ -13,25 +13,19 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.locks.ReadWriteLock;
 
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.ReliableTransport;
-import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -51,7 +45,7 @@ public class TcpServerRouter implements IRouter
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.reliable = reliable;
-    this.routes = new HashMap<String, Set<ITransport>>();
+    this.router = new SimpleRouter();
   }
   
   public void setEventHandler( ITcpServerEventHandler eventHandler)
@@ -72,7 +66,7 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         ITransportImpl transport = new TcpChildTransport( protocol, transportContext, scheduler, channel);
+         ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, scheduler, channel);
          if ( reliable) transport = new ReliableTransport( transport);
          
          if ( eventHandler != null) transport.getEventPipe().addLast( new EventHandler( transport, eventHandler));
@@ -108,60 +102,19 @@ public class TcpServerRouter implements IRouter
   @Override
   public void addRoute( String route, ITransport transport)
   {
-    try
-    {
-      routesLock.writeLock().lock();
-      Set<ITransport> transports = routes.get( route);
-      if ( transports == null)
-      {
-        transports = new HashSet<ITransport>();
-        routes.put( route, transports);
-      }
-      transports.add( transport);
-    }
-    finally
-    {
-      routesLock.writeLock().unlock();
-    }
+    router.addRoute( route, transport);
   }
 
   @Override
   public void removeRoute( String route, ITransport transport)
   {
-    try
-    {
-      routesLock.writeLock().lock();
-      Set<ITransport> transports = routes.get( route);
-      if ( transports != null) transports.remove( transport);
-      if ( transports.size() == 0) routes.remove( route);
-    }
-    finally
-    {
-      routesLock.writeLock().unlock();
-    }
+    router.removeRoute( route, transport);
   }
 
   @Override
   public Iterator<ITransport> resolve( String route)
   {
-    try
-    {
-      routesLock.readLock().lock();
-      Set<ITransport> transports = routes.get( route);
-      if ( transports != null)
-      {
-        ArrayList<ITransport> copy = new ArrayList<ITransport>( transports);
-        return copy.iterator();
-      }
-      else
-      {
-        return Collections.<ITransport>emptyList().iterator();
-      }
-    }
-    finally
-    {
-      routesLock.readLock().unlock();
-    }
+    return router.resolve( route);
   }
 
   static class EventHandler implements IEventHandler
@@ -221,8 +174,7 @@ public class TcpServerRouter implements IRouter
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private ServerSocketChannel serverChannel;
-  private Map<String, Set<ITransport>> routes;
-  private ReadWriteLock routesLock;
+  private SimpleRouter router;
   private boolean reliable;
   private ITcpServerEventHandler eventHandler;
 }

@@ -7,6 +7,24 @@ import org.xmodel.Xlate;
 public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
 {
   @Override
+  public IModelObject buildRegisterEnvelope( String key, String name)
+  {
+    IModelObject envelope = new ModelObject( "register");
+    envelope.setAttribute( "key", key);
+    envelope.setAttribute( "name", name);
+    return envelope;
+  }
+
+  @Override
+  public IModelObject buildDeregisterEnvelope( String key, String name)
+  {
+    IModelObject envelope = new ModelObject( "deregister");
+    envelope.setAttribute( "key", key);
+    envelope.setAttribute( "name", name);
+    return envelope;
+  }
+
+  @Override
   public IModelObject buildRequestEnvelope( String key, String route, IModelObject message)
   {
     IModelObject envelope = new ModelObject( "request");
@@ -42,9 +60,15 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   }
 
   @Override
-  public boolean isRequest( IModelObject envelope)
+  public Type getType( IModelObject envelope)
   {
-    return envelope.isType( "request");
+    return Type.valueOf( envelope.getType());
+  }
+
+  @Override
+  public String getRegistrationName( IModelObject envelope)
+  {
+    return Xlate.get( envelope, "name", (String)null);
   }
 
   @Override
@@ -71,11 +95,5 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public String getRoute( IModelObject envelope)
   {
     return Xlate.get( envelope, "route", (String)null);
-  }
-
-  @Override
-  public boolean isAck( IModelObject envelope)
-  {
-    return envelope.isType( "ack");
   }
 }
