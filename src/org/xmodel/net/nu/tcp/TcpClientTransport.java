@@ -32,7 +32,6 @@ public class TcpClientTransport extends AbstractChannelTransport
     localAddress = address;
   }
   
-  
   public void setRemoteAddress( SocketAddress address)
   {
     remoteAddress = address;
