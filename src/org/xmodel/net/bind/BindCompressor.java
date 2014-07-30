@@ -19,7 +19,6 @@
  */
 package org.xmodel.net.bind;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,15 +28,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.compress.CaptureInputStream;
 import org.xmodel.compress.CompressorException;
 import org.xmodel.compress.TabularCompressor;
 import org.xmodel.external.ICachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
+import org.xmodel.net.IXioChannel;
 import org.xmodel.net.NetworkCachingPolicy;
 
 /**
@@ -98,7 +98,7 @@ public class BindCompressor extends TabularCompressor
    * Set the channel for the next call to the <code>decompress</code> method.
    * @param channel The channel.
    */
-  public void setChannel( Channel channel)
+  public void setChannel( IXioChannel channel)
   {
     this.channel = channel;
   }
@@ -192,14 +192,14 @@ public class BindCompressor extends TabularCompressor
    */
   public IModelObject decompress( ChannelBuffer input, IExternalReference reference) throws IOException
   {
-    DataInputStream stream = new DataInputStream( new ChannelBufferInputStream( input));
+    CaptureInputStream stream = new CaptureInputStream( new ChannelBufferInputStream( input));
     
     // header flags
     int flags = input.readUnsignedByte();
     boolean predefined = (flags & 0x20) != 0;
     
     // table
-    if ( !predefined) readTable( stream);
+    if ( !predefined) readTable( stream, false);
 
     // log
     log.debugf( "%x.decompress(): predefined=%s", hashCode(), predefined);
@@ -214,11 +214,11 @@ public class BindCompressor extends TabularCompressor
    * @param binding The reference being remotely bound.
    * @return Returns the new element.
    */
-  protected IModelObject readElement( DataInputStream stream, IExternalReference binding) throws IOException, CompressorException
+  protected IModelObject readElement( CaptureInputStream stream, IExternalReference binding) throws IOException, CompressorException
   {
-    Integer netID = stream.readInt();
+    Integer netID = stream.getDataIn().readInt();
     String type = readHash( stream);
-    byte flags = stream.readByte();
+    byte flags = stream.getDataIn().readByte();
     
     // create element
     IModelObject element;
@@ -272,7 +272,7 @@ public class BindCompressor extends TabularCompressor
    * @return Returns the new element.
    */
   @Override
-  protected IModelObject readElement( DataInputStream stream) throws IOException, CompressorException
+  public IModelObject readElement( CaptureInputStream stream) throws IOException, CompressorException
   {
     return readElement( stream, null);
   }
@@ -336,6 +336,6 @@ public class BindCompressor extends TabularCompressor
   private Map<Integer, IModelObject> localMap;
   private Map<Integer, IModelObject> remoteMap;
   private Map<IModelObject, Integer> remoteKeys;
-  private Channel channel;
+  private IXioChannel channel;
   private int timeout;
 }

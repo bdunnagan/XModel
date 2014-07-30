@@ -60,7 +60,8 @@ public class CreateAction extends GuardedAction
     collectionExpr = Xlate.get( config, "collection", (IExpression)null);
     parentExpr = Xlate.get( config, "parent", (IExpression)null);
     nameExpr = Xlate.get( config, "name", (IExpression)null);
-    pathExpr = Xlate.get( config, (IExpression)null);
+    pathExpr = Xlate.get( config, "path", (IExpression)null);
+    templateExpr = Xlate.get( config, "template", (IExpression)null);
     
     // get the factory used to create elements
     factory = Conventions.getFactory( config);
@@ -98,6 +99,15 @@ public class CreateAction extends GuardedAction
         elements.add( factory.createObject( parent, type));
       }
           
+      if ( templateExpr != null)
+      {
+        for( IModelObject element: templateExpr.evaluateNodes( context))
+        {
+          replaceTemplateExpressions( context, element);
+          elements.add( element);
+        }
+      }
+      
       // create children
       for( IModelObject child: document.getRoot().getChildren())
       {
@@ -226,14 +236,9 @@ public class CreateAction extends GuardedAction
         IModelObject node = expression.queryFirst( context);
         return (node != null)? node.getValue(): null;
         
-      case NUMBER:
-        return expression.evaluateNumber( context);
-        
-      case STRING:
-        return expression.evaluateString( context);
-        
-      case BOOLEAN:
-        return expression.evaluateBoolean( context);
+      case NUMBER: return expression.evaluateNumber( context);
+      case STRING: return expression.evaluateString( context);
+      case BOOLEAN: return expression.evaluateBoolean( context);
         
       default: break;
     }
@@ -247,5 +252,6 @@ public class CreateAction extends GuardedAction
   private IExpression parentExpr;
   private IExpression nameExpr;
   private IExpression pathExpr;
+  private IExpression templateExpr;
   private IExpression annotatedExpr;
 }

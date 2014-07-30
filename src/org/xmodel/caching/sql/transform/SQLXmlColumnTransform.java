@@ -55,6 +55,8 @@ public class SQLXmlColumnTransform implements ISQLColumnTransform
   public void importColumn( ResultSet cursor, IModelObject rowElement, int columnIndex) throws SQLException
   {
     Object value = cursor.getObject( columnIndex);
+    if ( value == null) return;
+    
     if ( value instanceof byte[])
     {
       if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());

@@ -55,6 +55,7 @@ public class ReturnAction extends GuardedAction
         case NUMBER: return new Object[] { resultExpr.evaluateNumber( context)};
         case STRING: return new Object[] { resultExpr.evaluateString( context)};
         case BOOLEAN: return new Object[] { resultExpr.evaluateBoolean( context)};
+        default: break;
       }
     }
     return new Object[ 0];

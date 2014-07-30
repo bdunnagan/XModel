@@ -8,12 +8,17 @@ import org.xmodel.xpath.expression.IContext;
 
 public class ExecutionProtocol
 {
-  public ExecutionProtocol( HeaderProtocol headerProtocol, IContext context, Executor executor, ScheduledExecutorService scheduler)
+  public ExecutionProtocol( 
+      HeaderProtocol headerProtocol, 
+      IContext context, 
+      Executor executor, 
+      ScheduledExecutorService scheduler,
+      ExecutionPrivilege privilege)
   {
     this.context = context;
     this.executor = executor;
     this.headerProtocol = headerProtocol;
-    this.requestProtocol = new ExecutionRequestProtocol( this);
+    this.requestProtocol = new ExecutionRequestProtocol( this, privilege);
     this.responseProtocol = new ExecutionResponseProtocol( this);
     this.scheduler = scheduler;
     

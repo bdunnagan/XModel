@@ -168,6 +168,7 @@ public interface XPathParserConstants {
     "<NT_PI>",
     "<NCName>",
     "<NCNameChar>",
+    "\",\"",
     "\";\"",
     "\"$\"",
     "\".\"",
@@ -175,7 +176,6 @@ public interface XPathParserConstants {
     "\"(\"",
     "\")\"",
     "\":\"",
-    "\",\"",
     "\"[\"",
     "\"]\"",
   };

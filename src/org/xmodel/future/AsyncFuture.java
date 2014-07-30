@@ -174,12 +174,15 @@ public class AsyncFuture<T>
     
     synchronized( this)
     {
-      for( int i=0; i<listeners.length; i++)
+      if ( listeners != null)
       {
-        if ( listeners[ i] == listener)
+        for( int i=0; i<listeners.length; i++)
         {
-          listeners[ i] = null;
-          break;
+          if ( listeners[ i] == listener)
+          {
+            listeners[ i] = null;
+            break;
+          }
         }
       }
     }
@@ -252,11 +255,12 @@ public class AsyncFuture<T>
    * Notify a listener that the future is complete.
    * @param listener The listener.
    */
-  public void notifyComplete( IListener<T> listener)
+  private void notifyComplete( IListener<T> listener)
   {
     try
     {
-      listener.notifyComplete( this);
+      if ( listener != null)
+        listener.notifyComplete( this);
     }
     catch( Exception e)
     {

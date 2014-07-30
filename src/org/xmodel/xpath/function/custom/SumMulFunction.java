@@ -93,6 +93,8 @@ public class SumMulFunction extends Function
             }
           }
           break;
+          
+          default: break;
         }
       }
       break;
@@ -122,9 +124,13 @@ public class SumMulFunction extends Function
             sum += value0 * value1;
           }
           break;
+          
+          default: break;
         }
       }
       break;
+      
+      default: break;
     }
     
     return sum;

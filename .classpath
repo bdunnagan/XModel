@@ -19,5 +19,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/netty-common-4.0.19.Final.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/netty-handler-4.0.19.Final.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/netty-transport-4.0.19.Final.jar"/>
+	<classpathentry kind="lib" path="lib/rabbitmq-client.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

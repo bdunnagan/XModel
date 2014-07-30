@@ -20,6 +20,7 @@
 package org.xmodel.xpath.function;
 
 import java.util.Hashtable;
+
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.custom.*;
 
@@ -39,11 +40,11 @@ public class FunctionFactory implements IFunctionFactory
   @SuppressWarnings("rawtypes")
   private void addBaseFunctions()
   {
+    @SuppressWarnings("deprecation")
     Class[] classes = {
       AbsFunction.class,
       AvgFunction.class,
       BooleanFunction.class,
-      CallFunction.class,
       CeilingFunction.class,
       CollectionFunction.class,
       ConcatFunction.class,
@@ -78,6 +79,7 @@ public class FunctionFactory implements IFunctionFactory
       NameFunction.class,
       NosyncFunction.class,
       ParseXmlFunction.class,
+      PosFunction.class,
       PositionFunction.class,
       PrintfFunction.class,
       RandomFunction.class,

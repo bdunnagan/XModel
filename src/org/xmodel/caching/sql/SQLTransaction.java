@@ -51,7 +51,7 @@ public class SQLTransaction implements ITransaction
     }
     catch( SQLException e)
     {
-      SLog.errorf( this, e.getMessage());
+      SLog.exception( this, e);
       return false;
     }
   }
@@ -103,7 +103,7 @@ public class SQLTransaction implements ITransaction
     {
       rollback();
       
-      SLog.error( this, e.getMessage());
+      SLog.exception( this, e);
       state = State.error;
       return false;
     }
@@ -117,13 +117,13 @@ public class SQLTransaction implements ITransaction
   {
     try
     {
-      connection.rollback();
+      if ( connection != null) connection.rollback();
       state = State.rolledback;
       return true;
     }
     catch( SQLException e)
     {
-      SLog.error( this, e.getMessage());
+      SLog.exception( this, e);
       state = State.error;
       return false;
     }

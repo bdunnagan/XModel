@@ -38,6 +38,7 @@ import java.util.Set;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.Xlate;
+import org.xmodel.caching.sql.transform.SQLPredicateParser;
 import org.xmodel.compress.ICompressor;
 import org.xmodel.compress.MultiByteArrayInputStream;
 import org.xmodel.compress.TabularCompressor;
@@ -52,6 +53,7 @@ import org.xmodel.external.NonSyncingListener;
 import org.xmodel.external.UnboundedCache;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
+import org.xmodel.util.ThreadLocalMap;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlException;
 import org.xmodel.xml.XmlIO;
@@ -90,7 +92,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     super( cache);
    
-    primaryKeys = new ArrayList<String>( 1);
     rowCachingPolicy = new SQLRowCachingPolicy( this, cache);
     updateMonitor = new SQLEntityListener();
     
@@ -241,7 +242,12 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( SQLException e)
     {
-      throw new CachingException( "Unable to cache reference: "+reference, e);
+      String message = String.format( "Unable to cache reference, %s[%s], with statement, %s",
+        reference.getType(),
+        reference.getAttribute( "id"),
+        statement);    
+          
+      throw new CachingException( message, e);
     }
     finally
     {
@@ -327,7 +333,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         //
         if ( value instanceof byte[])
         {
-          if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor());
+          if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor( false, readonly));
           try
           {
             IModelObject superroot = compressor.decompress( new ByteArrayInputStream( (byte[])value));
@@ -479,7 +485,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       provider.releaseConnection( statement.getConnection());
-      statement.close();
+      provider.close( statement);
     }
     catch( SQLException e)
     {
@@ -492,62 +498,90 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    */
   private void fetchMetadata()
   {
-    Connection connection = provider.leaseConnection();
+    Connection connection = null;
     try
     {
-//      connection.setCatalog( catalog);
-      
-      DatabaseMetaData meta = connection.getMetaData();
-      ResultSet result = meta.getColumns( null, null, tableName, null);
-      columnNames = new ArrayList<String>();
-      columnTypes = new ArrayList<Integer>();
-      while( result.next()) 
+      Metadata metadata = metadataCache.get( tableName);
+      if ( metadata == null)
       {
-        String columnName = result.getString( "COLUMN_NAME").toLowerCase();
-        if ( !excluded.contains( columnName))
-          columnNames.add( columnName.toLowerCase());
+        metadata = new Metadata();
         
-        int columnType = result.getInt( "DATA_TYPE");
-        columnTypes.add( columnType);
-      }
-      
-      StringBuilder sb = new StringBuilder();
-      sb.append( columnNames.get( 0));
-      for( int i=1; i<columnNames.size(); i++)
-      {
-        sb.append( ",");
-        sb.append( columnNames.get( i));
-      }
-      queryColumns = sb.toString();
-      
-      result = meta.getPrimaryKeys( null, null, tableName);
-      while( result.next())
-      {
-        String name = result.getString( "COLUMN_NAME");
-        if ( excluded.contains( name)) 
+        connection = provider.leaseConnection();
+        DatabaseMetaData meta = connection.getMetaData();
+        ResultSet result = meta.getColumns( null, null, tableName, null);
+        while( result.next()) 
         {
-          throw new IllegalArgumentException( String.format(
-            "Primary key columns cannot be excluded."));
+          String columnName = result.getString( "COLUMN_NAME").toLowerCase();
+          metadata.columnNames.add( columnName.toLowerCase());
+          
+          int columnType = result.getInt( "DATA_TYPE");
+          metadata.columnTypes.add( columnType);
         }
         
-        primaryKeys.add( name.toLowerCase());
+        result = meta.getPrimaryKeys( null, null, tableName);
+        while( result.next())
+        {
+          String name = result.getString( "COLUMN_NAME");
+          if ( excluded.contains( name)) 
+          {
+            throw new IllegalArgumentException( String.format(
+              "Primary key columns cannot be excluded."));
+          }
+          
+          metadata.primaryKeys.add( name.toLowerCase());
+        }
+        
+        // views do not provide meta-data that reflects the backing tables
+        if ( metadata.primaryKeys.size() == 0) 
+        {
+          if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
+          metadata.primaryKeys.add( attributes.get( 0));
+        }
+        
+        result = meta.getIndexInfo( null, null, tableName, false, false);
+        while( result.next())
+        {
+          String columnName = result.getString( "COLUMN_NAME");
+          if ( columnName != null) 
+            metadata.otherKeys.add( columnName.toLowerCase());
+        }
+      
+        metadataCache.put( tableName, metadata);
       }
       
-      // views do not provide meta-data that reflects the backing tables
-      if ( primaryKeys.size() == 0) 
+      columnNames = new ArrayList<String>( metadata.columnNames);
+      columnTypes = new ArrayList<Integer>( metadata.columnTypes);
+      primaryKeys = new ArrayList<String>( metadata.primaryKeys);
+      otherKeys = new ArrayList<String>( metadata.otherKeys);
+
+      // remove excluded element columns
+      for( int i=0; i<columnNames.size(); i++)
       {
-        if ( attributes.size() == 0) throw new IllegalStateException( "Primary key or attribute must be defined.");
-        primaryKeys.add( attributes.get( 0));
+        if ( excluded.contains( columnNames.get( i)))
+        {
+          columnNames.remove( i);
+          columnTypes.remove(  i--);
+        }
       }
       
-      otherKeys = new ArrayList<String>( 1);
-      result = meta.getIndexInfo( null, null, tableName, false, false);
-      while( result.next())
+      // remove excluded attribute columns
+      for( int i=0; i<otherKeys.size(); i++)
       {
-        String columnName = result.getString( "COLUMN_NAME");
-        if ( columnName != null && !excluded.contains( columnName)) 
-          otherKeys.add( columnName.toLowerCase());
+        if ( excluded.contains( otherKeys.get( i)))
+        {
+          otherKeys.remove( i--);
+        }
       }
+      
+      // create query columns
+      StringBuilder sb = new StringBuilder();
+      sb.append( metadata.columnNames.get( 0));
+      for( int i=1; i<metadata.columnNames.size(); i++)
+      {
+        sb.append( ",");
+        sb.append( metadata.columnNames.get( i));
+      }
+      queryColumns = sb.toString();
     }
     catch( Exception e)
     {
@@ -555,7 +589,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     }
     finally
     {
-      provider.releaseConnection( connection);
+      if ( connection != null)
+        provider.releaseConnection( connection);
     }
   }
   
@@ -595,10 +630,18 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     sb.append( tableName);
     
     // optional configured predicate
+    List<String> params = null;
     if ( where != null)
     {
       sb.append( " WHERE ");
-      sb.append( where);
+      
+      SQLPredicateParser parser = new SQLPredicateParser();
+      parser.parse( where);
+     
+      sb.append( parser.getParameterizedPredicate());
+      params = parser.getParameters();
+      
+      log.debugf( "Parameterized predicate: %s", parser.getParameterizedPredicate());
     }
     
     // optional ordering
@@ -615,6 +658,16 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true);
     if ( limit > 0) statement.setMaxRows( limit);
+    
+    if ( params != null)
+    {
+      for( int i=0; i<params.size(); i++)
+      {
+        String param = params.get( i);
+        statement.setObject( i+1, param);
+      }
+    }
+    
     return statement;
   }
   
@@ -639,7 +692,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "row query: %s", sb);
     
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), 1, 0, false, readonly);
     int k=1;
     for( String primaryKey: primaryKeys)
     {
@@ -672,7 +725,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( "=?");
     }
 
-    PreparedStatement statement = connection.prepareStatement( sb.toString());
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), -1, -1, false, false);
     
     for( IModelObject node: nodes)
     {
@@ -883,9 +936,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         statement.executeBatch();
       }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Delete statement failed: %s", statement);
+        throw e;
+      }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -899,9 +957,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         statement.executeBatch();
       }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Insert statement failed: %s", statement);
+        throw e;
+      }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -915,9 +978,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       {
         statement.execute();
       }
+      catch( SQLException e)
+      {
+        SLog.errorf( this, "Update statement failed: %s", statement);
+        throw e;
+      }
       finally
       {
-        statement.close();
+        provider.close( statement);
       }
     }
     
@@ -995,63 +1063,62 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       super.notifyAddChild( parent, child, index);
       
-      if ( enabled)
+      if ( !enabled) return;
+      
+      // handle row insert
+      if ( isTable( parent))
       {
-        // handle row insert
-        if ( isTable( parent))
+        ICachingPolicy cachingPolicy = child.getCachingPolicy();
+        if ( cachingPolicy != null)
         {
-          ICachingPolicy cachingPolicy = child.getCachingPolicy();
-          if ( cachingPolicy != null)
-          {
-            ((SQLRowCachingPolicy)cachingPolicy).parent = SQLTableCachingPolicy.this;
-          }
-          else
-          {
-            cachingPolicy = new SQLRowCachingPolicy( SQLTableCachingPolicy.this, getCache());
-            child.setCachingPolicy( cachingPolicy);
-          }
-          
-          List<IModelObject> inserts = rowInserts.get( parent);
-          if ( inserts == null)
-          {
-            inserts = new ArrayList<IModelObject>();
-            rowInserts.put( parent, inserts);
-          }
-          inserts.add( child);
+          ((SQLRowCachingPolicy)cachingPolicy).parent = SQLTableCachingPolicy.this;
         }
-        else if ( xmlColumns.contains( parent.getType()))
+        else
         {
+          cachingPolicy = new SQLRowCachingPolicy( SQLTableCachingPolicy.this, getCache());
+          child.setCachingPolicy( cachingPolicy);
+        }
+        
+        List<IModelObject> inserts = rowInserts.get( parent);
+        if ( inserts == null)
+        {
+          inserts = new ArrayList<IModelObject>();
+          rowInserts.put( parent, inserts);
+        }
+        inserts.add( child);
+      }
+      else if ( xmlColumns.contains( parent.getType()))
+      {
           if ( !excluded.contains( parent.getType()))
           {
             // xml column insert
             addRowUpdate( parent.getParent(), parent.getType());
           }
         }
-        else if ( isTable( parent.getParent()))
+      else if ( isTable( parent.getParent()))
+      {
+        if ( !excluded.contains( child.getType()))
         {
-          if ( !excluded.contains( child.getType()))
-          {
-            addRowUpdate( parent, child.getType());
-          }
+           addRowUpdate( parent, child.getType());
+        }
+      }
+      else
+      {
+        // xml column content update
+        IModelObject columnAncestor = findColumnElement( parent);
+        if ( columnAncestor != null)
+        {
+          addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
         }
         else
         {
-          // xml column content update
-          IModelObject columnAncestor = findColumnElement( parent);
-          if ( columnAncestor != null)
-          {
-            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
-          }
-          else
-          {
-            throw new CachingException( String.format( 
-                "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-                ModelAlgorithms.createIdentityPath( parent), child.getType()));
-          }
+          throw new CachingException( String.format( 
+              "Illegal field insert operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+              ModelAlgorithms.createIdentityPath( parent), child.getType()));
         }
-  
-        if ( transaction == null) commit();
       }
+
+      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -1062,55 +1129,54 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       super.notifyRemoveChild( parent, child, index);
       
-      if ( enabled)
+      if ( !enabled) return;
+      
+      // handle row delete
+      if ( isTable( parent))
       {
-        // handle row delete
-        if ( isTable( parent))
+        List<IModelObject> deletes = rowDeletes.get( parent);
+        if ( deletes == null)
         {
-          List<IModelObject> deletes = rowDeletes.get( parent);
-          if ( deletes == null)
-          {
-            deletes = new ArrayList<IModelObject>();
-            rowDeletes.put( parent, deletes);
-          }
-          deletes.add( child);
-          
-          // remove any cached update records for removed row
-          if ( rowUpdates != null) rowUpdates.remove( child);
+          deletes = new ArrayList<IModelObject>();
+          rowDeletes.put( parent, deletes);
         }
-        else if ( xmlColumns.contains( parent.getType()))
+        deletes.add( child);
+        
+        // remove any cached update records for removed row
+        if ( rowUpdates != null) rowUpdates.remove( child);
+      }
+      else if ( xmlColumns.contains( parent.getType()))
+      {
+        if ( !excluded.contains( parent.getType()))
         {
-          if ( !excluded.contains( parent.getType()))
-          {
-            // xml column delete
-            addRowUpdate( parent.getParent(), parent.getType());
-          }
+          // xml column delete
+          addRowUpdate( parent.getParent(), parent.getType());
         }
-        else if ( isTable( parent.getParent()))
+      }
+      else if ( isTable( parent.getParent()))
+      {
+        if ( !excluded.contains( child.getType()))
         {
-          if ( !excluded.contains( child.getType()))
-          {
-            addRowUpdate( parent, child.getType());
-          }
+          addRowUpdate( parent, child.getType());
+        }
+      }
+      else
+      {
+        // xml column content updated
+        IModelObject columnAncestor = findColumnElement( parent);
+        if ( columnAncestor != null)
+        {
+          addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
         }
         else
         {
-          // xml column content updated
-          IModelObject columnAncestor = findColumnElement( parent);
-          if ( columnAncestor != null)
-          {
-            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
-          }
-          else
-          {
-            throw new CachingException( String.format( 
-                "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
-                ModelAlgorithms.createIdentityPath( parent), child.getType()));
-          }
+          throw new CachingException( String.format( 
+              "Illegal field delete operation on SQLDirectCachingPolicy external reference: %s, field: %s",
+              ModelAlgorithms.createIdentityPath( parent), child.getType()));
         }
-        
-        if ( transaction == null) commit();
       }
+      
+      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -1121,60 +1187,59 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       super.notifyChange( object, attrName, newValue, oldValue);
       
-      if ( enabled)
+      if ( !enabled) return;
+      
+      // ignore changes to table attributes
+      if ( isTable( object)) return;
+
+      // handle indexed column update
+      if ( isTable( object.getParent()))
       {
-        // ignore changes to table attributes
-        if ( isTable( object)) return;
-
-        // handle indexed column update
-        if ( isTable( object.getParent()))
+        if ( !excluded.contains( attrName))
         {
-          if ( !excluded.contains( attrName))
+          if ( attrName.length() > 0)
           {
-            if ( attrName.length() > 0)
-            {
-              // update to the value of a column
-              addRowUpdate( object, attrName);
-            }
-            else
-            {
-              SLog.errorf( this, "Ignored update to value of table row in table, %s", object.getParent().getType());
-            }
-          }
-        }
-        
-        // handle non-indexed column update
-        else if ( isColumn( object))
-        {
-          if ( !excluded.contains( object.getType()))
-          {
-            if ( attrName.length() == 0)
-            {
-              addRowUpdate( object.getParent(), object.getType());
-            }
-            else
-            {
-              SLog.errorf( this, "Ignored update to attribute of column, %s, in table, %s", object.getType(), object.getParent().getType());
-            }
-          }
-        }
-
-        // handle xml column internal update
-        else
-        {
-          IModelObject columnAncestor = findColumnElement( object);
-          if ( columnAncestor != null)
-          {
-            addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
+            // update to the value of a column
+            addRowUpdate( object, attrName);
           }
           else
           {
-            SLog.errorf( this, "Ignored internal update to non-xml column - configuration error?"); 
+            SLog.errorf( this, "Ignored update to value of table row in table, %s", object.getParent().getType());
           }
         }
-        
-        if ( transaction == null) commit();
       }
+      
+      // handle non-indexed column update
+      else if ( isColumn( object))
+      {
+        if ( !excluded.contains( object.getType()))
+        {
+          if ( attrName.length() == 0)
+          {
+            addRowUpdate( object.getParent(), object.getType());
+          }
+          else
+          {
+            SLog.errorf( this, "Ignored update to attribute of column, %s, in table, %s", object.getType(), object.getParent().getType());
+          }
+        }
+      }
+
+      // handle xml column internal update
+      else
+      {
+        IModelObject columnAncestor = findColumnElement( object);
+        if ( columnAncestor != null)
+        {
+          addRowUpdate( columnAncestor.getParent(), columnAncestor.getType());
+        }
+        else
+        {
+          SLog.errorf( this, "Ignored internal update to non-xml column - configuration error?"); 
+        }
+      }
+      
+      if ( transaction == null) commit();
     }
 
     /* (non-Javadoc)
@@ -1187,10 +1252,28 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       notifyChange( object, attrName, null, null);
     }
     
+    /* (non-Javadoc)
+     * @see org.xmodel.ModelListener#notifyDirty(org.xmodel.IModelObject, boolean)
+     */
+    @Override
+    public void notifyDirty( IModelObject object, boolean dirty)
+    {
+      // override default behavior
+    }
+
     private boolean enabled;
   }
-    
+  
+  private static class Metadata
+  {
+    public List<String> columnNames = new ArrayList<String>();
+    public List<Integer> columnTypes = new ArrayList<Integer>();
+    public List<String> primaryKeys = new ArrayList<String>( 1);
+    public List<String> otherKeys = new ArrayList<String>( 1);
+  }
+  
   private static Log log = Log.getLog( SQLTableCachingPolicy.class);
+  private static ThreadLocalMap<String, Metadata> metadataCache = new ThreadLocalMap<String, Metadata>();
 
   protected ISQLProvider provider;
   protected boolean stub;

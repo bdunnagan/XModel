@@ -1,17 +1,52 @@
 package org.xmodel.net;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.xmodel.net.XioChannelHandler.Type;
 
 public class HeaderProtocol
 {
+  public enum Type
+  {
+    executeRequest,
+    executeResponse,
+    cancelRequest,
+    bindRequest,
+    bindResponse,
+    unbindRequest,
+    syncRequest,
+    syncResponse,
+    addChild,
+    removeChild,
+    changeAttribute,
+    clearAttribute,
+    changeDirty,
+    register,
+    unregister,
+    echoRequest,
+    echoResponse
+  }
+  
+  public HeaderProtocol()
+  {
+    int seed = (int)System.nanoTime();
+    correlation = new AtomicInteger( seed);
+  }
+  
   /**
    * Reset this instance by releasing internal resources.  This method should be called after 
    * the channel is closed to prevent conflict between protocol traffic and the freeing of resources.
    */
   public void reset()
   {
+  }
+  
+  /**
+   * @return Returns the next request correlation number.
+   */
+  public int correlation()
+  {
+    return correlation.getAndIncrement();
   }
   
   /**
@@ -73,4 +108,6 @@ public class HeaderProtocol
     buffer.writeInt( correlation);
     return buffer;
   }
+  
+  private AtomicInteger correlation;
 }  

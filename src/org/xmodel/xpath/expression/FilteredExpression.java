@@ -93,6 +93,8 @@ public class FilteredExpression extends Expression
           if ( arg1.evaluateBoolean( filterContext))
             filtered.add( object);
           break;
+          
+        default: break;
       }
     }
     
@@ -122,6 +124,8 @@ public class FilteredExpression extends Expression
         case BOOLEAN:
           if ( arg1.evaluateBoolean( filterContext)) return true;
           break;
+          
+        default: break;
       }
     }
     
@@ -354,6 +358,8 @@ public class FilteredExpression extends Expression
         if ( newValue != oldValue) notifyChange( expression, context, newValue);
       }
       break;
+      
+      default: break;
     }      
   }
 

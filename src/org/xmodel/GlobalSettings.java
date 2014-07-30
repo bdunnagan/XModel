@@ -19,10 +19,14 @@
  */
 package org.xmodel;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+
+import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 /**
  * Static global settings for the library including global access to an instance of IModel for handling
@@ -35,6 +39,7 @@ public class GlobalSettings
 {
   public GlobalSettings()
   {
+    contexts = new ConcurrentHashMap<String, IContext>();
     executor = new CurrentThreadExecutor();
   }
   
@@ -50,6 +55,37 @@ public class GlobalSettings
       threadModel.set( model);
     }
     return model;
+  }
+
+  /**
+   * Get/create the context with the specified name.
+   * @param parent The parent context.
+   * @param name The name.
+   * @return Returns the context associated with the specified name.
+   */
+  public IContext getNamedContext( IContext parent, String name)
+  {
+    IContext context = contexts.get( name);
+    if ( context != null) return context;
+    
+    context = new StatefulContext( 
+        parent,
+        parent.getObject(),
+        parent.getPosition(),
+        parent.getSize());
+    
+    contexts.putIfAbsent( name, context);
+    
+    return contexts.get( name);
+  }
+
+  /**
+   * Delete the context with the specified name.
+   * @param name The name.
+   */
+  public void deleteContext( String name)
+  {
+    contexts.remove( name);
   }
   
   /**
@@ -110,6 +146,7 @@ public class GlobalSettings
   private static GlobalSettings instance = new GlobalSettings();
   
   private ThreadLocal<IModel> threadModel = new ThreadLocal<IModel>();
+  private ConcurrentHashMap<String, IContext> contexts;
   private ScheduledExecutorService scheduler;
   private Executor executor;
 }

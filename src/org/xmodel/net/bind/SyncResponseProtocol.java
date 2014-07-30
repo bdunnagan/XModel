@@ -7,22 +7,19 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferInputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.XioChannelHandler.Type;
+import org.xmodel.net.HeaderProtocol.Type;
+import org.xmodel.net.IXioChannel;
 
 public class SyncResponseProtocol
 {
   public SyncResponseProtocol( BindProtocol bundle)
   {
     this.bundle = bundle;
-    this.counter = new AtomicInteger( 1);
     this.queues = new ConcurrentHashMap<Integer, BlockingQueue<IModelObject>>();
   }
   
@@ -41,7 +38,7 @@ public class SyncResponseProtocol
    * @param correlation The correlation number.
    * @param element Null or the element identified by the bind request query.
    */
-  public void send( Channel channel, int correlation, IModelObject element) throws IOException
+  public void send( IXioChannel channel, int correlation, IModelObject element) throws IOException
   {
     log.debugf( "SyncResponseProtocol.send: corr=%d, found=%s", correlation, (element != null)? "true": "false");
     
@@ -59,7 +56,7 @@ public class SyncResponseProtocol
    * @param channel The channel.
    * @param buffer The buffer.
    */
-  public void handle( Channel channel, ChannelBuffer buffer) throws IOException
+  public void handle( IXioChannel channel, ChannelBuffer buffer) throws IOException
   {
     int correlation = buffer.readInt();
     IModelObject element = bundle.requestCompressor.decompress( new ChannelBufferInputStream( buffer));
@@ -76,7 +73,7 @@ public class SyncResponseProtocol
    */
   protected int nextCorrelation()
   {
-    int correlation = counter.getAndIncrement();
+    int correlation = bundle.headerProtocol.correlation();
     queues.put( correlation, new ArrayBlockingQueue<IModelObject>( 1));
     return correlation;
   }
@@ -87,7 +84,7 @@ public class SyncResponseProtocol
    * @param timeout The timeout in milliseconds.
    * @return Returns null or the response.
    */
-  protected IModelObject waitForResponse( long correlation, int timeout) throws InterruptedException
+  protected IModelObject waitForResponse( int correlation, int timeout) throws InterruptedException
   {
     try
     {
@@ -103,6 +100,5 @@ public class SyncResponseProtocol
   private final static Log log = Log.getLog( SyncResponseProtocol.class);
 
   private BindProtocol bundle;
-  private AtomicInteger counter;
   private Map<Integer, BlockingQueue<IModelObject>> queues;
 }

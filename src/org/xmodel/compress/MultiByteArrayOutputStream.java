@@ -41,6 +41,8 @@ public class MultiByteArrayOutputStream extends OutputStream
       System.arraycopy( b, off + space, buffer, bufferIndex, remaining);
       bufferIndex += remaining;
     }
+    
+    totalLength += len;
   }
 
   /* (non-Javadoc)
@@ -60,6 +62,7 @@ public class MultiByteArrayOutputStream extends OutputStream
   {
     if ( buffer == null || bufferIndex == buffer.length) newSegment( defaultLength);
     buffer[ bufferIndex++] = (byte)b;
+    totalLength++;
   }
 
   /**
@@ -104,16 +107,11 @@ public class MultiByteArrayOutputStream extends OutputStream
   }
   
   /**
-   * Returns the total number of bytes in the specified buffers.
-   * @param buffers The buffers.
-   * @return Returns the total number of bytes in the specified buffers.
+   * @return Returns the total number of bytes that were written.
    */
-  public static int getLength( List<byte[]> buffers)
+  public int getWritten()
   {
-    int count = 0;
-    for( byte[] buffer: buffers)
-      count += buffer.length;
-    return count;
+    return totalLength;
   }
   
   protected static int maxDefaultLength = 65536;
@@ -122,4 +120,5 @@ public class MultiByteArrayOutputStream extends OutputStream
   protected List<byte[]> segments;
   protected byte[] buffer;
   protected int bufferIndex;
+  protected int totalLength;
 }

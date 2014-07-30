@@ -20,6 +20,7 @@
 package org.xmodel.xpath;
 
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -206,6 +207,26 @@ public class XPath extends AbstractPath implements IAxis
     }
   }
   
+  /**
+   * Parse a list of comma-separated expressions.
+   * @param spec The specification.
+   * @return Returns the list of expressions.
+   */
+  public static List<IExpression> createExpressions( String spec)
+  {
+    XPathParser parser = new XPathParser( new StringReader( spec));
+    parser.setSpec( spec);
+    try
+    {
+      return parser.ParseExpressions();
+    }
+    catch( ParseException e)
+    {
+      log.exception( e);
+      return Collections.emptyList();
+    }
+  }
+  
   /*
    * (non-Javadoc)
    * @see org.xmodel.IPath#compile(java.lang.String)
@@ -339,6 +360,10 @@ public class XPath extends AbstractPath implements IAxis
   
   public static void main( String[] args) throws Exception
   {
+    List<IExpression> list = XPath.createExpressions( "x[ $z = '\",\"'], @y, a/b/c");
+    for( IExpression expr: list) System.out.println( expr);
+    System.exit( 1);
+    
     // & does not parse here
     IExpression expr = XPath.createExpression( "if ($nv4 > 0) then avg( $report/agents/*[ region = $region]/v4/@avg) then -1");
     double x = expr.evaluateNumber();

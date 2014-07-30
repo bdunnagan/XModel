@@ -84,6 +84,7 @@ public class SubstringFunction extends Function
     }
     else
     {
+      if ( end > string.length()) end = string.length();
       return string.substring( start, end);
     }
   }

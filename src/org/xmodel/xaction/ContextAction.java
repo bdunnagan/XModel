@@ -19,6 +19,7 @@
  */
 package org.xmodel.xaction;
 
+import org.xmodel.GlobalSettings;
 import org.xmodel.IModelObject;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
@@ -28,7 +29,7 @@ import org.xmodel.xpath.expression.StatefulContext;
  * An XAction which executes one or more nested actions within an isolated nested context.
  * The nested context is a StatefulContext created with the input context as its parent.
  */
-public class ContextAction extends XAction
+public class ContextAction extends GuardedAction
 {
   /* (non-Javadoc)
    * @see com.stonewall.cornerstone.cpmi.xaction.GuardedAction#configure(
@@ -39,15 +40,22 @@ public class ContextAction extends XAction
   {
     super.configure( document);
 
+    nameExpr = document.getExpression( "name", true);
     sourceExpr = document.getExpression( "source", true);
     script = document.createScript( "source");
   }
 
   /* (non-Javadoc)
-   * @see com.stonewall.cornerstone.cpmi.xaction.IXAction#run(org.xmodel.xpath.expression.IContext)
+   * @see org.xmodel.xaction.GuardedAction#doAction(org.xmodel.xpath.expression.IContext)
    */
-  public Object[] doRun( IContext context)
+  @Override
+  protected Object[] doAction( IContext context)
   {
+    if ( nameExpr != null)
+    {
+      context = GlobalSettings.getInstance().getNamedContext( context, nameExpr.evaluateString( context));
+    }
+    
     if ( sourceExpr != null)
     {
       IModelObject source = sourceExpr.queryFirst( context);
@@ -71,6 +79,7 @@ public class ContextAction extends XAction
     return null;
   }
 
+  private IExpression nameExpr;
   private IExpression sourceExpr;
   private ScriptAction script;
 }

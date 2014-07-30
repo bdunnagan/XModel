@@ -957,7 +957,7 @@ public class ModelAlgorithms implements IAxis
             {
               if ( element.type() == null) return;
               IModelObject newObject = factory.createObject( layerObject, element.type());
-              if ( setter != null) newObject.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
+//              if ( setter != null) newObject.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
               layerObject.addChild( newObject);
               nextLayer.add( newObject);
               if ( undo != null) undo.removeChild( layerObject, newObject);
@@ -976,6 +976,21 @@ public class ModelAlgorithms implements IAxis
             SubContext layerContext = new SubContext( context, nextLayer.get( j), j+1, nextLayer.size());
             ((PredicateExpression)predicate).createSubtree( layerContext, factory, undo, setter, false);
           }
+        }
+      }
+    }
+    
+    if ( setter != null) 
+    {
+      for( IModelObject element: result)
+      {
+        try
+        {
+          element.setValue( ((setter instanceof Callable)? ((Callable<?>)setter).call(): setter));
+        }
+        catch( Exception e)
+        {
+          SLog.exception( ModelAlgorithms.class, e);
         }
       }
     }

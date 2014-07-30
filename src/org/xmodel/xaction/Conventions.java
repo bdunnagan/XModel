@@ -2,7 +2,6 @@ package org.xmodel.xaction;
 
 import java.util.Collections;
 import java.util.List;
-
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
 import org.xmodel.IPath;

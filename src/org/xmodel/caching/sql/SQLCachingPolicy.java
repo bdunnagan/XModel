@@ -297,9 +297,10 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     IModelObject prototype = new ModelObject( reference.getType());
 
     Connection connection = provider.leaseConnection();
+    PreparedStatement statement = null;
     try
     {
-      PreparedStatement statement = provider.createStatement( connection, query, limit, offset, false, true);
+      statement = provider.createStatement( connection, query, limit, offset, false, true);
       ResultSet rowCursor = statement.executeQuery();
       
       if ( !metadataReady) 
@@ -313,8 +314,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         IModelObject rowElement = transform.importRow( rowCursor);
         prototype.addChild( rowElement);
       }
-      
-      statement.close();
     }
     catch( SQLException e)
     {
@@ -323,6 +322,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     finally
     {
+      provider.close( statement);
       provider.releaseConnection( connection);
     }
     
@@ -336,10 +336,11 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   protected void syncTableStream( IExternalReference reference) throws CachingException
   {
     Connection connection = provider.leaseConnection();
+    PreparedStatement statement = null;
     try
     {
       SLog.info( this, "Create statement ...");
-      PreparedStatement statement = provider.createStatement( connection, query, limit, offset, true, true);
+      statement = provider.createStatement( connection, query, limit, offset, true, true);
       SLog.info( this, "Execute query ...");
       ResultSet rowCursor = statement.executeQuery();
       
@@ -357,6 +358,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     catch( SQLException e)
     {
+      provider.close( statement);
+      provider.releaseConnection( connection);
+      
       String message = String.format( "Unable to sync reference with query, '%s'", query);
       throw new CachingException( message, e);
     }
@@ -382,7 +386,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
         update( reference, rowElement);
       }
       
-      statement.close();
+      provider.close( statement);
     }
     catch( SQLException e)
     {

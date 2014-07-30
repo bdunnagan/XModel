@@ -78,6 +78,7 @@ public class FileLoadAction extends GuardedAction
     {
       DataInputStream stream = new DataInputStream( new FileInputStream( file));
       stream.readFully( content);
+      stream.close();
     }
     catch( IOException e)
     {

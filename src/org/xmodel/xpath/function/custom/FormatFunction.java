@@ -105,12 +105,15 @@ public class FormatFunction extends Function
           params[ i] = sb.toString();
         }
         break;
+        
+        default: break;
       }
     }
     
     StringBuilder builder = new StringBuilder();
     Formatter formatter = new Formatter( builder);
     formatter.format( format, params);
+    formatter.close();
     
     return builder.toString();
   }

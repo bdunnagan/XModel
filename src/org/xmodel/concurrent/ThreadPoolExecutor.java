@@ -14,10 +14,11 @@ public class ThreadPoolExecutor implements Executor
    * Convenience method for creating with a fixed thread count.
    * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
+   * @param linger The idle time (in seconds) after which threads are destroyed.
    */
-  public ThreadPoolExecutor( String name, int threadCount)
+  public ThreadPoolExecutor( String name, int threadCount, int linger)
   {
-    this.executor = createExecutor( name, threadCount);
+    this.executor = createExecutor( name, threadCount, linger);
     this.statistics = new Statistics( log);
   }
     
@@ -25,13 +26,14 @@ public class ThreadPoolExecutor implements Executor
    * Create the ExecutorService.
    * @param name The prefix for the names of threads in the thread pool.
    * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
+   * @param linger The idle time (in seconds) after which threads are destroyed.
    * @return Returns the new ExecutorService.
    */
-  private ExecutorService createExecutor( String name, int threadCount)
+  private ExecutorService createExecutor( String name, int threadCount, int linger)
   {
     return (threadCount == 0)?
-        new CountingThreadPoolExecutor( name, 0, Integer.MAX_VALUE, 60):
-        new CountingThreadPoolExecutor( name, threadCount, threadCount, 60);
+        new CountingThreadPoolExecutor( name, 0, Integer.MAX_VALUE, linger):
+        new CountingThreadPoolExecutor( name, threadCount, threadCount, linger);
   }
   
   /* (non-Javadoc)

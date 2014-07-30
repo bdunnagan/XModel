@@ -29,8 +29,9 @@ public class NumberSerializer extends AbstractSerializer
     }
     else if ( type == 0x15)
     {
-      int length = input.readByte() & 0xFF;
+      int length = input.readUnsignedByte();
       byte[] bytes = new byte[ length];
+      input.readFully( bytes);
       BigInteger unscaledValue = new BigInteger( bytes);
       int scale = input.readInt();
       return new BigDecimal( unscaledValue, scale);
@@ -55,6 +56,7 @@ public class NumberSerializer extends AbstractSerializer
     {
       int length = input.readByte() & 0xFF;
       byte[] bytes = new byte[ length];
+      input.readFully( bytes);
       return new BigInteger( bytes);
     }
     
