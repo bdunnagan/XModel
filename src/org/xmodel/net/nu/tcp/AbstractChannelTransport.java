@@ -3,9 +3,11 @@ package org.xmodel.net.nu.tcp;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -33,11 +35,10 @@ public abstract class AbstractChannelTransport extends AbstractTransport
       @Override 
       public void cancel()
       {
-        Channel channel = channelRef.get();
-        if ( channel != null) channel.close();
+        throw new UnsupportedOperationException();
       }
     };
-  
+    
     // encode
     byte[] bytes = encode( envelope, future);
     if ( bytes != null)

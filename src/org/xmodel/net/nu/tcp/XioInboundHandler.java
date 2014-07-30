@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import org.xmodel.log.SLog;
 import org.xmodel.net.nu.ITransportImpl;
 
 public class XioInboundHandler extends ChannelInboundHandlerAdapter
@@ -67,6 +68,12 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     }
   }
   
+  @Override
+  public void exceptionCaught( ChannelHandlerContext ctx, Throwable cause) throws Exception
+  {
+    SLog.exceptionf( this, cause, "Unhandled exception ...");
+  }
+
   private ITransportImpl transport;
   private ByteBuf readBuffer;
 }

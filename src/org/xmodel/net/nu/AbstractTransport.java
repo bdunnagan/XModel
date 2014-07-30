@@ -219,7 +219,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   {
     return false;
   }
-
+  
   private void notifyTimeout( IModelObject envelope, IContext messageContext)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
@@ -232,7 +232,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     eventPipe.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
   }
 
-  private class Request implements Runnable
+  protected class Request implements Runnable
   {
     Request( IModelObject envelope, IContext messageContext, int timeout)
     {
@@ -251,7 +251,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     IContext messageContext;
     ScheduledFuture<?> timeoutFuture;
   }
-  
+    
   public final static Log log = Log.getLog( AbstractTransport.class);
  
   private Protocol protocol;
