@@ -19,7 +19,6 @@ public class AbstractAmqpTransport extends AbstractTransport
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -34,8 +33,6 @@ public class AbstractAmqpTransport extends AbstractTransport
   @Override
   public AsyncFuture<ITransport> disconnect()
   {
-    // TODO Auto-generated method stub
     return null;
   }
-
 }
