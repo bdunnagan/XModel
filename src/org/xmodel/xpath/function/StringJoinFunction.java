@@ -66,10 +66,10 @@ public class StringJoinFunction extends Function
   }
 
   /**
-   * Returns a string consisting of the values of the specified nodes seperated by the specified string.
+   * Returns a string consisting of the values of the specified nodes separated by the specified string.
    * @param sequence The sequence of nodes.
    * @param separator The separator string.
-   * @return Returns a string consisting of the values of the specified nodes seperated by the specified string.
+   * @return Returns a string consisting of the values of the specified nodes separated by the specified string.
    */
   private String stringJoin( List<IModelObject> sequence, String separator)
   {
