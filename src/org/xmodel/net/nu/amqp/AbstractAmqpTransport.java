@@ -2,7 +2,10 @@ package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,6 +39,9 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
   {
     super( protocol, transportContext, scheduler);
   
+    publishChannelRef = new AtomicReference<Channel>();
+    consumerChannels = Collections.synchronizedMap( new HashMap<String, Channel>());
+    
     publishExchange = "";
     publishQueue = "xio";
     
@@ -61,20 +67,51 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
     this.publishQueue = queue;
   }
   
-  public void setConsumeQueue( String queue)
-  {
-    this.consumeQueue = queue;
-  }
-  
   @Override
   public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
   {
-    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
+    Channel consumeChannel = consumerChannels.get( name);
+    if ( consumeChannel != null) 
+    {
+      String message = String.format( "Transport already registered to %s", name);
+      return new FailureAsyncFuture<ITransport>( this, message);
+    }
     
-    // close consumer
-    // undeclare consumeQueue
-    // set consumeQueue = name
-    // declare consumeQueue
+    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
+
+    try
+    {
+      consumeChannel = connection.createChannel();
+      consumerChannels.put( name, consumeChannel);
+      
+      consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
+      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
+    }
+    catch( IOException e)
+    {
+      future.notifyFailure( e);
+    }
+    
+    return future;
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    Channel consumeChannel = consumerChannels.remove( name);
+    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
+    
+    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
+    
+    try
+    {
+      consumeChannel.queueDelete( name);
+      consumeChannel.close();
+    }
+    catch( IOException e)
+    {
+      future.notifyFailure( e);
+    }
     
     return future;
   }
@@ -100,7 +137,7 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
       try
       {
         // publish
-        BasicProperties properties = new BasicProperties().builder().replyTo( consumeQueue).build();
+        BasicProperties properties = new BasicProperties().builder().replyTo( replyQueue).build();
         channel.basicPublish( publishExchange, publishQueue, properties, bytes);
       }
       catch( IOException e)
@@ -128,8 +165,10 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
       // consume
       Channel consumeChannel = connection.createChannel();
       DeclareOk declare = consumeChannel.queueDeclare();
-      consumeQueue = declare.getQueue();
-      consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( publishChannel));
+      String consumeQueue = declare.getQueue();
+      consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
+      consumerChannels.put( consumeQueue, consumeChannel);
+      replyQueue = consumeQueue;
 
       // publish
       publishChannel = connection.createChannel();
@@ -149,6 +188,7 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
     try
     {
       publishChannelRef.set( null);
+      consumerChannels.clear();
       connection.close();
     }
     catch( IOException e)
@@ -230,7 +270,8 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
   private Connection connection;
   private String publishExchange;
   private String publishQueue;
-  private String consumeQueue;
   private AtomicReference<Channel> publishChannelRef;
+  private Map<String, Channel> consumerChannels;
+  private String replyQueue;
   private IRouter router;
 }
