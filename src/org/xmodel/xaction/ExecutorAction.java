@@ -21,7 +21,11 @@ public class ExecutorAction extends XAction
     super.configure( document);
     var = Conventions.getVarName( document.getRoot(), false);
     nameExpr = document.getExpression( "name", true);
-    threadsExpr = document.getExpression( "threads", true);
+    
+    maxThreadsExpr = document.getExpression( "maxThreads", true);
+    minThreadsExpr = document.getExpression( "minThreads", true);
+    if ( minThreadsExpr == null) minThreadsExpr = document.getExpression( "threads", true);
+    
     lingerExpr = document.getExpression( "linger", true);
     targetExpr = document.getExpression( "target", true);
   }
@@ -32,13 +36,15 @@ public class ExecutorAction extends XAction
   @Override
   public Object[] doRun( IContext context)
   {
-    int threads = (threadsExpr != null)? (int)threadsExpr.evaluateNumber( context): 0;
+    int minThreads = (minThreadsExpr != null)? (int)minThreadsExpr.evaluateNumber( context): 0;
+    int maxThreads = (maxThreadsExpr != null)? (int)maxThreadsExpr.evaluateNumber( context): 0;
     int linger = (lingerExpr != null)? (int)lingerExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    if ( linger < 0) linger = Integer.MAX_VALUE;
     
     IModelObject target = (targetExpr != null)? targetExpr.queryFirst( context): null;
     String name = (nameExpr != null)? nameExpr.evaluateString( context): ((target != null)? target.getType(): "model");
     
-    Executor executor = new ThreadPoolExecutor( name, threads, linger);
+    Executor executor = new ThreadPoolExecutor( name, minThreads, maxThreads, linger);
     
     if ( target == null) target = new ModelObject( "executor");
     target.setValue( executor);
@@ -49,7 +55,8 @@ public class ExecutorAction extends XAction
   
   private String var;
   private IExpression nameExpr;
-  private IExpression threadsExpr;
+  private IExpression minThreadsExpr;
+  private IExpression maxThreadsExpr;
   private IExpression targetExpr;
   private IExpression lingerExpr;
 }

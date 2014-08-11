@@ -20,7 +20,6 @@
 package org.xmodel.caching.sql;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,6 +28,9 @@ import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.log.Log;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * An implementation of ISQLProvider for the MySQL database.
@@ -45,18 +47,40 @@ public class MySQLProvider implements ISQLProvider
    */
   public void configure( IModelObject annotation) throws CachingException
   {
-    username = Xlate.childGet( annotation, "username", (String)null);
+    String username = Xlate.childGet( annotation, "username", (String)null);
     if ( username == null) throw new CachingException( "Username not defined in annotation: "+annotation);
     
-    password = Xlate.childGet( annotation, "password", (String)null);
+    String password = Xlate.childGet( annotation, "password", (String)null);
     if ( password == null) throw new CachingException( "Password not defined in annotation: "+annotation);
     
     database = Xlate.childGet( annotation, "database", (String)null);
     
     String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:mysql://%s/%s?cachePrepStmts=true&rewriteBatchedStatements=true", host, database);  
+    String url = String.format( "jdbc:mysql://%s/%s", host, database);
+    
+    int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", -1); 
+    int minIdleTime = Xlate.childGet( annotation, "minIdleTime", -1); 
        
-    pool = new ThreadConnectionPool( this);
+    HikariConfig config = new HikariConfig();
+    config.setPoolName( database);
+    if ( maxPoolSize > 0) config.setMaximumPoolSize( maxPoolSize);
+    //if ( minIdleTime >= 0) config.setMinimumIdle( minIdleTime);
+    config.setDataSourceClassName( "com.mysql.jdbc.jdbc2.optional.MysqlDataSource");
+    config.addDataSourceProperty( "url", url);
+    config.addDataSourceProperty( "serverName", host);
+    config.addDataSourceProperty( "port", "3306");
+    config.addDataSourceProperty( "databaseName", database);
+    config.addDataSourceProperty( "user", username);
+    config.addDataSourceProperty( "password", password);
+    config.addDataSourceProperty( "cachePrepStmts", true);
+    config.addDataSourceProperty( "prepStmtCacheSize", 250);
+    config.addDataSourceProperty( "prepStmtCacheSqlLimit", 2048);
+    config.addDataSourceProperty( "useServerPrepStmts", true);
+    config.addDataSourceProperty( "rewriteBatchedStatements", true);
+    config.setRegisterMbeans( true);
+
+    dataSource = new HikariDataSource( config);
+    dataSource.setRegisterMbeans( true);
   }
 
   /* (non-Javadoc)
@@ -75,8 +99,9 @@ public class MySQLProvider implements ISQLProvider
   {
     try
     {
-      Connection connection = DriverManager.getConnection( url, username, password);
-      if ( database != null) connection.setCatalog( database);
+//      Connection connection = DriverManager.getConnection( url, username, password);
+//      if ( database != null) connection.setCatalog( database);
+      Connection connection = dataSource.getConnection();
       return connection;
     }
     catch( Exception e)
@@ -94,7 +119,7 @@ public class MySQLProvider implements ISQLProvider
     long t0 = System.nanoTime();
     try
     {
-      return pool.lease();
+      return newConnection();
     }
     finally
     {
@@ -109,7 +134,14 @@ public class MySQLProvider implements ISQLProvider
   @Override
   public void releaseConnection( Connection connection)
   {
-    pool.release( connection);
+    try
+    {
+      connection.close();
+    }
+    catch( Exception e)
+    {
+      log.exception( e);
+    }
   }
 
   /* (non-Javadoc)
@@ -164,9 +196,6 @@ public class MySQLProvider implements ISQLProvider
   private final static String driverClassName = "com.mysql.jdbc.Driver";
   private final static Log log = Log.getLog( MySQLProvider.class);
   
-  private String url;
-  private String username;
-  private String password;
   private String database;
-  private ThreadConnectionPool pool;
+  private HikariDataSource dataSource;
 }
