@@ -6,7 +6,6 @@
       <logi>format( '[SERVER] Received:\n%s', $message)</logi>
       
       <run>$message</run>
-      <exit>1</exit>
       
       <respond via="$via">
         <script>

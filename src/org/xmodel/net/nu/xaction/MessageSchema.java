@@ -79,16 +79,9 @@ final class MessageSchema
   {
     if ( via != null)
     {
-      if ( via instanceof IRouter)
+      if ( via instanceof IRouter && at != null)
       {
-        if ( at != null)
-        {
-          iterator.add( ((IRouter)via).resolve( at));
-        }
-        else
-        {
-          log.warnf( "Route is null.");
-        }
+        iterator.add( ((IRouter)via).resolve( at));
       }
       else if ( via instanceof ITransportImpl)
       {
