@@ -20,6 +20,7 @@
 package org.xmodel.caching.sql;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,15 +30,12 @@ import org.xmodel.Xlate;
 import org.xmodel.external.CachingException;
 import org.xmodel.log.Log;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
 /**
- * An implementation of ISQLProvider for the MySQL database.
+ * An implementation of ISQLProvider for the Cassandra database.
  */
-public class MySQLProvider implements ISQLProvider
+public class CassandraProvider implements ISQLProvider
 {
-  public MySQLProvider() throws ClassNotFoundException
+  public CassandraProvider() throws ClassNotFoundException
   {
     Class.forName( driverClassName);
   }
@@ -56,31 +54,7 @@ public class MySQLProvider implements ISQLProvider
     database = Xlate.childGet( annotation, "database", (String)null);
     
     String host = Xlate.childGet( annotation, "host", "localhost");
-    String url = String.format( "jdbc:mysql://%s/%s", host, database);
-    
-    int maxPoolSize = Xlate.childGet( annotation, "maxPoolSize", -1); 
-    int minIdleTime = Xlate.childGet( annotation, "minIdleTime", -1); 
-       
-    HikariConfig config = new HikariConfig();
-    config.setPoolName( database);
-    if ( maxPoolSize > 0) config.setMaximumPoolSize( maxPoolSize);
-    //if ( minIdleTime >= 0) config.setMinimumIdle( minIdleTime);
-    config.setDataSourceClassName( "com.mysql.jdbc.jdbc2.optional.MysqlDataSource");
-    config.addDataSourceProperty( "url", url);
-    config.addDataSourceProperty( "serverName", host);
-    config.addDataSourceProperty( "port", "3306");
-    config.addDataSourceProperty( "databaseName", database);
-    config.addDataSourceProperty( "user", username);
-    config.addDataSourceProperty( "password", password);
-    config.addDataSourceProperty( "cachePrepStmts", true);
-    config.addDataSourceProperty( "prepStmtCacheSize", 250);
-    config.addDataSourceProperty( "prepStmtCacheSqlLimit", 2048);
-    config.addDataSourceProperty( "useServerPrepStmts", true);
-    config.addDataSourceProperty( "rewriteBatchedStatements", true);
-    config.setRegisterMbeans( true);
-
-    dataSource = new HikariDataSource( config);
-    dataSource.setRegisterMbeans( true);
+    url = String.format( "jdbc:cassandra://%s:9160/%s", host, database);
   }
 
   /* (non-Javadoc)
@@ -99,10 +73,7 @@ public class MySQLProvider implements ISQLProvider
   {
     try
     {
-//      Connection connection = DriverManager.getConnection( url, username, password);
-//      if ( database != null) connection.setCatalog( database);
-      Connection connection = dataSource.getConnection();
-      return connection;
+      return DriverManager.getConnection( url);      
     }
     catch( Exception e)
     {
@@ -156,19 +127,8 @@ public class MySQLProvider implements ISQLProvider
     // configure for read-only and/or streaming
     int resultSetConcur = (stream | readonly)? ResultSet.CONCUR_READ_ONLY: ResultSet.CONCUR_UPDATABLE;
     
-    PreparedStatement statement;
-    
-    // distinguish stored procedure call from query or update
-    if ( query.charAt( 0) == '{')
-    {
-      statement = connection.prepareCall( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-    }
-    else
-    {
-      statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
-      if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
-    }
+    PreparedStatement statement = connection.prepareStatement( query, ResultSet.TYPE_FORWARD_ONLY, resultSetConcur);
+    if ( stream) statement.setFetchSize( Integer.MIN_VALUE);
     
     return statement;
   }
@@ -189,9 +149,9 @@ public class MySQLProvider implements ISQLProvider
     }
   }
 
-  private final static String driverClassName = "com.mysql.jdbc.Driver";
-  private final static Log log = Log.getLog( MySQLProvider.class);
-  
+  private final static String driverClassName = "org.apache.cassandra.cql.jdbc.CassandraDriver";
+  private final static Log log = Log.getLog( CassandraProvider.class);
+
   private String database;
-  private HikariDataSource dataSource;
+  private String url;
 }

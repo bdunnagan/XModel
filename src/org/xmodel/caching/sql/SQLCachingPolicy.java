@@ -300,7 +300,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = null;
     try
     {
-      statement = provider.createStatement( connection, query, limit, offset, false, true);
+      statement = provider.createStatement( connection, query, limit, false, true);
       ResultSet rowCursor = statement.executeQuery();
       
       if ( !metadataReady) 
@@ -340,7 +340,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     try
     {
       SLog.info( this, "Create statement ...");
-      statement = provider.createStatement( connection, query, limit, offset, true, true);
+      statement = provider.createStatement( connection, query, limit, true, true);
       SLog.info( this, "Execute query ...");
       ResultSet rowCursor = statement.executeQuery();
       

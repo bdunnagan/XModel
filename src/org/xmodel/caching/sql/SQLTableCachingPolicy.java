@@ -129,10 +129,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     IExpression orderbyExpr = Xlate.childGet( annotation, "orderby", (IExpression)null);
     if ( orderbyExpr != null) orderby = orderbyExpr.evaluateString( context);
-    
-    IExpression offsetExpr = Xlate.childGet( annotation, "offset", (IExpression)null);
-    offset = (offsetExpr != null)? (int)offsetExpr.evaluateNumber( context): -1;
-    
+        
     IExpression limitExpr = Xlate.childGet( annotation, "limit", (IExpression)null);
     limit = (limitExpr != null)? (int)limitExpr.evaluateNumber( context): -1;
     
@@ -656,7 +653,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "table query: %s", sb);
     
-    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, offset, false, true);
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), limit, false, true);
     if ( limit > 0) statement.setMaxRows( limit);
     
     if ( params != null)
@@ -692,7 +689,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     log.debugf( "row query: %s", sb);
     
-    PreparedStatement statement = provider.createStatement( connection, sb.toString(), 1, 0, false, readonly);
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), 1, false, readonly);
     int k=1;
     for( String primaryKey: primaryKeys)
     {
@@ -711,7 +708,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * @param nodes The rows to be inserted in the table.
    * @return Returns a prepared statement which will insert one or more nodes.
    */
-  private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createInsertStatement( Connection connection, IExternalReference reference, IModelObject node) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
@@ -725,30 +722,26 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       sb.append( "=?");
     }
 
-    PreparedStatement statement = provider.createStatement( connection, sb.toString(), -1, -1, false, false);
+    PreparedStatement statement = provider.createStatement( connection, sb.toString(), -1, false, false);
     
-    for( IModelObject node: nodes)
+    for( int i=0; i<columnNames.size(); i++)
     {
-      for( int i=0; i<columnNames.size(); i++)
+      Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
+      if ( value != null)
       {
-        Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
-        if ( value != null)
+        if ( value instanceof InputStream)
         {
-          if ( value instanceof InputStream)
-          {
-            statement.setBinaryStream( i+1, (InputStream)value);
-          }
-          else
-          {
-            statement.setObject( i+1, value);
-          }
+          statement.setBinaryStream( i+1, (InputStream)value);
         }
         else
         {
-          statement.setNull( i+1, columnTypes.get( i));
+          statement.setObject( i+1, value);
         }
       }
-      statement.addBatch();
+      else
+      {
+        statement.setNull( i+1, columnTypes.get( i));
+      }
     }
     
     return statement;
@@ -818,10 +811,10 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
    * Returns a prepared statement which will delete one or more rows.
    * @param connection The database connection.
    * @param reference The reference representing a table.
-   * @param nodes The rows to be updated in the table.
+   * @param node The row to be deleted in the table.
    * @return Returns a prepared statement which will delete one or more rows.
    */
-  private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, List<IModelObject> nodes) throws SQLException
+  private PreparedStatement createDeleteStatement( Connection connection, IExternalReference reference, IModelObject node) throws SQLException
   {
     StringBuilder sb = new StringBuilder();
     
@@ -834,12 +827,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     PreparedStatement statement = connection.prepareStatement( sb.toString());
     
     int k=1;
-    for( IModelObject node: nodes)
-    {
-      for( String primaryKey: primaryKeys)   
-        statement.setObject( k++, node.getAttribute( primaryKey));
-      statement.addBatch();
-    }
+    for( String primaryKey: primaryKeys)   
+      statement.setObject( k++, node.getAttribute( primaryKey));
     
     return statement;
   }
@@ -926,24 +915,25 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     long t0 = System.nanoTime();
     
-//    connection.setCatalog( catalog);
-    
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowDeletes.entrySet())
     {
-      PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      log.verbosef( "%s", statement);
-      try
+      for( IModelObject element: entry.getValue())
       {
-        statement.executeBatch();
-      }
-      catch( SQLException e)
-      {
-        SLog.errorf( this, "Delete statement failed: %s", statement);
-        throw e;
-      }
-      finally
-      {
-        provider.close( statement);
+        PreparedStatement statement = createDeleteStatement( connection, (IExternalReference)entry.getKey(), element);
+        log.verbosef( "%s", statement);
+        try
+        {
+          statement.execute();
+        }
+        catch( SQLException e)
+        {
+          SLog.errorf( this, "Delete statement failed: %s", statement);
+          throw e;
+        }
+        finally
+        {
+          provider.close( statement);
+        }
       }
     }
     
@@ -951,20 +941,23 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     
     for( Map.Entry<IModelObject, List<IModelObject>> entry: rowInserts.entrySet())
     {
-      PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), entry.getValue());
-      log.verbosef( "%s", statement);
-      try
+      for( IModelObject element: entry.getValue())
       {
-        statement.executeBatch();
-      }
-      catch( SQLException e)
-      {
-        SLog.errorf( this, "Insert statement failed: %s", statement);
-        throw e;
-      }
-      finally
-      {
-        provider.close( statement);
+        PreparedStatement statement = createInsertStatement( connection, (IExternalReference)entry.getKey(), element);
+        log.verbosef( "%s", statement);
+        try
+        {
+          statement.execute();
+        }
+        catch( SQLException e)
+        {
+          SLog.errorf( this, "Insert statement failed: %s", statement);
+          throw e;
+        }
+        finally
+        {
+          provider.close( statement);
+        }
       }
     }
     
@@ -1282,7 +1275,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   protected List<String> attributes;
   protected String where;
   protected String orderby;
-  protected int offset;
   protected int limit;
   protected SQLRowCachingPolicy rowCachingPolicy;
   protected String tableName;

@@ -12,7 +12,7 @@ import org.xmodel.log.SLog;
  */
 public class SQLProviderFactory
 {
-  public enum Provider { mysql};
+  public enum Provider { mysql, cassandra};
   
   /**
    * Returns an instance of ISQLProvider for the specified annotation.
@@ -33,6 +33,10 @@ public class SQLProviderFactory
       {
         case mysql:
           provider = new MySQLProvider();
+          break;
+          
+        case cassandra:
+          provider = new CassandraProvider();
           break;
           
         default:

@@ -65,12 +65,11 @@ public interface ISQLProvider
    * @param connection The JDBC connection.
    * @param query The base SQL query.
    * @param limit The maximum number of rows to return, or -1.
-   * @param offset The offset of the first row to return, or -1.
    * @param stream True if streaming-mode should be used.
    * @param readonly True if statement is for read-only access.
    * @return Returns a PreparedStatement with the specified query plus vendor-specific implementation of the limit and offset parameters.
    */
-  public PreparedStatement createStatement( Connection connection, String query, long limit, long offset, boolean stream, boolean readonly) throws SQLException;
+  public PreparedStatement createStatement( Connection connection, String query, long limit, boolean stream, boolean readonly) throws SQLException;
   
   /**
    * Close the specified statement.
