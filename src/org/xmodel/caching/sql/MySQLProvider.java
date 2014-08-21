@@ -84,6 +84,15 @@ public class MySQLProvider implements ISQLProvider
   }
 
   /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#supportsBlobStreaming()
+   */
+  @Override
+  public boolean supportsBlobStreaming()
+  {
+    return true;
+  }
+
+  /* (non-Javadoc)
    * @see org.xmodel.caching.sql.ISQLProvider#getDatabase()
    */
   @Override

@@ -36,6 +36,11 @@ public interface ISQLProvider
    * @param annotation The annotation.
    */
   public void configure( IModelObject annotation);
+  
+  /**
+   * @return Returns true if the database supports blob streaming.
+   */
+  public boolean supportsBlobStreaming();
 
   /**
    * @return Returns null or the name of the database defined for this provider.

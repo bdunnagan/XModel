@@ -54,9 +54,19 @@ public class CassandraProvider implements ISQLProvider
     database = Xlate.childGet( annotation, "database", (String)null);
     
     String host = Xlate.childGet( annotation, "host", "localhost");
-    url = String.format( "jdbc:cassandra://%s:9160/%s", host, database);
+    int port = Xlate.childGet( annotation, "port", 9160);
+    url = String.format( "jdbc:cassandra://%s:%d/%s", host, port, database);
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.caching.sql.ISQLProvider#supportsBlobStreaming()
+   */
+  @Override
+  public boolean supportsBlobStreaming()
+  {
+    return false;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.caching.sql.ISQLProvider#getDatabase()
    */
@@ -139,14 +149,14 @@ public class CassandraProvider implements ISQLProvider
   @Override
   public void close( PreparedStatement statement)
   {
-    try
-    {
-      statement.close();
-    }
-    catch( SQLException e)
-    {
-      log.exception( e);
-    }
+//    try
+//    {
+//      statement.close();
+//    }
+//    catch( SQLException e)
+//    {
+//      log.exception( e);
+//    }
   }
 
   private final static String driverClassName = "org.apache.cassandra.cql.jdbc.CassandraDriver";

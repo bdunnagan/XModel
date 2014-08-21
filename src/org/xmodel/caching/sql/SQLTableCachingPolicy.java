@@ -22,6 +22,7 @@ package org.xmodel.caching.sql;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -109,7 +110,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     super.configure( context, annotation);
     
     // create SQLManager
-    provider = getProvider( context, annotation);
+    provider = SQLProviders.getProvider( context, annotation);
     
     tableName = Xlate.childGet( annotation, "table", (String)null);
     rowElementName = Xlate.childGet( annotation, "row", tableName);
@@ -328,6 +329,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
         // XML columns can contain multiple root nodes, so parser must be tricked by wrapping the XML
         // text with a dummy root node.
         //
+        if ( value instanceof ByteBuffer)
+        {
+          ByteBuffer buffer = (ByteBuffer)value;
+          byte[] bytes = new byte[ buffer.remaining()];
+          buffer.get( bytes);
+          value = bytes;
+        }
+        
         if ( value instanceof byte[])
         {
           if ( compressor == null) compressor = new ZipCompressor( new TabularCompressor( false, readonly));
@@ -394,7 +403,14 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
             if ( element == null) return null;
             
             List<byte[]> buffers = compressor.compress( element);
-            return new MultiByteArrayInputStream( buffers);
+            if ( provider.supportsBlobStreaming())
+            {
+              return new MultiByteArrayInputStream( buffers);
+            }
+            else
+            {
+              return combineBuffers( buffers);
+            }
           }
           catch( IOException e)
           {
@@ -412,7 +428,7 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       }
       else
       {
-        if ( otherKeys.contains( column) || attributes.contains( column)) 
+        if ( primaryKeys.contains( column) || otherKeys.contains( column) || attributes.contains( column)) 
         {
           return row.getAttribute( column);
         }
@@ -427,6 +443,27 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
     {
       updateMonitor.setEnabled( wasUpdateEnabled);
     }
+  }
+  
+  private byte[] combineBuffers( List<byte[]> buffers)
+  {
+    if ( buffers.size() == 0) return new byte[ 0];
+    if ( buffers.size() == 1) return buffers.get( 0);
+    
+    int offset= 0;
+    for( byte[] buffer: buffers)
+      offset += buffer.length;
+    
+    byte[] bytes = new byte[ offset];
+    
+    offset = 0;
+    for( byte[] buffer: buffers)
+    {
+      System.arraycopy( buffer, 0, bytes, offset, buffer.length);
+      offset += buffer.length;
+    }
+    
+    return bytes;
   }
   
   /* (non-Javadoc)
@@ -446,31 +483,6 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   public void remove( IExternalReference parent, IModelObject object) throws CachingException
   {
     if ( object.getParent() == parent) object.removeFromParent();
-  }
-  
-  /**
-   * Returns the SQLManager for the specified reference.
-   * @param context The configuration context.
-   * @param annotation The caching policy annotation.
-   * @return Returns the SQLManager for the specified reference.
-   */
-  private static ISQLProvider getProvider( IContext context, IModelObject annotation) throws CachingException
-  {
-    IExpression providerExpr = Xlate.childGet( annotation, "provider", Xlate.get( annotation, "provider", (IExpression)null));
-    IModelObject providerAnnotation = providerExpr.queryFirst( context);
-    if ( providerAnnotation == null) 
-      throw new CachingException( String.format(
-        "Provider not found for expression '%s'",
-        providerExpr));
-    
-    try
-    {
-      return SQLProviderFactory.getProvider( providerAnnotation);
-    }
-    catch( Exception e)
-    {
-      throw new CachingException( e.getMessage());
-    }
   }
   
   /**
@@ -712,15 +724,25 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
   {
     StringBuilder sb = new StringBuilder();
     sb.append( "INSERT INTO "); sb.append( tableName);
-    sb.append( " SET");
+    sb.append( " (");
 
     char sep = ' ';    
     for( int i=0; i<columnNames.size(); i++)
     {
       sb.append( sep); sep = ',';
       sb.append( columnNames.get( i));
-      sb.append( "=?");
     }
+
+    sb.append( ") VALUES (");
+    
+    sep = ' ';
+    for( int i=0; i<columnNames.size(); i++)
+    {
+      sb.append( sep); sep = ',';
+      sb.append( "?");
+    }
+    
+    sb.append( ")");
 
     PreparedStatement statement = provider.createStatement( connection, sb.toString(), -1, false, false);
     
@@ -729,14 +751,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       Object value = exportColumn( node, columnNames.get( i), columnTypes.get( i));
       if ( value != null)
       {
-        if ( value instanceof InputStream)
-        {
-          statement.setBinaryStream( i+1, (InputStream)value);
-        }
-        else
-        {
-          statement.setObject( i+1, value);
-        }
+        int index = columnNames.indexOf( columnNames.get( i));
+        setParameter( statement, i+1, columnTypes.get( index), value);
       }
       else
       {
@@ -784,14 +800,8 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       Object value = exportColumn( reference, column, columnTypes.get( columnNameIndex));
       if ( value != null)
       {
-        if ( value instanceof InputStream)
-        {
-          statement.setBinaryStream( i+1, (InputStream)value);
-        }
-        else
-        {
-          statement.setObject( i+1, value);
-        }
+        int index = columnNames.indexOf( column);
+        setParameter( statement, i+1, columnTypes.get( index), value);
       }
       else
       {
@@ -831,6 +841,55 @@ public class SQLTableCachingPolicy extends ConfiguredCachingPolicy
       statement.setObject( k++, node.getAttribute( primaryKey));
     
     return statement;
+  }
+  
+  private void setParameter( PreparedStatement statement, int paramIndex, int columnType, Object value) throws SQLException
+  {
+    if ( value instanceof InputStream)
+    {
+      statement.setBinaryStream( paramIndex, (InputStream)value);
+    }
+    else if ( value instanceof byte[])
+    {
+      statement.setBytes( paramIndex, (byte[])value);
+    }
+    else
+    {
+      switch( columnType)
+      {
+        case Types.BIGINT:
+        {
+          long number = (value instanceof Number)? ((Number)value).longValue(): Long.parseLong( value.toString());
+          statement.setLong( paramIndex, number); 
+        }
+        break;
+          
+        case Types.DOUBLE:
+        case Types.DECIMAL:
+        {
+          double number = (value instanceof Number)? ((Number)value).doubleValue(): Double.parseDouble( value.toString());
+          statement.setDouble( paramIndex, number); 
+        }
+        break;
+          
+        case Types.FLOAT:
+        {
+          float number = (value instanceof Number)? ((Number)value).floatValue(): Float.parseFloat( value.toString());
+          statement.setFloat( paramIndex, number);
+        }
+        break;
+        
+        case Types.INTEGER:
+        {
+          int number = (value instanceof Number)? ((Number)value).intValue(): Integer.parseInt( value.toString());
+          statement.setInt( paramIndex, number);
+        }
+        break;
+        
+        case Types.VARCHAR: statement.setString( paramIndex, value.toString()); break;
+        default: statement.setObject( paramIndex, value); break;
+      }
+    }
   }
   
   /**
