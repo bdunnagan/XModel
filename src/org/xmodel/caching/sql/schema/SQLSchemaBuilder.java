@@ -1,9 +1,14 @@
 package org.xmodel.caching.sql.schema;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+
 import org.xmodel.IModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.caching.sql.ISQLProvider;
@@ -25,7 +30,7 @@ public class SQLSchemaBuilder
     IModelObject table = schema.getFirstChild( "table").getChild( 0);
     
     StringBuilder sb = new StringBuilder();
-    sb.append( "CREATE TABLE "); sb.append( table); sb.append( " (\n");
+    sb.append( "CREATE TABLE "); sb.append( table.getType()); sb.append( " (\n");
     
     // 
     // Column definitions 
@@ -59,8 +64,10 @@ public class SQLSchemaBuilder
     IModelObject indexes = schema.getFirstChild( "indexes");
     if ( indexes != null)
     {
+      String sep = "";
       for( IModelObject index: indexes.getChildren())
       {
+        sb.append( sep); sep = ",\n";
         sb.append( "  ");
         
         String firstColumn = Xlate.get( index, "column", Xlate.childGet( index, "column", (String)null));
@@ -71,20 +78,29 @@ public class SQLSchemaBuilder
         
         if ( unique && !primary) sb.append( "UNIQUE ");
         sb.append( primary? "PRIMARY KEY( ": "INDEX ");
-        if ( !primary) sb.append( indexName);
-        sb.append( " (");
+        if ( !primary) { sb.append( indexName); sb.append( " (");}
 
+        if ( index.getAttribute( "column") != null)
+        {
+          String name = Xlate.get( index, "column", "");
+          if ( name != null && name.length() > 0)
+          {
+            sb.append( name);
+            sb.append( ", ");
+          }
+        }
+        
         for( IModelObject column: index.getChildren())
         {
           String name = Xlate.get( column, (String)null);
-          if ( name != null)
+          if ( name != null && name.length() > 0)
           {
             sb.append( name);
             sb.append( ", ");
           }
         }
         sb.setLength( sb.length() - 2);
-        sb.append( "),\n");
+        sb.append( ")");
       }
     }
     
@@ -96,7 +112,7 @@ public class SQLSchemaBuilder
     //
     // Specify MySQL engine
     //
-    String engine = Xlate.get( table, "engine", (String)null);
+    String engine = Xlate.childGet( schema.getFirstChild( "mysql"), "engine", (String)null);
     if ( engine != null)
     {
       sb.append( "\nENGINE = ");
@@ -142,4 +158,65 @@ public class SQLSchemaBuilder
   }
 
   private ISQLProvider provider;
+  
+  public static void main( String[] args) throws Exception
+  {
+    StringBuilder sb = new StringBuilder();
+    BufferedReader reader = new BufferedReader( new InputStreamReader( System.in));
+    
+    System.out.print( "table> ");
+    String table = reader.readLine().trim();
+    sb.append( "<schema>\n");
+    sb.append( "  <table>\n");
+    sb.append( String.format( "    <%s>\n", table));
+    
+    System.out.println( "\nPaste table ...\n");
+    while( true)
+    {
+      String line = reader.readLine();
+      if ( line.trim().equals( "")) break;
+      
+      String[] split = line.split( "\\s*[|]\\s*");
+      
+      String column = split[ 1];
+      String type = split[ 2].toUpperCase();
+      boolean nullable = split[ 3].equals( "YES");
+      
+      if ( nullable)
+      {
+        sb.append( String.format( "      <%s type=\"%s\" default=\"NULL\"/>\n", column, type));
+      }
+      else
+      {
+        sb.append( String.format( "      <%s type=\"%s\"/>\n", column, type));
+      }
+    }
+
+    sb.append( "    </"); sb.append( table); sb.append( ">\n");
+    sb.append( "  </table>\n");
+    sb.append( "\n");
+    sb.append( "  <indexes>\n");
+    sb.append( "    <index column=\"id\" primary=\"true\"/>\n");
+    sb.append( "\n");
+    sb.append( "    <index name=\"role_access\">\n");
+    sb.append( "      <column>created_on</column>\n");
+    sb.append( "      <column>tenant_id</column>\n");
+    sb.append( "      <column>groups</column>\n");
+    sb.append( "      <column>user_id</column>\n");
+    sb.append( "    </index>\n");
+    sb.append( "  </indexes>\n");
+    sb.append( "\n");
+    sb.append( "  <partitions/>\n");    
+    sb.append( "\n");
+    sb.append( "  <mysql>\n");    
+    sb.append( "    <engine>InnoDB</engine>\n");    
+    sb.append( "  </mysql>\n");    
+    sb.append( "</schema>\n");
+    
+    FileOutputStream out = new FileOutputStream( String.format( "/Users/bdunnagan/git/SonarServer/IP6SonarServer/xapp/server/db/schema/%s.xml", table));
+    BufferedOutputStream bout = new BufferedOutputStream( out);
+    bout.write( sb.toString().getBytes());
+    bout.flush();
+    bout.close();
+  }
 }
