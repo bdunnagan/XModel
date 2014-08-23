@@ -60,6 +60,14 @@ public class LogicalExpression extends AbstractBinaryBooleanExpression
     return "logical";
   }
 
+  /**
+   * @return Returns the logic operator.
+   */
+  public Operator getOperator()
+  {
+    return operator;
+  }
+  
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.Expression#addArgument(
    * org.xmodel.xpath.expression.IExpression)

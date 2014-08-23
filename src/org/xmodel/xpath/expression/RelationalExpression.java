@@ -62,6 +62,14 @@ public class RelationalExpression extends AbstractBinaryBooleanExpression
   {
     return "relational";
   }
+  
+  /**
+   * @return Returns the relational operator.
+   */
+  public Operator getOperator()
+  {
+    return operator;
+  }
 
   /* (non-Javadoc)
    * @see org.xmodel.xpath.expression.AbstractBinaryBooleanExpression#evaluate(

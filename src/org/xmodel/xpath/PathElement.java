@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.FollowingIterator;
 import org.xmodel.IAxis;
@@ -40,7 +39,6 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
-import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.SubContext;
 
 
@@ -156,7 +154,7 @@ public class PathElement implements IPathElement, IAxis
   {
     if ( object.isDirty())
     {
-      object.getCachingPolicy().sync( parent, (IExternalReference)object, (PredicateExpression)predicate);
+      object.getCachingPolicy().sync( parent, (IExternalReference)object, this);
     }
     
     int start = 0;

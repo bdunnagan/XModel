@@ -22,11 +22,11 @@ package org.xmodel.external;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import org.xmodel.GlobalSettings;
 import org.xmodel.IModel;
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.IPathElement;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObjectFactory;
 import org.xmodel.diff.IXmlDiffer;
@@ -34,7 +34,6 @@ import org.xmodel.diff.XmlDiffer;
 import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.PredicateExpression;
 
 
 /**
@@ -118,10 +117,11 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.xpath.expression.IContext, org.xmodel.external.IExternalReference, org.xmodel.xpath.expression.PredicateExpression)
+   * @see org.xmodel.external.ICachingPolicy#sync(org.xmodel.xpath.expression.IContext, 
+   * org.xmodel.external.IExternalReference, org.xmodel.IPathElement)
    */
   @Override
-  public void sync( IContext parent, IExternalReference reference, PredicateExpression predicate)
+  public void sync( IContext parent, IExternalReference reference, IPathElement step)
   {
     // default implementation does nothing
   }
