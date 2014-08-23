@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
 import org.xmodel.BreadthFirstIterator;
 import org.xmodel.FollowingIterator;
 import org.xmodel.IAxis;
@@ -31,6 +32,7 @@ import org.xmodel.IPath;
 import org.xmodel.IPathElement;
 import org.xmodel.IPredicate;
 import org.xmodel.PrecedingIterator;
+import org.xmodel.external.IExternalReference;
 import org.xmodel.log.Log;
 import org.xmodel.util.Fifo;
 import org.xmodel.xpath.expression.Context;
@@ -38,6 +40,7 @@ import org.xmodel.xpath.expression.ExpressionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
+import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.SubContext;
 
 
@@ -151,6 +154,11 @@ public class PathElement implements IPathElement, IAxis
    */
   public List<IModelObject> query( IContext parent, IModelObject object, List<IModelObject> result)
   {
+    if ( object.isDirty())
+    {
+      object.getCachingPolicy().sync( parent, (IExternalReference)object, (PredicateExpression)predicate);
+    }
+    
     int start = 0;
     if ( result == null) result = new ArrayList<IModelObject>(); else start = result.size();
     if ( (axis & ROOT) != 0) 

@@ -21,7 +21,9 @@ package org.xmodel.external;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IModelObjectFactory;
+import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.PredicateExpression;
 
 /**
  * An interface for managing the synchronization of IExternalReference objects with their
@@ -91,6 +93,16 @@ public interface ICachingPolicy
    * @param reference The reference to be synced.
    */
   public void sync( IExternalReference reference) throws CachingException;
+  
+  /**
+   * Synchronized the specified reference with its representation in the external store.  The predicate
+   * argument is supplied so that the external store has an opportunity to interpret the query and
+   * return a subset of a possibly large domain of objects.
+   * @param parent The parent context of the expression evaluation.
+   * @param reference The reference.
+   * @param predicate The predicate.
+   */
+  public void sync( IContext parent, IExternalReference reference, PredicateExpression predicate);
 
   /**
    * @return Returns a new transaction.
