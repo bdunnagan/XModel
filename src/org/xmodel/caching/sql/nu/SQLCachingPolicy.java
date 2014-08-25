@@ -1,16 +1,14 @@
 package org.xmodel.caching.sql.nu;
 
-import java.sql.Connection;
 import org.xmodel.IModelObject;
 import org.xmodel.IPathElement;
 import org.xmodel.Xlate;
-import org.xmodel.caching.sql.ISQLProvider;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.IExternalReference;
-import org.xmodel.xpath.expression.Context;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.expression.StatefulContext;
 
 public class SQLCachingPolicy extends ConfiguredCachingPolicy
 {
@@ -35,20 +33,27 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   }
 
   @Override
-  public void sync( IContext parent, IExternalReference reference, IPathElement step)
+  public void sync( IContext parent, IExternalReference reference, IPathElement step) throws CachingException
   {
-    Connection connection = provider.leaseConnection();
-    PreparedStatement statement = null;
+    ISQLCursor cursor = null;
     try
     {
-      StringBuilder sql = buildSelect( new Context( parent, reference), step);
-      PreparedStatement statement = provider.createStatement( connection, sql);
+      StringBuilder sql = buildSelect( new StatefulContext( parent, reference), step);
+      cursor = provider.query( sql.toString());
+      for( IModelObject row; (row = cursor.next()) != null; )
+      {
+        
+      }
+    }
+    catch( Exception e)
+    {
+      String message = String.format( "Unable to sync reference, %s, with location step, %s", reference, step);
+      throw new CachingException( message, e);
     }
     finally
     {
-      
+      if ( cursor != null) cursor.dispose();
     }
-    
   }
   
   private StringBuilder buildSelect( IContext context, IPathElement step)
