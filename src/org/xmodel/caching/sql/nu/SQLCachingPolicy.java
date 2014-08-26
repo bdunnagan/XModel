@@ -2,10 +2,13 @@ package org.xmodel.caching.sql.nu;
 
 import org.xmodel.IModelObject;
 import org.xmodel.IPathElement;
+import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
+import org.xmodel.caching.sql.SQLTransaction;
 import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.IExternalReference;
+import org.xmodel.external.ITransaction;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -26,10 +29,28 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     tableSchema = schema.getFirstChild( "table").getChild( 0);
     queryBuilder = new SQLPredicateBuilder( schema);
   }
+  
+  public void setStreaming( boolean streaming)
+  {
+    this.streaming = streaming;
+  }
+
+  @Override
+  public ITransaction transaction()
+  {
+    return provider.transaction( this);
+  }
 
   @Override
   protected void syncImpl( IExternalReference reference) throws CachingException
   {
+    if ( !streaming)
+    {
+      throw new CachingException( 
+        "Full table loading requires streaming mode. If you did not intend "+
+        "to load the entire table, insure that your xpath expression includes "+
+        "a predicate.");
+    }
   }
 
   @Override
@@ -40,9 +61,19 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     {
       StringBuilder sql = buildSelect( new StatefulContext( parent, reference), step);
       cursor = provider.query( sql.toString());
-      for( IModelObject row; (row = cursor.next()) != null; )
+      
+      if ( streaming)
       {
+        throw new UnsupportedOperationException();
+      }
+      else
+      {
+        IModelObject update = new ModelObject( reference.getType());
         
+        for( IModelObject row; (row = cursor.next()) != null; )
+          update.addChild( row);
+        
+        update( reference, update);
       }
     }
     catch( Exception e)
@@ -80,4 +111,6 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   private IModelObject tableSchema;
   private SQLPredicateBuilder queryBuilder;
   private ISQLProvider provider;
+  private boolean streaming;
+  private SQLTransaction transaction;
 }
