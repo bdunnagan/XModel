@@ -38,7 +38,7 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
   @Override
   public ITransaction transaction()
   {
-    return provider.transaction( this);
+    return null;
   }
 
   @Override
