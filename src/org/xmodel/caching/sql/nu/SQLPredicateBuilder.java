@@ -297,11 +297,11 @@ public class SQLPredicateBuilder
     numericTypeMap.put( "TINYINT", ResultType.NUMBER);
     numericTypeMap.put( "SMALLINT", ResultType.NUMBER);
     numericTypeMap.put( "INT", ResultType.NUMBER);
+    numericTypeMap.put( "LONG", ResultType.NUMBER);
     numericTypeMap.put( "BIGINT", ResultType.NUMBER);
     numericTypeMap.put( "FLOAT", ResultType.NUMBER);
     numericTypeMap.put( "DECIMAL", ResultType.NUMBER);
     numericTypeMap.put( "DOUBLE", ResultType.NUMBER);
-    numericTypeMap.put( "LONG", ResultType.NUMBER);
   }
   
   public static void main( String[] args) throws Exception

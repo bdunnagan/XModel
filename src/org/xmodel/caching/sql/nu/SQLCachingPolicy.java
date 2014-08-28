@@ -1,5 +1,6 @@
 package org.xmodel.caching.sql.nu;
 
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 import org.xmodel.IPathElement;
 import org.xmodel.ModelObject;
@@ -9,6 +10,7 @@ import org.xmodel.external.CachingException;
 import org.xmodel.external.ConfiguredCachingPolicy;
 import org.xmodel.external.IExternalReference;
 import org.xmodel.external.ITransaction;
+import org.xmodel.log.SLog;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -83,7 +85,19 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     }
     finally
     {
-      if ( cursor != null) cursor.dispose();
+      if ( cursor != null) dispose( cursor);
+    }
+  }
+  
+  private void dispose( ISQLCursor cursor)
+  {
+    try
+    {
+      cursor.dispose();
+    }
+    catch( SQLException e)
+    {
+      SLog.warnf( this, e.toString());
     }
   }
   

@@ -1,22 +1,17 @@
 package org.xmodel.caching.sql.nu;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.AbstractSequentialList;
 import java.util.ListIterator;
-
 import org.xmodel.IModelObject;
 
 /**
- * An implementation of java.util.List that uses a JDBC ResultSet in "cursor mode" to efficiently 
- * visit each row in a large result set.  This class discards the previous element when a new element
- * is visited.  Note that it is the responsibility of the client to insure that the ResultSet is
- * configured for streaming/cursor use.
+ * An implementation of java.util.List that uses ISQLCursor to visit each row in a large result set.  
+ * This class discards the previous element when a new element is visited.
  */
-public abstract class AbstractSQLCursorList extends AbstractSequentialList<IModelObject>
+public class SQLCursorList extends AbstractSequentialList<IModelObject>
 {
-  protected AbstractSQLCursorList( ResultSet cursor) throws SQLException
+  protected SQLCursorList( ISQLCursor cursor) throws SQLException
   {
     this.cursor = cursor;
   }
@@ -27,16 +22,9 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
   @Override
   public ListIterator<IModelObject> listIterator( int index)
   {
-    return new SQLCursorIterator( this);
+    return new SQLCursorIterator();
   }
   
-  /**
-   * Transform the current row from the specified cursor.
-   * @param cursor The cursor.
-   * @return Returns null or the transformed row.
-   */
-  protected abstract IModelObject transform( ResultSet cursor) throws SQLException;
-
   /* (non-Javadoc)
    * @see java.util.AbstractCollection#size()
    */
@@ -46,21 +34,17 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
     throw new UnsupportedOperationException();
   }
 
-  private ResultSet cursor;
+  private ISQLCursor cursor;
   
   private class SQLCursorIterator implements ListIterator<IModelObject>
   {
-    public SQLCursorIterator( AbstractSQLCursorList list)
+    public SQLCursorIterator()
     {
-      this.list = list;
       this.index = 0;
       
       try
       {
-        if ( !list.cursor.isBeforeFirst())
-        {
-          list.cursor = ((PreparedStatement)list.cursor.getStatement()).executeQuery();
-        }
+        cursor.reset();
       }
       catch( SQLException e)
       {
@@ -69,7 +53,7 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
       
       try
       {
-        hasNext = list.cursor.next();
+        next = cursor.next();
       }
       catch( SQLException e)
       {
@@ -83,7 +67,7 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
     @Override
     public boolean hasNext()
     {
-      return hasNext;
+      return next != null;
     }
 
     /* (non-Javadoc)
@@ -103,8 +87,8 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
     {
       try
       {
-        IModelObject row = list.transform( cursor);
-        hasNext = list.cursor.next();
+        IModelObject row = next;
+        next = list.cursor.next();
         index++;
         return row;
       }
@@ -168,8 +152,8 @@ public abstract class AbstractSQLCursorList extends AbstractSequentialList<IMode
       throw new UnsupportedOperationException();
     }
 
-    private AbstractSQLCursorList list;
-    private boolean hasNext;
+    private SQLCursorList list;
+    private IModelObject next;
     private int index;
   }
 }

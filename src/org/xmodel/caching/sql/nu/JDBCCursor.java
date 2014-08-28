@@ -7,9 +7,9 @@ import org.xmodel.IModelObject;
 
 public class JDBCCursor implements ISQLCursor
 {
-  public JDBCCursor( PreparedStatement statement, IModelObject schema)
+  public JDBCCursor( ResultSet resultSet, IModelObject schema)
   {
-    this.statement = statement;
+    this.resultSet = resultSet;
   }
   
   @Override
@@ -24,17 +24,16 @@ public class JDBCCursor implements ISQLCursor
   @Override
   public IModelObject next() throws SQLException
   {
-    if ( resultSet == null) resultSet = statement.executeQuery();
+    if ( resultSet == null) resultSet = ((PreparedStatement)resultSet.getStatement()).executeQuery();
     return resultSet.next()? transform.transformRow( resultSet): null;
   }
 
   @Override
   public void dispose() throws SQLException
   {
-    statement.close();
+    resultSet.getStatement().close();
   }
   
-  private PreparedStatement statement;
   private ResultSet resultSet;
   private SchemaTransform transform;
 }
