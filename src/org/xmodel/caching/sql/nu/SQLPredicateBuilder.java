@@ -24,12 +24,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class SQLPredicateBuilder
 {
-  public SQLPredicateBuilder( IModelObject schema)
-  {
-    this.schema = schema;
-  }
-  
-  public boolean build( IContext context, IPathElement step, StringBuilder sql)
+  public boolean build( IModelObject schema, IContext context, IPathElement step, StringBuilder sql)
   {
     if ( step.type() != null && !step.type().equals( "*") && !step.type().equals( schema.getFirstChild( "table").getChild( 0).getType()))
     {
@@ -38,22 +33,22 @@ public class SQLPredicateBuilder
     }
     
     PredicateExpression predicate = (PredicateExpression)step.predicate();
-    return buildAny( context, predicate.getArgument( 0), sql);
+    return buildAny( schema, context, predicate.getArgument( 0), sql);
   }
 
-  private boolean buildAny( IContext context, IExpression expr, StringBuilder sql)
+  private boolean buildAny( IModelObject schema, IContext context, IExpression expr, StringBuilder sql)
   {
     if ( expr instanceof EqualityExpression)
     {
-      return buildEquality( context, (EqualityExpression)expr, sql);
+      return buildEquality( schema, context, (EqualityExpression)expr, sql);
     }
     else if ( expr instanceof LogicalExpression)
     {
-      return buildLogical( context, (LogicalExpression)expr, sql);
+      return buildLogical( schema, context, (LogicalExpression)expr, sql);
     }
     else if ( expr instanceof RelationalExpression)
     {
-      return buildRelational( context, (RelationalExpression)expr, sql);
+      return buildRelational( schema, context, (RelationalExpression)expr, sql);
     }
     else if ( expr instanceof PathExpression)
     {
@@ -68,7 +63,7 @@ public class SQLPredicateBuilder
     return false;
   }
 
-  private boolean buildEquality( IContext context, EqualityExpression expr, StringBuilder sql)
+  private boolean buildEquality( IModelObject schema, IContext context, EqualityExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
@@ -127,10 +122,10 @@ public class SQLPredicateBuilder
     return true;
   }
   
-  private boolean buildLogical( IContext context, LogicalExpression expr, StringBuilder sql)
+  private boolean buildLogical( IModelObject schema, IContext context, LogicalExpression expr, StringBuilder sql)
   {
     sql.append( '(');
-    if ( !buildAny( context, expr.getArgument( 0), sql)) return false;
+    if ( !buildAny( schema, context, expr.getArgument( 0), sql)) return false;
     
     switch( expr.getOperator())
     {
@@ -138,13 +133,13 @@ public class SQLPredicateBuilder
       case OR:  sql.append( " OR "); break;
     }
     
-    if ( !buildAny( context, expr.getArgument( 1), sql)) return false;
+    if ( !buildAny( schema, context, expr.getArgument( 1), sql)) return false;
     sql.append( ')');
     
     return true;
   }
   
-  private boolean buildRelational( IContext context, RelationalExpression expr, StringBuilder sql)
+  private boolean buildRelational( IModelObject schema, IContext context, RelationalExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
@@ -333,9 +328,9 @@ public class SQLPredicateBuilder
     IModelObject list = new XmlIO().read( listXml);
     context.set( "x", list);
     
-    SQLPredicateBuilder builder = new SQLPredicateBuilder( schema);
+    SQLPredicateBuilder builder = new SQLPredicateBuilder();
     StringBuilder sql = new StringBuilder();
-    builder.build( context, step, sql);
+    builder.build( schema, context, step, sql);
     System.out.println( sql.toString());
   }
 }

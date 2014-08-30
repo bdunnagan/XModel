@@ -1,14 +1,13 @@
 package org.xmodel.caching.sql.nu;
 
+import java.sql.SQLException;
 import org.xmodel.IModelObject;
 
 public interface ISQLProvider
 {
   public void configure( IModelObject annotation);
 
-  public ISQLCursor query( String sql);
+  public ISQLCursor query( ISQLRequest request) throws SQLException;
   
-  public void update( String sql, Object... params);
-  
-  public void delete( String sql, Object... params);
+  public void update( ISQLRequest request) throws SQLException;
 }

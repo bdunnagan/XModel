@@ -7,8 +7,9 @@ import org.xmodel.IModelObject;
 
 public class JDBCCursor implements ISQLCursor
 {
-  public JDBCCursor( ResultSet resultSet, IModelObject schema)
+  public JDBCCursor( ISQLRequest request, ResultSet resultSet)
   {
+    this.transform = new SchemaTransform( request.getSchema());
     this.resultSet = resultSet;
   }
   
@@ -33,7 +34,7 @@ public class JDBCCursor implements ISQLCursor
   {
     resultSet.getStatement().close();
   }
-  
+
   private ResultSet resultSet;
   private SchemaTransform transform;
 }

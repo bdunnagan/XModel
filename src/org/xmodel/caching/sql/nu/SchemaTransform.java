@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -17,22 +18,6 @@ import org.xmodel.xml.XmlIO;
 
 public class SchemaTransform
 {
-  private enum SQLType
-  {
-    sqlUndefined,
-    sqlTinyint,
-    sqlSmallint,
-    sqlInt,
-    sqlLong,
-    sqlBigint,
-    sqlFloat,
-    sqlDecimal,
-    sqlDouble,
-    sqlChar,
-    sqlVarchar,
-    sqlBlob
-  }
-  
   public SchemaTransform( IModelObject schema)
   {
     this.schema = schema;
@@ -57,14 +42,14 @@ public class SchemaTransform
   
   private void importColumn( int columnIndex, IModelObject columnSchema, IModelObject row, ResultSet rset) throws SQLException
   {
-    SQLType cachedType = Xlate.get( columnSchema, "typeOrdinal", SQLType.sqlUndefined);
-    if ( cachedType == SQLType.sqlUndefined)
+    int cachedType = Xlate.get( columnSchema, "typeCached", Integer.MAX_VALUE);
+    if ( cachedType == Integer.MAX_VALUE)
     {
       String type = Xlate.get( columnSchema, "type", (String)null);
       if ( type != null)
       {
-        cachedType = getTypeOrdinal( type);
-        Xlate.set( columnSchema, "typeOrdinal", cachedType);
+        cachedType = getDataType( type);
+        Xlate.set( columnSchema, "typeCached", cachedType);
       }
       else
       {
@@ -79,50 +64,50 @@ public class SchemaTransform
     
     switch( cachedType)
     {
-      case sqlTinyint:  
-      case sqlSmallint: 
-      case sqlInt:
+      case Types.TINYINT:  
+      case Types.SMALLINT: 
+      case Types.INTEGER:
       {
         if ( attribute) row.setAttribute( mappedName, rset.getInt( columnIndex));
         else Xlate.childSet( row, mappedName, rset.getInt( columnIndex));
       }
       break;
       
-      case sqlLong:
-      case sqlBigint:
+      case Types.BIGINT:
       {
         if ( attribute) row.setAttribute( mappedName, rset.getLong( columnIndex));
         else Xlate.childSet( row, mappedName, rset.getLong( columnIndex));
       }
       break;
       
-      case sqlFloat:
+      case Types.FLOAT:
       {
         if ( attribute) row.setAttribute( mappedName, rset.getFloat( columnIndex));
         else Xlate.childSet( row, mappedName, rset.getFloat( columnIndex));
       }
       break;
       
-      case sqlDecimal:
-      case sqlDouble:
+      case Types.DECIMAL:
+      case Types.DOUBLE:
       {
         if ( attribute) row.setAttribute( mappedName, rset.getDouble( columnIndex));
         else Xlate.childSet( row, mappedName, rset.getDouble( columnIndex));
       }
       break;
       
-      case sqlChar:
-      case sqlVarchar:
+      case Types.CHAR:
+      case Types.VARCHAR:
       {
         if ( attribute) row.setAttribute( mappedName, rset.getString( columnIndex));
         else Xlate.childSet( row, mappedName, rset.getString( columnIndex));
       }
       break;
       
-      case sqlBlob:
+      case Types.BLOB:
+      case Types.VARBINARY:
       {
         // Is getBytes() correct here??
-        importBlob( row, columnSchema, rset.getBytes( columnIndex));
+        importBinary( row, columnSchema, rset.getBytes( columnIndex));
       }
       break;
       
@@ -131,7 +116,7 @@ public class SchemaTransform
     }
   }
   
-  private void importBlob( IModelObject row, IModelObject columnSchema, Object value)
+  private void importBinary( IModelObject row, IModelObject columnSchema, Object value)
   {
     if ( value == null) return;
     
@@ -222,7 +207,7 @@ public class SchemaTransform
     return false;
   }
   
-  private SQLType getTypeOrdinal( String type)
+  private int getDataType( String type)
   {
     type = type.toUpperCase();
     char first = type.charAt( 0);
@@ -231,77 +216,79 @@ public class SchemaTransform
       case 'B':
       {
         if ( type.startsWith( "BIGINT"))
-          return SQLType.sqlBigint;
+          return Types.BIGINT;
       }
       break;
       
       case 'C':
       {
         if ( type.startsWith( "CHAR"))
-          return SQLType.sqlChar;
+          return Types.CHAR;
       }
       break;
       
       case 'D':
       {
         if ( type.startsWith( "DECIMAL"))
-          return SQLType.sqlDecimal;
+          return Types.DECIMAL;
         if ( type.startsWith( "DOUBLE"))
-          return SQLType.sqlDouble;
+          return Types.DOUBLE;
       }
       break;
       
       case 'F':
       {
         if ( type.startsWith( "FLOAT"))
-          return SQLType.sqlFloat;
+          return Types.FLOAT;
       }
       break;
       
       case 'I':
       {
         if ( type.startsWith( "INT"))
-          return SQLType.sqlInt;
+          return Types.INTEGER;
       }
       break;
       
       case 'L':
       {
         if ( type.startsWith( "LONG"))
-          return SQLType.sqlLong;
+          return Types.BIGINT;
       }
       break;
       
       case 'S':
       {
         if ( type.startsWith( "SMALLINT"))
-          return SQLType.sqlSmallint;
+          return Types.SMALLINT;
       }
       break;
       
       case 'T':
       {
         if ( type.startsWith( "TINYINT"))
-          return SQLType.sqlTinyint;
+          return Types.TINYINT;
       }
       break;
       
       case 'V':
       {
         if ( type.startsWith( "VARCHAR"))
-          return SQLType.sqlVarchar;
+          return Types.VARCHAR;
+        if ( type.startsWith( "VARBINARY"))
+          return Types.VARBINARY;
       }
       break;
       
       default:
       {
         if ( type.contains( "BLOB"))
-          return SQLType.sqlBlob;
+          return Types.BLOB;
       }
       break;
     }
     
-    return SQLType.sqlUndefined;
+    return Integer.MAX_VALUE;
   }
   
   private IModelObject schema;
