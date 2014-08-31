@@ -24,7 +24,7 @@ import org.xmodel.xpath.expression.StatefulContext;
 
 public class SQLPredicateBuilder
 {
-  public boolean build( IModelObject schema, IContext context, IPathElement step, StringBuilder sql)
+  public static boolean build( IModelObject schema, IContext context, IPathElement step, StringBuilder sql)
   {
     if ( step.type() != null && !step.type().equals( "*") && !step.type().equals( schema.getFirstChild( "table").getChild( 0).getType()))
     {
@@ -36,7 +36,7 @@ public class SQLPredicateBuilder
     return buildAny( schema, context, predicate.getArgument( 0), sql);
   }
 
-  private boolean buildAny( IModelObject schema, IContext context, IExpression expr, StringBuilder sql)
+  private static boolean buildAny( IModelObject schema, IContext context, IExpression expr, StringBuilder sql)
   {
     if ( expr instanceof EqualityExpression)
     {
@@ -52,7 +52,7 @@ public class SQLPredicateBuilder
     }
     else if ( expr instanceof PathExpression)
     {
-      IModelObject column = getColumnSchema( expr);
+      IModelObject column = getColumnSchema( schema, expr);
       if ( column != null)
       {
         sql.append( column.getType());
@@ -63,11 +63,11 @@ public class SQLPredicateBuilder
     return false;
   }
 
-  private boolean buildEquality( IModelObject schema, IContext context, EqualityExpression expr, StringBuilder sql)
+  private static boolean buildEquality( IModelObject schema, IContext context, EqualityExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
-    IModelObject column = getColumnSchema( expr.getArgument( 0));
+    IModelObject column = getColumnSchema( schema, expr.getArgument( 0));
     if ( column != null) 
     {
       targetExpr = expr.getArgument( 1);
@@ -75,12 +75,12 @@ public class SQLPredicateBuilder
     else
     {
       targetExpr = expr.getArgument( 0);
-      column = getColumnSchema( expr.getArgument( 1));
+      column = getColumnSchema( schema, expr.getArgument( 1));
     }
     
     if ( column == null) 
     {
-      SLog.warnf( this, "Missing table column reference in equality expression: %s", expr.toString());
+      SLog.warnf( SQLPredicateBuilder.class, "Missing table column reference in equality expression: %s", expr.toString());
       return false;
     }
     
@@ -122,7 +122,7 @@ public class SQLPredicateBuilder
     return true;
   }
   
-  private boolean buildLogical( IModelObject schema, IContext context, LogicalExpression expr, StringBuilder sql)
+  private static boolean buildLogical( IModelObject schema, IContext context, LogicalExpression expr, StringBuilder sql)
   {
     sql.append( '(');
     if ( !buildAny( schema, context, expr.getArgument( 0), sql)) return false;
@@ -139,11 +139,11 @@ public class SQLPredicateBuilder
     return true;
   }
   
-  private boolean buildRelational( IModelObject schema, IContext context, RelationalExpression expr, StringBuilder sql)
+  private static boolean buildRelational( IModelObject schema, IContext context, RelationalExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
-    IModelObject column = getColumnSchema( expr.getArgument( 0));
+    IModelObject column = getColumnSchema( schema, expr.getArgument( 0));
     if ( column != null) 
     {
       targetExpr = expr.getArgument( 1);
@@ -151,12 +151,12 @@ public class SQLPredicateBuilder
     else
     {
       targetExpr = expr.getArgument( 0);
-      column = getColumnSchema( expr.getArgument( 1));
+      column = getColumnSchema( schema, expr.getArgument( 1));
     }
     
     if ( column == null) 
     {
-      SLog.warnf( this, "Missing table column reference in relational expression: %s", expr.toString());
+      SLog.warnf( SQLPredicateBuilder.class, "Missing table column reference in relational expression: %s", expr.toString());
       return false;
     }
     
@@ -175,7 +175,7 @@ public class SQLPredicateBuilder
     return true;
   }
 
-  private int buildTargets( IModelObject column, IContext context, IExpression targetExpr, boolean allowMultiple, StringBuilder sql)
+  private static int buildTargets( IModelObject column, IContext context, IExpression targetExpr, boolean allowMultiple, StringBuilder sql)
   {
     ResultType columnResultType = getResultType( Xlate.get( column, "type", (String)null));
     ResultType targetResultType = targetExpr.getType( context);
@@ -252,7 +252,7 @@ public class SQLPredicateBuilder
     }
   }
   
-  private ResultType getResultType( String sqlType)
+  private static ResultType getResultType( String sqlType)
   {
     sqlType = sqlType.toUpperCase();
     
@@ -265,7 +265,7 @@ public class SQLPredicateBuilder
     return ResultType.UNDEFINED;
   }
   
-  private IModelObject getColumnSchema( IExpression expr)
+  private static IModelObject getColumnSchema( IModelObject schema, IExpression expr)
   {
     if ( expr instanceof PathExpression)
     {
@@ -284,8 +284,6 @@ public class SQLPredicateBuilder
     return null;
   }
 
-  private IModelObject schema;
-  
   private static Map<String, ResultType> numericTypeMap = new HashMap<String, ResultType>();
   static
   {
@@ -328,9 +326,8 @@ public class SQLPredicateBuilder
     IModelObject list = new XmlIO().read( listXml);
     context.set( "x", list);
     
-    SQLPredicateBuilder builder = new SQLPredicateBuilder();
     StringBuilder sql = new StringBuilder();
-    builder.build( schema, context, step, sql);
+    SQLPredicateBuilder.build( schema, context, step, sql);
     System.out.println( sql.toString());
   }
 }
