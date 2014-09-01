@@ -1,14 +1,15 @@
 package org.xmodel.caching.sql.nu;
 
 import org.xmodel.IModelObject;
-import org.xmodel.xpath.PathElement;
+import org.xmodel.IPathElement;
 import org.xmodel.xpath.expression.IContext;
 
 public class GenericSelectRequest implements ISQLRequest
 {
-  public GenericSelectRequest( IModelObject schema, IContext context, PathElement step)
+  public GenericSelectRequest( IModelObject schema, IContext context, IPathElement step, SchemaTransform transform)
   {
-    queryBuilder = new SQLPredicateBuilder( schema, step);
+    this.transform = transform;
+    this.queryBuilder = new SQLPredicateBuilder( schema, step);
     build( schema, context);
   }
   
@@ -63,29 +64,19 @@ public class GenericSelectRequest implements ISQLRequest
   @Override
   public int getParamType( int paramIndex)
   {
-    // TODO Auto-generated method stub
-    return 0;
+    return transform.getDataType( queryBuilder.getParamColumn( paramIndex));
   }
 
   @Override
   public Object getParamValue( int paramIndex)
   {
-    // TODO Auto-generated method stub
-    return null;
+    return queryBuilder.getParamValue( paramIndex);
   }
 
   @Override
   public int getParamCount()
   {
-    // TODO Auto-generated method stub
-    return 0;
-  }
-
-  @Override
-  public int getLimit()
-  {
-    // TODO Auto-generated method stub
-    return 0;
+    return queryBuilder.getParamCount();
   }
 
   @Override
@@ -96,6 +87,7 @@ public class GenericSelectRequest implements ISQLRequest
   }
 
   private IModelObject schema;
+  private SchemaTransform transform;
   private SQLPredicateBuilder queryBuilder;
   private String sql;
 }

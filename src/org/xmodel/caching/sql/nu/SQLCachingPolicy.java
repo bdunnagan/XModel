@@ -27,9 +27,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     
     IModelObject schema = schemaExpr.queryFirst( context);
     if ( schema == null) throw new IllegalArgumentException( "Table schema is not defined.");
-
-    tableSchema = schema.getFirstChild( "table").getChild( 0);
-    queryBuilder = new SQLPredicateBuilder( schema);
+    
+    transform = new SchemaTransform( schema);
   }
   
   public void setStreaming( boolean streaming)
@@ -61,8 +60,8 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
     ISQLCursor cursor = null;
     try
     {
-      StringBuilder sql = buildSelect( new StatefulContext( parent, reference), step);
-      cursor = provider.query( sql.toString());
+      ISQLRequest request = new GenericSelectRequest( transform.getSchema(), new StatefulContext( parent, reference), step, transform);
+      cursor = provider.query( request);
       
       if ( streaming)
       {
@@ -100,31 +99,9 @@ public class SQLCachingPolicy extends ConfiguredCachingPolicy
       SLog.warnf( this, e.toString());
     }
   }
-  
-  private StringBuilder buildSelect( IContext context, IPathElement step)
-  {
-    StringBuilder sql = new StringBuilder();
-    sql.append( "SELECT ");
-
-    for( IModelObject column: tableSchema.getChildren())
-    {
-      sql.append( column.getType());
-      sql.append( ", ");
-    }
-    sql.setLength( sql.length() - 2);
     
-    sql.append( " FROM ");
-    sql.append( tableSchema.getType());
-    
-    sql.append( " WHERE ");
-    queryBuilder.build( context, step, sql);
-    
-    return sql;
-  }
-  
-  private IModelObject tableSchema;
-  private SQLPredicateBuilder queryBuilder;
   private ISQLProvider provider;
+  private SchemaTransform transform;
   private boolean streaming;
   private SQLTransaction transaction;
 }

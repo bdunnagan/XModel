@@ -14,7 +14,5 @@ public interface ISQLRequest
   
   public int getParamCount();
   
-  public int getLimit();
-  
   public boolean isStreaming();
 }

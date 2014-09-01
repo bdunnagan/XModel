@@ -23,6 +23,11 @@ public class SchemaTransform
     this.schema = schema;
   }
   
+  public IModelObject getSchema()
+  {
+    return schema;
+  }
+  
   public void setShallowImport( boolean shallowImport)
   {
     this.shallowImport = shallowImport;
@@ -40,7 +45,7 @@ public class SchemaTransform
     return row;
   }
   
-  private void importColumn( int columnIndex, IModelObject columnSchema, IModelObject row, ResultSet rset) throws SQLException
+  public int getDataType( IModelObject columnSchema)
   {
     int cachedType = Xlate.get( columnSchema, "typeCached", Integer.MAX_VALUE);
     if ( cachedType == Integer.MAX_VALUE)
@@ -58,10 +63,15 @@ public class SchemaTransform
             columnSchema.getType());
       }
     }
-    
+    return cachedType;
+  }
+  
+  private void importColumn( int columnIndex, IModelObject columnSchema, IModelObject row, ResultSet rset) throws SQLException
+  {
     String mappedName = getMappedName( columnSchema);
     boolean attribute = mappedName.charAt( 0) == '@';
-    
+
+    int cachedType = getDataType( columnSchema);
     switch( cachedType)
     {
       case Types.TINYINT:  

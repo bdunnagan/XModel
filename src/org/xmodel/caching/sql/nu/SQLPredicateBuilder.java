@@ -1,5 +1,6 @@
 package org.xmodel.caching.sql.nu;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,23 @@ public class SQLPredicateBuilder
     this.schema = schema;
     this.step = step;
     this.limit = -1;
+    this.paramValues = new ArrayList<Object>();
+    this.paramColumns = new ArrayList<IModelObject>();
+  }
+  
+  public IModelObject getParamColumn( int paramIndex)
+  {
+    return paramColumns.get( paramIndex);
+  }
+  
+  public Object getParamValue( int paramIndex)
+  {
+    return paramValues.get( paramIndex);
+  }
+  
+  public int getParamCount()
+  {
+    return paramColumns.size();
   }
   
   public long getRowLimit()
@@ -40,6 +58,11 @@ public class SQLPredicateBuilder
   
   public boolean build( IContext context, StringBuilder sql)
   {
+    // reset
+    this.limit = -1;
+    this.paramValues.clear();
+    this.paramColumns.clear();
+    
     if ( step.type() != null && !step.type().equals( "*") && !step.type().equals( schema.getFirstChild( "table").getChild( 0).getType()))
     {
       sql.append( "FALSE");
@@ -206,16 +229,16 @@ public class SQLPredicateBuilder
     IExpression rhs = expr.getArgument( 1);
     if ( lhs instanceof PosFunction || lhs instanceof PositionFunction)
     {
-      limit = (long)rhs.evaluateNumber( context) - 1;
+      limit = (long)rhs.evaluateNumber( context);
       if ( op == RelationalExpression.Operator.LT) limit--;
-      sql.append( (limit >= 0)? " TRUE ": " FALSE ");
+      sql.append( (limit >= 0)? "TRUE": "FALSE");
       return true;
     }
     else if ( rhs instanceof PosFunction || rhs instanceof PositionFunction)
     {
-      limit = (long)lhs.evaluateNumber( context) - 1;
+      limit = (long)lhs.evaluateNumber( context);
       if ( op == RelationalExpression.Operator.LT) limit--; 
-      sql.append( (limit >= 0)? " TRUE ": " FALSE ");
+      sql.append( (limit >= 0)? "TRUE": "FALSE");
       return true;
     }
     else
@@ -224,7 +247,7 @@ public class SQLPredicateBuilder
     }
   }
 
-  private static int buildTargets( IModelObject column, IContext context, IExpression targetExpr, boolean allowMultiple, StringBuilder sql)
+  private int buildTargets( IModelObject column, IContext context, IExpression targetExpr, boolean allowMultiple, StringBuilder sql)
   {
     ResultType columnResultType = getResultType( Xlate.get( column, "type", (String)null));
     ResultType targetResultType = targetExpr.getType( context);
@@ -241,9 +264,9 @@ public class SQLPredicateBuilder
         {
           switch( columnResultType)
           {
-            case STRING:  sql.append( '"'); sql.append( Xlate.get( targets.get( 0), "")); sql.append( '"'); break;
-            case NUMBER:  sql.append( Xlate.get( targets.get( 0), 0)); break;
-            case BOOLEAN: sql.append( Xlate.get( targets.get( 0), false)); break;
+            case STRING:  paramColumns.add( column); paramValues.add( Xlate.get( targets.get( 0), "")); sql.append( '?'); break;
+            case NUMBER:  paramColumns.add( column); paramValues.add( Xlate.get( targets.get( 0), 0)); sql.append( '?'); break;
+            case BOOLEAN: paramColumns.add( column); paramValues.add( Xlate.get( targets.get( 0), false)); sql.append( '?'); break;
             default: return -1;
           }
           return 1;
@@ -258,9 +281,9 @@ public class SQLPredicateBuilder
             sql.append( sep); sep = ", ";
             switch( columnResultType)
             {
-              case STRING:  sql.append( '"'); sql.append( Xlate.get( target, "")); sql.append( '"'); break;
-              case NUMBER:  sql.append( Xlate.get( target, 0)); break;
-              case BOOLEAN: sql.append( Xlate.get( target, false)); break;
+              case STRING:  paramColumns.add( column); paramValues.add( Xlate.get( target, "")); sql.append( '?'); break;
+              case NUMBER:  paramColumns.add( column); paramValues.add( Xlate.get( target, 0)); sql.append( '?'); break;
+              case BOOLEAN: paramColumns.add( column); paramValues.add( Xlate.get( target, false)); sql.append( '?'); break;
               default: return -1;
             }
           }
@@ -276,9 +299,9 @@ public class SQLPredicateBuilder
         String value = targetExpr.evaluateString( context); 
         switch( columnResultType)
         {
-          case STRING:  sql.append( '"'); sql.append( value); sql.append( '"'); break;
-          case NUMBER:  sql.append( value); break;
-          case BOOLEAN: sql.append( value); break;
+          case STRING:  paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
+          case NUMBER:  paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
+          case BOOLEAN: paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
           default: return -1;
         }
         return 1;
@@ -289,9 +312,9 @@ public class SQLPredicateBuilder
         String value = targetExpr.evaluateString( context); 
         switch( columnResultType)
         {
-          case STRING:  sql.append( '"'); sql.append( value); sql.append( '"'); break;
-          case NUMBER:  sql.append( value); break;
-          case BOOLEAN: sql.append( value); break;
+          case STRING:  paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
+          case NUMBER:  paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
+          case BOOLEAN: paramColumns.add( column); paramValues.add( value); sql.append( '?'); break;
           default: return -1;
         }
         return 1;
@@ -334,7 +357,9 @@ public class SQLPredicateBuilder
   }
 
   private IModelObject schema;
-  private IPathElement step;  
+  private IPathElement step;
+  private List<Object> paramValues;
+  private List<IModelObject> paramColumns;
   private long limit;
   
   private static Map<String, ResultType> numericTypeMap = new HashMap<String, ResultType>();
@@ -364,7 +389,7 @@ public class SQLPredicateBuilder
     
     IModelObject schema = new XmlIO().read( schemaXml);
     
-    IExpression expr = XPath.createExpression( "*[ pos() <= 1 and name = 'Bob' or @id = $x/* and name = 'Fred']");
+    IExpression expr = XPath.createExpression( "*[ name = 'Bob' or @id = $x/* and name = 'Fred' and pos() <= $y]");
     IPathElement step = ((PathExpression)expr.getArgument( 0)).getPath().getPathElement( 0);
     
     StatefulContext context = new StatefulContext( new ModelObject( "test"));
@@ -378,6 +403,7 @@ public class SQLPredicateBuilder
     
     IModelObject list = new XmlIO().read( listXml);
     context.set( "x", list);
+    context.set( "y", 9);
     
     StringBuilder sql = new StringBuilder();
     SQLPredicateBuilder builder = new SQLPredicateBuilder( schema, step);
