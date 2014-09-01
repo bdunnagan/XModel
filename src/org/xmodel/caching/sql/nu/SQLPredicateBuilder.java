@@ -21,10 +21,24 @@ import org.xmodel.xpath.expression.PathExpression;
 import org.xmodel.xpath.expression.PredicateExpression;
 import org.xmodel.xpath.expression.RelationalExpression;
 import org.xmodel.xpath.expression.StatefulContext;
+import org.xmodel.xpath.function.PositionFunction;
+import org.xmodel.xpath.function.custom.PosFunction;
 
 public class SQLPredicateBuilder
 {
-  public static boolean build( IModelObject schema, IContext context, IPathElement step, StringBuilder sql)
+  public SQLPredicateBuilder( IModelObject schema, IPathElement step)
+  {
+    this.schema = schema;
+    this.step = step;
+    this.limit = -1;
+  }
+  
+  public long getRowLimit()
+  {
+    return limit;
+  }
+  
+  public boolean build( IContext context, StringBuilder sql)
   {
     if ( step.type() != null && !step.type().equals( "*") && !step.type().equals( schema.getFirstChild( "table").getChild( 0).getType()))
     {
@@ -33,26 +47,26 @@ public class SQLPredicateBuilder
     }
     
     PredicateExpression predicate = (PredicateExpression)step.predicate();
-    return buildAny( schema, context, predicate.getArgument( 0), sql);
+    return buildAny( context, predicate.getArgument( 0), sql);
   }
 
-  private static boolean buildAny( IModelObject schema, IContext context, IExpression expr, StringBuilder sql)
+  private boolean buildAny( IContext context, IExpression expr, StringBuilder sql)
   {
     if ( expr instanceof EqualityExpression)
     {
-      return buildEquality( schema, context, (EqualityExpression)expr, sql);
+      return buildEquality( context, (EqualityExpression)expr, sql);
     }
     else if ( expr instanceof LogicalExpression)
     {
-      return buildLogical( schema, context, (LogicalExpression)expr, sql);
+      return buildLogical( context, (LogicalExpression)expr, sql);
     }
     else if ( expr instanceof RelationalExpression)
     {
-      return buildRelational( schema, context, (RelationalExpression)expr, sql);
+      return buildRelational( context, (RelationalExpression)expr, sql);
     }
     else if ( expr instanceof PathExpression)
     {
-      IModelObject column = getColumnSchema( schema, expr);
+      IModelObject column = getColumnSchema( expr);
       if ( column != null)
       {
         sql.append( column.getType());
@@ -63,11 +77,11 @@ public class SQLPredicateBuilder
     return false;
   }
 
-  private static boolean buildEquality( IModelObject schema, IContext context, EqualityExpression expr, StringBuilder sql)
+  private boolean buildEquality( IContext context, EqualityExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
-    IModelObject column = getColumnSchema( schema, expr.getArgument( 0));
+    IModelObject column = getColumnSchema( expr.getArgument( 0));
     if ( column != null) 
     {
       targetExpr = expr.getArgument( 1);
@@ -75,7 +89,7 @@ public class SQLPredicateBuilder
     else
     {
       targetExpr = expr.getArgument( 0);
-      column = getColumnSchema( schema, expr.getArgument( 1));
+      column = getColumnSchema( expr.getArgument( 1));
     }
     
     if ( column == null) 
@@ -122,28 +136,34 @@ public class SQLPredicateBuilder
     return true;
   }
   
-  private static boolean buildLogical( IModelObject schema, IContext context, LogicalExpression expr, StringBuilder sql)
+  private boolean buildLogical( IContext context, LogicalExpression expr, StringBuilder sql)
   {
     sql.append( '(');
-    if ( !buildAny( schema, context, expr.getArgument( 0), sql)) return false;
-    
+    if ( !buildAny( context, expr.getArgument( 0), sql)) return false;
+
+    int mark = sql.length();
     switch( expr.getOperator())
     {
       case AND: sql.append( " AND "); break;
-      case OR:  sql.append( " OR "); break;
+      case OR:  sql.append( " OR ");  break;
     }
     
-    if ( !buildAny( schema, context, expr.getArgument( 1), sql)) return false;
-    sql.append( ')');
+    if ( !buildAny( context, expr.getArgument( 1), sql)) 
+    {
+      sql.setLength( mark);
+      return false;
+    }
     
+    sql.append( ')');
+        
     return true;
   }
   
-  private static boolean buildRelational( IModelObject schema, IContext context, RelationalExpression expr, StringBuilder sql)
+  private boolean buildRelational( IContext context, RelationalExpression expr, StringBuilder sql)
   {
     IExpression targetExpr = null;
     
-    IModelObject column = getColumnSchema( schema, expr.getArgument( 0));
+    IModelObject column = getColumnSchema( expr.getArgument( 0));
     if ( column != null) 
     {
       targetExpr = expr.getArgument( 1);
@@ -151,13 +171,12 @@ public class SQLPredicateBuilder
     else
     {
       targetExpr = expr.getArgument( 0);
-      column = getColumnSchema( schema, expr.getArgument( 1));
+      column = getColumnSchema( expr.getArgument( 1));
     }
     
     if ( column == null) 
     {
-      SLog.warnf( SQLPredicateBuilder.class, "Missing table column reference in relational expression: %s", expr.toString());
-      return false;
+      return extraRowLimit( context, expr, expr.getOperator(), sql);
     }
     
     sql.append( column.getType());
@@ -173,6 +192,36 @@ public class SQLPredicateBuilder
     buildTargets( column, context, targetExpr, false, sql);
     
     return true;
+  }
+  
+  private boolean extraRowLimit( IContext context, RelationalExpression expr, RelationalExpression.Operator op, StringBuilder sql)
+  {
+    if ( op == RelationalExpression.Operator.GE || op == RelationalExpression.Operator.GT)
+    {
+      SLog.warnf( SQLPredicateBuilder.class, "PositionFunction may only be used with < or <=: %s", expr.toString());
+      return false;
+    }
+    
+    IExpression lhs = expr.getArgument( 0);
+    IExpression rhs = expr.getArgument( 1);
+    if ( lhs instanceof PosFunction || lhs instanceof PositionFunction)
+    {
+      limit = (long)rhs.evaluateNumber( context) - 1;
+      if ( op == RelationalExpression.Operator.LT) limit--;
+      sql.append( (limit >= 0)? " TRUE ": " FALSE ");
+      return true;
+    }
+    else if ( rhs instanceof PosFunction || rhs instanceof PositionFunction)
+    {
+      limit = (long)lhs.evaluateNumber( context) - 1;
+      if ( op == RelationalExpression.Operator.LT) limit--; 
+      sql.append( (limit >= 0)? " TRUE ": " FALSE ");
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
   private static int buildTargets( IModelObject column, IContext context, IExpression targetExpr, boolean allowMultiple, StringBuilder sql)
@@ -265,7 +314,7 @@ public class SQLPredicateBuilder
     return ResultType.UNDEFINED;
   }
   
-  private static IModelObject getColumnSchema( IModelObject schema, IExpression expr)
+  private IModelObject getColumnSchema( IExpression expr)
   {
     if ( expr instanceof PathExpression)
     {
@@ -284,6 +333,10 @@ public class SQLPredicateBuilder
     return null;
   }
 
+  private IModelObject schema;
+  private IPathElement step;  
+  private long limit;
+  
   private static Map<String, ResultType> numericTypeMap = new HashMap<String, ResultType>();
   static
   {
@@ -311,7 +364,7 @@ public class SQLPredicateBuilder
     
     IModelObject schema = new XmlIO().read( schemaXml);
     
-    IExpression expr = XPath.createExpression( "*[ (name = 'Bob' or @id = $x/*) and name = 'Fred']");
+    IExpression expr = XPath.createExpression( "*[ pos() <= 1 and name = 'Bob' or @id = $x/* and name = 'Fred']");
     IPathElement step = ((PathExpression)expr.getArgument( 0)).getPath().getPathElement( 0);
     
     StatefulContext context = new StatefulContext( new ModelObject( "test"));
@@ -327,7 +380,8 @@ public class SQLPredicateBuilder
     context.set( "x", list);
     
     StringBuilder sql = new StringBuilder();
-    SQLPredicateBuilder.build( schema, context, step, sql);
-    System.out.println( sql.toString());
+    SQLPredicateBuilder builder = new SQLPredicateBuilder( schema, step);
+    builder.build( context, sql);
+    System.out.printf( "%s LIMIT %d", sql.toString(), builder.getRowLimit());
   }
 }

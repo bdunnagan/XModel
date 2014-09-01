@@ -8,10 +8,11 @@ public class GenericSelectRequest implements ISQLRequest
 {
   public GenericSelectRequest( IModelObject schema, IContext context, PathElement step)
   {
-    build( schema, context, step);
+    queryBuilder = new SQLPredicateBuilder( schema, step);
+    build( schema, context);
   }
   
-  private void build( IModelObject schema, IContext context, PathElement step)
+  private void build( IModelObject schema, IContext context)
   {
     this.schema = schema;
     
@@ -30,11 +31,20 @@ public class GenericSelectRequest implements ISQLRequest
     sql.append( " FROM ");
     sql.append( tableSchema.getType());
     
-    int noPredicateLength = sql.length();
+    int mark = sql.length();
     sql.append( " WHERE ");
-    if ( !SQLPredicateBuilder.build( schema, context, step, sql))
+    if ( queryBuilder.build( context, sql))
     {
-      sql.setLength( noPredicateLength);
+      long rowLimit = queryBuilder.getRowLimit();
+      if ( rowLimit >= 0)
+      {
+        sql.append( " LIMIT ");
+        sql.append( rowLimit);
+      }
+    }
+    else
+    {
+      sql.setLength( mark);
     }
   }
   
@@ -86,5 +96,6 @@ public class GenericSelectRequest implements ISQLRequest
   }
 
   private IModelObject schema;
+  private SQLPredicateBuilder queryBuilder;
   private String sql;
 }
