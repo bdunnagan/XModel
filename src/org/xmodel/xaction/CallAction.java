@@ -19,6 +19,7 @@ public class CallAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), false);
     argExprs = document.getExpressions( "args", true);
     scriptExpr = document.getExpression();
+    if ( scriptExpr == null) scriptExpr = document.getExpression( "script", true);
   }
 
   @Override
@@ -31,12 +32,12 @@ public class CallAction extends GuardedAction
     passVariables( context, nested, script);
     
     Object[] result = script.run( nested);
-    if ( var != null)
+    if ( var != null && result != null && result.length > 0)
     {
       context.getScope().set( var, result[ 0]);
     }
     
-    return result;
+    return null;
   }
 
   /**
