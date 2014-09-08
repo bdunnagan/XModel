@@ -52,7 +52,6 @@ public class SubstringBeforeFunction extends Function
   public String evaluateString( IContext context) throws ExpressionException
   {
     assertArgs( 2, 2);
-    assertType( context, ResultType.STRING);
     
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);
