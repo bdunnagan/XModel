@@ -373,10 +373,13 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   public void notifyAccessAttributes( IExternalReference reference, String name, boolean write)
   {
-    if ( !isStaticAttribute( name)) 
+    synchronized( reference)
     {
-      if ( cache != null) cache.touch( reference);
-      if ( reference.isDirty()) internal_sync( reference);
+      if ( !isStaticAttribute( name)) 
+      {
+        if ( cache != null) cache.touch( reference);
+        if ( reference.isDirty()) internal_sync( reference);
+      }
     }
   }
   
@@ -385,8 +388,11 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    */
   public void notifyAccessChildren( IExternalReference reference, boolean write)
   {
-    if ( cache != null) cache.touch( reference);
-    if ( reference.isDirty()) internal_sync( reference);
+    synchronized( reference)
+    {
+      if ( cache != null) cache.touch( reference);
+      if ( reference.isDirty()) internal_sync( reference);
+    }
   }
   
   /* (non-Javadoc)
@@ -442,7 +448,7 @@ public abstract class AbstractCachingPolicy implements ICachingPolicy
    * The dirty flag is cleared and the reference is added to the cache.
    * @param reference The reference to be synced.
    */
-  protected synchronized void internal_sync( IExternalReference reference) throws CachingException
+  protected void internal_sync( IExternalReference reference) throws CachingException
   {
     // check sync lock before proceeding
     IModel model = GlobalSettings.getInstance().getModel();
