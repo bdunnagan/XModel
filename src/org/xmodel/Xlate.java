@@ -21,6 +21,7 @@ package org.xmodel;
 
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
+import org.xmodel.xpath.function.StringFunction;
 
 /**
  * A utility class for transforming the strings returned by an IModelObject.  Attribute values
@@ -256,6 +257,8 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getValue();
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number)
+      return StringFunction.stringValue( (Number)attrValue);
     return attrValue.toString();
   }
 
@@ -521,6 +524,8 @@ public class Xlate
     if ( object == null) return defaultValue;
     Object attrValue = object.getAttribute( attrName);
     if ( attrValue == null) return defaultValue;
+    if ( attrValue instanceof Number)
+      return StringFunction.stringValue( (Number)attrValue);
     return attrValue.toString();
   }
   

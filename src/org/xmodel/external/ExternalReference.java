@@ -41,17 +41,6 @@ public class ExternalReference extends ModelObject implements IExternalReference
   }
   
   /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#sync()
-   */
-  public void sync() throws CachingException
-  {
-    ICachingPolicy cachingPolicy = getCachingPolicy();
-    if ( cachingPolicy == null) throw new CachingException( "No caching policy to sync entity: "+this);
-    setDirty( false);
-    cachingPolicy.sync( this);
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.ModelObject#notifyAccessAttributes(java.lang.String, boolean)
    */
   @Override

@@ -43,7 +43,6 @@ public class XmlDiffer extends AbstractXmlDiffer
 {
   public XmlDiffer()
   {
-    listDiffer = new XmlListDiffer();
   }
   
   public XmlDiffer( IXmlMatcher matcher)
@@ -142,7 +141,7 @@ public class XmlDiffer extends AbstractXmlDiffer
 
     // diff list and see if records were added to change-set
     int oldRecordCount = changeSet.getSize();
-    listDiffer.diff( lParent, rParent, changeSet);
+    new XmlListDiffer().diff( lParent, rParent, changeSet);
     int newRecordCount = changeSet.getSize();
     return newRecordCount == oldRecordCount;
   }
@@ -248,6 +247,5 @@ public class XmlDiffer extends AbstractXmlDiffer
     IModelObject rParent;
   };
   
-  IModelObjectFactory factory;
-  XmlListDiffer listDiffer;
+  private IModelObjectFactory factory;
 }
