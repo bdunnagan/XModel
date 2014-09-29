@@ -45,6 +45,7 @@ public class FunctionFactory implements IFunctionFactory
       AbsFunction.class,
       AvgFunction.class,
       BooleanFunction.class,
+      CamelToUnderscoreFunction.class,
       CeilingFunction.class,
       CollectionFunction.class,
       ConcatFunction.class,
@@ -104,6 +105,7 @@ public class FunctionFactory implements IFunctionFactory
       TranslateFunction.class,
       TraceFunction.class,
       TrueFunction.class,
+      UnderscoreToCamelFunction.class,
       UppercaseFunction.class
     };
     
