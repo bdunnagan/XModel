@@ -1,11 +1,13 @@
 package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -19,6 +21,7 @@ import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 
 import com.rabbitmq.client.AMQP;
@@ -31,11 +34,16 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
-public class AbstractAmqpTransport extends AbstractTransport implements IRouter
+public class AmqpTransport extends AbstractTransport implements IRouter
 {
   public static final String notConnectedError = "Not connected";
+  
+  public AmqpTransport( Protocol protocol, IContext transportContext)
+  {
+    this( protocol, transportContext, Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler")));
+  }
 
-  public AbstractAmqpTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
+  public AmqpTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     super( protocol, transportContext, scheduler);
   
@@ -52,9 +60,10 @@ public class AbstractAmqpTransport extends AbstractTransport implements IRouter
     setRouter( this);
   }
   
-  public void setRemoteAddress( String host)
+  public void setRemoteAddress( InetSocketAddress address)
   {
-    connectionFactory.setHost( host);
+    connectionFactory.setHost( address.getHostString());
+    connectionFactory.setPort( address.getPort());
   }
   
   public void setPublishExchange( String exchange)

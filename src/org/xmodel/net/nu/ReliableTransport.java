@@ -142,6 +142,8 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
       {
         //
         // Remote host was busy, so re-send message unless it has expired.
+        // If this behavior is not desired, then set the expiry of the message to
+        // be <= timeout.
         //
         QueuedMessage item = sent.get( request);
         if ( item != null)
