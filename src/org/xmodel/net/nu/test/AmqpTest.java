@@ -23,6 +23,71 @@ public class AmqpTest
 {
   public static void main( String[] args) throws Exception
   {
+    class ServerEventHandler implements IEventHandler
+    {
+      public ServerEventHandler( ITransport transport)
+      {
+        this.transport = transport;
+      }
+      
+      @Override
+      public boolean notifyReceive( ByteBuffer buffer) throws IOException
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      {
+        System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
+        return false;
+      }
+
+      @Override
+      public boolean notifyConnect( IContext transportContext) throws IOException
+      {
+        System.out.println( "[SERVER] Connected!");
+        
+//        try
+//        {
+//          transport.respond( new XmlIO().read( 
+//              "<message>"+
+//              "  <print>'Hi'</print>"+
+//              "</message>"
+//            ), null);
+//        }
+//        catch( XmlException e)
+//        {
+//          throw new IOException( e);
+//        }
+        
+        return false;
+      }
+
+      @Override
+      public boolean notifyDisconnect( IContext transportContext) throws IOException
+      {
+        System.out.println( "[SERVER] Disconnected!");
+        return false;
+      }
+
+      @Override
+      public boolean notifyError( IContext context, Error error, IModelObject request)
+      {
+        System.out.printf( "[SERVER] Error: %s\n", error);
+        return false;
+      }
+
+      @Override
+      public boolean notifyException( IOException e)
+      {
+        System.out.printf( "[SERVER] Exception: %s\n", e);
+        return false;
+      }
+      
+      private ITransport transport;
+    }
+    
     class ClientEventHandler implements IEventHandler
     {
       public ClientEventHandler( ITransport transport)
@@ -94,7 +159,7 @@ public class AmqpTest
     IContext context = new StatefulContext();
     AmqpTransport server = new AmqpTransport( protocol, context); 
     server.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 5672));
-    //server.getEventPipe().addLast( new ClientEventHandler( server));
+    server.getEventPipe().addLast( new ServerEventHandler( server));
     server.connect( 1000).await();
     
     System.out.println( "Starting client ...");
@@ -108,7 +173,7 @@ public class AmqpTest
     Thread.sleep( 100);
     
     System.out.println( "Disconnecting client ...");
-    client.disconnect();
+    //client.disconnect();
     
     System.out.println( "Sleeping ...");
     Thread.sleep( 100);
