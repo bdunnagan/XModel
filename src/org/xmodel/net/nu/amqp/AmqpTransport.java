@@ -26,7 +26,6 @@ import org.xmodel.xpath.expression.IContext;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.AMQP.Queue.DeclareOk;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -76,54 +75,59 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.publishQueue = queue;
   }
   
-  @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  public void setConsumeQueue( String queue)
   {
-    Channel consumeChannel = consumerChannels.get( name);
-    if ( consumeChannel != null) 
-    {
-      String message = String.format( "Transport already registered to %s", name);
-      return new FailureAsyncFuture<ITransport>( this, message);
-    }
-    
-    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
-
-    try
-    {
-      consumeChannel = connection.createChannel();
-      consumerChannels.put( name, consumeChannel);
-      
-      consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
-      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
-    }
-    catch( IOException e)
-    {
-      future.notifyFailure( e);
-    }
-    
-    return future;
+    this.consumeQueue = queue;
   }
-
-  @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
-  {
-    Channel consumeChannel = consumerChannels.remove( name);
-    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
-    
-    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
-    
-    try
-    {
-      consumeChannel.queueDelete( name);
-      consumeChannel.close();
-    }
-    catch( IOException e)
-    {
-      future.notifyFailure( e);
-    }
-    
-    return future;
-  }
+  
+//  @Override
+//  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+//  {
+//    Channel consumeChannel = consumerChannels.get( name);
+//    if ( consumeChannel != null) 
+//    {
+//      String message = String.format( "Transport already registered to %s", name);
+//      return new FailureAsyncFuture<ITransport>( this, message);
+//    }
+//    
+//    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
+//
+//    try
+//    {
+//      consumeChannel = connection.createChannel();
+//      consumerChannels.put( name, consumeChannel);
+//      
+//      consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
+//      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
+//    }
+//    catch( IOException e)
+//    {
+//      future.notifyFailure( e);
+//    }
+//    
+//    return future;
+//  }
+//
+//  @Override
+//  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+//  {
+//    Channel consumeChannel = consumerChannels.remove( name);
+//    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
+//    
+//    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
+//    
+//    try
+//    {
+//      consumeChannel.queueDelete( name);
+//      consumeChannel.close();
+//    }
+//    catch( IOException e)
+//    {
+//      future.notifyFailure( e);
+//    }
+//    
+//    return future;
+//  }
 
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
@@ -161,6 +165,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public AsyncFuture<ITransport> connect( int timeout)
   {
+    if ( consumeQueue == null)
+      return new FailureAsyncFuture<ITransport>( this, "Consumer exchange/queue not defined for transport.");
+    
     Channel publishChannel = publishChannelRef.get();
     if ( publishChannel != null && publishChannel.isOpen()) 
       return new SuccessAsyncFuture<ITransport>( this);
@@ -173,8 +180,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 
       // consume
       Channel consumeChannel = connection.createChannel();
-      DeclareOk declare = consumeChannel.queueDeclare();
-      String consumeQueue = declare.getQueue();
+      consumeChannel.queueDeclare( consumeQueue, false, true, true, null);
       consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
       consumerChannels.put( consumeQueue, consumeChannel);
       replyQueue = consumeQueue;
@@ -182,6 +188,16 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       // publish
       publishChannel = connection.createChannel();
       publishChannelRef.set( publishChannel);
+      
+      // send connect event
+      try
+      {
+        getEventPipe().notifyConnect( getTransportContext());
+      }
+      catch( IOException e)
+      {
+        SLog.exception( this, e);
+      }
       
       return new SuccessAsyncFuture<ITransport>( this);
     }
@@ -279,6 +295,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private Connection connection;
   private String publishExchange;
   private String publishQueue;
+  private String consumeQueue;
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;
   private String replyQueue;
