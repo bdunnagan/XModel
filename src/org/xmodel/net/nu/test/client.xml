@@ -32,11 +32,13 @@
     </script>
   </assign>
 
-  <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" connectTimeout="3000">
+  <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
+    <publishQueue>'client_send'</publishQueue>
+    <consumeQueue>'server_send'</consumeQueue>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
     <onError>$onError</onError>
-  </tcpClient>
+  </amqpClient>
   
   <sleep>10000</sleep>
 </script>

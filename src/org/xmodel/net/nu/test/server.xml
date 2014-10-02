@@ -33,5 +33,8 @@
     </script>
   </assign>
   
-  <tcpServer var="server" bindHost="'127.0.0.1'" bindPort="10000" onReceive="$onReceive" onError="$onError" onConnect="$onConnect" onDisconnect="$onDisconnect"/>
+  <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672" onReceive="$onReceive" onError="$onError" onConnect="$onConnect" onDisconnect="$onDisconnect">
+    <publishQueue>'server_send'</publishQueue>
+    <consumeQueue>'client_send'</consumeQueue>
+  </amqpClient>
 </script>
