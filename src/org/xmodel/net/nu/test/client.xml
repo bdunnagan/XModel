@@ -18,7 +18,7 @@
     <script>
       <logi>'[CLIENT] Connected'</logi>
       
-      <request var="result" via="$client" timeout="10000" onReceive="$onReceive">
+      <request var="result" via="$client" timeout="60000" onReceive="$onReceive">
         <script>
           <print>'Hi'</print>
         </script>
@@ -33,8 +33,8 @@
   </assign>
 
   <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
-    <publishQueue>'client_send'</publishQueue>
-    <consumeQueue>'server_send'</consumeQueue>
+    <publishQueue>'server_recv'</publishQueue>
+    <consumeQueue>'client_recv'</consumeQueue>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
     <onError>$onError</onError>

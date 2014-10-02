@@ -50,7 +50,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     consumerChannels = Collections.synchronizedMap( new HashMap<String, Channel>());
     
     publishExchange = "";
-    publishQueue = "xio";
+    publishQueue = "";
     
     connectionFactory = new ConnectionFactory();
     connectionFactory.setHost( "localhost");
@@ -131,7 +131,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 
       // consume
       Channel consumeChannel = connection.createChannel();
-      consumeChannel.queueDeclare( consumeQueue, false, true, true, null);
+      //consumeChannel.queueDeclare( consumeQueue, false, true, true, null);
       consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
       consumerChannels.put( consumeQueue, consumeChannel);
       replyQueue = consumeQueue;
