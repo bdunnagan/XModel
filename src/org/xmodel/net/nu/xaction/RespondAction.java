@@ -3,7 +3,6 @@ package org.xmodel.net.nu.xaction;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.XPath;
@@ -17,6 +16,8 @@ public class RespondAction extends GuardedAction
   {
     super.configure( document);
 
+    viaExpr = document.getExpression( "via", true);
+    
     requestExpr = document.getExpression( "request", true);
     if ( requestExpr == null) requestExpr = XPath.createExpression( "$message");
 
@@ -27,10 +28,11 @@ public class RespondAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
+    IModelObject viaNode = viaExpr.queryFirst( context);
     IModelObject request = requestExpr.queryFirst( context);
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): MessageSchema.getMessage( document.getRoot());
     
-    Object object = Conventions.getCache( context, "via");
+    Object object = viaNode.getValue();
     if ( object != null && object instanceof ITransport)
     {
       ((ITransport)object).respond( message, request);
@@ -41,6 +43,7 @@ public class RespondAction extends GuardedAction
   
   public final static Log log = Log.getLog( RespondAction.class);
   
+  private IExpression viaExpr;
   private IExpression messageExpr;
   private IExpression requestExpr;
 }

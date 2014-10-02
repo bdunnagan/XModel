@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
@@ -18,6 +19,7 @@ import org.xmodel.net.nu.amqp.AmqpTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
@@ -131,8 +133,10 @@ public class AmqpClientAction extends GuardedAction
       IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
       if ( onReceive != null) 
       {
-        messageContext.set( "message", message);
-        Conventions.putCache( messageContext, "via", transport);
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
         onReceive.run( messageContext);
       }
       
@@ -146,8 +150,11 @@ public class AmqpClientAction extends GuardedAction
       if ( onError != null) 
       {
         IContext messageContext = new StatefulContext( context);
-        Conventions.putCache( messageContext, "via", transport);
-        messageContext.set( "error", error.toString());
+        
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode, error.toString()}, messageContext, onError);
         onError.run( messageContext);
       }
       

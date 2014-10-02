@@ -2,14 +2,14 @@
   <package>org.xmodel.net.nu.xaction</package>
 
   <assign var="onReceive">
-    <script>
+    <script in="transport, message">
       <logi>format( '[CLIENT] Received:\n%s', $result)</logi>
       <exit>1</exit>
     </script>
   </assign>
 
   <assign var="onError">
-    <script>
+    <script in="transport, error">
       <logi>format( '[CLIENT] Error: %s', $error)</logi>
     </script>
   </assign>

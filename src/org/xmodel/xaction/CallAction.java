@@ -27,7 +27,7 @@ public class CallAction extends GuardedAction
     if ( script == null) return null;
     
     StatefulContext nested = new StatefulContext( context);
-    passVariables( context, nested, script);
+    ScriptAction.passVariables( argExprs, context, nested, script);
     
     return script.run( nested);
   }
@@ -47,37 +47,6 @@ public class CallAction extends GuardedAction
       ModelAlgorithms.copyChildren( document.getRoot(), inline, null);
     }
     return inline;
-  }
-  
-  /**
-   * Pass variables to script.
-   * @param context The calling context.
-   * @param nested The nested execution context.
-   * @param script The script.
-   */
-  private void passVariables( IContext context, StatefulContext nested, IXAction script)
-  {
-    if ( script instanceof ScriptAction)
-    {
-      String[] inVars = ((ScriptAction)script).getInVars();
-      if ( inVars != null)
-      {
-        for( int i=0; i<argExprs.size(); i++)
-        {
-          if ( i == inVars.length) break;
-          
-          IExpression argExpr = argExprs.get( i);
-          switch( argExpr.getType( context))
-          {
-            case NODES:   nested.set( inVars[ i], argExpr.evaluateNodes( context)); break;
-            case STRING:  nested.set( inVars[ i], argExpr.evaluateString( context)); break;
-            case NUMBER:  nested.set( inVars[ i], argExpr.evaluateNumber( context)); break;
-            case BOOLEAN: nested.set( inVars[ i], argExpr.evaluateBoolean( context)); break; 
-            default:      break;
-          }
-        }
-      }
-    }
   }
   
   private List<IExpression> argExprs;

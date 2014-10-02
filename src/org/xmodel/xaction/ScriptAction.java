@@ -32,6 +32,7 @@ import org.xmodel.Xlate;
 import org.xmodel.log.SLog;
 import org.xmodel.xaction.debug.Debugger;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
 /**
@@ -244,6 +245,86 @@ public class ScriptAction extends GuardedAction
       }
       
       return null;
+    }
+  }
+  
+  /**
+   * Pass variables to script.
+   * @param argExprs The argument expressions.
+   * @param context The calling context.
+   * @param nested The nested execution context.
+   * @param script The script.
+   */
+  public static void passVariables( List<IExpression> argExprs, IContext context, IContext nested, IXAction script)
+  {
+    if ( script instanceof ScriptAction)
+    {
+      String[] inVars = ((ScriptAction)script).getInVars();
+      if ( inVars != null)
+      {
+        for( int i=0; i<argExprs.size(); i++)
+        {
+          if ( i == inVars.length) break;
+          
+          IExpression argExpr = argExprs.get( i);
+          switch( argExpr.getType( context))
+          {
+            case NODES:   nested.set( inVars[ i], argExpr.evaluateNodes( context)); break;
+            case STRING:  nested.set( inVars[ i], argExpr.evaluateString( context)); break;
+            case NUMBER:  nested.set( inVars[ i], argExpr.evaluateNumber( context)); break;
+            case BOOLEAN: nested.set( inVars[ i], argExpr.evaluateBoolean( context)); break; 
+            default:      break;
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Pass variables to script.
+   * @param args The arguments.
+   * @param context The calling context.
+   * @param nested The nested execution context.
+   * @param script The script.
+   */
+  @SuppressWarnings("unchecked")
+  public static void passVariables( Object[] args, IContext nested, IXAction script)
+  {
+    if ( script instanceof ScriptAction)
+    {
+      String[] inVars = ((ScriptAction)script).getInVars();
+      if ( inVars != null)
+      {
+        for( int i=0; i<args.length; i++)
+        {
+          if ( i == inVars.length) break;
+          
+          Object arg = args[ i];
+          if ( arg != null)
+          {
+            if ( arg instanceof List)
+            {
+              nested.set( inVars[ i], (List<IModelObject>)arg);
+            }
+            else if ( arg instanceof IModelObject)
+            {
+              nested.set( inVars[ i], (IModelObject)arg);
+            }
+            else if ( arg instanceof Number)
+            {
+              nested.set( inVars[ i], (Number)arg);
+            }
+            else if ( arg instanceof Boolean)
+            {
+              nested.set( inVars[ i], (Boolean)arg);
+            }
+            else
+            {
+              nested.set( inVars[ i], arg.toString());
+            }
+          }
+        }
+      }
     }
   }
     

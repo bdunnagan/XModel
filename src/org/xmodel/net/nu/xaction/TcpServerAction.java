@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.tcp.ITcpServerEventHandler;
@@ -13,6 +14,7 @@ import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
@@ -88,8 +90,10 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
     if ( onReceive != null) 
     {
-      Conventions.putCache( messageContext, "via", transport);
-      messageContext.set( "message", message);
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
       onReceive.run( messageContext);
     }
   }
@@ -100,8 +104,12 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
     if ( onTimeout != null) 
     {
-      IContext messageContext = new StatefulContext( context);
-      messageContext.set( "error", error.toString());
+      StatefulContext messageContext = new StatefulContext( context);
+      
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onTimeout);
       onTimeout.run( messageContext);
     }
   }

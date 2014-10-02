@@ -80,55 +80,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.consumeQueue = queue;
   }
   
-//  @Override
-//  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
-//  {
-//    Channel consumeChannel = consumerChannels.get( name);
-//    if ( consumeChannel != null) 
-//    {
-//      String message = String.format( "Transport already registered to %s", name);
-//      return new FailureAsyncFuture<ITransport>( this, message);
-//    }
-//    
-//    AsyncFuture<ITransport> future = super.register( name, messageContext, timeout);
-//
-//    try
-//    {
-//      consumeChannel = connection.createChannel();
-//      consumerChannels.put( name, consumeChannel);
-//      
-//      consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
-//      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
-//    }
-//    catch( IOException e)
-//    {
-//      future.notifyFailure( e);
-//    }
-//    
-//    return future;
-//  }
-//
-//  @Override
-//  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
-//  {
-//    Channel consumeChannel = consumerChannels.remove( name);
-//    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
-//    
-//    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
-//    
-//    try
-//    {
-//      consumeChannel.queueDelete( name);
-//      consumeChannel.close();
-//    }
-//    catch( IOException e)
-//    {
-//      future.notifyFailure( e);
-//    }
-//    
-//    return future;
-//  }
-
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
