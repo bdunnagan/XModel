@@ -152,21 +152,25 @@ public class JsonIO
     else 
     {
       json.append( '"');
-      String text = value.toString();
-      for( int i=0; i<text.length(); i++)
-      {
-        char c = text.charAt( i);
-        if ( c == '\'' || c == '"')
-        {
-          json.append( '\\');
-          json.append( c);
-        }
-        else
-        {
-          json.append( c);
-        }
-      }
+      writeString( value.toString(), json);
       json.append( '"');
+    }
+  }
+  
+  protected void writeString( String s, StringBuilder json)
+  {
+    for( int i=0; i<s.length(); i++)
+    {
+      char c = s.charAt( i);
+      if ( c == '"')
+      {
+        json.append( '\\');
+        json.append( c);
+      }
+      else
+      {
+        json.append( c);
+      }
     }
   }
   
