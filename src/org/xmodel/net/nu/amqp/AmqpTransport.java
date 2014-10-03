@@ -81,6 +81,53 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
   
   @Override
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  {
+    Channel consumeChannel = consumerChannels.get( name);
+    if ( consumeChannel != null) 
+    {
+      String message = String.format( "Transport already registered to %s", name);
+      return new FailureAsyncFuture<ITransport>( this, message);
+    }
+    
+    try
+    {
+      consumeChannel = connection.createChannel();
+      consumerChannels.put( name, consumeChannel);
+      
+      consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
+      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
+    }
+    catch( IOException e)
+    {
+      return new FailureAsyncFuture<ITransport>( this, e);
+    }
+    
+    return super.register( name, messageContext, timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  {
+    Channel consumeChannel = consumerChannels.remove( name);
+    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
+    
+    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
+    
+    try
+    {
+      consumeChannel.queueDelete( name);
+      consumeChannel.close();
+    }
+    catch( IOException e)
+    {
+      future.notifyFailure( e);
+    }
+    
+    return future;
+  }
+  
+  @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
   {
     Channel channel = publishChannelRef.get();
@@ -194,6 +241,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void addRoute( String route, ITransport transport)
   {
+    AmqpTransport newTransport = new AmqpTransport( getProtocol(), getTransportContext(), getScheduler());
+    newTransport.setPublishQueue( route);
+    newTransport.setConsumeQueue( queue);
     router.addRoute( route, transport);
   }
 

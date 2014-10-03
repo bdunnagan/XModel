@@ -123,6 +123,11 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     return eventPipe;
   }
 
+  protected ScheduledExecutorService getScheduler()
+  {
+    return scheduler;
+  }
+  
   @Override
   public ScheduledFuture<?> schedule( Runnable runnable, int delay)
   {
@@ -140,7 +145,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   {
     return transportContext;
   }
-
+  
   @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
@@ -176,7 +181,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       case ack:        handleResponse( envelope); break;
     }
   }
-
+  
   private void handleRegister( IModelObject envelope)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
