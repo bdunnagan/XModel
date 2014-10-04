@@ -51,7 +51,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
     
-    return sendImpl( envelope);
+    return sendImpl( envelope, null);
   }
 
   @Override
@@ -63,11 +63,11 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
     
-    return sendImpl( envelope);
+    return sendImpl( envelope, null);
   }
 
   @Override
-  public final AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
@@ -75,7 +75,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     Request request = new Request( envelope, messageContext, timeout);
     requests.put( key, request);
     
-    return sendImpl( envelope);
+    return sendImpl( envelope, null);
   }
     
   @Override
@@ -90,11 +90,11 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     String route = envelopeProtocol.getRoute( envelope);
     
     IModelObject ack = envelopeProtocol.buildAck( key, route);
-    return sendImpl( ack);
+    return sendImpl( ack, request);
   }
 
   @Override
-  public final AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
+  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
   {
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
     
@@ -114,7 +114,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     }
     
     IModelObject envelope = envelopeProtocol.buildResponseEnvelope( key, route, message);
-    return sendImpl( envelope);
+    return sendImpl( envelope, request);
   }
 
   @Override
@@ -196,6 +196,9 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       // TODO
       throw new UnsupportedOperationException();
     }
+    
+    // TODO: this should unblock peer's request future
+    //ack( envelopeProtocol.getMessage( envelope));
   }
   
   private void handleDeregister( IModelObject envelope)
@@ -212,6 +215,9 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       // TODO
       throw new UnsupportedOperationException();
     }
+    
+    // TODO: this should unblock peer's request future
+    //ack( envelopeProtocol.getMessage( envelope));
   }
   
   private void handleRequest( IModelObject envelope)

@@ -26,7 +26,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
   {
     Channel channel = channelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 

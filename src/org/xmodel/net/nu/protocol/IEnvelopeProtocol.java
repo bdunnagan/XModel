@@ -30,4 +30,8 @@ public interface IEnvelopeProtocol
   public String getKey( IModelObject envelope);
   
   public String getRoute( IModelObject envelope);
+
+  public void setReplyTo( IModelObject envelope, String replyTo);
+  
+  public String getReplyTo( IModelObject envelope);
 }

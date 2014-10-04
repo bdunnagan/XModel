@@ -96,4 +96,16 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   {
     return Xlate.get( envelope, "route", (String)null);
   }
+
+  @Override
+  public void setReplyTo( IModelObject envelope, String replyTo)
+  {
+    Xlate.set( envelope, "reply", replyTo);
+  }
+
+  @Override
+  public String getReplyTo( IModelObject envelope)
+  {
+    return Xlate.get( envelope, "reply", (String)null);
+  }
 }

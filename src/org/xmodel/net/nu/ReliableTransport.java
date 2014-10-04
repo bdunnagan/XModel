@@ -84,9 +84,9 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
   {
-    return transport.sendImpl( envelope);
+    return transport.sendImpl( envelope, null);
   }
 
   @Override

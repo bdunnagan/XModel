@@ -3,7 +3,7 @@
 
   <assign var="onReceive">
     <script in="transport, message">
-      <logi>format( '[CLIENT] Received:\n%s', $result)</logi>
+      <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
       <exit>1</exit>
     </script>
   </assign>
@@ -17,6 +17,8 @@
   <assign var="onConnect">
     <script>
       <logi>'[CLIENT] Connected'</logi>
+      
+      <!--register via="$client" timeout="10000" name="'client'"/-->
       
       <request var="result" via="$client" timeout="60000" onReceive="$onReceive">
         <script>
@@ -32,13 +34,21 @@
     </script>
   </assign>
 
-  <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
+  <!--amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
     <publishQueue>'server_recv'</publishQueue>
     <consumeQueue>'client_recv'</consumeQueue>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
+    <onReceive>$onReceive</onReceive>
     <onError>$onError</onError>
-  </amqpClient>
+  </amqpClient-->
   
-  <sleep>10000</sleep>
+  <tcpClient var="client" remoteHost="'192.168.1.4'" remotePort="10000" connectTimeout="3000">
+    <onConnect>$onConnect</onConnect>
+    <onDisconnect>$onDisconnect</onDisconnect>
+    <onReceive>$onReceive</onReceive>
+    <onError>$onError</onError>
+  </tcpClient>
+  
+  <sleep>60000</sleep>
 </script>

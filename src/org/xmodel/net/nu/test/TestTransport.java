@@ -47,7 +47,7 @@ public class TestTransport extends AbstractTransport
   }
 
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
   {
     if ( count-- == 0) 
     {

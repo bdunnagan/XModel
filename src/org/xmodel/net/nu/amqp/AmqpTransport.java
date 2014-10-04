@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -20,12 +19,13 @@ import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.SimpleRouter;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
-
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.AMQP.Queue.DeclareOk;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -83,6 +83,26 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
   {
+    if ( tempQueue != null)
+    {
+      Channel consumeChannel = consumerChannels.remove( tempQueue);
+      if ( consumeChannel != null)
+      {
+        try
+        {
+          consumeChannel.queueDelete( tempQueue);
+          consumeChannel.close();
+        }
+        catch( IOException e)
+        {
+          log.warnf( "Failed to delete temporary queue, %s", tempQueue);
+        }
+        
+        replyQueue = name;
+        tempQueue = null;
+      }
+    }
+    
     Channel consumeChannel = consumerChannels.get( name);
     if ( consumeChannel != null) 
     {
@@ -123,12 +143,29 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     {
       future.notifyFailure( e);
     }
+
+    if ( replyQueue.equals( name) && !future.isFailure())
+    {
+      try
+      {
+        // resume consuming on temporary queue
+        consumeChannel = connection.createChannel();
+        DeclareOk declareOk = consumeChannel.queueDeclare();
+        tempQueue = replyQueue = consumeQueue = declareOk.getQueue();
+        consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
+        consumerChannels.put( consumeQueue, consumeChannel);
+      }
+      catch( IOException e)
+      {
+        future.notifyFailure( e);
+      }
+    }
     
     return future;
   }
   
   @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope)
+  public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
   {
     Channel channel = publishChannelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 
@@ -141,6 +178,10 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
     };
     
+    // add replyTo if envelope
+    IEnvelopeProtocol envelopeProtocol = getProtocol().envelope();
+    envelopeProtocol.setReplyTo( envelope, replyQueue);
+    
     // encode
     byte[] bytes = encode( envelope, future);
     if ( bytes != null)
@@ -148,8 +189,15 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       try
       {
         // publish
-        BasicProperties properties = new BasicProperties().builder().replyTo( replyQueue).build();
-        channel.basicPublish( publishExchange, publishQueue, properties, bytes);
+        String replyTo = (request != null)? envelopeProtocol.getReplyTo( request): null;
+        if ( replyTo != null)
+        {
+          channel.basicPublish( "", replyTo, null, bytes);
+        }
+        else
+        {
+          channel.basicPublish( publishExchange, publishQueue, null, bytes);
+        }
       }
       catch( IOException e)
       {
@@ -157,6 +205,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
     }
     
+    future.notifySuccess();
     return future;
   }
 
@@ -176,12 +225,21 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       connectionFactory.setConnectionTimeout( timeout);
       connection = connectionFactory.newConnection(); // use connection pool, or define connection separately
 
-      // consume
+      // consume initially on temporary queue
       Channel consumeChannel = connection.createChannel();
-      //consumeChannel.queueDeclare( consumeQueue, false, true, true, null);
+      
+      if ( consumeQueue != null)
+      {
+        consumeChannel.queueDeclare( consumeQueue, false, true, true, Collections.<String, Object>emptyMap());
+      }
+      else
+      {
+        DeclareOk declareOk = consumeChannel.queueDeclare();
+        tempQueue = replyQueue = consumeQueue = declareOk.getQueue();
+      }
+      
       consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
       consumerChannels.put( consumeQueue, consumeChannel);
-      replyQueue = consumeQueue;
 
       // publish
       publishChannel = connection.createChannel();
@@ -241,9 +299,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void addRoute( String route, ITransport transport)
   {
-    AmqpTransport newTransport = new AmqpTransport( getProtocol(), getTransportContext(), getScheduler());
-    newTransport.setPublishQueue( route);
-    newTransport.setConsumeQueue( queue);
     router.addRoute( route, transport);
   }
 
@@ -297,8 +352,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private String publishExchange;
   private String publishQueue;
   private String consumeQueue;
+  private String tempQueue;
+  private String replyQueue;
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;
-  private String replyQueue;
   private IRouter router;
 }
