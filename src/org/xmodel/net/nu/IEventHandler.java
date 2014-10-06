@@ -9,6 +9,8 @@ import org.xmodel.xpath.expression.IContext;
 public interface IEventHandler
 {
   public boolean notifyReceive( ByteBuffer buffer) throws IOException;
+  
+  public boolean notifyReceive( IModelObject envelope);
 
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage);
   

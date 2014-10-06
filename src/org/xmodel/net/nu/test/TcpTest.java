@@ -3,7 +3,6 @@ package org.xmodel.net.nu.test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
@@ -66,6 +65,12 @@ public class TcpTest
       
       @Override
       public boolean notifyReceive( ByteBuffer buffer) throws IOException
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyReceive( IModelObject envelope)
       {
         return false;
       }

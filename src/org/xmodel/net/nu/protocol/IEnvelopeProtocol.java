@@ -7,8 +7,10 @@ import org.xmodel.IModelObject;
  */
 public interface IEnvelopeProtocol
 {
-  public enum Type { request, response, ack, register, deregister};
+  public enum Type { heartbeat, request, response, ack, register, deregister};
   
+  public IModelObject buildHeartbeatEnvelope();
+
   public IModelObject buildRegisterEnvelope( String key, String name);
   
   public IModelObject buildDeregisterEnvelope( String key, String name);

@@ -156,7 +156,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       if ( envelope != null)
       {
         // deliver
-        notifyReceive( envelope);
+        eventPipe.notifyReceive( envelope);
         return true;
       }
     }
@@ -168,17 +168,17 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     return false;
   }
   
-  private void notifyReceive( IModelObject envelope) throws IOException
+  @Override
+  public boolean notifyReceive( IModelObject envelope)
   {
-    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    IEnvelopeProtocol.Type type = envelopeProtocol.getType( envelope);
-    switch( type)
+    switch( protocol.envelope().getType( envelope))
     {
-      case register:   handleRegister( envelope); break;
-      case deregister: handleDeregister( envelope); break;
-      case request:    handleRequest( envelope); break;
+      case register:   handleRegister( envelope); return true;
+      case deregister: handleDeregister( envelope); return true;
+      case request:    handleRequest( envelope); return true;
       case response:   
-      case ack:        handleResponse( envelope); break;
+      case ack:        handleResponse( envelope); return true;
+      default:          return false;
     }
   }
   

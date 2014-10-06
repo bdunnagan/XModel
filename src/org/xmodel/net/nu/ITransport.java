@@ -9,7 +9,7 @@ import org.xmodel.xpath.expression.IContext;
  */
 public interface ITransport
 {
-  public enum Error { timeout, connectRefused, connectError, encodeFailed, sendFailed, channelClosed, messageExpired};
+  public enum Error { timeout, connectRefused, connectError, encodeFailed, sendFailed, channelClosed, messageExpired, heartbeatLost};
 
   public AsyncFuture<ITransport> connect( int timeout);
   

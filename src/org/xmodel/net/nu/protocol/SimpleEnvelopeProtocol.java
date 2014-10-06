@@ -7,6 +7,12 @@ import org.xmodel.Xlate;
 public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
 {
   @Override
+  public IModelObject buildHeartbeatEnvelope()
+  {
+    return new ModelObject( "heartbeat");
+  }
+  
+  @Override
   public IModelObject buildRegisterEnvelope( String key, String name)
   {
     IModelObject envelope = new ModelObject( "register");

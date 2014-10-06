@@ -107,6 +107,12 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   }
 
   @Override
+  public boolean notifyReceive( IModelObject envelope)
+  {
+    return false;
+  }
+
+  @Override
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
     return false;

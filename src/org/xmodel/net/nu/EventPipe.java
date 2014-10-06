@@ -47,6 +47,20 @@ public class EventPipe implements IEventHandler
     return false;
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.IEventHandler#notifyReceive(org.xmodel.IModelObject)
+   */
+  @Override
+  public boolean notifyReceive( IModelObject envelope)
+  {
+    for( IEventHandler handler: getHandlers())
+    {
+      if ( handler.notifyReceive( envelope))
+        return true;
+    }
+    return false;
+  }
+
   @Override
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {

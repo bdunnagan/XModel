@@ -5,7 +5,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
@@ -120,6 +119,12 @@ public class TcpClientAction extends GuardedAction
       return false;
     }
   
+    @Override
+    public boolean notifyReceive( IModelObject envelope)
+    {
+      return false;
+    }
+
     @Override
     public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
     {

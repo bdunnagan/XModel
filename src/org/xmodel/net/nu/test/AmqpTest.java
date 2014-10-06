@@ -36,6 +36,12 @@ public class AmqpTest
       }
 
       @Override
+      public boolean notifyReceive( IModelObject envelope)
+      {
+        return false;
+      }
+
+      @Override
       public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
@@ -83,6 +89,12 @@ public class AmqpTest
       
       @Override
       public boolean notifyReceive( ByteBuffer buffer) throws IOException
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyReceive( IModelObject envelope)
       {
         return false;
       }

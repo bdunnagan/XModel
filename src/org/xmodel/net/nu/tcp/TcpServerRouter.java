@@ -146,6 +146,12 @@ public class TcpServerRouter implements IRouter
     }
 
     @Override
+    public boolean notifyReceive( IModelObject envelope)
+    {
+      return false;
+    }
+
+    @Override
     public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
     {
       eventHandler.notifyReceive( transport, message, messageContext, request);

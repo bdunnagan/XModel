@@ -16,6 +16,12 @@ public class DefaultEventHandler implements IEventHandler
   }
 
   @Override
+  public boolean notifyReceive( IModelObject envelope)
+  {
+    return false;
+  }
+
+  @Override
   public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
     return false;

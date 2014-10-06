@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
@@ -159,6 +158,12 @@ public class AsyncSendGroup
 
     @Override
     public boolean notifyReceive( ByteBuffer buffer) throws IOException
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyReceive( IModelObject envelope)
     {
       return false;
     }
