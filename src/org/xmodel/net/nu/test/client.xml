@@ -15,8 +15,6 @@
   <assign var="onReceive">
     <script in="transport, message">
       <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
-      <sleep>1000</sleep>
-      <run>$send</run>
     </script>
   </assign>
 
@@ -29,7 +27,7 @@
   <assign var="onConnect">
     <script>
       <logi>'[CLIENT] Connected'</logi>
-      <run>$send</run>
+        <run>$send</run>
     </script>
   </assign>
   
