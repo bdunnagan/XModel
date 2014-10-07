@@ -172,6 +172,18 @@ public class AsyncSendGroup
     }
 
     @Override
+    public boolean notifyRegister( IContext transportContext, String name)
+    {
+      return false;
+    }
+
+    @Override
+    public boolean notifyDeregister( IContext transportContext, String name)
+    {
+      return false;
+    }
+
+    @Override
     public boolean notifyError( IContext context, Error error, IModelObject request)
     {
       transport.getEventPipe().remove( this);

@@ -66,6 +66,18 @@ public class Heartbeater implements IEventHandler
   }
 
   @Override
+  public boolean notifyRegister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {
     if ( error == Error.heartbeatLost)

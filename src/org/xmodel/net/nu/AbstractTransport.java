@@ -194,16 +194,21 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     if ( route == null)
     {
       String name = envelopeProtocol.getRegistrationName( envelope);
-      if ( router != null) router.addRoute( name, this);
+      if ( router != null) 
+      {
+        router.addRoute( name, this);
+      
+        // TODO: this should unblock peer's request future
+        //ack( envelopeProtocol.getMessage( envelope));
+        
+        eventPipe.notifyRegister( transportContext, name);
+      }
     }
     else
     {
       // TODO
       throw new UnsupportedOperationException();
     }
-    
-    // TODO: this should unblock peer's request future
-    //ack( envelopeProtocol.getMessage( envelope));
   }
   
   private void handleDeregister( IModelObject envelope)
@@ -213,16 +218,21 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     if ( route == null)
     {
       String name = envelopeProtocol.getRegistrationName( envelope);
-      if ( router != null) router.removeRoute( name, this);
+      if ( router != null)
+      {
+        router.removeRoute( name, this);
+      
+        // TODO: this should unblock peer's request future
+        //ack( envelopeProtocol.getMessage( envelope));
+        
+        eventPipe.notifyRegister( transportContext, name);
+      }
     }
     else
     {
       // TODO
       throw new UnsupportedOperationException();
     }
-    
-    // TODO: this should unblock peer's request future
-    //ack( envelopeProtocol.getMessage( envelope));
   }
   
   private void handleRequest( IModelObject envelope)
@@ -301,6 +311,18 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     }
   }
   
+  @Override
+  public boolean notifyRegister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
   @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {

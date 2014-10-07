@@ -7,7 +7,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -135,6 +134,18 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
 
   @Override
   public boolean notifyDisconnect(IContext transportContext) throws IOException
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyRegister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( IContext transportContext, String name)
   {
     return false;
   }

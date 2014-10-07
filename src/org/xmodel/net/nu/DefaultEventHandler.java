@@ -2,7 +2,6 @@ package org.xmodel.net.nu;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.xpath.expression.IContext;
@@ -35,6 +34,18 @@ public class DefaultEventHandler implements IEventHandler
 
   @Override
   public boolean notifyDisconnect( IContext transportContext) throws IOException
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyRegister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( IContext transportContext, String name)
   {
     return false;
   }

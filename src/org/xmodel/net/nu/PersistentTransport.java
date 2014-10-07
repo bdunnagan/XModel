@@ -3,7 +3,6 @@ package org.xmodel.net.nu;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledFuture;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -139,6 +138,18 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
     if ( retryDelay > retryMaxDelay) retryDelay = retryMaxDelay;
   }
   
+  @Override
+  public boolean notifyRegister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( IContext transportContext, String name)
+  {
+    return false;
+  }
+
   @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {

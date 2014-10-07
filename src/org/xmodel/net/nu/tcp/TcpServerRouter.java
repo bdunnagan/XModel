@@ -9,14 +9,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.IEventHandler;
@@ -158,6 +156,20 @@ public class TcpServerRouter implements IRouter
     public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
     {
       eventHandler.notifyReceive( transport, message, messageContext, request);
+      return false;
+    }
+
+    @Override
+    public boolean notifyRegister( IContext transportContext, String name)
+    {
+      eventHandler.notifyRegister( transport, transportContext, name);
+      return false;
+    }
+
+    @Override
+    public boolean notifyDeregister( IContext transportContext, String name)
+    {
+      eventHandler.notifyDeregister( transport, transportContext, name);
       return false;
     }
 

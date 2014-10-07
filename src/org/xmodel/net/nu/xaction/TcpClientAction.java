@@ -47,6 +47,8 @@ public class TcpClientAction extends GuardedAction
     heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
+    onRegisterExpr = document.getExpression( "onRegister", true);
+    onDeregisterExpr = document.getExpression( "onDeregister", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
     onErrorExpr = document.getExpression( "onError", true);
   }
@@ -168,6 +170,36 @@ public class TcpClientAction extends GuardedAction
     }
   
     @Override
+    public boolean notifyRegister( IContext transportContext, String name)
+    {
+      IXAction onRegister = Conventions.getScript( document, transportContext, onRegisterExpr);
+      if ( onRegister != null) 
+      {
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onRegister);
+        onRegister.run( transportContext);
+      }
+      return false;
+    }
+
+    @Override
+    public boolean notifyDeregister( IContext transportContext, String name)
+    {
+      IXAction onDeregister = Conventions.getScript( document, transportContext, onDeregisterExpr);
+      if ( onDeregister != null) 
+      {
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onDeregister);
+        onDeregister.run( transportContext);
+      }
+      return false;
+    }
+
+    @Override
     public boolean notifyError( IContext context, Error error, IModelObject request)
     {
       IXAction onError = Conventions.getScript( document, context, onErrorExpr);
@@ -211,6 +243,8 @@ public class TcpClientAction extends GuardedAction
   private IExpression heartbeatTimeoutExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
+  private IExpression onRegisterExpr;
+  private IExpression onDeregisterExpr;
   private IExpression onReceiveExpr;
   private IExpression onErrorExpr;
 }

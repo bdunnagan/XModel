@@ -5,7 +5,7 @@
     <script>
       <logi>'[CLIENT] Send'</logi>
       
-      <!--register name="'bob'" via="$transport" timeout="10000"/-->
+      <register name="'bob'" via="$transport" timeout="10000"/>
       
       <request var="result" via="$client" timeout="60000">
         <script>

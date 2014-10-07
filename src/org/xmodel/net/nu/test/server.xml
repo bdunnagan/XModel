@@ -1,6 +1,18 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
+  <assign var="onRegister">
+    <script in="transport, name">
+      <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
+    </script>
+  </assign>
+  
+  <assign var="onDeregister">
+    <script in="transport, name">
+      <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
+    </script>
+  </assign>
+  
   <assign var="onReceive">
     <script in="transport, message">
       <logi>format( '[SERVER] Received:\n%s', $message)</logi>
@@ -49,6 +61,8 @@
     <heartbeatTimeout>300000</heartbeatTimeout>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
+    <onRegister>$onRegister</onRegister>
+    <onDeregister>$onDeregister</onDeregister>
     <onReceive>$onReceive</onReceive>
     <onError>$onError</onError>
   </tcpServer>

@@ -18,6 +18,10 @@ public interface IEventHandler
   
   public boolean notifyDisconnect( IContext transportContext) throws IOException;
   
+  public boolean notifyRegister( IContext transportContext, String name);
+  
+  public boolean notifyDeregister( IContext transportContext, String name);
+  
   public boolean notifyError( IContext context, ITransport.Error error, IModelObject request);
 
   public boolean notifyException( IOException e);

@@ -37,6 +37,8 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     reliableExpr = document.getExpression( "reliable", true);
     heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
     heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
+    onRegisterExpr = document.getExpression( "onRegister", true);
+    onDeregisterExpr = document.getExpression( "onDeregister", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
     onTimeoutExpr = document.getExpression( "onTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
@@ -106,6 +108,36 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   }
   
   @Override
+  public boolean notifyRegister( ITransport transport, IContext transportContext, String name)
+  {
+    IXAction onRegister = Conventions.getScript( document, transportContext, onRegisterExpr);
+    if ( onRegister != null) 
+    {
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+      onRegister.run( transportContext);
+    }
+    return false;
+  }
+
+  @Override
+  public boolean notifyDeregister( ITransport transport, IContext transportContext, String name)
+  {
+    IXAction onDeregister = Conventions.getScript( document, transportContext, onDeregisterExpr);
+    if ( onDeregister != null) 
+    {
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+      onDeregister.run( transportContext);
+    }
+    return false;
+  }
+
+  @Override
   public void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
   {
     IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
@@ -134,6 +166,8 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   private IExpression reliableExpr;
   private IExpression heartbeatPeriodExpr;
   private IExpression heartbeatTimeoutExpr;
+  private IExpression onRegisterExpr;
+  private IExpression onDeregisterExpr;
   private IExpression onReceiveExpr;
   private IExpression onTimeoutExpr;
   private IExpression onConnectExpr;
