@@ -4,11 +4,12 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.tcp.ITcpServerEventHandler;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
@@ -34,6 +35,8 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
     reliableExpr = document.getExpression( "reliable", true);
+    heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
+    heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
     onTimeoutExpr = document.getExpression( "onTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
@@ -72,6 +75,10 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   {
     IXAction onConnect = Conventions.getScript( document, transportContext, onConnectExpr);
     if ( onConnect != null) onConnect.run( transportContext);
+    
+    int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( transportContext): 10000;
+    int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( transportContext): 30000;
+    if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( ((ITransportImpl)transport), heartbeatPeriod, heartbeatTimeout));
   }
   
   @Override
@@ -125,6 +132,8 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   private IExpression protocolExpr;
   private IExpression schedulerExpr;
   private IExpression reliableExpr;
+  private IExpression heartbeatPeriodExpr;
+  private IExpression heartbeatTimeoutExpr;
   private IExpression onReceiveExpr;
   private IExpression onTimeoutExpr;
   private IExpression onConnectExpr;

@@ -39,6 +39,7 @@
   </amqpClient-->
   
   <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
+    <heartbeatPeriod>0</heartbeatPeriod>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
     <onReceive>$onReceive</onReceive>

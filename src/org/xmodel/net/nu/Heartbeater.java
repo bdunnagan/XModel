@@ -5,18 +5,23 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.IModelObject;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
 
-public class HeartbeatEventHandler implements IEventHandler
+public class Heartbeater implements IEventHandler
 {
-  public HeartbeatEventHandler( ITransportImpl transport, int period, int timeout)
+  public Heartbeater( ITransportImpl transport, int period, int timeout)
   {
     this.transport = transport;
     this.period = period;
     this.timeout = timeout;
+    this.heartbeatFutureRef = new AtomicReference<ScheduledFuture<?>>();
+    this.timeoutFutureRef = new AtomicReference<ScheduledFuture<?>>();
+
+    log.setLevel( Log.all);
   }
   
   @Override
@@ -84,11 +89,13 @@ public class HeartbeatEventHandler implements IEventHandler
   
   private void startHeartbeat()
   {
+    log.verbosef( "Starting heartbeat for transport, %s, period=%d", transport, period);
     heartbeatFutureRef.set( transport.schedule( heartbeatRunnable, period));
   }
   
   private void stopHeartbeat()
   {
+    log.verbosef( "Stopping heartbeat for transport, %s", transport);
     ScheduledFuture<?> heartbeatFuture = heartbeatFutureRef.get();
     if ( heartbeatFuture != null) heartbeatFuture.cancel( false);
   }
@@ -105,6 +112,7 @@ public class HeartbeatEventHandler implements IEventHandler
   private final Runnable heartbeatRunnable = new Runnable() {
     public void run()
     {
+      log.verbosef( "Sending heartbeat for transport, %s, period=%d", transport, period);
       IModelObject envelope = transport.getProtocol().envelope().buildHeartbeatEnvelope();
       transport.sendImpl( envelope, null);
     }
@@ -113,9 +121,12 @@ public class HeartbeatEventHandler implements IEventHandler
   private final Runnable timeoutRunnable = new Runnable() {
     public void run()
     {
+      log.verbosef( "Heartbeat timeout expired for transport, %s, timeout=%d", transport, timeout);
       transport.getEventPipe().notifyError( transport.getTransportContext(), Error.heartbeatLost, null);
     }
   };
+
+  public final static Log log = Log.getLog( Heartbeater.class);
   
   private ITransportImpl transport;
   private int period;

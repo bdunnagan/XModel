@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
@@ -42,6 +43,8 @@ public class TcpClientAction extends GuardedAction
     schedulerExpr = document.getExpression( "scheduler", true);
     retryExpr = document.getExpression( "retry", true);
     reliableExpr = document.getExpression( "reliable", true);
+    heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
+    heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
@@ -61,6 +64,9 @@ public class TcpClientAction extends GuardedAction
     boolean retry = (retryExpr != null)? retryExpr.evaluateBoolean( context): true;
     boolean reliable = (reliableExpr != null)? reliableExpr.evaluateBoolean( context): true;
     
+    int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;
+    int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
+    
     ScheduledExecutorService scheduler = (schedulerExpr != null)? (ScheduledExecutorService)Conventions.getCache( context, schedulerExpr): null;
     if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
     
@@ -75,6 +81,7 @@ public class TcpClientAction extends GuardedAction
       ITransportImpl transport = tcpClient;
       if ( retry) transport = new PersistentTransport( transport);
       if ( reliable) transport = new ReliableTransport( transport);
+      if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( transport, heartbeatPeriod, heartbeatTimeout));
       
       transport.getEventPipe().addLast( new EventHandler( transport, context));
       
@@ -185,6 +192,8 @@ public class TcpClientAction extends GuardedAction
   private IExpression schedulerExpr;
   private IExpression retryExpr;
   private IExpression reliableExpr;
+  private IExpression heartbeatPeriodExpr;
+  private IExpression heartbeatTimeoutExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onReceiveExpr;

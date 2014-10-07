@@ -11,10 +11,12 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.PersistentTransport;
 import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.amqp.AmqpTransport;
+import org.xmodel.net.nu.tcp.TcpChildTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.IXAction;
@@ -43,6 +45,8 @@ public class AmqpClientAction extends GuardedAction
     schedulerExpr = document.getExpression( "scheduler", true);
     retryExpr = document.getExpression( "retry", true);
     reliableExpr = document.getExpression( "reliable", true);
+    heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
+    heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
@@ -79,6 +83,10 @@ public class AmqpClientAction extends GuardedAction
       ITransportImpl transport = amqpClient;
       if ( retry) transport = new PersistentTransport( transport);
       if ( reliable) transport = new ReliableTransport( transport);
+      
+      int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;
+      int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
+      if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( ((TcpChildTransport)transport), heartbeatPeriod, heartbeatTimeout));
       
       transport.getEventPipe().addLast( new EventHandler( transport, context));
       
@@ -190,6 +198,8 @@ public class AmqpClientAction extends GuardedAction
   private IExpression schedulerExpr;
   private IExpression retryExpr;
   private IExpression reliableExpr;
+  private IExpression heartbeatPeriodExpr;
+  private IExpression heartbeatTimeoutExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
   private IExpression onReceiveExpr;

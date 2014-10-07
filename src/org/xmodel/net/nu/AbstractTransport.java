@@ -11,7 +11,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
@@ -19,6 +18,8 @@ import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
 import org.xmodel.util.PrefixThreadFactory;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport implements ITransportImpl, IEventHandler
@@ -34,14 +35,16 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     
     eventPipe = new EventPipe();
-    eventPipe.addFirst( this);
+    eventPipe.addFirst( this);    
+    
+    log.setLevel( Log.all);
   }
   
   protected void setRouter( IRouter router)
   {
     this.router = router;
   }
-
+  
   @Override
   public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
   {
@@ -171,6 +174,8 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   @Override
   public boolean notifyReceive( IModelObject envelope)
   {
+    if ( log.verbose()) log.verbosef( "Transport, %s, received message, %s", this, XmlIO.write( Style.printable, envelope));
+    
     switch( protocol.envelope().getType( envelope))
     {
       case register:   handleRegister( envelope); return true;

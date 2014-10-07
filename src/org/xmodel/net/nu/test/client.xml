@@ -4,7 +4,6 @@
   <assign var="onReceive">
     <script in="transport, message">
       <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
-      <exit>1</exit>
     </script>
   </assign>
 
