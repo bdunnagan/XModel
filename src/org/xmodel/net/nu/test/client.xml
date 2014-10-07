@@ -1,6 +1,17 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
+  <assign var="send">
+    <script>
+      <logi>'[CLIENT] Send'</logi>
+      <request var="result" via="$client" timeout="60000" onReceive="$onReceive">
+        <script>
+          <print>'Hi'</print>
+        </script>
+      </request>
+    </script>
+  </assign>
+
   <assign var="onReceive">
     <script in="transport, message">
       <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
@@ -16,14 +27,7 @@
   <assign var="onConnect">
     <script>
       <logi>'[CLIENT] Connected'</logi>
-      
-      <!--register via="$client" timeout="10000" name="'client'"/-->
-      
-      <request var="result" via="$client" timeout="60000" onReceive="$onReceive">
-        <script>
-          <print>'Hi'</print>
-        </script>
-      </request>
+        <run>$send</run>
     </script>
   </assign>
   
