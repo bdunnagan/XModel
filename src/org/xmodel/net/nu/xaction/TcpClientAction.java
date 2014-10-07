@@ -104,11 +104,19 @@ public class TcpClientAction extends GuardedAction
     }
     
     @Override
-    public boolean notifyConnect(IContext transportContext) throws IOException
+    public boolean notifyConnect( IContext transportContext) throws IOException
     {
       IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
-      if ( onConnect != null) onConnect.run( context);
-      
+      if ( onConnect != null) 
+      {
+        StatefulContext connectContext = new StatefulContext( transportContext);
+        
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, connectContext, onConnect);
+        onConnect.run( connectContext);
+      }
       return false;
     }
   
@@ -116,7 +124,16 @@ public class TcpClientAction extends GuardedAction
     public boolean notifyDisconnect(IContext transportContext) throws IOException
     {
       IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
-      if ( onDisconnect != null) onDisconnect.run( context);
+      if ( onDisconnect != null) 
+      {
+        StatefulContext disconnectContext = new StatefulContext( transportContext);
+        
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, disconnectContext, onDisconnect);
+        onDisconnect.run( disconnectContext);
+      }
       return false;
     }
   
@@ -147,7 +164,6 @@ public class TcpClientAction extends GuardedAction
         ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
         onReceive.run( messageContext);
       }
-      
       return false;
     }
   
@@ -165,7 +181,6 @@ public class TcpClientAction extends GuardedAction
         ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onError);
         onError.run( messageContext);
       }
-      
       return false;
     }
   

@@ -7,11 +7,17 @@
       
       <run>$message</run>
       
-      <respond via="$transport">
+      <respond via="$transport" to="'bob'">
         <script>
-          <print>'Hi'</print>
+          <print>'Hi, Client!'</print>
         </script>
       </respond>
+      
+      <request via="$server" to="'bob'">
+        <script>
+          <print>'Update, Client!</print>
+        </script>
+      </request>
     </script>
   </assign>
 
@@ -39,6 +45,8 @@
   </amqpClient-->
   
   <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
+    <heartbeatPeriod>100000</heartbeatPeriod>
+    <heartbeatTimeout>300000</heartbeatTimeout>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
     <onReceive>$onReceive</onReceive>

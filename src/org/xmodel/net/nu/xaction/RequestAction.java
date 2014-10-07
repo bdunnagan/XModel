@@ -18,8 +18,6 @@ public class RequestAction extends GuardedAction
   {
     super.configure( document);
 
-    var = Conventions.getVarName( document.getRoot(), false);
-    
     viaExpr = document.getExpression( "via", true);
     toExpr = document.getExpression( "to", true);
     timeoutExpr = document.getExpression( "timeout", true);
@@ -35,18 +33,18 @@ public class RequestAction extends GuardedAction
   @Override
   protected Object[] doAction( IContext context)
   {
-    IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): MessageSchema.getMessage( document.getRoot());
+    IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     
     IContext messageContext = new StatefulContext( context);
     context.set( "request", message);
     
-    AsyncSendGroup group = new AsyncSendGroup( var, context);
+    AsyncSendGroup group = new AsyncSendGroup( context);
     group.setReceiveScript( Conventions.getScript( document, context, onReceiveExpr));
     group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
     group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
-    Iterator<ITransport> transports = MessageSchema.resolveTransport( context, viaExpr, toExpr);
+    Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
     group.send( transports, message, messageContext, timeout);
 
     return null;
@@ -54,7 +52,6 @@ public class RequestAction extends GuardedAction
 
   public final static Log log = Log.getLog( RequestAction.class);
   
-  private String var;
   private IExpression viaExpr;
   private IExpression toExpr;
   private IExpression messageExpr;

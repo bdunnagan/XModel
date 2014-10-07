@@ -17,7 +17,7 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 
-final class MessageSchema
+final class ActionUtil
 {
   public static IModelObject getMessage( IModelObject document)
   {
@@ -35,30 +35,30 @@ final class MessageSchema
     }
   }
   
-  public static Iterator<ITransport> resolveTransport( IContext context, IExpression viaExpr, IExpression atExpr)
+  public static Iterator<ITransport> resolveTransport( IContext context, IExpression viaExpr, IExpression toExpr)
   {
     MultiIterator<ITransport> transports = new MultiIterator<ITransport>();
     
-    if ( atExpr != null)
+    if ( toExpr != null)
     {
-      if ( atExpr.getType() == ResultType.NODES)
+      if ( toExpr.getType() == ResultType.NODES)
       {
-        List<IModelObject> elements = atExpr.evaluateNodes( context);
+        List<IModelObject> elements = toExpr.evaluateNodes( context);
         for( IModelObject element: elements)
         {
           Object via = element.getAttribute( "via");
-          String at = Xlate.get( element, "at", (String)null);
-          getTransports( via, at, transports);
+          String to = Xlate.get( element, "to", (String)null);
+          getTransports( via, to, transports);
         }
       }
       else
       {
-        String at = atExpr.evaluateString( context);
+        String to = toExpr.evaluateString( context);
         List<IModelObject> viaElements = viaExpr.evaluateNodes( context);
         for( IModelObject viaElement: viaElements)
         {
           Object via = viaElement.getValue();
-          getTransports( via, at, transports);
+          getTransports( via, to, transports);
         }
       }
     }
@@ -75,17 +75,17 @@ final class MessageSchema
     return transports;
   }
   
-  private static void getTransports( Object via, String at, MultiIterator<ITransport> iterator)
+  private static void getTransports( Object via, String to, MultiIterator<ITransport> iterator)
   {
     if ( via != null)
     {
-      if ( via instanceof IRouter && at != null)
+      if ( via instanceof IRouter && to != null)
       {
-        iterator.add( ((IRouter)via).resolve( at));
+        iterator.add( ((IRouter)via).resolve( to));
       }
       else if ( via instanceof ITransportImpl)
       {
-        iterator.add( (at != null)? new RoutedTransport( (ITransportImpl)via, at): (ITransportImpl)via);
+        iterator.add( (to != null)? new RoutedTransport( (ITransportImpl)via, to): (ITransportImpl)via);
       }
       else
       {
@@ -98,5 +98,5 @@ final class MessageSchema
     }
   }
   
-  public final static Log log = Log.getLog( MessageSchema.class);
+  public final static Log log = Log.getLog( ActionUtil.class);
 }

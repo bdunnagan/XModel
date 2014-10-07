@@ -6,18 +6,20 @@ import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.xaction.IXAction;
+import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
+import org.xmodel.xpath.expression.StatefulContext;
 
 public class AsyncSendGroup
 {
-  public AsyncSendGroup( String var, IContext callContext)
+  public AsyncSendGroup( IContext callContext)
   {
-    this.var = var;
     this.callContext = callContext;
     this.sentCount = new AtomicInteger();
     this.doneCount = new AtomicInteger();
@@ -64,39 +66,32 @@ public class AsyncSendGroup
     semaphore.acquire();
   }
   
-  public void notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+  public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
-    messageContext.getScope().set( var, message);
-    
-    if ( onReceive != null)
+    // ignore acks
+    if ( requestMessage != null && onReceive != null) 
     {
-      try
-      {
-        onReceive.run( messageContext);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
+      onReceive.run( messageContext);
     }
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
   }
 
-  private void notifyError( IContext context, Error error, IModelObject request)
+  private void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
   {
-    context.getScope().set( var, error.toString());
-    
-    if ( onError != null)
+    if ( onError != null) 
     {
-      try
-      {
-        onError.run( context);
-      }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
+      StatefulContext messageContext = new StatefulContext( context);
+      
+      ModelObject transportNode = new ModelObject( "transport");
+      transportNode.setValue( transport);
+      
+      ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onError);
+      onError.run( messageContext);
     }
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
@@ -172,7 +167,7 @@ public class AsyncSendGroup
     public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
     {
       transport.getEventPipe().remove( this);
-      AsyncSendGroup.this.notifyReceive( message, messageContext, requestMessage);
+      AsyncSendGroup.this.notifyReceive( transport, message, messageContext, requestMessage);
       return false;
     }
 
@@ -180,7 +175,7 @@ public class AsyncSendGroup
     public boolean notifyError( IContext context, Error error, IModelObject request)
     {
       transport.getEventPipe().remove( this);
-      AsyncSendGroup.this.notifyError( context, error, request);
+      AsyncSendGroup.this.notifyError( transport, context, error, request);
       return false;
     }
 
@@ -195,7 +190,6 @@ public class AsyncSendGroup
   
   public static Log log = Log.getLog( AsyncSendGroup.class);
 
-  private String var;
   private IContext callContext;
   private AtomicInteger sentCount;
   private AtomicInteger doneCount;

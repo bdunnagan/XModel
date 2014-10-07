@@ -30,7 +30,7 @@ public class RespondAction extends GuardedAction
   {
     IModelObject viaNode = viaExpr.queryFirst( context);
     IModelObject request = requestExpr.queryFirst( context);
-    IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): MessageSchema.getMessage( document.getRoot());
+    IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
     
     Object object = viaNode.getValue();
     if ( object != null && object instanceof ITransport)

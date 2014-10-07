@@ -30,7 +30,7 @@ public class RegisterAction extends GuardedAction
     
     IContext messageContext = new StatefulContext( context);
     
-    Iterator<ITransport> iter = MessageSchema.resolveTransport( context, viaExpr, toExpr);
+    Iterator<ITransport> iter = ActionUtil.resolveTransport( context, viaExpr, toExpr);
     while( iter.hasNext())
     {
       ITransport transport = iter.next();

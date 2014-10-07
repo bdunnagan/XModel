@@ -4,9 +4,12 @@
   <assign var="send">
     <script>
       <logi>'[CLIENT] Send'</logi>
-      <request var="result" via="$client" timeout="60000" onReceive="$onReceive">
+      
+      <!--register name="'bob'" via="$transport" timeout="10000"/-->
+      
+      <request var="result" via="$client" timeout="60000">
         <script>
-          <print>'Hi'</print>
+          <print>'Hi, Server'</print>
         </script>
       </request>
     </script>
@@ -25,14 +28,14 @@
   </assign>
 
   <assign var="onConnect">
-    <script>
+    <script in="transport">
       <logi>'[CLIENT] Connected'</logi>
-        <run>$send</run>
+      <run>$send</run>
     </script>
   </assign>
   
   <assign var="onDisconnect">
-    <script>
+    <script in="transport">
       <logi>'[CLIENT] Disconnected'</logi>
     </script>
   </assign>
@@ -47,6 +50,8 @@
   </amqpClient-->
   
   <tcpClient var="client" remoteHost="'192.168.1.4'" remotePort="10000" connectTimeout="3000">
+    <heartbeatPeriod>100000</heartbeatPeriod>
+    <heartbeatTimeout>300000</heartbeatTimeout>
     <onConnect>$onConnect</onConnect>
     <onDisconnect>$onDisconnect</onDisconnect>
     <onReceive>$onReceive</onReceive>
