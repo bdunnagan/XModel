@@ -60,10 +60,7 @@ public class Heartbeater implements IEventHandler
   public boolean notifyDisconnect( IContext transportContext) throws IOException
   {
     stopHeartbeat();
-    
-    ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
-    if ( timeoutFuture != null) timeoutFuture.cancel( false);
-    timeoutFutureRef.set( null);
+    stopHeartbeatTimeout();
     
     return false;
   }
@@ -102,11 +99,19 @@ public class Heartbeater implements IEventHandler
   
   private void resetHeartbeatTimeout()
   {
+    log.verbosef( "Reset heartbeat timeout for transport, %s, timeout=%d", transport, timeout);
     ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
     if ( timeoutFuture == null || timeoutFuture.cancel( false))
     {
       timeoutFutureRef.set( transport.schedule( timeoutRunnable, timeout));
     }
+  }
+  
+  private void stopHeartbeatTimeout()
+  {
+    ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
+    if ( timeoutFuture != null) timeoutFuture.cancel( false);
+    timeoutFutureRef.set( null);
   }
   
   private final Runnable heartbeatRunnable = new Runnable() {
@@ -115,6 +120,7 @@ public class Heartbeater implements IEventHandler
       log.verbosef( "Sending heartbeat for transport, %s, period=%d", transport, period);
       IModelObject envelope = transport.getProtocol().envelope().buildHeartbeatEnvelope();
       transport.sendImpl( envelope, null);
+      heartbeatFutureRef.set( transport.schedule( heartbeatRunnable, period));
     }
   };
   

@@ -1,11 +1,13 @@
 package org.xmodel.net.nu.tcp;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
+import java.nio.ByteBuffer;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.util.HexDump;
 
 public class XioInboundHandler extends ChannelInboundHandlerAdapter
 {
@@ -18,14 +20,13 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void handlerAdded( ChannelHandlerContext ctx) throws Exception
   {
     super.handlerAdded( ctx);
-    readBuffer = ctx.alloc().buffer();
+    readBuffer = ByteBuffer.allocate( 4096);
   }
 
   @Override
   public void handlerRemoved( ChannelHandlerContext ctx) throws Exception
   {
     super.handlerRemoved( ctx);
-    readBuffer.release();
   }
 
   @Override
@@ -52,20 +53,43 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   @Override
   public void channelRead( ChannelHandlerContext ctx, Object message) throws Exception
   {
-    // accumulate
+    //
+    // Read buffer position should point to write position,
+    // and limit should be capacity.
+    //
+    int readPos = readBuffer.position();
+    
+    // transfer bytes read to read buffer
     ByteBuf buffer = (ByteBuf)message;
-    readBuffer.writeBytes( buffer);
+    readBuffer.put( buffer.nioBuffer());
     buffer.release();
 
-    // prepare for incomplete message
-    readBuffer.markReaderIndex();
+    //
+    // Read buffer position should point to read position,
+    // and limit should be just after the last readable byte.
+    //
+    readBuffer.limit( readBuffer.position());
+    readBuffer.position( readPos);
+
+    System.out.println( HexDump.toString( Unpooled.wrappedBuffer( readBuffer)));
     
-    // read next message
-    if ( !transport.getEventPipe().notifyReceive( readBuffer.nioBuffer()))
+    // deliver all messages in buffer
+    while( true)
     {
-      // incomplete message
-      readBuffer.resetReaderIndex();
+      // prepare for incomplete message
+      readBuffer.mark();
+          
+      // read next message
+      if ( !transport.getEventPipe().notifyReceive( readBuffer))
+      {
+        // incomplete message
+        readBuffer.reset();
+        
+        break;
+      }
     }
+
+    readBuffer.limit( readBuffer.capacity());
   }
   
   @Override
@@ -75,5 +99,5 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   }
 
   private ITransportImpl transport;
-  private ByteBuf readBuffer;
+  private ByteBuffer readBuffer;
 }

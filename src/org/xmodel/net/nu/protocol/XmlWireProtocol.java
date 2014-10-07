@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import org.xmodel.IModelObject;
 import org.xmodel.util.ByteBufferInputStream;
 import org.xmodel.xml.XmlException;
@@ -69,6 +68,9 @@ public class XmlWireProtocol implements IWireProtocol
     int messageLength = readInt( reserve, 0);
     if ( messageLength > buffer.remaining()) return null;
     
+    int bufferLimit = buffer.limit();
+    buffer.limit( buffer.position() + messageLength);
+    
     try
     {
       return xmlIO.read( new ByteBufferInputStream( buffer));
@@ -76,6 +78,10 @@ public class XmlWireProtocol implements IWireProtocol
     catch( XmlException e)
     {
       throw new IOException( e);
+    }
+    finally
+    {
+      buffer.limit( bufferLimit);
     }
   }
   
