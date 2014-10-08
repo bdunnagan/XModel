@@ -19,7 +19,7 @@
       
       <run>$message</run>
       
-      <respond via="$transport" to="'bob'">
+      <respond via="$transport" request="$message">
         <script>
           <print>'Hi, Client!'</print>
         </script>
@@ -51,19 +51,29 @@
     </script>
   </assign>
   
-  <!--amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672" onReceive="$onReceive" onError="$onError" onConnect="$onConnect" onDisconnect="$onDisconnect">
-    <publishQueue>'client_recv'</publishQueue>
-    <consumeQueue>'server_recv'</consumeQueue>
-  </amqpClient-->
-  
-  <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
-    <heartbeatPeriod>100000</heartbeatPeriod>
-    <heartbeatTimeout>300000</heartbeatTimeout>
-    <onConnect>$onConnect</onConnect>
-    <onDisconnect>$onDisconnect</onDisconnect>
-    <onRegister>$onRegister</onRegister>
-    <onDeregister>$onDeregister</onDeregister>
-    <onReceive>$onReceive</onReceive>
-    <onError>$onError</onError>
-  </tcpServer>
+  <if test="true()">
+    <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672">
+      <purge>false()</purge>
+      <publishQueue>'client_recv'</publishQueue>
+      <consumeQueue>'server_recv'</consumeQueue>
+      <onConnect>$onConnect</onConnect>
+      <onDisconnect>$onDisconnect</onDisconnect>
+      <onRegister>$onRegister</onRegister>
+      <onDeregister>$onDeregister</onDeregister>
+      <onReceive>$onReceive</onReceive>
+      <onError>$onError</onError>
+    </amqpClient>
+  </if>
+  <else>
+    <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
+      <heartbeatPeriod>100000</heartbeatPeriod>
+      <heartbeatTimeout>300000</heartbeatTimeout>
+      <onConnect>$onConnect</onConnect>
+      <onDisconnect>$onDisconnect</onDisconnect>
+      <onRegister>$onRegister</onRegister>
+      <onDeregister>$onDeregister</onDeregister>
+      <onReceive>$onReceive</onReceive>
+      <onError>$onError</onError>
+    </tcpServer>
+  </else>
 </script>

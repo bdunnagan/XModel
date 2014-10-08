@@ -75,13 +75,14 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.publishQueue = queue;
   }
   
-  public void setConsumeQueue( String queue)
+  public void setConsumeQueue( String queue, boolean purge)
   {
     this.consumeQueue = queue;
+    this.purgeConsumeQueue = purge;
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
   {
     if ( tempQueue != null)
     {
@@ -123,16 +124,16 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       return new FailureAsyncFuture<ITransport>( this, e);
     }
     
-    return super.register( name, messageContext, timeout);
+    return super.register( name, messageContext, timeout, retries);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
   {
     Channel consumeChannel = consumerChannels.remove( name);
     if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
     
-    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout);
+    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout, retries);
     
     try
     {
@@ -230,7 +231,14 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       
       if ( consumeQueue != null)
       {
-        consumeChannel.queueDeclare( consumeQueue, false, true, true, Collections.<String, Object>emptyMap());
+        try
+        {
+          consumeChannel.queueDeclare( consumeQueue, false, true, true, Collections.<String, Object>emptyMap());
+        }
+        catch( IOException e)
+        {
+          consumeChannel = connection.createChannel();
+        }
       }
       else
       {
@@ -238,7 +246,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
         tempQueue = replyQueue = consumeQueue = declareOk.getQueue();
       }
       
-      consumeChannel.basicConsume( consumeQueue, false, "", new TransportConsumer( consumeChannel));
+      if ( purgeConsumeQueue) consumeChannel.queuePurge( consumeQueue);
+      
+      consumeChannel.basicConsume( consumeQueue, true, "", new TransportConsumer( consumeChannel));
       consumerChannels.put( consumeQueue, consumeChannel);
 
       // publish
@@ -259,6 +269,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
+      log.exception( e);
       return new FailureAsyncFuture<ITransport>( this, e);
     }
   }
@@ -274,7 +285,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
-      SLog.exception( this, e);
+      log.exception( e);
     }
 
     connection = null;
@@ -333,7 +344,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       Object reason = signal.getReason();
       if ( !(reason instanceof AMQP.Channel.Close) || ((AMQP.Channel.Close)reason).getReplyCode() != 200)
       {
-        SLog.exceptionf( this, signal, "Unhandled exception ...");
+        log.exceptionf( signal, "Unhandled exception ...");
       }
       
       try
@@ -342,7 +353,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
       catch( IOException e)
       {
-        SLog.exception( this, e);
+        log.exception( e);
       }
     }
   };
@@ -352,6 +363,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private String publishExchange;
   private String publishQueue;
   private String consumeQueue;
+  private boolean purgeConsumeQueue;
   private String tempQueue;
   private String replyQueue;
   private AtomicReference<Channel> publishChannelRef;

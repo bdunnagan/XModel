@@ -7,6 +7,7 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
+import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
@@ -45,7 +46,14 @@ public class RequestWaitAction extends GuardedAction
     group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
     Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
-    group.send( transports, message, messageContext, timeout);
+    try
+    {
+      group.sendAndWait( transports, message, messageContext, timeout, 0, timeout);
+    }
+    catch( InterruptedException e)
+    {
+      throw new XActionException( "Blocking request interrupted...", e);
+    }
 
     return null;
   }

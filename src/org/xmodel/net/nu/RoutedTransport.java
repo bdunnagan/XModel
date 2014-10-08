@@ -25,17 +25,17 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
   {
     // TODO: Is this correct???
-    return via.register( name, messageContext, timeout);
+    return via.register( name, messageContext, timeout, retries);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
   {
     // TODO: Is this correct???
-    return via.deregister( name, messageContext, timeout);
+    return via.deregister( name, messageContext, timeout, retries);
   }
 
   @Override
@@ -45,10 +45,10 @@ public final class RoutedTransport implements ITransport
   }
 
   @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
   {
     message.setAttribute( "route", to);
-    return via.request( message, messageContext, timeout);
+    return via.request( message, messageContext, timeout, retries);
   }
   
   @Override

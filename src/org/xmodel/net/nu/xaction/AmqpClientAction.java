@@ -8,15 +8,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
-import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.PersistentTransport;
 import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.amqp.AmqpTransport;
-import org.xmodel.net.nu.tcp.TcpChildTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.IXAction;
@@ -44,6 +43,7 @@ public class AmqpClientAction extends GuardedAction
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
     retryExpr = document.getExpression( "retry", true);
+    purgeExpr = document.getExpression( "purge", true);
     reliableExpr = document.getExpression( "reliable", true);
     heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
     heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
@@ -63,6 +63,7 @@ public class AmqpClientAction extends GuardedAction
     
     int connectTimeout = (connectTimeoutExpr != null)? (int)connectTimeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     boolean retry = (retryExpr != null)? retryExpr.evaluateBoolean( context): true;
+    boolean purge = (purgeExpr != null)? purgeExpr.evaluateBoolean( context): false;
     boolean reliable = (reliableExpr != null)? reliableExpr.evaluateBoolean( context): true;
     
     String publishExchange = (publishExchangeExpr != null)? publishExchangeExpr.evaluateString( context): null;
@@ -80,7 +81,7 @@ public class AmqpClientAction extends GuardedAction
       amqpClient.setRemoteAddress( new InetSocketAddress( amqpHost, amqpPort));
       if ( publishExchange != null) amqpClient.setPublishExchange( publishExchange);
       if ( publishQueue != null) amqpClient.setPublishQueue( publishQueue);
-      if ( consumeQueue != null) amqpClient.setConsumeQueue( consumeQueue);
+      if ( consumeQueue != null) amqpClient.setConsumeQueue( consumeQueue, purge);
       
       ITransportImpl transport = amqpClient;
       if ( retry) transport = new PersistentTransport( transport);
@@ -88,7 +89,7 @@ public class AmqpClientAction extends GuardedAction
       
       int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;
       int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
-      if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( ((TcpChildTransport)transport), heartbeatPeriod, heartbeatTimeout));
+      if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( transport, heartbeatPeriod, heartbeatTimeout));
       
       transport.getEventPipe().addLast( new EventHandler( transport, context));
       
@@ -114,8 +115,16 @@ public class AmqpClientAction extends GuardedAction
     public boolean notifyConnect(IContext transportContext) throws IOException
     {
       IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
-      if ( onConnect != null) onConnect.run( context);
-      
+      if ( onConnect != null) 
+      {
+        StatefulContext connectContext = new StatefulContext( transportContext);
+        
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, connectContext, onConnect);
+        onConnect.run( connectContext);
+      }
       return false;
     }
   
@@ -123,7 +132,16 @@ public class AmqpClientAction extends GuardedAction
     public boolean notifyDisconnect(IContext transportContext) throws IOException
     {
       IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
-      if ( onDisconnect != null) onDisconnect.run( context);
+      if ( onDisconnect != null) 
+      {
+        StatefulContext disconnectContext = new StatefulContext( transportContext);
+        
+        ModelObject transportNode = new ModelObject( "transport");
+        transportNode.setValue( transport);
+        
+        ScriptAction.passVariables( new Object[] { transportNode}, disconnectContext, onDisconnect);
+        onDisconnect.run( disconnectContext);
+      }
       return false;
     }
   
@@ -167,7 +185,7 @@ public class AmqpClientAction extends GuardedAction
         ModelObject transportNode = new ModelObject( "transport");
         transportNode.setValue( transport);
         
-        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onRegister);
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
         onRegister.run( transportContext);
       }
       return false;
@@ -182,7 +200,7 @@ public class AmqpClientAction extends GuardedAction
         ModelObject transportNode = new ModelObject( "transport");
         transportNode.setValue( transport);
         
-        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onDeregister);
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
         onDeregister.run( transportContext);
       }
       return false;
@@ -229,6 +247,7 @@ public class AmqpClientAction extends GuardedAction
   private IExpression protocolExpr;
   private IExpression schedulerExpr;
   private IExpression retryExpr;
+  private IExpression purgeExpr;
   private IExpression reliableExpr;
   private IExpression heartbeatPeriodExpr;
   private IExpression heartbeatTimeoutExpr;

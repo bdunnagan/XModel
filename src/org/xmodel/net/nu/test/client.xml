@@ -5,9 +5,9 @@
     <script>
       <logi>'[CLIENT] Send'</logi>
       
-      <register name="'bob'" via="$transport" timeout="10000"/>
+      <!--register name="'bob'" via="$transport" timeout="5000" retries="0"/-->
       
-      <request var="result" via="$client" timeout="60000">
+      <request var="result" via="$client" timeout="0" retries="0">
         <script>
           <print>'Hi, Server'</print>
         </script>
@@ -40,23 +40,26 @@
     </script>
   </assign>
 
-  <!--amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
-    <publishQueue>'server_recv'</publishQueue>
-    <consumeQueue>'client_recv'</consumeQueue>
-    <onConnect>$onConnect</onConnect>
-    <onDisconnect>$onDisconnect</onDisconnect>
-    <onReceive>$onReceive</onReceive>
-    <onError>$onError</onError>
-  </amqpClient-->
-  
-  <tcpClient var="client" remoteHost="'192.168.1.4'" remotePort="10000" connectTimeout="3000">
-    <heartbeatPeriod>100000</heartbeatPeriod>
-    <heartbeatTimeout>300000</heartbeatTimeout>
-    <onConnect>$onConnect</onConnect>
-    <onDisconnect>$onDisconnect</onDisconnect>
-    <onReceive>$onReceive</onReceive>
-    <onError>$onError</onError>
-  </tcpClient>
+  <if test="true()">
+    <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
+      <publishQueue>'server_recv'</publishQueue>
+      <consumeQueue>'client_recv'</consumeQueue>
+      <onConnect>$onConnect</onConnect>
+      <onDisconnect>$onDisconnect</onDisconnect>
+      <onReceive>$onReceive</onReceive>
+      <onError>$onError</onError>
+    </amqpClient>
+  </if>
+  <else>
+    <tcpClient var="client" remoteHost="'192.168.1.4'" remotePort="10000" connectTimeout="3000">
+      <heartbeatPeriod>100000</heartbeatPeriod>
+      <heartbeatTimeout>300000</heartbeatTimeout>
+      <onConnect>$onConnect</onConnect>
+      <onDisconnect>$onDisconnect</onDisconnect>
+      <onReceive>$onReceive</onReceive>
+      <onError>$onError</onError>
+    </tcpClient>
+  </else>
   
   <sleep>60000</sleep>
 </script>

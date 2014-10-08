@@ -11,6 +11,7 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
@@ -40,7 +41,7 @@ public class AsyncSendGroup
     this.onComplete = onComplete;
   }
   
-  public void send( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout)
+  public void send( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout, int retries, int life)
   {
     int count = 0;
     while( transports.hasNext())
@@ -50,7 +51,14 @@ public class AsyncSendGroup
       transport.getEventPipe().addLast( new EventHandler( transport));
       count++;
       
-      transport.request( message, messageContext, timeout);
+      if ( life > 0 && transport instanceof ReliableTransport)
+      {
+        ((ReliableTransport)transport).request( message, messageContext, timeout, retries, life);
+      }
+      else
+      {
+        transport.request( message, messageContext, timeout, retries);
+      }
     }
 
     sentCount.set( count);
@@ -59,10 +67,10 @@ public class AsyncSendGroup
       notifyComplete();
   }
 
-  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout) throws InterruptedException
+  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
-    send( transports, message, messageContext, timeout);
+    send( transports, message, messageContext, timeout, retries, life);
     semaphore.acquire();
   }
   

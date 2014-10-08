@@ -40,21 +40,21 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   }
 
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
   {
-    return transport.register( name, messageContext, timeout);
+    return transport.register( name, messageContext, timeout, retries);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
   {
-    return transport.deregister( name, messageContext, timeout);
+    return transport.deregister( name, messageContext, timeout, retries);
   }
 
   @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
   {
-    return transport.request( message, messageContext, timeout);
+    return transport.request( message, messageContext, timeout, retries);
   }
 
   @Override

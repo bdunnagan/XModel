@@ -178,7 +178,7 @@ public class TcpClientAction extends GuardedAction
         ModelObject transportNode = new ModelObject( "transport");
         transportNode.setValue( transport);
         
-        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onRegister);
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
         onRegister.run( transportContext);
       }
       return false;
@@ -193,7 +193,7 @@ public class TcpClientAction extends GuardedAction
         ModelObject transportNode = new ModelObject( "transport");
         transportNode.setValue( transport);
         
-        ScriptAction.passVariables( new Object[] { transportNode}, transportContext, onDeregister);
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
         onDeregister.run( transportContext);
       }
       return false;

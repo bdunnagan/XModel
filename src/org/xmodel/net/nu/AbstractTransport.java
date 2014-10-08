@@ -1,5 +1,6 @@
 package org.xmodel.net.nu;
 
+import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
+import org.xmodel.util.HexDump;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xml.IXmlIO.Style;
 import org.xmodel.xml.XmlIO;
@@ -46,36 +48,36 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildRegisterEnvelope( key, name);
     
-    Request request = new Request( envelope, messageContext, timeout);
+    Request request = new Request( envelope, messageContext, timeout, retries);
     requests.put( key, request);
     
     return sendImpl( envelope, null);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildDeregisterEnvelope( key, name);
     
-    Request request = new Request( envelope, messageContext, timeout);
+    Request request = new Request( envelope, messageContext, timeout, retries);
     requests.put( key, request);
     
     return sendImpl( envelope, null);
   }
 
   @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout)
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
     
-    Request request = new Request( envelope, messageContext, timeout);
+    Request request = new Request( envelope, messageContext, timeout, retries);
     requests.put( key, request);
     
     return sendImpl( envelope, null);
@@ -152,6 +154,8 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
+    if ( log.verbose()) log.verbosef( "Read buffer contains:\n%s", HexDump.toString( Unpooled.wrappedBuffer( buffer)));
+    
     try
     {
       // decode
@@ -198,8 +202,8 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       {
         router.addRoute( name, this);
       
-        // TODO: this should unblock peer's request future
-        //ack( envelopeProtocol.getMessage( envelope));
+        IModelObject ack = envelopeProtocol.buildAck( envelopeProtocol.getKey( envelope), route);
+        sendImpl( ack, envelope);
         
         eventPipe.notifyRegister( transportContext, name);
       }
@@ -222,8 +226,8 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
       {
         router.removeRoute( name, this);
       
-        // TODO: this should unblock peer's request future
-        //ack( envelopeProtocol.getMessage( envelope));
+        IModelObject ack = envelopeProtocol.buildAck( envelopeProtocol.getKey( envelope), route);
+        sendImpl( ack, envelope);
         
         eventPipe.notifyRegister( transportContext, name);
       }
@@ -335,36 +339,49 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     return false;
   }
   
-  private void notifyTimeout( IModelObject envelope, IContext messageContext)
+  private void notifyTimeout( Request request, IModelObject envelope, IContext messageContext)
   {
-    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    String key = envelopeProtocol.getKey( envelope);
-    
-    // release request
-    requests.remove( key);
-    
-    IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
-    eventPipe.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
+    if ( --request.retries >= 0)
+    {
+      sendImpl( envelope, null);
+    }
+    else
+    {
+      IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+      String key = envelopeProtocol.getKey( envelope);
+      
+      // release request
+      requests.remove( key);
+      
+      IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
+      eventPipe.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
+    }
   }
 
   protected class Request implements Runnable
   {
-    Request( IModelObject envelope, IContext messageContext, int timeout)
+    Request( IModelObject envelope, IContext messageContext, int timeout, int retries)
     {
       this.envelope = envelope;
       this.messageContext = messageContext;
-      this.timeoutFuture = scheduler.schedule( this, timeout, TimeUnit.MILLISECONDS);
+      this.retries = retries;
+      
+      if ( timeout > 0)
+      {
+        this.timeoutFuture = scheduler.schedule( this, timeout, TimeUnit.MILLISECONDS);
+      }
     }
     
     @Override
     public void run()
     {
-      notifyTimeout( envelope, messageContext);
+      notifyTimeout( this, envelope, messageContext);
     }
     
     IModelObject envelope;
     IContext messageContext;
     ScheduledFuture<?> timeoutFuture;
+    int retries;
   }
     
   public final static Log log = Log.getLog( AbstractTransport.class);

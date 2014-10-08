@@ -15,11 +15,11 @@ public interface ITransport
   
   public AsyncFuture<ITransport> disconnect();
   
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout);
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries);
   
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout);
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries);
   
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout);
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries);
   
   public AsyncFuture<ITransport> ack( IModelObject request);
   

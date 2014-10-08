@@ -20,6 +20,7 @@ public class RegisterAction extends GuardedAction
     viaExpr = document.getExpression( "via", true);
     toExpr = document.getExpression( "to", true);
     timeoutExpr = document.getExpression( "timeout", true);
+    retriesExpr = document.getExpression( "retries", true);
   }
 
   @Override
@@ -27,6 +28,8 @@ public class RegisterAction extends GuardedAction
   {
     String name = nameExpr.evaluateString( context);
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): -1;
+    if ( retries == 0) retries = Integer.MAX_VALUE;
     
     IContext messageContext = new StatefulContext( context);
     
@@ -34,7 +37,7 @@ public class RegisterAction extends GuardedAction
     while( iter.hasNext())
     {
       ITransport transport = iter.next();
-      transport.register( name, messageContext, timeout);
+      transport.register( name, messageContext, timeout, retries);
     }
 
     return null;
@@ -46,4 +49,5 @@ public class RegisterAction extends GuardedAction
   private IExpression viaExpr;
   private IExpression toExpr;
   private IExpression timeoutExpr;
+  private IExpression retriesExpr;
 }

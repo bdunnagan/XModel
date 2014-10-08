@@ -5,7 +5,6 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
-import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -15,9 +14,7 @@ public class AckAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-
     requestExpr = document.getExpression( "request", true);
-    if ( requestExpr == null) requestExpr = XPath.createExpression( "$message");
   }
 
   @Override
