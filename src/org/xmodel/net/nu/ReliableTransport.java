@@ -41,33 +41,34 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   }
 
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
   {
-    return transport.register( name, messageContext, timeout, retries);
+    return transport.register( name, messageContext, timeout, retries, life);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
   {
-    return transport.deregister( name, messageContext, timeout, retries);
+    return transport.deregister( name, messageContext, timeout, retries, life);
   }
 
   public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
   {
-    long expiry = System.currentTimeMillis() + life;
-    
-    QueuedMessage item = new QueuedMessage( message, messageContext, timeout, retries, expiry);
-    sent.put( message, item);
-    
-    return transport.request( message, messageContext, timeout, retries);
+    return transport.request( message, messageContext, timeout, retries, life);
   }
   
   @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
-    return request( message, messageContext, timeout, retries, timeout);
+    long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
+    
+    IModelObject message = getProtocol().envelope().getMessage( envelope); 
+    QueuedMessage item = new QueuedMessage( message, messageContext, timeout, retries, expiry);
+    sent.put( message, item);
+    
+    return transport.send( envelope, messageContext, timeout, retries, life);
   }
-  
+
   @Override
   public AsyncFuture<ITransport> ack( IModelObject request)
   {
@@ -172,7 +173,8 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
           int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
           if ( timeRemaining > 0) 
           {
-            request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), timeRemaining);
+            log.debugf( "Send timeout for message, %s: expiry=%d", request, timeRemaining);
+            request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
             return true;
           }
           else
@@ -210,7 +212,7 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
 
   private void putMessageInBacklog( QueuedMessage item)
   {
-    log.debugf( "Queueing message, %s", item.message.getType());
+    log.debugf( "Queueing message, %s", item.message);
     
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
     if ( timeRemaining > 0)
@@ -234,7 +236,7 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
         int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
         if ( timeRemaining > 0) 
         {
-          AsyncFuture<ITransport> writeFuture = request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries);
+          AsyncFuture<ITransport> writeFuture = request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
           writeFuture.addListener( writeListener);
         }
       }

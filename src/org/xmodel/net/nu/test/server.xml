@@ -51,7 +51,7 @@
     </script>
   </assign>
   
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672">
       <purge>false()</purge>
       <publishQueue>'client_recv'</publishQueue>

@@ -48,41 +48,40 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildRegisterEnvelope( key, name);
-    
-    Request request = new Request( envelope, messageContext, timeout, retries);
-    requests.put( key, request);
-    
-    return sendImpl( envelope, null);
+    return send( envelope, messageContext, timeout, retries, life);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
   {
     String key = Long.toHexString( requestCounter.incrementAndGet());
     IModelObject envelope = protocol.envelope().buildDeregisterEnvelope( key, name);
+    return send( envelope, messageContext, timeout, retries, life);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
+  {
+    String key = Long.toHexString( requestCounter.incrementAndGet());
+    IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
+    return send( envelope, messageContext, timeout, retries, life);
+  }
     
-    Request request = new Request( envelope, messageContext, timeout, retries);
-    requests.put( key, request);
+  @Override
+  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    String key = protocol.envelope().getKey( envelope);
+    
+    Request requestState = new Request( envelope, messageContext, timeout, retries);
+    requests.put( key, requestState);
     
     return sendImpl( envelope, null);
   }
 
-  @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
-  {
-    String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
-    
-    Request request = new Request( envelope, messageContext, timeout, retries);
-    requests.put( key, request);
-    
-    return sendImpl( envelope, null);
-  }
-    
   @Override
   public AsyncFuture<ITransport> ack( IModelObject request)
   {
@@ -121,7 +120,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     IModelObject envelope = envelopeProtocol.buildResponseEnvelope( key, route, message);
     return sendImpl( envelope, request);
   }
-
+  
   @Override
   public EventPipe getEventPipe()
   {
@@ -330,6 +329,14 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {
+    if ( request != null)
+    {
+      // free request resources
+      IEnvelopeProtocol envelopeProtocol = protocol.envelope();
+      IModelObject envelope = envelopeProtocol.getEnvelope( request);
+      requests.remove( envelopeProtocol.getKey( envelope));
+    }
+    
     return false;
   }
 
@@ -347,13 +354,7 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     }
     else
     {
-      IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-      String key = envelopeProtocol.getKey( envelope);
-      
-      // release request
-      requests.remove( key);
-      
-      IModelObject requestMessage = envelopeProtocol.getMessage( envelope);        
+      IModelObject requestMessage = protocol.envelope().getMessage( envelope);        
       eventPipe.notifyError( messageContext, ITransport.Error.timeout, requestMessage);
     }
   }

@@ -82,7 +82,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
   {
     if ( tempQueue != null)
     {
@@ -124,16 +124,16 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       return new FailureAsyncFuture<ITransport>( this, e);
     }
     
-    return super.register( name, messageContext, timeout, retries);
+    return super.register( name, messageContext, timeout, retries, life);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
   {
     Channel consumeChannel = consumerChannels.remove( name);
     if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
     
-    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout, retries);
+    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout, retries, life);
     
     try
     {

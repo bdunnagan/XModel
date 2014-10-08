@@ -40,21 +40,21 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   }
 
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
   {
-    return transport.register( name, messageContext, timeout, retries);
+    return transport.register( name, messageContext, timeout, retries, life);
   }
 
   @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
   {
-    return transport.deregister( name, messageContext, timeout, retries);
+    return transport.deregister( name, messageContext, timeout, retries, life);
   }
 
   @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries)
+  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
   {
-    return transport.request( message, messageContext, timeout, retries);
+    return transport.request( message, messageContext, timeout, retries, life);
   }
 
   @Override
@@ -73,6 +73,12 @@ public class PersistentTransport implements ITransportImpl, IEventHandler, Runna
   public ScheduledFuture<?> schedule( Runnable runnable, int delay)
   {
     return transport.schedule( runnable, delay);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    return transport.send( envelope, messageContext, timeout, retries, life);
   }
 
   @Override

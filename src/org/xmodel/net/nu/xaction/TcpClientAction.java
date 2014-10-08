@@ -75,7 +75,6 @@ public class TcpClientAction extends GuardedAction
     try
     {
       TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
-      Conventions.putCache( context, var, tcpClient);
       
       if ( localHost != null) tcpClient.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
       tcpClient.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
@@ -88,6 +87,8 @@ public class TcpClientAction extends GuardedAction
       transport.getEventPipe().addLast( new EventHandler( transport, context));
       
       transport.connect( connectTimeout).await();
+      
+      Conventions.putCache( context, var, transport);
     }
     catch( Exception e)
     {

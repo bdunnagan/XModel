@@ -5,13 +5,13 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
-import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
@@ -51,14 +51,7 @@ public class AsyncSendGroup
       transport.getEventPipe().addLast( new EventHandler( transport));
       count++;
       
-      if ( life > 0 && transport instanceof ReliableTransport)
-      {
-        ((ReliableTransport)transport).request( message, messageContext, timeout, retries, life);
-      }
-      else
-      {
-        transport.request( message, messageContext, timeout, retries);
-      }
+      transport.request( message, messageContext, timeout, retries, life);
     }
 
     sentCount.set( count);
