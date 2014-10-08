@@ -7,8 +7,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.log.Log;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -22,6 +24,8 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
     // TODO: overkill?
     this.queue = new ConcurrentLinkedQueue<QueuedMessage>();
     this.sent = new ConcurrentHashMap<IModelObject, QueuedMessage>();
+    
+    log.setLevel( Log.all);
   }
   
   @Override
@@ -206,6 +210,8 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
 
   private void putMessageInBacklog( QueuedMessage item)
   {
+    log.debugf( "Queueing message, %s", item.message.getType());
+    
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
     if ( timeRemaining > 0)
     {
@@ -277,6 +283,8 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
       sendNextFromBacklog();
     }
   };
+  
+  public final static Log log = Log.getLog( ReliableTransport.class);
   
   private ITransportImpl transport;
   private Queue<QueuedMessage> queue;
