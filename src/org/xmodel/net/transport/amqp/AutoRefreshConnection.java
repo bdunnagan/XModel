@@ -19,14 +19,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.xmodel.log.Log;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
 /**
@@ -39,12 +40,14 @@ public class AutoRefreshConnection
     this.connectionFactory = connectionFactory;
     this.executor = executor;
     this.brokers = brokers;
-    this.activeConnection = connectionFactory.newConnection( executor, brokers);
     this.threadItems = new ThreadLocal<ThreadItem>();
     this.allThreadItems = Collections.synchronizedList( new ArrayList<ThreadItem>());
     this.connectionLock = new ReentrantReadWriteLock( true);
     this.consumers = Collections.synchronizedMap( new HashMap<AmqpXioChannel, AutoRefreshConsumer>());
     this.obsoleteLeaseQueue = new LinkedBlockingQueue<Channel>();
+    
+    //this.activeConnection = connectionFactory.newConnection( executor, brokers);
+    this.activeConnection = createConnection();
   }
 
   /**
@@ -391,6 +394,8 @@ public class AutoRefreshConnection
             connectionFactory.newConnection( executor):
             connectionFactory.newConnection( executor, brokers);
             
+        connection.addShutdownListener( connectionShutdownListener);
+            
         return connection;
       }
       catch( IOException e)
@@ -565,6 +570,15 @@ public class AutoRefreshConnection
     private boolean autoDelete;
     private AmqpXioChannel consumer;
   }
+  
+  private ShutdownListener connectionShutdownListener = new ShutdownListener() {
+    @Override
+    public void shutdownCompleted( ShutdownSignalException arg0)
+    {
+      log.warn( "Re-establishing closed connection...");
+      refresh();
+    }
+  };
 
   private final static Log log = Log.getLog( AutoRefreshConnection.class);
   
