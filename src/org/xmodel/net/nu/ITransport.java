@@ -17,15 +17,11 @@ public interface ITransport
   
   public AsyncFuture<ITransport> disconnect();
   
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life);
+  public AsyncFuture<ITransport> sendRequest( IModelObject request, IContext messageContext, int timeout, int retries, int life);
   
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life);
-  
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life);
-  
-  public AsyncFuture<ITransport> ack( IModelObject request);
-  
-  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request);
+  public AsyncFuture<ITransport> sendAck( IModelObject request);
+    
+  public AsyncFuture<ITransport> sendResponse( IModelObject response, IModelObject request);
   
   public EventPipe getEventPipe();
 }

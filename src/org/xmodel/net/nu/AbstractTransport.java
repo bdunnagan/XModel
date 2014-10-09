@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
@@ -34,7 +33,6 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     this.transportContext = transportContext;
     this.scheduler = scheduler;
     this.requests = new ConcurrentHashMap<String, Request>();
-    this.requestCounter = new AtomicLong( System.nanoTime() & 0x7FFFFFFFFFFFFFFFL);
     
     eventPipe = new EventPipe();
     eventPipe.addFirst( this);    
@@ -48,80 +46,41 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
+  public AsyncFuture<ITransport> sendRequest( IModelObject request, IContext messageContext, int timeout, int retries, int life)
   {
-    String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildRegisterEnvelope( key, name);
-    return send( envelope, messageContext, timeout, retries, life);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
-  {
-    String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildDeregisterEnvelope( key, name);
-    return send( envelope, messageContext, timeout, retries, life);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
-  {
-    String key = Long.toHexString( requestCounter.incrementAndGet());
-    IModelObject envelope = protocol.envelope().buildRequestEnvelope( key, null, message);
-    return send( envelope, messageContext, timeout, retries, life);
-  }
+    String key = protocol.envelope().getKey( request);
     
-  private AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
-  {
-    String key = protocol.envelope().getKey( envelope);
-    
-    Request requestState = new Request( envelope, messageContext, timeout, retries);
+    Request requestState = new Request( request, messageContext, timeout, retries);
     requests.put( key, requestState);
     
-    eventPipe.notifySend( envelope, messageContext, timeout, retries, life);
+    eventPipe.notifySend( request, messageContext, timeout, retries, life);
     
-    return sendImpl( envelope, null);
+    return sendImpl( request, null);
   }
 
   @Override
-  public AsyncFuture<ITransport> ack( IModelObject request)
+  public AsyncFuture<ITransport> sendAck( IModelObject request)
   {
     if ( request == null) throw new IllegalArgumentException();
     
     IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    
-    IModelObject envelope = envelopeProtocol.getEnvelope( request);
-    String key = envelopeProtocol.getKey( envelope);
-    String route = envelopeProtocol.getRoute( envelope);
+    String key = envelopeProtocol.getKey( request);
+    String route = envelopeProtocol.getRoute( request);
     
     IModelObject ack = envelopeProtocol.buildAck( key, route);
     return sendImpl( ack, request);
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.ITransport#sendResponse(org.xmodel.IModelObject, org.xmodel.IModelObject)
+   */
   @Override
-  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
+  public AsyncFuture<ITransport> sendResponse( IModelObject response, IModelObject request)
   {
-    IEnvelopeProtocol envelopeProtocol = protocol.envelope();
-    
-    String key = null;
-    String route = null;
-    
-    //
-    // The envelope of the original request message is retrieved and its correlation key
-    // extracted using the IEnvelopeProtocol.  This means that the IEnvelopeProtocol
-    // must be able to find the envelope given the message body.
-    //
-    if ( request != null)
-    {
-      IModelObject envelope = envelopeProtocol.getEnvelope( request);
-      key = envelopeProtocol.getKey( envelope);
-      route = envelopeProtocol.getRoute( envelope);
-    }
-    
-    IModelObject envelope = envelopeProtocol.buildResponseEnvelope( key, route, message);
-    return sendImpl( envelope, request);
+    // TODO Auto-generated method stub
+    return null;
   }
-  
+
   @Override
   public EventPipe getEventPipe()
   {
@@ -399,6 +358,5 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
   private IContext transportContext;
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;
-  private AtomicLong requestCounter;
   private EventPipe eventPipe;
 }
