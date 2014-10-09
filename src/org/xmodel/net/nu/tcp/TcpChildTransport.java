@@ -28,7 +28,12 @@ public class TcpChildTransport extends AbstractChannelTransport implements IRout
   }
   
   @Override
-  public AsyncFuture<ITransport> connect( int timeout)
+  public void setConnectTimeout( int timeout)
+  {
+  }
+
+  @Override
+  public AsyncFuture<ITransport> connect()
   {
     return new SuccessAsyncFuture<ITransport>( this);
   }

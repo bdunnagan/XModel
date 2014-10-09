@@ -65,7 +65,7 @@ public class TcpServerRouter implements IRouter
        public void initChannel( SocketChannel channel) throws Exception 
        {
          ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, scheduler, channel);
-         if ( reliable) transport = new ReliableTransport( transport);
+         if ( reliable) transport.getEventPipe().addLast( new ReliableTransport( transport));
          
          if ( eventHandler != null) 
          {
@@ -73,7 +73,7 @@ public class TcpServerRouter implements IRouter
            eventHandler.notifyConnect( transport, transportContext);
          }
 
-         transport.connect( 0); // notify listeners of new connection
+         transport.connect(); // notify listeners of new connection
          channel.pipeline().addLast( new XioInboundHandler( transport));
        }
      });
@@ -127,6 +127,12 @@ public class TcpServerRouter implements IRouter
       this.eventHandler = eventHandler;
     }
     
+    @Override
+    public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+    {
+      return false;
+    }
+
     @Override
     public boolean notifyConnect( IContext transportContext) throws IOException
     {

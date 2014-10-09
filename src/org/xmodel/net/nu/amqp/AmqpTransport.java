@@ -211,7 +211,13 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
 
   @Override
-  public AsyncFuture<ITransport> connect( int timeout)
+  public void setConnectTimeout( int timeout)
+  {
+    connectionFactory.setConnectionTimeout( timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> connect()
   {
     if ( consumeQueue == null)
       return new FailureAsyncFuture<ITransport>( this, "Consumer exchange/queue not defined for transport.");
@@ -223,7 +229,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     try
     {
       // connection
-      connectionFactory.setConnectionTimeout( timeout);
       connection = connectionFactory.newConnection(); // use connection pool, or define connection separately
 
       // consume initially on temporary queue

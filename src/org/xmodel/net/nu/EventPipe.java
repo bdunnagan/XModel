@@ -36,6 +36,17 @@ public class EventPipe implements IEventHandler
   }
   
   @Override
+  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    for( IEventHandler handler: getHandlers())
+    {
+      if ( handler.notifySend( envelope, messageContext, timeout, retries, life))
+        return true;
+    }
+    return false;
+  }
+
+  @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     for( IEventHandler handler: getHandlers())

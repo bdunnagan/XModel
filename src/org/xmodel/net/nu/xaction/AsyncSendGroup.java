@@ -153,6 +153,12 @@ public class AsyncSendGroup
     }
 
     @Override
+    public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+    {
+      return false;
+    }
+
+    @Override
     public boolean notifyReceive( ByteBuffer buffer) throws IOException
     {
       return false;

@@ -7,19 +7,18 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledFuture;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class ReliableTransport implements ITransportImpl, IEventHandler
+public class ReliableTransport implements IEventHandler
 {
   public ReliableTransport( ITransportImpl transport)
   {
     this.transport = transport;
-    transport.getEventPipe().addLast( this);
     
     // TODO: overkill?
     this.queue = new ConcurrentLinkedQueue<QueuedMessage>();
@@ -29,86 +28,14 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   }
   
   @Override
-  public AsyncFuture<ITransport> connect( int timeout)
-  {
-    return transport.connect( timeout);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> disconnect()
-  {
-    return transport.disconnect();
-  }
-
-  @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
-  {
-    return transport.register( name, messageContext, timeout, retries, life);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
-  {
-    return transport.deregister( name, messageContext, timeout, retries, life);
-  }
-
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
-  {
-    return transport.request( message, messageContext, timeout, retries, life);
-  }
-  
-  @Override
-  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
     
-    IModelObject message = getProtocol().envelope().getMessage( envelope); 
-    QueuedMessage item = new QueuedMessage( message, messageContext, timeout, retries, expiry);
-    sent.put( message, item);
-    
-    return transport.send( envelope, messageContext, timeout, retries, life);
-  }
+    QueuedMessage item = new QueuedMessage( envelope, messageContext, timeout, retries, expiry);
+    sent.put( envelope, item);
 
-  @Override
-  public AsyncFuture<ITransport> ack( IModelObject request)
-  {
-    return transport.ack( request);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
-  {
-    return transport.respond( message, request);
-  }
-
-  @Override
-  public ScheduledFuture<?> schedule( Runnable runnable, int delay)
-  {
-    return transport.schedule( runnable, delay);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
-  {
-    return transport.sendImpl( envelope, null);
-  }
-
-  @Override
-  public Protocol getProtocol()
-  {
-    return transport.getProtocol();
-  }
-
-  @Override
-  public IContext getTransportContext()
-  {
-    return transport.getTransportContext();
-  }
-
-  @Override
-  public EventPipe getEventPipe()
-  {
-    return transport.getEventPipe();
+    return false;
   }
 
   @Override
@@ -229,17 +156,18 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
   private void sendNextFromBacklog()
   {
     QueuedMessage item = queue.poll();
-    if ( item != null)
+    while( item != null)
     {
       if ( item.expireFuture.cancel( false))
       {
         int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
         if ( timeRemaining > 0) 
         {
-          AsyncFuture<ITransport> writeFuture = request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
-          writeFuture.addListener( writeListener);
+          request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
         }
       }
+      
+      item = queue.poll();
     }
   }
   
@@ -277,14 +205,6 @@ public class ReliableTransport implements ITransportImpl, IEventHandler
 
     private QueuedMessage item;
   }
-  
-  private AsyncFuture.IListener<ITransport> writeListener = new AsyncFuture.IListener<ITransport>() {
-    @Override
-    public void notifyComplete( AsyncFuture<ITransport> future) throws Exception
-    {
-      sendNextFromBacklog();
-    }
-  };
   
   public final static Log log = Log.getLog( ReliableTransport.class);
   

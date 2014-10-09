@@ -12,10 +12,19 @@ public final class RoutedTransport implements ITransport
     this.to = to;
   }
 
+  /* (non-Javadoc)
+   * @see org.xmodel.net.nu.ITransport#setConnectTimeout(int)
+   */
   @Override
-  public AsyncFuture<ITransport> connect( int timeout)
+  public void setConnectTimeout( int timeout)
   {
-    return via.connect( timeout);
+    via.setConnectTimeout( timeout);
+  }
+
+  @Override
+  public AsyncFuture<ITransport> connect()
+  {
+    return via.connect();
   }
   
   @Override

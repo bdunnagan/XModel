@@ -8,7 +8,6 @@ import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.ITransport.Error;
-import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
 
 public class Heartbeater implements IEventHandler
@@ -25,20 +24,21 @@ public class Heartbeater implements IEventHandler
   }
   
   @Override
+  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    return false;
+  }
+
+  @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
+    resetHeartbeatTimeout();
     return false;
   }
 
   @Override
   public boolean notifyReceive( IModelObject envelope)
   {
-    if ( transport.getProtocol().envelope().getType( envelope) == Type.heartbeat)
-    {
-      resetHeartbeatTimeout();
-      return true;
-    }
-    
     return false;
   }
 

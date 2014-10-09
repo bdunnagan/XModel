@@ -43,12 +43,15 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
   {
     remoteAddress = address;
   }
-  
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.ITransport#connect(int)
-   */
+
   @Override
-  public AsyncFuture<ITransport> connect( int timeout)
+  public void setConnectTimeout( int timeout)
+  {
+    connectTimeout = timeout;
+  }
+
+  @Override
+  public AsyncFuture<ITransport> connect()
   {
     Channel channel = channelRef.get();
     if ( channel != null && channel.isOpen()) 
@@ -60,7 +63,7 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
     Bootstrap bootstrap = new Bootstrap(); 
     bootstrap.group( workerGroup); 
     bootstrap.channel( NioSocketChannel.class); 
-    bootstrap.option( ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout);
+    bootstrap.option( ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
     bootstrap.option( ChannelOption.AUTO_READ, false);
     bootstrap.handler( new ChannelInitializer<SocketChannel>() {
       @Override
@@ -145,4 +148,5 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
   private SocketAddress localAddress;
   private SocketAddress remoteAddress;
   private IRouter router;
+  private int connectTimeout;
 }

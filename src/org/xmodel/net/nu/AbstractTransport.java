@@ -71,13 +71,14 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     return send( envelope, messageContext, timeout, retries, life);
   }
     
-  @Override
-  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  private AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     String key = protocol.envelope().getKey( envelope);
     
     Request requestState = new Request( envelope, messageContext, timeout, retries);
     requests.put( key, requestState);
+    
+    eventPipe.notifySend( envelope, messageContext, timeout, retries, life);
     
     return sendImpl( envelope, null);
   }
@@ -150,6 +151,12 @@ public abstract class AbstractTransport implements ITransportImpl, IEventHandler
     return transportContext;
   }
   
+  @Override
+  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    return false;
+  }
+
   @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {

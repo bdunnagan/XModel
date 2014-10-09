@@ -9,8 +9,6 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface ITransportImpl extends ITransport
 {
-  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
-  
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request);
   
   public ScheduledFuture<?> schedule( Runnable runnable, int delay);
