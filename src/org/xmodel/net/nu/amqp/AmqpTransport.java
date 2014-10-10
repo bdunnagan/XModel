@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
@@ -20,8 +18,8 @@ import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.net.nu.protocol.Protocol;
-import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
@@ -39,12 +37,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   
   public AmqpTransport( Protocol protocol, IContext transportContext)
   {
-    this( protocol, transportContext, Executors.newScheduledThreadPool( 1, new PrefixThreadFactory( "scheduler")));
-  }
-
-  public AmqpTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
-  {
-    super( protocol, transportContext, scheduler);
+    super( protocol, transportContext);
   
     publishChannelRef = new AtomicReference<Channel>();
     consumerChannels = Collections.synchronizedMap( new HashMap<String, Channel>());
@@ -56,7 +49,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     connectionFactory.setHost( "localhost");
     
     router = new SimpleRouter();
-    setRouter( this);
   }
   
   public void setRemoteAddress( InetSocketAddress address)
@@ -82,8 +74,23 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
+    Type type = getProtocol().envelope().getType( envelope);
+    switch( type)
+    {
+      case register:   return createRegistrationQueue( envelope, messageContext);
+      case deregister: return deleteRegistrationQueue( envelope, messageContext);
+      default: break; 
+    }
+    
+    return false;
+  }
+
+  public boolean createRegistrationQueue( IModelObject envelope, IContext messageContext)
+  {
+    String name = getProtocol().envelope().getRegistrationName( envelope);
+    
     if ( tempQueue != null)
     {
       Channel consumeChannel = consumerChannels.remove( tempQueue);
@@ -107,8 +114,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     Channel consumeChannel = consumerChannels.get( name);
     if ( consumeChannel != null) 
     {
-      String message = String.format( "Transport already registered to %s", name);
-      return new FailureAsyncFuture<ITransport>( this, message);
+      log.errorf( "Transport already registered to %s", name);
+      getEventPipe().notifyError( messageContext, Error.sendFailed, envelope);
+      return true;
     }
     
     try
@@ -121,19 +129,19 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
-      return new FailureAsyncFuture<ITransport>( this, e);
+      getEventPipe().notifyException( e);
+      return true;
     }
     
-    return super.register( name, messageContext, timeout, retries, life);
+    return false;
   }
 
-  @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
+  public boolean deleteRegistrationQueue( IModelObject envelope, IContext messageContext)
   {
-    Channel consumeChannel = consumerChannels.remove( name);
-    if ( consumeChannel == null) return new SuccessAsyncFuture<ITransport>( this); 
+    String name = getProtocol().envelope().getRegistrationName( envelope);
     
-    AsyncFuture<ITransport> future = super.deregister( name, messageContext, timeout, retries, life);
+    Channel consumeChannel = consumerChannels.remove( name);
+    if ( consumeChannel == null) return false; 
     
     try
     {
@@ -142,10 +150,10 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
-      future.notifyFailure( e);
+      getEventPipe().notifyException( e);
     }
 
-    if ( replyQueue.equals( name) && !future.isFailure())
+    if ( replyQueue.equals( name))
     {
       try
       {
@@ -158,11 +166,11 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
       catch( IOException e)
       {
-        future.notifyFailure( e);
+        getEventPipe().notifyException( e);
       }
     }
     
-    return future;
+    return false;
   }
   
   @Override

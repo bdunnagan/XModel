@@ -36,6 +36,7 @@ public class RequestAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
+    
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
     int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): -1;
     if ( retries == 0) retries = Integer.MAX_VALUE;

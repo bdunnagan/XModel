@@ -25,7 +25,9 @@ public class AckAction extends GuardedAction
     Object object = Conventions.getCache( context, "via");
     if ( object != null && object instanceof ITransport)
     {
-      ((ITransport)object).ack( request);
+      ITransport transport = ((ITransport)object);
+      IModelObject envelope = transport.getProtocol().envelope().getEnvelope( request);
+      transport.sendAck( envelope);
     }
 
     return null;

@@ -2,6 +2,7 @@ package org.xmodel.net.nu;
 
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 public final class RoutedTransport implements ITransport
@@ -34,43 +35,27 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public AsyncFuture<ITransport> register( String name, IContext messageContext, int timeout, int retries, int life)
+  public AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout, int retries, int life)
   {
-    // TODO: Is this correct???
-    return via.register( name, messageContext, timeout, retries, life);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> deregister( String name, IContext messageContext, int timeout, int retries, int life)
-  {
-    // TODO: Is this correct???
-    return via.deregister( name, messageContext, timeout, retries, life);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> ack( IModelObject message)
-  {
-    return via.ack( message);
-  }
-
-  @Override
-  public AsyncFuture<ITransport> request( IModelObject message, IContext messageContext, int timeout, int retries, int life)
-  {
-    message.setAttribute( "route", to);
-    return via.request( message, messageContext, timeout, retries, life);
+    return via.send( message, messageContext, timeout, retries, life);
   }
   
   @Override
-  public AsyncFuture<ITransport> respond( IModelObject message, IModelObject request)
+  public AsyncFuture<ITransport> sendAck( IModelObject envelope)
   {
-    message.setAttribute( "route", to);
-    return via.respond( message, request);
+    return via.sendAck( envelope);
   }
-  
+
   @Override
   public EventPipe getEventPipe()
   {
     return via.getEventPipe();
+  }
+
+  @Override
+  public Protocol getProtocol()
+  {
+    return via.getProtocol();
   }
 
   private ITransportImpl via;

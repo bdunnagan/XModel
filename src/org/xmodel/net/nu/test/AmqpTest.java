@@ -3,8 +3,8 @@ package org.xmodel.net.nu.test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-
 import org.xmodel.IModelObject;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
@@ -22,25 +22,13 @@ public class AmqpTest
 {
   public static void main( String[] args) throws Exception
   {
-    class ServerEventHandler implements IEventHandler
+    class ServerEventHandler extends DefaultEventHandler
     {
       public ServerEventHandler( ITransport transport)
       {
         this.transport = transport;
       }
       
-      @Override
-      public boolean notifyReceive( ByteBuffer buffer) throws IOException
-      {
-        return false;
-      }
-
-      @Override
-      public boolean notifyReceive( IModelObject envelope)
-      {
-        return false;
-      }
-
       @Override
       public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
@@ -80,25 +68,13 @@ public class AmqpTest
       private ITransport transport;
     }
     
-    class ClientEventHandler implements IEventHandler
+    class ClientEventHandler extends DefaultEventHandler
     {
       public ClientEventHandler( ITransport transport)
       {
         this.transport = transport;
       }
       
-      @Override
-      public boolean notifyReceive( ByteBuffer buffer) throws IOException
-      {
-        return false;
-      }
-
-      @Override
-      public boolean notifyReceive( IModelObject envelope)
-      {
-        return false;
-      }
-
       @Override
       public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
       {

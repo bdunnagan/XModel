@@ -13,55 +13,46 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   }
   
   @Override
-  public IModelObject buildRegisterEnvelope( String key, String name)
+  public IModelObject buildRegisterEnvelope( String name)
   {
     IModelObject envelope = new ModelObject( "register");
-    envelope.setAttribute( "key", key);
     envelope.setAttribute( "name", name);
     return envelope;
   }
 
   @Override
-  public IModelObject buildDeregisterEnvelope( String key, String name)
+  public IModelObject buildDeregisterEnvelope( String name)
   {
     IModelObject envelope = new ModelObject( "deregister");
-    envelope.setAttribute( "key", key);
     envelope.setAttribute( "name", name);
     return envelope;
   }
 
   @Override
-  public IModelObject buildRequestEnvelope( String key, String route, IModelObject message)
+  public IModelObject buildRequestEnvelope( String route, IModelObject message)
   {
     IModelObject envelope = new ModelObject( "request");
-    
-    if ( key != null) envelope.setAttribute( "key", key);
     if ( route != null) envelope.setAttribute(  "route", route);
-    
     envelope.addChild( message);
     return envelope;
   }
 
   @Override
-  public IModelObject buildResponseEnvelope( String key, String route, IModelObject message)
+  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message)
   {
     IModelObject envelope = new ModelObject( "response");
-    
-    if ( key != null) envelope.setAttribute( "key", key);
-    if ( route != null) envelope.setAttribute(  "route", route);
-    
+    envelope.setAttribute( "key", requestEnvelope.getAttribute( "key"));
+    envelope.setAttribute( "route", requestEnvelope.getAttribute( "route"));
     envelope.addChild( message);
     return envelope;
   }
 
   @Override
-  public IModelObject buildAck( String key, String route)
+  public IModelObject buildAck( IModelObject requestEnvelope)
   {
     IModelObject ack = new ModelObject( "ack");
-    
-    if ( key != null) ack.setAttribute( "key", key);
-    if ( route != null) ack.setAttribute(  "route", route);
-    
+    ack.setAttribute( "key", requestEnvelope.getAttribute( "key"));
+    ack.setAttribute( "route", requestEnvelope.getAttribute( "route"));
     return ack;
   }
 
@@ -69,6 +60,21 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public Type getType( IModelObject envelope)
   {
     return Type.valueOf( envelope.getType());
+  }
+
+  @Override
+  public boolean isRequest( IModelObject envelope)
+  {
+    switch( getType( envelope))
+    {
+      case request:
+      case register:
+      case deregister:
+        return true;
+        
+      default:
+        return false;
+    }
   }
 
   @Override
@@ -86,9 +92,13 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject getEnvelope( IModelObject message)
   {
-    IModelObject envelope = message.getRoot();
-    if ( envelope.isType( "request") || envelope.isType( "response")) return envelope;
-    throw new IllegalArgumentException();
+    return message.getRoot();
+  }
+
+  @Override
+  public void setKey( IModelObject envelope, String key)
+  {
+    if ( key != null) envelope.setAttribute( "key", key);
   }
 
   @Override

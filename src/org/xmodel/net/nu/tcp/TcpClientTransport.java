@@ -9,13 +9,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
 import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.Iterator;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.IRouter;
@@ -26,12 +23,11 @@ import org.xmodel.xpath.expression.IContext;
 
 public class TcpClientTransport extends AbstractChannelTransport implements IRouter
 {
-  public TcpClientTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
+  public TcpClientTransport( Protocol protocol, IContext transportContext)
   {
-    super( protocol, transportContext, scheduler);
+    super( protocol, transportContext);
     this.channelRef = new AtomicReference<Channel>();
     this.router = new SimpleRouter();
-    setRouter( this);
   }
 
   public void setLocalAddress( SocketAddress address)

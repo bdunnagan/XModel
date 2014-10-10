@@ -1,22 +1,27 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.algo;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.xpath.expression.IContext;
 
-public class Heartbeater implements IEventHandler
+public class HeartbeatAlgo extends DefaultEventHandler
 {
-  public Heartbeater( ITransportImpl transport, int period, int timeout)
+  public HeartbeatAlgo( ITransportImpl transport, int period, int timeout, ScheduledExecutorService scheduler)
   {
     this.transport = transport;
     this.period = period;
     this.timeout = timeout;
+    this.scheduler = scheduler;
     this.heartbeatFutureRef = new AtomicReference<ScheduledFuture<?>>();
     this.timeoutFutureRef = new AtomicReference<ScheduledFuture<?>>();
 
@@ -24,27 +29,9 @@ public class Heartbeater implements IEventHandler
   }
   
   @Override
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
-  {
-    return false;
-  }
-
-  @Override
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     resetHeartbeatTimeout();
-    return false;
-  }
-
-  @Override
-  public boolean notifyReceive( IModelObject envelope)
-  {
-    return false;
-  }
-
-  @Override
-  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
-  {
     return false;
   }
 
@@ -66,18 +53,6 @@ public class Heartbeater implements IEventHandler
   }
 
   @Override
-  public boolean notifyRegister( IContext transportContext, String name)
-  {
-    return false;
-  }
-
-  @Override
-  public boolean notifyDeregister( IContext transportContext, String name)
-  {
-    return false;
-  }
-
-  @Override
   public boolean notifyError( IContext context, Error error, IModelObject request)
   {
     if ( error == Error.heartbeatLost)
@@ -90,16 +65,10 @@ public class Heartbeater implements IEventHandler
     return false;
   }
 
-  @Override
-  public boolean notifyException( IOException e)
-  {
-    return false;
-  }
-  
   private void startHeartbeat()
   {
     log.verbosef( "Starting heartbeat for transport, %s, period=%d", transport, period);
-    heartbeatFutureRef.set( transport.schedule( heartbeatRunnable, period));
+    heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
   }
   
   private void stopHeartbeat()
@@ -115,7 +84,7 @@ public class Heartbeater implements IEventHandler
     ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
     if ( timeoutFuture == null || timeoutFuture.cancel( false))
     {
-      timeoutFutureRef.set( transport.schedule( timeoutRunnable, timeout));
+      timeoutFutureRef.set( scheduler.schedule( timeoutRunnable, timeout, TimeUnit.MILLISECONDS));
     }
   }
   
@@ -132,7 +101,7 @@ public class Heartbeater implements IEventHandler
       log.verbosef( "Sending heartbeat for transport, %s, period=%d", transport, period);
       IModelObject envelope = transport.getProtocol().envelope().buildHeartbeatEnvelope();
       transport.sendImpl( envelope, null);
-      heartbeatFutureRef.set( transport.schedule( heartbeatRunnable, period));
+      heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
     }
   };
   
@@ -144,11 +113,12 @@ public class Heartbeater implements IEventHandler
     }
   };
 
-  public final static Log log = Log.getLog( Heartbeater.class);
+  public final static Log log = Log.getLog( HeartbeatAlgo.class);
   
   private ITransportImpl transport;
   private int period;
   private int timeout;
+  private ScheduledExecutorService scheduler;
   private AtomicReference<ScheduledFuture<?>> heartbeatFutureRef;
   private AtomicReference<ScheduledFuture<?>> timeoutFutureRef;
 }

@@ -1,24 +1,27 @@
-package org.xmodel.net.nu;
+package org.xmodel.net.nu.algo;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import org.xmodel.IModelObject;
-import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
+import org.xmodel.net.nu.DefaultEventHandler;
+import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
-import org.xmodel.net.nu.protocol.Protocol;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.xpath.expression.IContext;
 
-public class ReliableTransport implements IEventHandler
+public class ReliableAlgo extends DefaultEventHandler
 {
-  public ReliableTransport( ITransportImpl transport)
+  public ReliableAlgo( ITransportImpl transport, ScheduledExecutorService scheduler)
   {
     this.transport = transport;
+    this.scheduler = scheduler;
     
     // TODO: overkill?
     this.queue = new ConcurrentLinkedQueue<QueuedMessage>();
@@ -30,23 +33,13 @@ public class ReliableTransport implements IEventHandler
   @Override
   public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
-    long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
-    
-    QueuedMessage item = new QueuedMessage( envelope, messageContext, timeout, retries, expiry);
-    sent.put( envelope, item);
+    if ( transport.getProtocol().envelope().isRequest( envelope))
+    {
+      long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
+      QueuedMessage item = new QueuedMessage( envelope, messageContext, timeout, retries, expiry);
+      sent.put( envelope, item);
+    }
 
-    return false;
-  }
-
-  @Override
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
-  {
-    return false;
-  }
-
-  @Override
-  public boolean notifyReceive( IModelObject envelope)
-  {
     return false;
   }
 
@@ -61,24 +54,6 @@ public class ReliableTransport implements IEventHandler
   public boolean notifyConnect(IContext transportContext) throws IOException
   {
     sendNextFromBacklog();
-    return false;
-  }
-
-  @Override
-  public boolean notifyDisconnect(IContext transportContext) throws IOException
-  {
-    return false;
-  }
-
-  @Override
-  public boolean notifyRegister( IContext transportContext, String name)
-  {
-    return false;
-  }
-
-  @Override
-  public boolean notifyDeregister( IContext transportContext, String name)
-  {
     return false;
   }
 
@@ -101,7 +76,7 @@ public class ReliableTransport implements IEventHandler
           if ( timeRemaining > 0) 
           {
             log.debugf( "Send timeout for message, %s: expiry=%d", request, timeRemaining);
-            request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+            transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
             return true;
           }
           else
@@ -131,12 +106,6 @@ public class ReliableTransport implements IEventHandler
     return false;
   }
 
-  @Override
-  public boolean notifyException( IOException e)
-  {
-    return false;
-  }
-
   private void putMessageInBacklog( QueuedMessage item)
   {
     log.debugf( "Queueing message, %s", item.message);
@@ -144,12 +113,12 @@ public class ReliableTransport implements IEventHandler
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
     if ( timeRemaining > 0)
     {
-      item.expireFuture = transport.schedule( new ExpireTask( item), timeRemaining);
+      item.expireFuture = scheduler.schedule( new ExpireTask( item), timeRemaining, TimeUnit.MILLISECONDS);
       queue.offer( item);
     }
     else
     {
-      getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
   }
   
@@ -163,7 +132,7 @@ public class ReliableTransport implements IEventHandler
         int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
         if ( timeRemaining > 0) 
         {
-          request( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+          transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
         }
       }
       
@@ -200,15 +169,16 @@ public class ReliableTransport implements IEventHandler
     @Override
     public void run()
     {
-      getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
     }
 
     private QueuedMessage item;
   }
   
-  public final static Log log = Log.getLog( ReliableTransport.class);
+  public final static Log log = Log.getLog( ReliableAlgo.class);
   
   private ITransportImpl transport;
+  private ScheduledExecutorService scheduler;
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
 }

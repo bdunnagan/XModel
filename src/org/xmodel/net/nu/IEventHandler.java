@@ -14,7 +14,7 @@ public interface IEventHandler
   
   public boolean notifyReceive( IModelObject envelope);
 
-  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage);
+  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request);
   
   public boolean notifyConnect( IContext transportContext) throws IOException;
   

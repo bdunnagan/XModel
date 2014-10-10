@@ -1,6 +1,7 @@
 package org.xmodel.net.nu.xaction;
 
 import java.util.Iterator;
+import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.xaction.GuardedAction;
@@ -39,7 +40,8 @@ public class RegisterAction extends GuardedAction
     while( iter.hasNext())
     {
       ITransport transport = iter.next();
-      transport.register( name, messageContext, timeout, retries, life);
+      IModelObject envelope = transport.getProtocol().envelope().buildRegisterEnvelope( name);
+      transport.send( envelope, messageContext, timeout, retries, life);
     }
 
     return null;

@@ -2,6 +2,7 @@ package org.xmodel.net.nu;
 
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -17,11 +18,11 @@ public interface ITransport
   
   public AsyncFuture<ITransport> disconnect();
   
-  public AsyncFuture<ITransport> sendRequest( IModelObject request, IContext messageContext, int timeout, int retries, int life);
+  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
   
-  public AsyncFuture<ITransport> sendAck( IModelObject request);
+  public AsyncFuture<ITransport> sendAck( IModelObject envelope);
     
-  public AsyncFuture<ITransport> sendResponse( IModelObject response, IModelObject request);
-  
   public EventPipe getEventPipe();
+  
+  public Protocol getProtocol();
 }

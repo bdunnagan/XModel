@@ -11,23 +11,27 @@ public interface IEnvelopeProtocol
   
   public IModelObject buildHeartbeatEnvelope();
 
-  public IModelObject buildRegisterEnvelope( String key, String name);
+  public IModelObject buildRegisterEnvelope( String name);
   
-  public IModelObject buildDeregisterEnvelope( String key, String name);
+  public IModelObject buildDeregisterEnvelope( String name);
   
-  public IModelObject buildRequestEnvelope( String key, String route, IModelObject message);
+  public IModelObject buildRequestEnvelope( String route, IModelObject message);
   
-  public IModelObject buildResponseEnvelope( String key, String route, IModelObject message);
+  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message);
   
-  public IModelObject buildAck( String key, String route);
+  public IModelObject buildAck( IModelObject requestEnvelope);
   
   public Type getType( IModelObject envelope);
+  
+  public boolean isRequest( IModelObject envelope);
     
   public String getRegistrationName( IModelObject envelope);
   
   public IModelObject getMessage( IModelObject envelope);
   
   public IModelObject getEnvelope( IModelObject message);
+  
+  public void setKey( IModelObject envelope, String key);
   
   public String getKey( IModelObject envelope);
   

@@ -3,6 +3,7 @@ package org.xmodel.net.nu.xaction;
 import org.xmodel.IModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.xaction.GuardedAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
@@ -33,7 +34,11 @@ public class RespondAction extends GuardedAction
     Object object = viaNode.getValue();
     if ( object != null && object instanceof ITransport)
     {
-      ((ITransport)object).respond( message, request);
+      ITransport transport = ((ITransport)object);
+      IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
+      IModelObject requestEnvelope = envelopeProtocol.getEnvelope( request);
+      IModelObject responseEnvelope = envelopeProtocol.buildResponseEnvelope( requestEnvelope, message);
+      transport.send( responseEnvelope, null, -1, -1, -1);
     }
 
     return null;

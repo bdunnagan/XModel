@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -15,7 +14,7 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.ReliableTransport;
+import org.xmodel.net.nu.algo.ReliableAlgo;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XmlWireProtocol;
@@ -51,7 +50,7 @@ public class TestTransport extends AbstractTransport
   {
     if ( count-- == 0) 
     {
-      getEventPipe().notifyError( getTransportContext(), ITransport.Error.channelClosed, getProtocol().envelope().getMessage( envelope));
+      getEventPipe().notifyError( getTransportContext(), ITransport.Error.channelClosed, envelope);
       return new FailureAsyncFuture<ITransport>( this, "dummy");
     }
     
@@ -89,7 +88,7 @@ public class TestTransport extends AbstractTransport
     
     Protocol protocol = new Protocol( new XmlWireProtocol(), new SimpleEnvelopeProtocol());
     
-    final ReliableTransport t1 = new ReliableTransport( new TestTransport( protocol, context, -1));
+    final ReliableAlgo t1 = new ReliableAlgo( new TestTransport( protocol, context, -1));
     t1.getEventPipe().addLast( new DefaultEventHandler() {
       public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
       {
@@ -125,7 +124,7 @@ public class TestTransport extends AbstractTransport
     });
     
     
-    final ITransport t2 = new ReliableTransport( new TestTransport( protocol, context, 0));
+    final ITransport t2 = new ReliableAlgo( new TestTransport( protocol, context, 0));
     t2.getEventPipe().addLast( new DefaultEventHandler() {
       public boolean notifyReceive( final IModelObject message, IContext messageContext, final IModelObject request)
       {

@@ -1,31 +1,22 @@
 package org.xmodel.net.nu.xaction;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.EventPipe;
-import org.xmodel.net.nu.Heartbeater;
-import org.xmodel.net.nu.IEventHandler;
-import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
-import org.xmodel.net.nu.PersistentTransportAlgo;
-import org.xmodel.net.nu.ReliableTransport;
+import org.xmodel.net.nu.algo.HeartbeatAlgo;
+import org.xmodel.net.nu.algo.ReconnectAlgo;
+import org.xmodel.net.nu.algo.ReliableAlgo;
+import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
-import org.xmodel.xaction.IXAction;
-import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xaction.XActionException;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
-import org.xmodel.xpath.expression.StatefulContext;
 
 public class TcpClientAction extends GuardedAction
 {
@@ -46,12 +37,6 @@ public class TcpClientAction extends GuardedAction
     reliableExpr = document.getExpression( "reliable", true);
     heartbeatPeriodExpr = document.getExpression( "heartbeatPeriod", true);
     heartbeatTimeoutExpr = document.getExpression( "heartbeatTimeout", true);
-    onConnectExpr = document.getExpression( "onConnect", true);
-    onDisconnectExpr = document.getExpression( "onDisconnect", true);
-    onRegisterExpr = document.getExpression( "onRegister", true);
-    onDeregisterExpr = document.getExpression( "onDeregister", true);
-    onReceiveExpr = document.getExpression( "onReceive", true);
-    onErrorExpr = document.getExpression( "onError", true);
   }
   
   @Override
@@ -75,7 +60,7 @@ public class TcpClientAction extends GuardedAction
     
     try
     {
-      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
+      TcpClientTransport tcpClient = new TcpClientTransport( ProtocolSchema.getProtocol( protocolExpr, context), context);
       
       if ( localHost != null) tcpClient.setLocalAddress( InetSocketAddress.createUnresolved( localHost, localPort));
       tcpClient.setRemoteAddress( new InetSocketAddress( remoteHost, remotePort));
@@ -83,10 +68,11 @@ public class TcpClientAction extends GuardedAction
       ITransportImpl transport = tcpClient;
       
       EventPipe eventPipe = transport.getEventPipe();
-      if ( retry) eventPipe.addLast( new PersistentTransportAlgo( transport));
-      if ( reliable) eventPipe.addLast( new ReliableTransport( transport));
-      if ( heartbeatPeriod > 0) eventPipe.addFirst( new Heartbeater( transport, heartbeatPeriod, heartbeatTimeout));
-      eventPipe.addLast( new EventHandler( transport, context));
+      eventPipe.addFirst( new RequestTrackingAlgo( transport, scheduler));
+      if ( retry) eventPipe.addLast( new ReconnectAlgo( transport, scheduler));
+      if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
+      if ( heartbeatPeriod > 0) eventPipe.addFirst( new HeartbeatAlgo( transport, heartbeatPeriod, heartbeatTimeout, scheduler));
+      eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));
       
       transport.setConnectTimeout( connectTimeout);
       transport.connect().await();
@@ -99,142 +85,6 @@ public class TcpClientAction extends GuardedAction
     }
     
     return null;
-  }
-  
-  class EventHandler implements IEventHandler
-  {
-    public EventHandler( ITransport transport, IContext context)
-    {
-      this.transport = transport;
-      this.context = context;
-    }
-    
-    @Override
-    public boolean notifyConnect( IContext transportContext) throws IOException
-    {
-      IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
-      if ( onConnect != null) 
-      {
-        StatefulContext connectContext = new StatefulContext( transportContext);
-        
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transportNode}, connectContext, onConnect);
-        onConnect.run( connectContext);
-      }
-      return false;
-    }
-  
-    @Override
-    public boolean notifyDisconnect(IContext transportContext) throws IOException
-    {
-      IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
-      if ( onDisconnect != null) 
-      {
-        StatefulContext disconnectContext = new StatefulContext( transportContext);
-        
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transportNode}, disconnectContext, onDisconnect);
-        onDisconnect.run( disconnectContext);
-      }
-      return false;
-    }
-  
-    @Override
-    public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( ByteBuffer buffer) throws IOException
-    {
-      return false;
-    }
-  
-    @Override
-    public boolean notifyReceive( IModelObject envelope)
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
-    {
-      // ignore acks
-      if ( message == null) return false;
-      
-      IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
-      if ( onReceive != null) 
-      {
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
-        onReceive.run( messageContext);
-      }
-      return false;
-    }
-  
-    @Override
-    public boolean notifyRegister( IContext transportContext, String name)
-    {
-      IXAction onRegister = Conventions.getScript( document, transportContext, onRegisterExpr);
-      if ( onRegister != null) 
-      {
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
-        onRegister.run( transportContext);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean notifyDeregister( IContext transportContext, String name)
-    {
-      IXAction onDeregister = Conventions.getScript( document, transportContext, onDeregisterExpr);
-      if ( onDeregister != null) 
-      {
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
-        onDeregister.run( transportContext);
-      }
-      return false;
-    }
-
-    @Override
-    public boolean notifyError( IContext context, Error error, IModelObject request)
-    {
-      IXAction onError = Conventions.getScript( document, context, onErrorExpr);
-      if ( onError != null) 
-      {
-        StatefulContext messageContext = new StatefulContext( context);
-        
-        ModelObject transportNode = new ModelObject( "transport");
-        transportNode.setValue( transport);
-        
-        ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onError);
-        onError.run( messageContext);
-      }
-      return false;
-    }
-  
-    @Override
-    public boolean notifyException( IOException e)
-    {
-      log.exception( e);
-      return false;
-    }
-    
-    private ITransport transport;
-    private IContext context;    
   }
   
   public static Log log = Log.getLog( TcpClientAction.class);
@@ -251,10 +101,5 @@ public class TcpClientAction extends GuardedAction
   private IExpression reliableExpr;
   private IExpression heartbeatPeriodExpr;
   private IExpression heartbeatTimeoutExpr;
-  private IExpression onConnectExpr;
-  private IExpression onDisconnectExpr;
-  private IExpression onRegisterExpr;
-  private IExpression onDeregisterExpr;
-  private IExpression onReceiveExpr;
-  private IExpression onErrorExpr;
 }
+

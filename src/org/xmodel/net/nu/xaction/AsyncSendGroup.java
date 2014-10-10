@@ -1,17 +1,15 @@
 package org.xmodel.net.nu.xaction;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
-import org.xmodel.net.nu.IEventHandler;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xpath.expression.IContext;
@@ -41,7 +39,7 @@ public class AsyncSendGroup
     this.onComplete = onComplete;
   }
   
-  public void send( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout, int retries, int life)
+  public void send( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life)
   {
     int count = 0;
     while( transports.hasNext())
@@ -50,8 +48,11 @@ public class AsyncSendGroup
       
       transport.getEventPipe().addLast( new EventHandler( transport));
       count++;
+
+      IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
+      IModelObject envelope = isEnvelope? message: envelopeProtocol.
       
-      transport.request( message, messageContext, timeout, retries, life);
+      transport.send( message, messageContext, timeout, retries, life);
     }
 
     sentCount.set( count);
@@ -60,7 +61,7 @@ public class AsyncSendGroup
       notifyComplete();
   }
 
-  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
+  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
     send( transports, message, messageContext, timeout, retries, life);
@@ -133,7 +134,7 @@ public class AsyncSendGroup
     if ( semaphore != null) semaphore.release();
   }
 
-  class EventHandler implements IEventHandler
+  class EventHandler extends DefaultEventHandler
   {
     public EventHandler( ITransport transport)
     {
@@ -141,52 +142,10 @@ public class AsyncSendGroup
     }
     
     @Override
-    public boolean notifyConnect(IContext transportContext) throws IOException
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyDisconnect(IContext transportContext) throws IOException
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( ByteBuffer buffer) throws IOException
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( IModelObject envelope)
-    {
-      return false;
-    }
-
-    @Override
     public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
     {
       transport.getEventPipe().remove( this);
       AsyncSendGroup.this.notifyReceive( transport, message, messageContext, requestMessage);
-      return false;
-    }
-
-    @Override
-    public boolean notifyRegister( IContext transportContext, String name)
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyDeregister( IContext transportContext, String name)
-    {
       return false;
     }
 
@@ -198,12 +157,6 @@ public class AsyncSendGroup
       return false;
     }
 
-    @Override
-    public boolean notifyException( IOException e)
-    {
-      return false;
-    }
-    
     private ITransport transport;
   }
   

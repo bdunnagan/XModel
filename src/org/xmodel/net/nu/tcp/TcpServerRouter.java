@@ -11,19 +11,20 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.net.nu.IEventHandler;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
-import org.xmodel.net.nu.ReliableTransport;
 import org.xmodel.net.nu.SimpleRouter;
+import org.xmodel.net.nu.algo.HeartbeatAlgo;
+import org.xmodel.net.nu.algo.ReliableAlgo;
+import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.util.PrefixThreadFactory;
 import org.xmodel.xpath.expression.IContext;
@@ -46,6 +47,12 @@ public class TcpServerRouter implements IRouter
     this.router = new SimpleRouter();
   }
   
+  public void setHeartbeat( int period, int timeout)
+  {
+    this.heartbeatPeriod = period;
+    this.heartbeatTimeout = timeout;
+  }
+  
   public void setEventHandler( ITcpServerEventHandler eventHandler)
   {
     this.eventHandler = eventHandler;
@@ -64,12 +71,13 @@ public class TcpServerRouter implements IRouter
        @Override
        public void initChannel( SocketChannel channel) throws Exception 
        {
-         ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, scheduler, channel);
-         if ( reliable) transport.getEventPipe().addLast( new ReliableTransport( transport));
+         ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, channel);
+         transport.getEventPipe().addFirst( new RequestTrackingAlgo( transport, scheduler));
+         if ( reliable) transport.getEventPipe().addLast( new ReliableAlgo( transport, scheduler));
          
          if ( eventHandler != null) 
          {
-           transport.getEventPipe().addLast( new EventHandler( transport, eventHandler));
+           transport.getEventPipe().addLast( new EventHandler( transport));
            eventHandler.notifyConnect( transport, transportContext);
          }
 
@@ -119,23 +127,21 @@ public class TcpServerRouter implements IRouter
     return router.resolve( route);
   }
 
-  static class EventHandler implements IEventHandler
+  class EventHandler extends DefaultEventHandler
   {
-    public EventHandler( ITransport transport, ITcpServerEventHandler eventHandler)
+    public EventHandler( ITransportImpl transport)
     {
       this.transport = transport;
-      this.eventHandler = eventHandler;
     }
     
     @Override
-    public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
-    {
-      return false;
-    }
-
-    @Override
     public boolean notifyConnect( IContext transportContext) throws IOException
     {
+      if ( heartbeatPeriod > 0)
+      {
+        transport.getEventPipe().addFirst( new HeartbeatAlgo( transport, heartbeatPeriod, heartbeatTimeout, scheduler));        
+      }
+      
       return false;
     }
 
@@ -143,18 +149,6 @@ public class TcpServerRouter implements IRouter
     public boolean notifyDisconnect( IContext transportContext) throws IOException
     {
       eventHandler.notifyDisconnect( transport, transportContext);
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( ByteBuffer buffer) throws IOException
-    {
-      return false;
-    }
-
-    @Override
-    public boolean notifyReceive( IModelObject envelope)
-    {
       return false;
     }
 
@@ -193,8 +187,7 @@ public class TcpServerRouter implements IRouter
       return false;
     }
 
-    private ITransport transport;
-    private ITcpServerEventHandler eventHandler;
+    private ITransportImpl transport;
   }
   
   private Protocol protocol;
@@ -204,4 +197,6 @@ public class TcpServerRouter implements IRouter
   private SimpleRouter router;
   private boolean reliable;
   private ITcpServerEventHandler eventHandler;
+  private int heartbeatPeriod;
+  private int heartbeatTimeout;
 }

@@ -6,10 +6,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
-import org.xmodel.net.nu.Heartbeater;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
-import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.tcp.ITcpServerEventHandler;
 import org.xmodel.net.nu.tcp.TcpServerRouter;
 import org.xmodel.xaction.Conventions;
@@ -40,7 +38,7 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     onRegisterExpr = document.getExpression( "onRegister", true);
     onDeregisterExpr = document.getExpression( "onDeregister", true);
     onReceiveExpr = document.getExpression( "onReceive", true);
-    onTimeoutExpr = document.getExpression( "onTimeout", true);
+    onErrorExpr = document.getExpression( "onError", true);
     onConnectExpr = document.getExpression( "onConnect", true);
     onDisconnectExpr = document.getExpression( "onDisconnect", true);
   }
@@ -61,6 +59,10 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
       TcpServerRouter server = new TcpServerRouter( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler, reliable);
       Conventions.putCache( context, var, server);
  
+      int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;
+      int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
+      server.setHeartbeat( heartbeatPeriod, heartbeatTimeout);
+      
       server.setEventHandler( this);
       server.start( new InetSocketAddress( bindHost, bindPort));
     }
@@ -77,10 +79,6 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   {
     IXAction onConnect = Conventions.getScript( document, transportContext, onConnectExpr);
     if ( onConnect != null) onConnect.run( transportContext);
-    
-    int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( transportContext): 10000;
-    int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( transportContext): 30000;
-    if ( heartbeatPeriod > 0) transport.getEventPipe().addFirst( new Heartbeater( ((ITransportImpl)transport), heartbeatPeriod, heartbeatTimeout));
   }
   
   @Override
@@ -102,7 +100,7 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
+      ScriptAction.passVariables( new Object[] { transportNode, unwrap( transport, message), unwrap( transport, requestMessage)}, messageContext, onReceive);
       onReceive.run( messageContext);
     }
   }
@@ -138,24 +136,29 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   }
 
   @Override
-  public void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
+  public void notifyError( ITransport transport, IContext context, Error error, IModelObject requestEnvelope)
   {
-    IXAction onTimeout = Conventions.getScript( document, context, onTimeoutExpr);
-    if ( onTimeout != null) 
+    IXAction onError = Conventions.getScript( document, context, onErrorExpr);
+    if ( onError != null) 
     {
       StatefulContext messageContext = new StatefulContext( context);
       
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onTimeout);
-      onTimeout.run( messageContext);
+      ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( transport, requestEnvelope)}, messageContext, onError);
+      onError.run( messageContext);
     }
   }
   
   @Override
   public void notifyException( ITransport transport, IOException e)
   {
+  }
+  
+  private IModelObject unwrap( ITransport transport, IModelObject envelope)
+  {
+    return transport.getProtocol().envelope().getMessage( envelope);
   }
   
   private String var;
@@ -169,7 +172,7 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   private IExpression onRegisterExpr;
   private IExpression onDeregisterExpr;
   private IExpression onReceiveExpr;
-  private IExpression onTimeoutExpr;
+  private IExpression onErrorExpr;
   private IExpression onConnectExpr;
   private IExpression onDisconnectExpr;
 }
