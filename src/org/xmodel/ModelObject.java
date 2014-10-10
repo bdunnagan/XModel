@@ -173,14 +173,6 @@ public class ModelObject implements IModelObject
   }
 
   /* (non-Javadoc)
-   * @see org.xmodel.external.IExternalReference#sync()
-   */
-  public void sync() throws CachingException
-  {
-    throw new UnsupportedOperationException();
-  }
-
-  /* (non-Javadoc)
    * @see org.xmodel.external.IExternalReference#transaction()
    */
   @Override

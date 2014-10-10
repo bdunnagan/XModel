@@ -15,9 +15,11 @@ public class CallAction extends GuardedAction
   public void configure( XActionDocument document)
   {
     super.configure( document);
-    
+
+    var = Conventions.getVarName( document.getRoot(), false);
     argExprs = document.getExpressions( "args", true);
     scriptExpr = document.getExpression();
+    if ( scriptExpr == null) scriptExpr = document.getExpression( "script", true);
   }
 
   @Override
@@ -29,7 +31,13 @@ public class CallAction extends GuardedAction
     StatefulContext nested = new StatefulContext( context);
     ScriptAction.passVariables( argExprs, context, nested, script);
     
-    return script.run( nested);
+    Object[] result = script.run( nested);
+    if ( var != null && result != null && result.length > 0)
+    {
+      context.getScope().set( var, result[ 0]);
+    }
+    
+    return null;
   }
 
   /**
@@ -48,7 +56,8 @@ public class CallAction extends GuardedAction
     }
     return inline;
   }
-  
+
+  private String var;
   private List<IExpression> argExprs;
   private IExpression scriptExpr;
   private IModelObject inline;

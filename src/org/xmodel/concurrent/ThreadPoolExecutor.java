@@ -10,30 +10,31 @@ import org.xmodel.util.CountingThreadPoolExecutor;
  */
 public class ThreadPoolExecutor implements Executor
 {
-  /**
-   * Convenience method for creating with a fixed thread count.
-   * @param name The prefix for the names of threads in the thread pool.
-   * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
-   * @param linger The idle time (in seconds) after which threads are destroyed.
-   */
   public ThreadPoolExecutor( String name, int threadCount, int linger)
   {
-    this.executor = createExecutor( name, threadCount, linger);
+    this.executor = createExecutor( name, threadCount, threadCount, linger);
+    this.statistics = new Statistics( log);
+  }
+    
+  public ThreadPoolExecutor( String name, int minThreads, int maxThreads, int linger)
+  {
+    this.executor = createExecutor( name, minThreads, maxThreads, linger);
     this.statistics = new Statistics( log);
   }
     
   /**
    * Create the ExecutorService.
    * @param name The prefix for the names of threads in the thread pool.
-   * @param threadCount The number of threads in the thread pool, use 0 for cached thread pool.
+   * @param minThreads The minimum number of threads in the thread pool, use 0 for cached thread pool.
+   * @param maxThreads The maximum number of threads in the thread pool, use 0 for cached thread pool.
    * @param linger The idle time (in seconds) after which threads are destroyed.
    * @return Returns the new ExecutorService.
    */
-  private ExecutorService createExecutor( String name, int threadCount, int linger)
+  private ExecutorService createExecutor( String name, int minThreads, int maxThreads, int linger)
   {
-    return (threadCount == 0)?
+    return (minThreads == 0 && maxThreads == 0)?
         new CountingThreadPoolExecutor( name, 0, Integer.MAX_VALUE, linger):
-        new CountingThreadPoolExecutor( name, threadCount, threadCount, linger);
+        new CountingThreadPoolExecutor( name, minThreads, maxThreads, linger);
   }
   
   /* (non-Javadoc)

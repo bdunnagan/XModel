@@ -53,9 +53,6 @@ public class SubstringFunction extends Function
   public String evaluateString( IContext context) throws ExpressionException
   {
     assertArgs( 2, 3);
-    assertType( context, 0, ResultType.STRING);
-    assertType( context, 1, ResultType.NUMBER);
-    assertType( context, 2, ResultType.NUMBER);
     
     IExpression arg0 = getArgument( 0);
     IExpression arg1 = getArgument( 1);

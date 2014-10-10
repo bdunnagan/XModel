@@ -66,6 +66,7 @@ public class EvaluateFunction extends Function
   @Override
   public ResultType getType( IContext context)
   {
+    if ( getArguments().size() <= 2) return ResultType.UNDEFINED;
     return getArgument( 2).getType( context);
   }
 

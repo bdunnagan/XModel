@@ -173,6 +173,10 @@ public class SQLPredicateParser
           rhs = true;
           stack.push( State.between1);
         }
+        else if ( text.regionMatches( begin, "like", 0, 4))
+        {
+          rhs = true;
+        }
         else
         {
           rhs = false;
@@ -297,14 +301,14 @@ public class SQLPredicateParser
   private List<String> parameters;
   
   private static Pattern literalToken = Pattern.compile( "\\A\\w++");
-  private static Pattern keywordToken = Pattern.compile( "(?i)\\A(:?and|or|between|in)");
+  private static Pattern keywordToken = Pattern.compile( "(?i)\\A(:?and|or|between|in|like)");
   
   public final static Log log = Log.getLog( SQLPredicateParser.class);
 
   public static void main( String[] args) throws Exception
   {
     SQLPredicateParser p = new SQLPredicateParser();
-    p.parse( "meter =  and created between 0 and 1");
+    p.parse( "accounts like '%'");
     
     System.out.println( p.getParameterizedPredicate());
     
