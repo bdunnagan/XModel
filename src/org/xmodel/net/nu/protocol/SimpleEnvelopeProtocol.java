@@ -13,25 +13,28 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   }
   
   @Override
-  public IModelObject buildRegisterEnvelope( String name)
+  public IModelObject buildRegisterEnvelope( String name, int life)
   {
     IModelObject envelope = new ModelObject( "register");
+    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
     envelope.setAttribute( "name", name);
     return envelope;
   }
 
   @Override
-  public IModelObject buildDeregisterEnvelope( String name)
+  public IModelObject buildDeregisterEnvelope( String name, int life)
   {
     IModelObject envelope = new ModelObject( "deregister");
+    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
     envelope.setAttribute( "name", name);
     return envelope;
   }
 
   @Override
-  public IModelObject buildRequestEnvelope( String route, IModelObject message)
+  public IModelObject buildRequestEnvelope( String route, IModelObject message, int life)
   {
     IModelObject envelope = new ModelObject( "request");
+    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
     if ( route != null) envelope.setAttribute(  "route", route);
     envelope.addChild( message);
     return envelope;
@@ -41,8 +44,8 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message)
   {
     IModelObject envelope = new ModelObject( "response");
-    envelope.setAttribute( "key", requestEnvelope.getAttribute( "key"));
-    envelope.setAttribute( "route", requestEnvelope.getAttribute( "route"));
+    envelope.setAttribute( "key", Xlate.get( requestEnvelope, "key", (String)null));
+    envelope.setAttribute( "route", Xlate.get( requestEnvelope, "route", (String)null));
     envelope.addChild( message);
     return envelope;
   }
@@ -51,8 +54,8 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public IModelObject buildAck( IModelObject requestEnvelope)
   {
     IModelObject ack = new ModelObject( "ack");
-    ack.setAttribute( "key", requestEnvelope.getAttribute( "key"));
-    ack.setAttribute( "route", requestEnvelope.getAttribute( "route"));
+    ack.setAttribute( "key", Xlate.get( requestEnvelope, "key", (String)null));
+    ack.setAttribute( "route", Xlate.get( requestEnvelope, "route", (String)null));
     return ack;
   }
 
@@ -86,13 +89,21 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject getMessage( IModelObject envelope)
   {
+    if ( envelope == null) return null;
     return envelope.getChild( 0);
   }
 
   @Override
   public IModelObject getEnvelope( IModelObject message)
   {
-    return message.getRoot();
+    if ( message == null) return null;
+    return message.getParent();
+  }
+
+  @Override
+  public long getExpiration( IModelObject envelope)
+  {
+    return Xlate.get( envelope, "expiry", -1L);
   }
 
   @Override

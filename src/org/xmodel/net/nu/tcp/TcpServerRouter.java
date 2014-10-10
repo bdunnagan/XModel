@@ -22,7 +22,9 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.SimpleRouter;
+import org.xmodel.net.nu.algo.ExpirationAlgo;
 import org.xmodel.net.nu.algo.HeartbeatAlgo;
+import org.xmodel.net.nu.algo.RegisterAlgo;
 import org.xmodel.net.nu.algo.ReliableAlgo;
 import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -73,6 +75,8 @@ public class TcpServerRouter implements IRouter
        {
          ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, channel);
          transport.getEventPipe().addFirst( new RequestTrackingAlgo( transport, scheduler));
+         transport.getEventPipe().addFirst( new RegisterAlgo( transport, TcpServerRouter.this));
+         transport.getEventPipe().addFirst( new ExpirationAlgo( transport));
          if ( reliable) transport.getEventPipe().addLast( new ReliableAlgo( transport, scheduler));
          
          if ( eventHandler != null) 

@@ -48,7 +48,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyDisconnect(IContext transportContext) throws IOException
+  public boolean notifyDisconnect( IContext transportContext) throws IOException
   {
     IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
     if ( onDisconnect != null) 

@@ -12,6 +12,7 @@ import org.xmodel.log.SLog;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
 
 public class HeartbeatAlgo extends DefaultEventHandler
@@ -32,6 +33,17 @@ public class HeartbeatAlgo extends DefaultEventHandler
   public boolean notifyReceive( ByteBuffer buffer) throws IOException
   {
     resetHeartbeatTimeout();
+    return false;
+  }
+
+  @Override
+  public boolean notifyReceive( IModelObject envelope)
+  {
+    if ( transport.getProtocol().envelope().getType( envelope) == Type.heartbeat)
+    {
+      transport.sendAck( envelope);
+      return true;
+    }
     return false;
   }
 

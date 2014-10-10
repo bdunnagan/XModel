@@ -38,9 +38,8 @@ public class RequestAction extends GuardedAction
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
     
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
-    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): -1;
-    if ( retries == 0) retries = Integer.MAX_VALUE;
     int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
+    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
     IContext messageContext = new StatefulContext( context);
     context.set( "request", message);
@@ -51,7 +50,7 @@ public class RequestAction extends GuardedAction
     group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
     
     Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
-    group.send( transports, message, messageContext, timeout, retries, life);
+    group.send( transports, message, false, messageContext, timeout, retries, life);
 
     return null;
   }

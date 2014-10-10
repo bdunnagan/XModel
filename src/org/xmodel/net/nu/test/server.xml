@@ -4,6 +4,12 @@
   <assign var="onRegister">
     <script in="transport, name">
       <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
+      
+      <request via="$server" to="'bob'">
+        <script>
+          <print>'Update, Client!'</print>
+        </script>
+      </request>
     </script>
   </assign>
   
@@ -19,17 +25,11 @@
       
       <run>$message</run>
       
-      <respond via="$transport" request="$message">
+      <respond when="true()" via="$transport" request="$message">
         <script>
           <print>'Hi, Client!'</print>
         </script>
       </respond>
-      
-      <request via="$server" to="'bob'">
-        <script>
-          <print>'Update, Client!</print>
-        </script>
-      </request>
     </script>
   </assign>
 
@@ -51,9 +51,9 @@
     </script>
   </assign>
   
-  <if test="false()">
+  <if test="true()">
     <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672">
-      <purge>false()</purge>
+      <purge>true()</purge>
       <publishQueue>'client_recv'</publishQueue>
       <consumeQueue>'server_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>

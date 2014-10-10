@@ -75,13 +75,13 @@ public class ReliableAlgo extends DefaultEventHandler
           int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
           if ( timeRemaining > 0) 
           {
-            log.debugf( "Send timeout for message, %s: expiry=%d", request, timeRemaining);
-            transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
-            return true;
-          }
-          else
-          {
-            return false;
+            log.debugf( "Send timeout for message, %s: retries=%d, expiry=%d", request, item.retries, timeRemaining);
+            if ( item.retries >= 0)
+            {
+              if ( item.retries > 0) item.retries--;
+              transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+              return true;
+            }
           }
         }
       }

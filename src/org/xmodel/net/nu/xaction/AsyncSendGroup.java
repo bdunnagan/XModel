@@ -50,9 +50,9 @@ public class AsyncSendGroup
       count++;
 
       IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
-      IModelObject envelope = isEnvelope? message: envelopeProtocol.
+      IModelObject envelope = isEnvelope? message: envelopeProtocol.buildRequestEnvelope( null, message, life);
       
-      transport.send( message, messageContext, timeout, retries, life);
+      transport.send( envelope, messageContext, timeout, retries, life);
     }
 
     sentCount.set( count);
@@ -64,7 +64,7 @@ public class AsyncSendGroup
   public void sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
-    send( transports, message, messageContext, timeout, retries, life);
+    send( transports, message, isEnvelope, messageContext, timeout, retries, life);
     semaphore.acquire();
   }
   

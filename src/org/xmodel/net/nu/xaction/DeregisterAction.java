@@ -30,9 +30,8 @@ public class DeregisterAction extends GuardedAction
   {
     String name = nameExpr.evaluateString( context);
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
-    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): -1;
-    if ( retries == 0) retries = Integer.MAX_VALUE;
     int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
+    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
     IContext messageContext = new StatefulContext( context);
     
@@ -40,7 +39,7 @@ public class DeregisterAction extends GuardedAction
     while( iter.hasNext())
     {
       ITransport transport = iter.next();
-      IModelObject envelope = transport.getProtocol().envelope().buildDeregisterEnvelope( name);
+      IModelObject envelope = transport.getProtocol().envelope().buildDeregisterEnvelope( name, life);
       transport.send( envelope, messageContext, timeout, retries, life);
     }
 

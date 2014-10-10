@@ -10,11 +10,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.xmodel.IModelObject;
+import org.xmodel.log.Log;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -28,6 +30,8 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     this.requests = new ConcurrentHashMap<String, Request>();
     this.scheduler = scheduler;
     this.keyCounter = new AtomicLong( System.nanoTime());
+    
+    log.setLevel( Log.all);
   }
   
   @Override
@@ -39,7 +43,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       String key = Long.toString( keyCounter.getAndIncrement(), 36);
       envelopeProtocol.setKey( envelope, key);
       
-      Request requestState = new Request( envelope, messageContext, timeout, retries);
+      Request requestState = new Request( envelope, messageContext, timeout);
       requests.put( key, requestState);
     }
     
@@ -67,7 +71,8 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       // receive/timeout exclusion
       if ( request != null && request.timeoutFuture.cancel( false))
       {
-        transport.getEventPipe().notifyReceive( envelope, request.messageContext, request.envelope);
+        if ( transport.getProtocol().envelope().getType( envelope) != Type.ack)
+          transport.getEventPipe().notifyReceive( envelope, request.messageContext, request.envelope);
       }
     }
   }
@@ -104,23 +109,16 @@ public class RequestTrackingAlgo extends DefaultEventHandler
 
   private void notifyTimeout( Request request, IModelObject envelope, IContext messageContext)
   {
-    if ( --request.retries >= 0)
-    {
-      transport.sendImpl( envelope, null);
-    }
-    else
-    {
-      transport.getEventPipe().notifyError( messageContext, ITransport.Error.timeout, request.envelope);
-    }
+    transport.getEventPipe().notifyError( messageContext, ITransport.Error.timeout, request.envelope);
   }
 
   protected class Request implements Runnable
   {
-    Request( IModelObject envelope, IContext messageContext, int timeout, int retries)
+    Request( IModelObject envelope, IContext messageContext, int timeout)
     {
       this.envelope = envelope;
       this.messageContext = messageContext;
-      this.retries = retries;
+      this.timeout = timeout;
       
       if ( timeout > 0)
       {
@@ -137,9 +135,11 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     IModelObject envelope;
     IContext messageContext;
     ScheduledFuture<?> timeoutFuture;
-    int retries;
+    int timeout;
   }
- 
+
+  public final static Log log = Log.getLog( RequestTrackingAlgo.class);
+  
   private ITransportImpl transport;
   private ScheduledExecutorService scheduler;
   private Map<String, Request> requests;

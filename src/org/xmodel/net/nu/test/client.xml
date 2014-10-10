@@ -1,11 +1,13 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
+  <executor var="worker" name="'worker'" thread="1"/>
+
   <assign var="send">
     <script>
       <logi>'[CLIENT] Send'</logi>
       
-      <request var="result" via="$client" timeout="5000" retries="0" life="60000">
+      <request var="result" via="$client" timeout="5000" retries="0" life="5000">
         <script>
           <print>'Hi, Server'</print>
         </script>
@@ -15,7 +17,10 @@
 
   <assign var="onReceive">
     <script in="transport, message">
-      <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
+      <run executor="$worker">
+        <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
+        <run>$message</run>
+      </run>
     </script>
   </assign>
 
@@ -37,7 +42,7 @@
     </script>
   </assign>
 
-  <if test="false()">
+  <if test="true()">
     <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
       <publishQueue>'server_recv'</publishQueue>
       <consumeQueue>'client_recv'</consumeQueue>
@@ -60,7 +65,7 @@
   
   <register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/>
       
-  <!--run>$send</run-->
+  <run>$send</run>
   
   <sleep>60000</sleep>
 </script>

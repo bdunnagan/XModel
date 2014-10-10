@@ -11,11 +11,11 @@ public interface IEnvelopeProtocol
   
   public IModelObject buildHeartbeatEnvelope();
 
-  public IModelObject buildRegisterEnvelope( String name);
+  public IModelObject buildRegisterEnvelope( String name, int life);
   
-  public IModelObject buildDeregisterEnvelope( String name);
+  public IModelObject buildDeregisterEnvelope( String name, int life);
   
-  public IModelObject buildRequestEnvelope( String route, IModelObject message);
+  public IModelObject buildRequestEnvelope( String route, IModelObject message, int life);
   
   public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message);
   
@@ -30,6 +30,8 @@ public interface IEnvelopeProtocol
   public IModelObject getMessage( IModelObject envelope);
   
   public IModelObject getEnvelope( IModelObject message);
+  
+  public long getExpiration( IModelObject envelope);
   
   public void setKey( IModelObject envelope, String key);
   

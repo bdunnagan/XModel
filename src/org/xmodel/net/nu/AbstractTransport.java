@@ -95,6 +95,13 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
     }
   }
   
+  @Override
+  public boolean notifyException( IOException e)
+  {
+    log.exception( e);
+    return false;
+  }
+
   public final static Log log = Log.getLog( AbstractTransport.class);
  
   private Protocol protocol;

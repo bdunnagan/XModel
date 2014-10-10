@@ -6,8 +6,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.algo.ExpirationAlgo;
 import org.xmodel.net.nu.algo.HeartbeatAlgo;
 import org.xmodel.net.nu.algo.ReconnectAlgo;
+import org.xmodel.net.nu.algo.RegisterAlgo;
 import org.xmodel.net.nu.algo.ReliableAlgo;
 import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.tcp.TcpClientTransport;
@@ -69,6 +71,8 @@ public class TcpClientAction extends GuardedAction
       
       EventPipe eventPipe = transport.getEventPipe();
       eventPipe.addFirst( new RequestTrackingAlgo( transport, scheduler));
+      eventPipe.addFirst( new RegisterAlgo( transport, tcpClient));
+      eventPipe.addFirst( new ExpirationAlgo( transport));
       if ( retry) eventPipe.addLast( new ReconnectAlgo( transport, scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       if ( heartbeatPeriod > 0) eventPipe.addFirst( new HeartbeatAlgo( transport, heartbeatPeriod, heartbeatTimeout, scheduler));

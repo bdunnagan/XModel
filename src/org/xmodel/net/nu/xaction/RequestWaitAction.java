@@ -22,6 +22,8 @@ public class RequestWaitAction extends GuardedAction
     viaExpr = document.getExpression( "via", true);
     toExpr = document.getExpression( "to", true);
     timeoutExpr = document.getExpression( "timeout", true);
+    retriesExpr = document.getExpression( "retries", true);
+    lifeExpr = document.getExpression( "life", true);
     
     onReceiveExpr = document.getExpression( "onReceive", true);
     onErrorExpr = document.getExpression( "onError", true);
@@ -36,6 +38,8 @@ public class RequestWaitAction extends GuardedAction
   {
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
     int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
+    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
     IContext messageContext = new StatefulContext( context);
     context.set( "request", message);
@@ -48,7 +52,7 @@ public class RequestWaitAction extends GuardedAction
     Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
     try
     {
-      group.sendAndWait( transports, message, messageContext, timeout, 0, timeout);
+      group.sendAndWait( transports, message, false, messageContext, timeout, retries, life);
     }
     catch( InterruptedException e)
     {
@@ -59,11 +63,13 @@ public class RequestWaitAction extends GuardedAction
   }
 
   public final static Log log = Log.getLog( RequestAction.class);
-  
+
   private IExpression viaExpr;
   private IExpression toExpr;
   private IExpression messageExpr;
   private IExpression timeoutExpr;
+  private IExpression retriesExpr;
+  private IExpression lifeExpr;
   private IExpression onReceiveExpr;  // each
   private IExpression onErrorExpr;    // each
   private IExpression onCompleteExpr; // all
