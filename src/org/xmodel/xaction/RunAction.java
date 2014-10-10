@@ -41,10 +41,6 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.AsyncFuture.IListener;
 import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
-import org.xmodel.net.IXioCallback;
-import org.xmodel.net.IXioPeerRegistry;
-import org.xmodel.net.XioPeer;
-import org.xmodel.net.transport.netty.NettyXioClient;
 import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
@@ -80,9 +76,6 @@ public class RunAction extends GuardedAction
     scriptExpr = document.getExpression();
     
     varsExpr = document.getExpression( "vars", true);
-    
-    hostExpr = document.getExpression( "host", true);
-    portExpr = document.getExpression( "port", true);
     
     registryExpr = document.getExpression( "registry", true);
     if ( registryExpr == null) registryExpr = document.getExpression( "server", true);
@@ -125,10 +118,6 @@ public class RunAction extends GuardedAction
       {
         SLog.warnf( this, "No clients specified.");
       }
-    }
-    else if ( hostExpr != null)
-    {
-      runRemote( context, getRemoteAddresses( context));
     }
     else if ( executorExpr != null)
     {
@@ -783,8 +772,6 @@ public class RunAction extends GuardedAction
   private String cancelVar;
   private IExpression varsExpr;
   private IExpression contextExpr;
-  private IExpression hostExpr;
-  private IExpression portExpr;
   private IExpression registryExpr;
   private IExpression clientsExpr;
   private IExpression timeoutExpr;
