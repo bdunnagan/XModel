@@ -33,9 +33,13 @@ public interface IEnvelopeProtocol
   
   public long getExpiration( IModelObject envelope);
   
-  public void setKey( IModelObject envelope, String key);
+  public void setChannel( IModelObject envelope, Object channel);
   
-  public String getKey( IModelObject envelope);
+  public Object getChannel( IModelObject envelope);
+  
+  public void setKey( IModelObject envelope, Object key);
+  
+  public Object getKey( IModelObject envelope);
   
   public String getRoute( IModelObject envelope);
 

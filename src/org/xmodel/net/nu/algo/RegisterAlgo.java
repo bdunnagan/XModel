@@ -10,29 +10,28 @@ import org.xmodel.xpath.expression.IContext;
 
 public class RegisterAlgo extends DefaultEventHandler
 {
-  public RegisterAlgo( ITransportImpl transport, IRouter router)
+  public RegisterAlgo( IRouter router)
   {
-    this.transport = transport;
     this.router = router;
   }
   
   @Override
-  public boolean notifyReceive( IModelObject envelope, IContext messageContext, IModelObject request)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope, IContext messageContext, IModelObject request)
   {
     if ( request == null)
     {
       Type type = transport.getProtocol().envelope().getType( envelope);
       switch( type)
       {
-        case register:   handleRegister( envelope); return true;
-        case deregister: handleDeregister( envelope); return true;
+        case register:   handleRegister( transport, envelope); return true;
+        case deregister: handleDeregister( transport, envelope); return true;
         default:         break;
       }
     }
     return false;
   }
   
-  private void handleRegister( IModelObject envelope)
+  private void handleRegister( ITransportImpl transport, IModelObject envelope)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
     String route = envelopeProtocol.getRoute( envelope);
@@ -42,10 +41,8 @@ public class RegisterAlgo extends DefaultEventHandler
       if ( router != null) 
       {
         router.addRoute( name, transport);
-      
         transport.sendAck( envelope);
-        
-        transport.getEventPipe().notifyRegister( transport.getTransportContext(), name);
+        transport.getEventPipe().notifyRegister( transport, transport.getTransportContext(), name);
       }
     }
     else
@@ -55,7 +52,7 @@ public class RegisterAlgo extends DefaultEventHandler
     }
   }
   
-  private void handleDeregister( IModelObject envelope)
+  private void handleDeregister( ITransportImpl transport, IModelObject envelope)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
     String route = envelopeProtocol.getRoute( envelope);
@@ -65,10 +62,8 @@ public class RegisterAlgo extends DefaultEventHandler
       if ( router != null)
       {
         router.removeRoute( name, transport);
-      
         transport.sendAck( envelope);
-        
-        transport.getEventPipe().notifyDeregister( transport.getTransportContext(), name);
+        transport.getEventPipe().notifyDeregister( transport, transport.getTransportContext(), name);
       }
     }
     else
@@ -78,6 +73,5 @@ public class RegisterAlgo extends DefaultEventHandler
     }
   }
   
-  private ITransportImpl transport;
   private IRouter router;
 }

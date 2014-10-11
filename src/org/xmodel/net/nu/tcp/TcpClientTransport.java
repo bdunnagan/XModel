@@ -17,6 +17,7 @@ import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.SimpleRouter;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
@@ -90,7 +91,7 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
         }
         else
         {
-          getEventPipe().notifyError( getTransportContext(), translateConnectError( channelFuture.cause()), null);
+          getEventPipe().notifyError( (ITransportImpl)future, getTransportContext(), translateConnectError( channelFuture.cause()), null);
         }
         
         super.operationComplete( channelFuture);

@@ -73,10 +73,10 @@ public class AmqpClientAction extends GuardedAction
       
       ITransportImpl transport = amqpClient;
       EventPipe eventPipe = transport.getEventPipe();
-      eventPipe.addFirst( new RequestTrackingAlgo( transport, scheduler));
-      eventPipe.addFirst( new RegisterAlgo( transport, amqpClient));
-      eventPipe.addFirst( new ExpirationAlgo( transport));
-      if ( retry) eventPipe.addLast( new ReconnectAlgo( transport, scheduler));
+      eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
+      eventPipe.addFirst( new RegisterAlgo( amqpClient));
+      eventPipe.addFirst( new ExpirationAlgo());
+      if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       
       int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;

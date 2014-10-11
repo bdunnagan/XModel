@@ -1,7 +1,6 @@
 package org.xmodel.net.nu.algo;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -30,15 +29,10 @@ public class HeartbeatAlgo extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
     resetHeartbeatTimeout();
-    return false;
-  }
-
-  @Override
-  public boolean notifyReceive( IModelObject envelope)
-  {
+    
     if ( transport.getProtocol().envelope().getType( envelope) == Type.heartbeat)
     {
       transport.sendAck( envelope);
@@ -48,7 +42,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyConnect( IContext transportContext) throws IOException
+  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     resetHeartbeatTimeout();
     startHeartbeat();
@@ -56,7 +50,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyDisconnect( IContext transportContext) throws IOException
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     stopHeartbeat();
     stopHeartbeatTimeout();
@@ -65,7 +59,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject request)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
     if ( error == Error.heartbeatLost)
     {
@@ -121,7 +115,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
     public void run()
     {
       log.verbosef( "Heartbeat timeout expired for transport, %s, timeout=%d", transport, timeout);
-      transport.getEventPipe().notifyError( transport.getTransportContext(), Error.heartbeatLost, null);
+      transport.getEventPipe().notifyError( transport, transport.getTransportContext(), Error.heartbeatLost, null);
     }
   };
 

@@ -14,6 +14,7 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.algo.ReliableAlgo;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
@@ -50,7 +51,7 @@ public class TestTransport extends AbstractTransport
   {
     if ( count-- == 0) 
     {
-      getEventPipe().notifyError( getTransportContext(), ITransport.Error.channelClosed, envelope);
+      getEventPipe().notifyError( this, getTransportContext(), ITransport.Error.channelClosed, envelope);
       return new FailureAsyncFuture<ITransport>( this, "dummy");
     }
     
@@ -60,11 +61,11 @@ public class TestTransport extends AbstractTransport
       try
       {
         byte[] bytes = getProtocol().wire().encode( envelope);
-        transport.getEventPipe().notifyReceive( ByteBuffer.wrap( bytes, 0, bytes.length));
+        transport.getEventPipe().notifyReceive( this, ByteBuffer.wrap( bytes, 0, bytes.length));
       }
       catch( IOException e)
       {
-        transport.getEventPipe().notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
+        transport.getEventPipe().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
       }
     }
     return new SuccessAsyncFuture<ITransport>( this);
@@ -90,7 +91,7 @@ public class TestTransport extends AbstractTransport
     
     final ReliableAlgo t1 = new ReliableAlgo( new TestTransport( protocol, context, -1));
     t1.getEventPipe().addLast( new DefaultEventHandler() {
-      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+      public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
       {
         log.infof( "Transport #1:\nRequest:\n%s\nMessage:\n%s", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
@@ -116,7 +117,7 @@ public class TestTransport extends AbstractTransport
         return false;
       }
       
-      public boolean notifyError( IContext context, ITransport.Error error, IModelObject request)
+      public boolean notifyError( ITransportImpl transport, IContext context, ITransport.Error error, IModelObject request)
       {
         log.infof( "Error #1: %s", error);
         return false;
@@ -126,7 +127,7 @@ public class TestTransport extends AbstractTransport
     
     final ITransport t2 = new ReliableAlgo( new TestTransport( protocol, context, 0));
     t2.getEventPipe().addLast( new DefaultEventHandler() {
-      public boolean notifyReceive( final IModelObject message, IContext messageContext, final IModelObject request)
+      public boolean notifyReceive( ITransportImpl transport, final IModelObject message, IContext messageContext, final IModelObject request)
       {
         log.infof( "Transport #2:\nRequest:\n%s\nMessage:\n%s\n", 
           (request != null)? XmlIO.write( Style.printable, request): "null",
@@ -151,7 +152,7 @@ public class TestTransport extends AbstractTransport
         return false;
       }
       
-      public boolean notifyError( IContext context, ITransport.Error error, IModelObject request)
+      public boolean notifyError( ITransportImpl transport, IContext context, ITransport.Error error, IModelObject request)
       {
         log.infof( "Error #2: %s", error);
         return false;

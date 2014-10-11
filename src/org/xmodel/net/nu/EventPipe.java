@@ -36,22 +36,22 @@ public class EventPipe implements IEventHandler
   }
   
   @Override
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifySend( envelope, messageContext, timeout, retries, life))
+      if ( handler.notifySend( transport, envelope, messageContext, timeout, retries, life))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  public boolean notifyReceive( ITransportImpl transport, ByteBuffer buffer) throws IOException
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyReceive( buffer))
+      if ( handler.notifyReceive( transport, buffer))
         return true;
     }
     return false;
@@ -61,88 +61,88 @@ public class EventPipe implements IEventHandler
    * @see org.xmodel.net.nu.IEventHandler#notifyReceive(org.xmodel.IModelObject)
    */
   @Override
-  public boolean notifyReceive( IModelObject envelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyReceive( envelope))
+      if ( handler.notifyReceive( transport, envelope))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyReceive( message, messageContext, requestMessage))
+      if ( handler.notifyReceive( transport, message, messageContext, requestMessage))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyConnect( IContext transportContext) throws IOException
+  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyConnect( transportContext))
+      if ( handler.notifyConnect( transport, transportContext))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyDisconnect(IContext transportContext) throws IOException
+  public boolean notifyDisconnect(ITransportImpl transport, IContext transportContext) throws IOException
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyDisconnect( transportContext))
+      if ( handler.notifyDisconnect( transport, transportContext))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyRegister( IContext transportContext, String name)
+  public boolean notifyRegister( ITransportImpl transport, IContext transportContext, String name)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyRegister( transportContext, name))
+      if ( handler.notifyRegister( transport, transportContext, name))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyDeregister( IContext transportContext, String name)
+  public boolean notifyDeregister( ITransportImpl transport, IContext transportContext, String name)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyDeregister( transportContext, name))
+      if ( handler.notifyDeregister( transport, transportContext, name))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject request)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyError( context, error, request))
+      if ( handler.notifyError( transport, context, error, request))
         return true;
     }
     return false;
   }
 
   @Override
-  public boolean notifyException( IOException e)
+  public boolean notifyException( ITransportImpl transport, IOException e)
   {
     for( IEventHandler handler: getHandlers())
     {
-      if ( handler.notifyException( e))
+      if ( handler.notifyException( transport, e))
         return true;
     }
     return false;

@@ -24,10 +24,9 @@ import org.xmodel.xpath.expression.IContext;
  */
 public class RequestTrackingAlgo extends DefaultEventHandler
 {
-  public RequestTrackingAlgo( ITransportImpl transport, ScheduledExecutorService scheduler)
+  public RequestTrackingAlgo( ScheduledExecutorService scheduler)
   {
-    this.transport = transport;
-    this.requests = new ConcurrentHashMap<String, Request>();
+    this.requests = new ConcurrentHashMap<Object, Request>();
     this.scheduler = scheduler;
     this.keyCounter = new AtomicLong( System.nanoTime());
     
@@ -35,15 +34,15 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope(); 
     if ( envelopeProtocol.isRequest( envelope))
     {
-      String key = Long.toString( keyCounter.getAndIncrement(), 36);
+      Object key = keyCounter.getAndIncrement();
       envelopeProtocol.setKey( envelope, key);
       
-      Request requestState = new Request( envelope, messageContext, timeout);
+      Request requestState = new Request( transport, envelope, messageContext, timeout);
       requests.put( key, requestState);
     }
     
@@ -51,17 +50,17 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyReceive( IModelObject envelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
     if ( !transport.getProtocol().envelope().isRequest( envelope))
     {
-      handleResponse( envelope);
+      handleResponse( transport, envelope);
       return true;
     }
     return false;
   }
   
-  private void handleResponse( IModelObject envelope)
+  private void handleResponse( ITransportImpl transport, IModelObject envelope)
   {
     Object key = transport.getProtocol().envelope().getKey( envelope);
     if ( key != null)
@@ -72,28 +71,28 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       if ( request != null && request.timeoutFuture.cancel( false))
       {
         if ( transport.getProtocol().envelope().getType( envelope) != Type.ack)
-          transport.getEventPipe().notifyReceive( envelope, request.messageContext, request.envelope);
+          transport.getEventPipe().notifyReceive( transport, envelope, request.messageContext, request.envelope);
       }
     }
   }
 
   @Override
-  public boolean notifyDisconnect( IContext transportContext) throws IOException
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     //
     // Fail pending requests.  ConcurrentHashMap guarantees that all requests sent before
     // the iterator is created will be returned.  Subsequent requests should fail because
     // the channel is "inactive".
     //
-    Iterator<Entry<String, Request>> iter = requests.entrySet().iterator();
+    Iterator<Entry<Object, Request>> iter = requests.entrySet().iterator();
     while( iter.hasNext())
     {
-      Entry<String, Request> entry = iter.next();
+      Entry<Object, Request> entry = iter.next();
       Request request = entry.getValue();
       if ( request.timeoutFuture.cancel( false))
       {
         iter.remove();
-        transport.getEventPipe().notifyError( request.messageContext, ITransport.Error.channelClosed, request.envelope);
+        transport.getEventPipe().notifyError( transport, request.messageContext, ITransport.Error.channelClosed, request.envelope);
       }
     }
     
@@ -101,21 +100,22 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject envelope)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject envelope)
   {
     if ( envelope != null) requests.remove( transport.getProtocol().envelope().getKey( envelope));
     return false;
   }
 
-  private void notifyTimeout( Request request, IModelObject envelope, IContext messageContext)
+  private void notifyTimeout( ITransportImpl transport, Request request, IModelObject envelope, IContext messageContext)
   {
-    transport.getEventPipe().notifyError( messageContext, ITransport.Error.timeout, request.envelope);
+    transport.getEventPipe().notifyError( transport, messageContext, ITransport.Error.timeout, request.envelope);
   }
 
   protected class Request implements Runnable
   {
-    Request( IModelObject envelope, IContext messageContext, int timeout)
+    Request( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout)
     {
+      this.transport = transport;
       this.envelope = envelope;
       this.messageContext = messageContext;
       this.timeout = timeout;
@@ -129,19 +129,19 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     @Override
     public void run()
     {
-      notifyTimeout( this, envelope, messageContext);
+      notifyTimeout( transport, this, envelope, messageContext);
     }
     
-    IModelObject envelope;
-    IContext messageContext;
-    ScheduledFuture<?> timeoutFuture;
-    int timeout;
+    public ITransportImpl transport;
+    public IModelObject envelope;
+    public IContext messageContext;
+    public ScheduledFuture<?> timeoutFuture;
+    public int timeout;
   }
 
   public final static Log log = Log.getLog( RequestTrackingAlgo.class);
   
-  private ITransportImpl transport;
   private ScheduledExecutorService scheduler;
-  private Map<String, Request> requests;
+  private Map<Object, Request> requests;
   private AtomicLong keyCounter;
 }

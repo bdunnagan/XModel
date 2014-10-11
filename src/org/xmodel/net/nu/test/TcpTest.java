@@ -7,6 +7,7 @@ import org.xmodel.IModelObject;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.XipWireProtocol;
@@ -64,14 +65,14 @@ public class TcpTest
       }
       
       @Override
-      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[CLIENT] %s\n", XmlIO.write( Style.printable, message));
         return false;
       }
 
       @Override
-      public boolean notifyConnect( IContext transportContext) throws IOException
+      public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Connected!");
         
@@ -92,21 +93,21 @@ public class TcpTest
       }
 
       @Override
-      public boolean notifyDisconnect( IContext transportContext) throws IOException
+      public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Disconnected!");
         return false;
       }
 
       @Override
-      public boolean notifyError( IContext context, Error error, IModelObject request)
+      public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
       {
         System.out.printf( "[CLIENT] Error: %s\n", error);
         return false;
       }
 
       @Override
-      public boolean notifyException( IOException e)
+      public boolean notifyException( ITransportImpl transport, IOException e)
       {
         System.out.printf( "[CLIENT] Exception: %s\n", e);
         return false;

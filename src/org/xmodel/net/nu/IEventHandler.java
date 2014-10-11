@@ -8,23 +8,23 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface IEventHandler
 {
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
   
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException;
+  public boolean notifyReceive( ITransportImpl transport, ByteBuffer buffer) throws IOException;
   
-  public boolean notifyReceive( IModelObject envelope);
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope);
 
-  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request);
+  public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request);
   
-  public boolean notifyConnect( IContext transportContext) throws IOException;
+  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException;
   
-  public boolean notifyDisconnect( IContext transportContext) throws IOException;
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException;
   
-  public boolean notifyRegister( IContext transportContext, String name);
+  public boolean notifyRegister( ITransportImpl transport, IContext transportContext, String name);
   
-  public boolean notifyDeregister( IContext transportContext, String name);
+  public boolean notifyDeregister( ITransportImpl transport, IContext transportContext, String name);
   
-  public boolean notifyError( IContext context, ITransport.Error error, IModelObject request);
+  public boolean notifyError( ITransportImpl transport, IContext context, ITransport.Error error, IModelObject request);
 
-  public boolean notifyException( IOException e);
+  public boolean notifyException( ITransportImpl transport, IOException e);
 }

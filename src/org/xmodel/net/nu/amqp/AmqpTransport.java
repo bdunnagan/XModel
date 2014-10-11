@@ -16,7 +16,7 @@ import org.xmodel.log.SLog;
 import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.SimpleRouter;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -48,7 +48,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     connectionFactory = new ConnectionFactory();
     connectionFactory.setHost( "localhost");
     
-    router = new SimpleRouter();
+    routes = new HashMap<String, AmqpNamedTransport>();
   }
   
   public void setRemoteAddress( InetSocketAddress address)
@@ -74,7 +74,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
   
   @Override
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     Type type = getProtocol().envelope().getType( envelope);
     switch( type)
@@ -89,11 +89,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 
   public boolean createRegistrationQueue( IModelObject envelope, IContext messageContext)
   {
-    //
-    // TODO: Must create a derived transport representing the registered name, so that
-    //       algos like heartbeat can operate against a specific peer!
-    //
-    
     String name = getProtocol().envelope().getRegistrationName( envelope);
     
     if ( tempQueue != null)
@@ -120,7 +115,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     if ( consumeChannel != null) 
     {
       log.errorf( "Transport already registered to %s", name);
-      getEventPipe().notifyError( messageContext, Error.sendFailed, envelope);
+      getEventPipe().notifyError( this, messageContext, Error.sendFailed, envelope);
       return true;
     }
     
@@ -134,7 +129,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
-      getEventPipe().notifyException( e);
+      getEventPipe().notifyException( this, e);
       return true;
     }
     
@@ -155,7 +150,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
     catch( IOException e)
     {
-      getEventPipe().notifyException( e);
+      getEventPipe().notifyException( this, e);
     }
 
     if ( replyQueue.equals( name))
@@ -171,7 +166,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
       catch( IOException e)
       {
-        getEventPipe().notifyException( e);
+        getEventPipe().notifyException( this, e);
       }
     }
     
@@ -180,6 +175,11 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject envelope, IModelObject request)
+  {
+    return publish( publishExchange, publishQueue, replyQueue, envelope, request);
+  }
+  
+  protected AsyncFuture<ITransport> publish( String publishExchange, String publishQueue, String replyQueue, IModelObject envelope, IModelObject request)
   {
     Channel channel = publishChannelRef.get();
     if ( channel == null) return new FailureAsyncFuture<ITransport>( this, notConnectedError); 
@@ -276,7 +276,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       // send connect event
       try
       {
-        getEventPipe().notifyConnect( getTransportContext());
+        getEventPipe().notifyConnect( this, getTransportContext());
       }
       catch( IOException e)
       {
@@ -320,7 +320,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     catch( IOException e)
     {
       future.notifyFailure( e);
-      getEventPipe().notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
+      getEventPipe().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
       return null;
     }
   }
@@ -328,19 +328,39 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void addRoute( String route, ITransport transport)
   {
-    router.addRoute( route, transport);
+    synchronized( routes)
+    {
+      AmqpNamedTransport childTransport = routes.get( route);
+      if ( childTransport == null)
+      {
+        childTransport = new AmqpNamedTransport( route, consumeQueue, this);
+        routes.put( route, childTransport);
+      }
+      childTransport.incrementReferenceCount();
+    }
   }
 
   @Override
   public void removeRoute( String route, ITransport transport)
   {
-    router.removeRoute( route, transport);
+    synchronized( routes)
+    {
+      AmqpNamedTransport childTransport = routes.get( route);
+      if ( childTransport != null && childTransport.decrementReferenceCount() == 0)
+      {
+        routes.remove( route);
+      }
+    }
   }
 
   @Override
   public Iterator<ITransport> resolve( String route)
   {
-    return router.resolve( route);
+    synchronized( routes)
+    {
+      AmqpNamedTransport childTransport = routes.get( route);
+      return (childTransport != null)? Collections.<ITransport>singletonList( childTransport).iterator(): Collections.<ITransport>emptyList().iterator();
+    }    
   }
 
   private class TransportConsumer extends DefaultConsumer
@@ -353,7 +373,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     @Override
     public void handleDelivery( String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) throws IOException
     {
-      getEventPipe().notifyReceive( ByteBuffer.wrap( body));
+      getEventPipe().notifyReceive( AmqpTransport.this, ByteBuffer.wrap( body));
     }
 
     @Override
@@ -367,7 +387,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       
       try
       {
-        getEventPipe().notifyDisconnect( getTransportContext());
+        getEventPipe().notifyDisconnect( AmqpTransport.this, getTransportContext());
       }
       catch( IOException e)
       {
@@ -386,5 +406,5 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private String replyQueue;
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;
-  private IRouter router;
+  private Map<String, AmqpNamedTransport> routes;
 }

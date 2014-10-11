@@ -70,10 +70,10 @@ public class TcpClientAction extends GuardedAction
       ITransportImpl transport = tcpClient;
       
       EventPipe eventPipe = transport.getEventPipe();
-      eventPipe.addFirst( new RequestTrackingAlgo( transport, scheduler));
-      eventPipe.addFirst( new RegisterAlgo( transport, tcpClient));
-      eventPipe.addFirst( new ExpirationAlgo( transport));
-      if ( retry) eventPipe.addLast( new ReconnectAlgo( transport, scheduler));
+      eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
+      eventPipe.addFirst( new RegisterAlgo( tcpClient));
+      eventPipe.addFirst( new ExpirationAlgo());
+      if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       if ( heartbeatPeriod > 0) eventPipe.addFirst( new HeartbeatAlgo( transport, heartbeatPeriod, heartbeatTimeout, scheduler));
       eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));

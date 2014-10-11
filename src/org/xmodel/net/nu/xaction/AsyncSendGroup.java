@@ -9,6 +9,7 @@ import org.xmodel.log.Log;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
@@ -46,7 +47,7 @@ public class AsyncSendGroup
     {
       ITransport transport = transports.next();
       
-      transport.getEventPipe().addLast( new EventHandler( transport));
+      transport.getEventPipe().addLast( new EventHandler());
       count++;
 
       IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
@@ -147,13 +148,8 @@ public class AsyncSendGroup
 
   class EventHandler extends DefaultEventHandler
   {
-    public EventHandler( ITransport transport)
-    {
-      this.transport = transport;
-    }
-    
     @Override
-    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+    public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
     {
       transport.getEventPipe().remove( this);
       AsyncSendGroup.this.notifyReceive( transport, message, messageContext, requestMessage);
@@ -161,14 +157,12 @@ public class AsyncSendGroup
     }
 
     @Override
-    public boolean notifyError( IContext context, Error error, IModelObject request)
+    public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
     {
       transport.getEventPipe().remove( this);
       AsyncSendGroup.this.notifyError( transport, context, error, request);
       return false;
     }
-
-    private ITransport transport;
   }
   
   public static Log log = Log.getLog( AsyncSendGroup.class);

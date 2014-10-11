@@ -31,12 +31,12 @@ public class ReliableAlgo extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifySend( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     if ( transport.getProtocol().envelope().isRequest( envelope))
     {
       long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
-      QueuedMessage item = new QueuedMessage( envelope, messageContext, timeout, retries, expiry);
+      QueuedMessage item = new QueuedMessage( transport, envelope, messageContext, timeout, retries, expiry);
       sent.put( envelope, item);
     }
 
@@ -44,21 +44,21 @@ public class ReliableAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
   {
     if ( request != null) sent.remove( request);
     return false;
   }
 
   @Override
-  public boolean notifyConnect(IContext transportContext) throws IOException
+  public boolean notifyConnect(ITransportImpl transport, IContext transportContext) throws IOException
   {
     sendNextFromBacklog();
     return false;
   }
 
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject request)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
     if ( request != null)
     {
@@ -118,7 +118,7 @@ public class ReliableAlgo extends DefaultEventHandler
     }
     else
     {
-      transport.getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.getEventPipe().notifyError( item.transport, item.messageContext, ITransport.Error.messageExpired, item.message);
     }
   }
   
@@ -142,8 +142,9 @@ public class ReliableAlgo extends DefaultEventHandler
   
   private class QueuedMessage
   {
-    public QueuedMessage( IModelObject message, IContext messageContext, int timeout, int retries, long expiry)
+    public QueuedMessage( ITransportImpl transport, IModelObject message, IContext messageContext, int timeout, int retries, long expiry)
     {
+      this.transport = transport;
       this.message = message;
       this.messageContext = messageContext;
       this.timeout = timeout;
@@ -151,6 +152,7 @@ public class ReliableAlgo extends DefaultEventHandler
       this.expiry = expiry;
     }
     
+    public ITransportImpl transport;
     public IModelObject message;
     public IContext messageContext;
     public int timeout;
@@ -169,7 +171,7 @@ public class ReliableAlgo extends DefaultEventHandler
     @Override
     public void run()
     {
-      transport.getEventPipe().notifyError( item.messageContext, ITransport.Error.messageExpired, item.message);
+      transport.getEventPipe().notifyError( item.transport, item.messageContext, ITransport.Error.messageExpired, item.message);
     }
 
     private QueuedMessage item;

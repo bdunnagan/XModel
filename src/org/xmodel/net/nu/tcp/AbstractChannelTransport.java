@@ -28,7 +28,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     Channel channel = channelRef.get();
     if ( channel == null) 
     {
-      getEventPipe().notifyError( getTransportContext(), ITransport.Error.sendFailed, envelope);
+      getEventPipe().notifyError( this, getTransportContext(), ITransport.Error.sendFailed, envelope);
       return new FailureAsyncFuture<ITransport>( this, notConnectedError);
     }
     
@@ -63,7 +63,7 @@ public abstract class AbstractChannelTransport extends AbstractTransport
     catch( IOException e)
     {
       future.notifyFailure( e);
-      getEventPipe().notifyError( getTransportContext(), ITransport.Error.encodeFailed, null);
+      getEventPipe().notifyError( this, getTransportContext(), ITransport.Error.encodeFailed, null);
       return null;
     }
   }

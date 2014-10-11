@@ -6,6 +6,7 @@ import org.xmodel.ModelObject;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
@@ -31,7 +32,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifyConnect( IContext transportContext) throws IOException
+  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
     if ( onConnect != null) 
@@ -48,7 +49,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyDisconnect( IContext transportContext) throws IOException
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
     if ( onDisconnect != null) 
@@ -65,7 +66,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyReceive( IModelObject envelope, IContext messageContext, IModelObject requestEnvelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope, IContext messageContext, IModelObject requestEnvelope)
   {
     // ignore acks
     if ( envelope == null) return false;
@@ -87,7 +88,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyRegister( IContext transportContext, String name)
+  public boolean notifyRegister( ITransportImpl transport, IContext transportContext, String name)
   {
     IXAction onRegister = Conventions.getScript( document, transportContext, onRegisterExpr);
     if ( onRegister != null) 
@@ -106,7 +107,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyDeregister( IContext transportContext, String name)
+  public boolean notifyDeregister( ITransportImpl transport, IContext transportContext, String name)
   {
     IXAction onDeregister = Conventions.getScript( document, transportContext, onDeregisterExpr);
     if ( onDeregister != null) 
@@ -125,7 +126,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject requestEnvelope)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject requestEnvelope)
   {
     IXAction onError = Conventions.getScript( document, context, onErrorExpr);
     if ( onError != null) 
@@ -146,7 +147,7 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyException( IOException e)
+  public boolean notifyException( ITransportImpl transport, IOException e)
   {
     return false;
   }

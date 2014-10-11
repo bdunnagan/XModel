@@ -74,14 +74,14 @@ public class TcpServerRouter implements IRouter
        public void initChannel( SocketChannel channel) throws Exception 
        {
          ITransportImpl transport = new TcpChildTransport( TcpServerRouter.this, protocol, transportContext, channel);
-         transport.getEventPipe().addFirst( new RequestTrackingAlgo( transport, scheduler));
-         transport.getEventPipe().addFirst( new RegisterAlgo( transport, TcpServerRouter.this));
-         transport.getEventPipe().addFirst( new ExpirationAlgo( transport));
+         transport.getEventPipe().addFirst( new RequestTrackingAlgo( scheduler));
+         transport.getEventPipe().addFirst( new RegisterAlgo( TcpServerRouter.this));
+         transport.getEventPipe().addFirst( new ExpirationAlgo());
          if ( reliable) transport.getEventPipe().addLast( new ReliableAlgo( transport, scheduler));
          
          if ( eventHandler != null) 
          {
-           transport.getEventPipe().addLast( new EventHandler( transport));
+           transport.getEventPipe().addLast( new EventHandler());
            eventHandler.notifyConnect( transport, transportContext);
          }
 
@@ -133,13 +133,8 @@ public class TcpServerRouter implements IRouter
 
   class EventHandler extends DefaultEventHandler
   {
-    public EventHandler( ITransportImpl transport)
-    {
-      this.transport = transport;
-    }
-    
     @Override
-    public boolean notifyConnect( IContext transportContext) throws IOException
+    public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
     {
       if ( heartbeatPeriod > 0)
       {
@@ -150,48 +145,46 @@ public class TcpServerRouter implements IRouter
     }
 
     @Override
-    public boolean notifyDisconnect( IContext transportContext) throws IOException
+    public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
     {
       eventHandler.notifyDisconnect( transport, transportContext);
       return false;
     }
 
     @Override
-    public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject request)
+    public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
     {
       eventHandler.notifyReceive( transport, message, messageContext, request);
       return false;
     }
 
     @Override
-    public boolean notifyRegister( IContext transportContext, String name)
+    public boolean notifyRegister( ITransportImpl transport, IContext transportContext, String name)
     {
       eventHandler.notifyRegister( transport, transportContext, name);
       return false;
     }
 
     @Override
-    public boolean notifyDeregister( IContext transportContext, String name)
+    public boolean notifyDeregister( ITransportImpl transport, IContext transportContext, String name)
     {
       eventHandler.notifyDeregister( transport, transportContext, name);
       return false;
     }
 
     @Override
-    public boolean notifyError( IContext context, Error error, IModelObject request)
+    public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
     {
       eventHandler.notifyError( transport, context, error, request);
       return false;
     }
 
     @Override
-    public boolean notifyException( IOException e)
+    public boolean notifyException( ITransportImpl transport, IOException e)
     {
       eventHandler.notifyException( transport, e);
       return false;
     }
-
-    private ITransportImpl transport;
   }
   
   private Protocol protocol;

@@ -8,6 +8,7 @@ import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.IEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
+import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.amqp.AmqpTransport;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.SimpleEnvelopeProtocol;
@@ -30,7 +31,7 @@ public class AmqpTest
       }
       
       @Override
-      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
         transport.ack( message);
@@ -38,28 +39,28 @@ public class AmqpTest
       }
 
       @Override
-      public boolean notifyConnect( IContext transportContext) throws IOException
+      public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[SERVER] Connected!");
         return false;
       }
 
       @Override
-      public boolean notifyDisconnect( IContext transportContext) throws IOException
+      public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[SERVER] Disconnected!");
         return false;
       }
 
       @Override
-      public boolean notifyError( IContext context, Error error, IModelObject request)
+      public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
       {
         System.out.printf( "[SERVER] Error: %s\n", error);
         return false;
       }
 
       @Override
-      public boolean notifyException( IOException e)
+      public boolean notifyException( ITransportImpl transport, IOException e)
       {
         System.out.printf( "[SERVER] Exception: %s\n", e);
         return false;
@@ -76,14 +77,14 @@ public class AmqpTest
       }
       
       @Override
-      public boolean notifyReceive( IModelObject message, IContext messageContext, IModelObject requestMessage)
+      public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[CLIENT] %s\n", (message != null)? XmlIO.write( Style.printable, message): "null");
         return false;
       }
 
       @Override
-      public boolean notifyConnect( IContext transportContext) throws IOException
+      public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Connected!");
         
@@ -104,21 +105,21 @@ public class AmqpTest
       }
 
       @Override
-      public boolean notifyDisconnect( IContext transportContext) throws IOException
+      public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
       {
         System.out.println( "[CLIENT] Disconnected!");
         return false;
       }
 
       @Override
-      public boolean notifyError( IContext context, Error error, IModelObject request)
+      public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
       {
         System.out.printf( "[CLIENT] Error: %s\n", error);
         return false;
       }
 
       @Override
-      public boolean notifyException( IOException e)
+      public boolean notifyException( ITransportImpl transport, IOException e)
       {
         System.out.printf( "[CLIENT] Exception: %s\n", e);
         return false;

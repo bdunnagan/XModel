@@ -9,11 +9,10 @@ import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.xpath.expression.IContext;
 
-public class ReconnectAlgo extends DefaultEventHandler implements Runnable
+public class ReconnectAlgo extends DefaultEventHandler
 {
-  public ReconnectAlgo( ITransportImpl transport, ScheduledExecutorService scheduler)
+  public ReconnectAlgo( ScheduledExecutorService scheduler)
   {
-    this.transport = transport;
     this.scheduler = scheduler;
     this.retryMinDelay = 1000;
     this.retryMaxDelay = 10000;
@@ -21,22 +20,16 @@ public class ReconnectAlgo extends DefaultEventHandler implements Runnable
   }
 
   @Override
-  public void run()
-  {
-    transport.connect();
-  }
-  
-  @Override
-  public boolean notifyConnect( IContext transportContext) throws IOException
+  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
     retryDelay = retryMinDelay;
     return false;
   }
 
   @Override
-  public boolean notifyDisconnect( IContext transportContext) throws IOException
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
-    scheduler.schedule( this, retryDelay, TimeUnit.MILLISECONDS);
+    scheduler.schedule( new ReconnectRunnable( transport), retryDelay, TimeUnit.MILLISECONDS);
     increaseRetryDelay();
     return false;
   }
@@ -48,13 +41,13 @@ public class ReconnectAlgo extends DefaultEventHandler implements Runnable
   }
   
   @Override
-  public boolean notifyError( IContext context, Error error, IModelObject request)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
     switch( error)
     {
       case connectRefused:
       case connectError:
-        scheduler.schedule( this, retryDelay, TimeUnit.MILLISECONDS);
+        scheduler.schedule( new ReconnectRunnable( transport), retryDelay, TimeUnit.MILLISECONDS);
         increaseRetryDelay();
         break;
       
@@ -64,8 +57,23 @@ public class ReconnectAlgo extends DefaultEventHandler implements Runnable
     
     return false;
   }
+  
+  private static class ReconnectRunnable implements Runnable
+  {
+    public ReconnectRunnable( ITransportImpl transport)
+    {
+      this.transport = transport;
+    }
+    
+    @Override
+    public void run()
+    {
+      transport.connect();
+    }
 
-  private ITransportImpl transport;
+    private ITransportImpl transport;
+  }
+
   private ScheduledExecutorService scheduler;
   private int retryDelay;
   private int retryMinDelay;

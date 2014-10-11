@@ -116,15 +116,27 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   }
 
   @Override
-  public void setKey( IModelObject envelope, String key)
+  public void setChannel( IModelObject envelope, Object channel)
+  {
+    envelope.setAttribute( channelAttrName, channel);
+  }
+
+  @Override
+  public Object getChannel( IModelObject envelope)
+  {
+    return envelope.getAttribute( channelAttrName);
+  }
+
+  @Override
+  public void setKey( IModelObject envelope, Object key)
   {
     if ( key != null) envelope.setAttribute( keyAttrName, key);
   }
 
   @Override
-  public String getKey( IModelObject envelope)
+  public Object getKey( IModelObject envelope)
   {
-    return Xlate.get( envelope, keyAttrName, (String)null);
+    return envelope.getAttribute( keyAttrName);
   }
 
   @Override
@@ -149,4 +161,5 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   private final static String routeAttrName = "u";
   private final static String expiryAttrName = "e";
   private final static String replyAttrName = "r";
+  private final static String channelAttrName = "c";
 }

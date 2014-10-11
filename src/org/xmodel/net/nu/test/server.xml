@@ -22,11 +22,14 @@
   <assign var="onReceive">
     <script in="transport, message">
       <logi>format( '[SERVER] Received:\n%s', $message)</logi>
-      
-      <run var="result">$message</run>
-      <print>$result</print>
 
-      <respond via="$transport" request="$message">$result</respond>
+      <try>
+        <run var="result">$message</run>
+        <respond via="$transport" request="$message">$result</respond>
+      </try>      
+      <catch>
+        <respond via="$transport" request="$message">$exception</respond>
+      </catch>
     </script>
   </assign>
 

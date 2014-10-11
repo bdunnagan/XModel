@@ -27,7 +27,7 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   @Override
   public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
-    eventPipe.notifySend( envelope, messageContext, timeout, retries, life);
+    eventPipe.notifySend( this, envelope, messageContext, timeout, retries, life);
     return sendImpl( envelope, null);
   }
 
@@ -56,7 +56,7 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   }
   
   @Override
-  public boolean notifyReceive( ByteBuffer buffer) throws IOException
+  public boolean notifyReceive( ITransportImpl transport, ByteBuffer buffer) throws IOException
   {
     if ( log.verbose()) log.verbosef( "Read buffer contains:\n%s", HexDump.toString( Unpooled.wrappedBuffer( buffer)));
     
@@ -67,25 +67,25 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
       if ( envelope != null)
       {
         // deliver
-        eventPipe.notifyReceive( envelope);
+        eventPipe.notifyReceive( this, envelope);
         return true;
       }
     }
     catch( IOException e)
     {
-      eventPipe.notifyException( e);
+      eventPipe.notifyException( this, e);
     }
     
     return false;
   }
   
   @Override
-  public boolean notifyReceive( IModelObject envelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
     String route = protocol.envelope().getRoute( envelope);
     if ( route == null)
     {
-      eventPipe.notifyReceive( envelope, transportContext, null);
+      eventPipe.notifyReceive( this, envelope, transportContext, null);
       return true;
     }
     else
@@ -96,7 +96,7 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   }
   
   @Override
-  public boolean notifyException( IOException e)
+  public boolean notifyException( ITransportImpl transport, IOException e)
   {
     log.exception( e);
     return false;

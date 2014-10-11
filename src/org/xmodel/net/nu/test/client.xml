@@ -9,7 +9,7 @@
       
       <create var="script">
         <script>
-          <return>2</return>
+          <throw>'Oops!'</throw>
         </script>
       </create>
       

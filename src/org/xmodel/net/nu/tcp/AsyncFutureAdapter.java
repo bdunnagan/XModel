@@ -24,5 +24,5 @@ public class AsyncFutureAdapter<T> implements GenericFutureListener<ChannelFutur
     }
   }
   
-  private AsyncFuture<T> future;
+  protected AsyncFuture<T> future;
 }

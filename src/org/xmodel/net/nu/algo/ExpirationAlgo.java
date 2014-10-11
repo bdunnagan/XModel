@@ -9,14 +9,13 @@ import org.xmodel.net.nu.ITransportImpl;
 
 public class ExpirationAlgo extends DefaultEventHandler
 {
-  public ExpirationAlgo( ITransportImpl transport)
+  public ExpirationAlgo()
   {
-    this.transport = transport;
     this.dateFormat = new SimpleDateFormat();
   }
   
   @Override
-  public boolean notifyReceive( IModelObject envelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
     long expiry = transport.getProtocol().envelope().getExpiration( envelope);
     if ( expiry >= 0 && expiry < System.currentTimeMillis())
@@ -30,6 +29,5 @@ public class ExpirationAlgo extends DefaultEventHandler
 
   public final static Log log = Log.getLog( ExpirationAlgo.class);
   
-  private ITransportImpl transport;
   private SimpleDateFormat dateFormat;
 }
