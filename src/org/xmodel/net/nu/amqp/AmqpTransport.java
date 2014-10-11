@@ -89,6 +89,11 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 
   public boolean createRegistrationQueue( IModelObject envelope, IContext messageContext)
   {
+    //
+    // TODO: Must create a derived transport representing the registered name, so that
+    //       algos like heartbeat can operate against a specific peer!
+    //
+    
     String name = getProtocol().envelope().getRegistrationName( envelope);
     
     if ( tempQueue != null)

@@ -23,13 +23,10 @@
     <script in="transport, message">
       <logi>format( '[SERVER] Received:\n%s', $message)</logi>
       
-      <run>$message</run>
-      
-      <respond when="true()" via="$transport" request="$message">
-        <script>
-          <print>'Hi, Client!'</print>
-        </script>
-      </respond>
+      <run var="result">$message</run>
+      <print>$result</print>
+
+      <respond via="$transport" request="$message">$result</respond>
     </script>
   </assign>
 
@@ -51,7 +48,7 @@
     </script>
   </assign>
   
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672">
       <purge>true()</purge>
       <publishQueue>'client_recv'</publishQueue>

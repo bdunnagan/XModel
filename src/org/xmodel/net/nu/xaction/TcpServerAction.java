@@ -100,7 +100,11 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, unwrap( transport, message), unwrap( transport, requestMessage)}, messageContext, onReceive);
+      synchronized( messageContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, unwrap( transport, message), unwrap( transport, requestMessage)}, messageContext, onReceive);
+      }
+      
       onReceive.run( messageContext);
     }
   }
@@ -114,7 +118,11 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+      synchronized( transportContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+      }
+      
       onRegister.run( transportContext);
     }
     return false;
@@ -129,7 +137,11 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+      synchronized( transportContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+      }
+      
       onDeregister.run( transportContext);
     }
     return false;
@@ -141,13 +153,13 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     IXAction onError = Conventions.getScript( document, context, onErrorExpr);
     if ( onError != null) 
     {
-      StatefulContext messageContext = new StatefulContext( context);
+      StatefulContext errorContext = new StatefulContext( context);
       
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( transport, requestEnvelope)}, messageContext, onError);
-      onError.run( messageContext);
+      ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( transport, requestEnvelope)}, errorContext, onError);
+      onError.run( errorContext);
     }
   }
   

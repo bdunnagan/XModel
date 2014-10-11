@@ -17,7 +17,7 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.IExpression.ResultType;
 
-final class ActionUtil
+final public class ActionUtil
 {
   public static IModelObject getMessage( IModelObject document)
   {

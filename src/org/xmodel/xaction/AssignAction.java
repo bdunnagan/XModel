@@ -53,16 +53,6 @@ public class AssignAction extends GuardedAction
     IModelObject config = document.getRoot();
     var = Conventions.getVarName( config, true, "name");
 
-    if ( config.getNumberOfChildren() > 0)
-    {
-      inlines = config.getChildren();
-    }
-    else
-    {
-      sourceExpr = document.getExpression();
-      if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
-    }
-    
     // load IModelObjectFactory class
     factory = Conventions.getFactory( config);
 
@@ -74,6 +64,16 @@ public class AssignAction extends GuardedAction
     append = Xlate.get( config, "append", false);
     replace = Xlate.get( config, "replace", false);
     define = Xlate.get( config, "define", false);
+    
+    if ( config.getNumberOfChildren() > 0)
+    {
+      inlines = config.getChildren();
+    }
+    else if ( !mode.equals( "inject"))
+    {
+      sourceExpr = document.getExpression();
+      if ( sourceExpr == null) sourceExpr = document.getExpression( "source", true);
+    }
   }
 
   /* (non-Javadoc)
@@ -101,7 +101,7 @@ public class AssignAction extends GuardedAction
     {
       scope.define( var, sourceExpr);
     }
-    else
+    else if ( !mode.equals( "inject"))
     {
       switch( sourceExpr.getType( context))
       {
@@ -183,6 +183,10 @@ public class AssignAction extends GuardedAction
         case BOOLEAN: scope.set( var, sourceExpr.evaluateBoolean( context)); break;
         default: break;
       }
+    }
+    else if ( mode.equals( "inject"))
+    {
+      scope.set( var, document.getRoot().getValue());
     }
     
     return null;

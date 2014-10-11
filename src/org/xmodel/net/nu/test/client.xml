@@ -7,11 +7,13 @@
     <script>
       <logi>'[CLIENT] Send'</logi>
       
-      <request var="result" via="$client" timeout="5000" retries="0" life="5000">
+      <create var="script">
         <script>
-          <print>'Hi, Server'</print>
+          <return>2</return>
         </script>
-      </request>
+      </create>
+      
+      <request var="result" via="$client" timeout="5000" retries="0" life="5000">$script</request>
     </script>
   </assign>
 
@@ -19,7 +21,7 @@
     <script in="transport, message">
       <run executor="$worker">
         <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
-        <run>$message</run>
+        <print>$message</print>
       </run>
     </script>
   </assign>
@@ -42,7 +44,7 @@
     </script>
   </assign>
 
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
       <publishQueue>'server_recv'</publishQueue>
       <consumeQueue>'client_recv'</consumeQueue>
@@ -63,7 +65,7 @@
     </tcpClient>
   </else>
   
-  <register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/>
+  <!--register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/-->
       
   <run>$send</run>
   

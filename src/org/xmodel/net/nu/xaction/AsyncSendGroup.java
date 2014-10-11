@@ -61,11 +61,12 @@ public class AsyncSendGroup
       notifyComplete();
   }
 
-  public void sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
+  public Object[] sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
     semaphore = new Semaphore( 0);
     send( transports, message, isEnvelope, messageContext, timeout, retries, life);
     semaphore.acquire();
+    return results;
   }
   
   public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
@@ -75,8 +76,18 @@ public class AsyncSendGroup
     {
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
+
+      // only used by RunAction
+      Object[] results = new Object[] { message.getValue()};
+      if ( message.getChildren().size() > 0) results[ 0] = message.getChildren();
+      // only used by RunAction
       
-      ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
+      synchronized( messageContext)
+      {
+        this.results = results; // only used by RunAction
+        ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
+      }
+      
       onReceive.run( messageContext);
     }
     
@@ -87,13 +98,13 @@ public class AsyncSendGroup
   {
     if ( onError != null) 
     {
-      StatefulContext messageContext = new StatefulContext( context);
+      StatefulContext errorContext = new StatefulContext( context);
       
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transport, error.toString()}, messageContext, onError);
-      onError.run( messageContext);
+      ScriptAction.passVariables( new Object[] { transport, error.toString()}, errorContext, onError);
+      onError.run( errorContext);
     }
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
@@ -169,4 +180,5 @@ public class AsyncSendGroup
   private IXAction onError;
   private IXAction onComplete;
   private Semaphore semaphore;
+  private Object[] results;
 }

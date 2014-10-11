@@ -4,19 +4,19 @@ import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 
-public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
+public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
 {
   @Override
   public IModelObject buildHeartbeatEnvelope()
   {
-    return new ModelObject( "heartbeat");
+    return new ModelObject( "h");
   }
   
   @Override
   public IModelObject buildRegisterEnvelope( String name, int life)
   {
-    IModelObject envelope = new ModelObject( "register");
-    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
+    IModelObject envelope = new ModelObject( "r");
+    if ( life > 0) envelope.setAttribute( expiryAttrName, System.currentTimeMillis() + life);
     envelope.setAttribute( "name", name);
     return envelope;
   }
@@ -24,8 +24,8 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject buildDeregisterEnvelope( String name, int life)
   {
-    IModelObject envelope = new ModelObject( "deregister");
-    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
+    IModelObject envelope = new ModelObject( "d");
+    if ( life > 0) envelope.setAttribute( expiryAttrName, System.currentTimeMillis() + life);
     envelope.setAttribute( "name", name);
     return envelope;
   }
@@ -33,9 +33,9 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject buildRequestEnvelope( String route, IModelObject message, int life)
   {
-    IModelObject envelope = new ModelObject( "request");
-    if ( life > 0) envelope.setAttribute( "expiry", System.currentTimeMillis() + life);
-    if ( route != null) envelope.setAttribute(  "route", route);
+    IModelObject envelope = new ModelObject( "q");
+    if ( life > 0) envelope.setAttribute( expiryAttrName, System.currentTimeMillis() + life);
+    if ( route != null) envelope.setAttribute(  routeAttrName, route);
     envelope.addChild( message);
     return envelope;
   }
@@ -43,9 +43,9 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message)
   {
-    IModelObject envelope = new ModelObject( "response");
-    envelope.setAttribute( "key", Xlate.get( requestEnvelope, "key", (String)null));
-    envelope.setAttribute( "route", Xlate.get( requestEnvelope, "route", (String)null));
+    IModelObject envelope = new ModelObject( "s");
+    envelope.setAttribute( keyAttrName, Xlate.get( requestEnvelope, keyAttrName, (String)null));
+    envelope.setAttribute( routeAttrName, Xlate.get( requestEnvelope, routeAttrName, (String)null));
     envelope.addChild( message);
     return envelope;
   }
@@ -53,16 +53,25 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public IModelObject buildAck( IModelObject requestEnvelope)
   {
-    IModelObject ack = new ModelObject( "ack");
-    ack.setAttribute( "key", Xlate.get( requestEnvelope, "key", (String)null));
-    ack.setAttribute( "route", Xlate.get( requestEnvelope, "route", (String)null));
+    IModelObject ack = new ModelObject( "a");
+    ack.setAttribute( keyAttrName, Xlate.get( requestEnvelope, keyAttrName, (String)null));
+    ack.setAttribute( routeAttrName, Xlate.get( requestEnvelope, routeAttrName, (String)null));
     return ack;
   }
 
   @Override
   public Type getType( IModelObject envelope)
   {
-    return Type.valueOf( envelope.getType());
+    switch( envelope.getType().charAt( 0))
+    {
+      case 'r': return Type.register;
+      case 'd': return Type.deregister;
+      case 'q': return Type.request;
+      case 's': return Type.response;
+      case 'a': return Type.ack;
+      case 'h': return Type.heartbeat;
+      default:  return null;
+    }
   }
 
   @Override
@@ -103,36 +112,41 @@ public class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   @Override
   public long getExpiration( IModelObject envelope)
   {
-    return Xlate.get( envelope, "expiry", -1L);
+    return Xlate.get( envelope, expiryAttrName, -1L);
   }
 
   @Override
   public void setKey( IModelObject envelope, String key)
   {
-    if ( key != null) envelope.setAttribute( "key", key);
+    if ( key != null) envelope.setAttribute( keyAttrName, key);
   }
 
   @Override
   public String getKey( IModelObject envelope)
   {
-    return Xlate.get( envelope, "key", (String)null);
+    return Xlate.get( envelope, keyAttrName, (String)null);
   }
 
   @Override
   public String getRoute( IModelObject envelope)
   {
-    return Xlate.get( envelope, "route", (String)null);
+    return Xlate.get( envelope, routeAttrName, (String)null);
   }
 
   @Override
   public void setReplyTo( IModelObject envelope, String replyTo)
   {
-    Xlate.set( envelope, "reply", replyTo);
+    Xlate.set( envelope, replyAttrName, replyTo);
   }
 
   @Override
   public String getReplyTo( IModelObject envelope)
   {
-    return Xlate.get( envelope, "reply", (String)null);
+    return Xlate.get( envelope, replyAttrName, (String)null);
   }
+  
+  private final static String keyAttrName = "k";
+  private final static String routeAttrName = "u";
+  private final static String expiryAttrName = "e";
+  private final static String replyAttrName = "r";
 }

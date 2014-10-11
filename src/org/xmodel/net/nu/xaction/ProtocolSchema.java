@@ -11,7 +11,7 @@ final class ProtocolSchema
 {
   public static Protocol getProtocol( IExpression protocolExpr, IContext context)
   {
-    String protocol = (protocolExpr != null)? protocolExpr.evaluateString( context): "xml";
+    String protocol = (protocolExpr != null)? protocolExpr.evaluateString( context): "xip";
     protocol = protocol.substring( 0, 1).toUpperCase() + protocol.substring( 1);
     String className = "org.xmodel.net.nu.protocol." + protocol + "WireProtocol";
     try

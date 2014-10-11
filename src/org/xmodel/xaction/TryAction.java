@@ -19,10 +19,13 @@
  */
 package org.xmodel.xaction;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import org.xmodel.IModelObject;
+import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
 import org.xmodel.log.Log;
 import org.xmodel.xpath.expression.IContext;
@@ -185,7 +188,8 @@ public class TryAction extends CompoundAction
     IVariableScope scope = context.getScope();
     if ( scope != null)
     {
-      IModelObject exception = XActionException.createExceptionFragment( t, null);
+      IModelObject exception = new ModelObject( "exception");
+      exception.setValue( new ThrowableWrapper( t));
       scope.set( "exception", exception);
     }
   }
@@ -194,6 +198,24 @@ public class TryAction extends CompoundAction
   {
     Class<Throwable> thrownClass;
     ScriptAction script;
+  }
+  
+  public static class ThrowableWrapper
+  {
+    public ThrowableWrapper( Throwable thrown)
+    {
+      this.thrown = thrown;
+    }
+    
+    @Override
+    public String toString()
+    {
+      StringWriter writer = new StringWriter();
+      thrown.printStackTrace( new PrintWriter( writer));
+      return writer.toString();
+    }
+    
+    public Throwable thrown;
   }
   
   private static Log log = Log.getLog( "org.xmodel.xaction");

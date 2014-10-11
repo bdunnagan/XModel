@@ -42,7 +42,7 @@ public class RequestAction extends GuardedAction
     int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
     IContext messageContext = new StatefulContext( context);
-    context.set( "request", message);
+context.set( "request", message); //????
     
     AsyncSendGroup group = new AsyncSendGroup( context);
     group.setReceiveScript( Conventions.getScript( document, context, onReceiveExpr));

@@ -76,7 +76,11 @@ class EventHandlerAdapter extends DefaultEventHandler
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope)}, messageContext, onReceive);
+      synchronized( messageContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope)}, messageContext, onReceive);
+      }
+      
       onReceive.run( messageContext);
     }
     return false;
@@ -91,7 +95,11 @@ class EventHandlerAdapter extends DefaultEventHandler
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+      synchronized( transportContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+      }
+      
       onRegister.run( transportContext);
     }
     return false;
@@ -106,7 +114,11 @@ class EventHandlerAdapter extends DefaultEventHandler
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
       
-      ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+      synchronized( transportContext)
+      {
+        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+      }
+      
       onDeregister.run( transportContext);
     }
     return false;
@@ -123,7 +135,11 @@ class EventHandlerAdapter extends DefaultEventHandler
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
 
-      ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( requestEnvelope)}, messageContext, onError);
+      synchronized( messageContext)
+      {
+        ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( requestEnvelope)}, messageContext, onError);
+      }
+      
       onError.run( messageContext);
     }
     return false;
