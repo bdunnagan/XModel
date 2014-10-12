@@ -10,7 +10,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public class MuxAlgo extends DefaultEventHandler
 {
-  public MuxAlgo( ConcurrentHashMap<Object, ITransportImpl> channels)
+  public MuxAlgo( ConcurrentHashMap<Long, ITransportImpl> channels)
   {
     this.channels = channels;
     log.setLevel( Log.all);
@@ -20,16 +20,13 @@ public class MuxAlgo extends DefaultEventHandler
   public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope(); 
-    if ( envelopeProtocol.isRequest( envelope))
-    {
-      Object channel = transport.hashCode();
-      envelopeProtocol.setChannel( envelope, channel);
-      if ( channel != null) channels.putIfAbsent( channel, transport);
-    }
+    long channel = transport.hashCode();
+    envelopeProtocol.setChannel( envelope, channel);
+    channels.putIfAbsent( channel, transport);
     return false;
   }
 
   public final static Log log = Log.getLog( MuxAlgo.class);
   
-  private ConcurrentHashMap<Object, ITransportImpl> channels;
+  private ConcurrentHashMap<Long, ITransportImpl> channels;
 }

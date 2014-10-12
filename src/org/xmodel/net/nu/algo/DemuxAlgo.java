@@ -10,7 +10,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public class DemuxAlgo extends DefaultEventHandler
 {
-  public DemuxAlgo( ConcurrentHashMap<Object, ITransportImpl> channels)
+  public DemuxAlgo( ConcurrentHashMap<Long, ITransportImpl> channels)
   {
     this.channels = channels;
     log.setLevel( Log.all);
@@ -19,9 +19,10 @@ public class DemuxAlgo extends DefaultEventHandler
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
-    Object channel = transport.getProtocol().envelope().getChannel( envelope);
-    if ( channel != null)
+    Object object = transport.getProtocol().envelope().getChannel( envelope);
+    if ( object != null)
     {
+      Long channel = (object instanceof Number)? ((Number)object).longValue(): Long.parseLong( object.toString());  
       ITransportImpl channelTransport = channels.get( channel);
       if ( channelTransport != null) 
       {
@@ -51,5 +52,5 @@ public class DemuxAlgo extends DefaultEventHandler
 
   public final static Log log = Log.getLog( DemuxAlgo.class);
   
-  private ConcurrentHashMap<Object, ITransportImpl> channels;
+  private ConcurrentHashMap<Long, ITransportImpl> channels;
 }

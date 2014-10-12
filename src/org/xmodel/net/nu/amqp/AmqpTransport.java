@@ -59,7 +59,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     connectionFactory.setHost( "localhost");
     
     routes = new HashMap<String, AmqpNamedTransport>();
-    mux = new ConcurrentHashMap<Object, ITransportImpl>();
+    mux = new ConcurrentHashMap<Long, ITransportImpl>();
   }
   
   public void setRemoteAddress( InetSocketAddress address)
@@ -94,7 +94,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.heartbeatTimeout = timeout;
   }
   
-  public ConcurrentHashMap<Object, ITransportImpl> getMuxMap()
+  public ConcurrentHashMap<Long, ITransportImpl> getMuxMap()
   {
     return mux;
   }
@@ -363,7 +363,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
         EventPipe eventPipe = childTransport.getEventPipe();
         eventPipe.addFirst( new MuxAlgo( mux));
         eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
-        eventPipe.addLast( new HeartbeatAlgo( childTransport, heartbeatPeriod, heartbeatTimeout, scheduler));
+        eventPipe.addFirst( new HeartbeatAlgo( childTransport, heartbeatPeriod, heartbeatTimeout, scheduler));
         childTransport.connect();
         routes.put( route, childTransport);
       }
@@ -451,7 +451,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;
   private Map<String, AmqpNamedTransport> routes;
-  private ConcurrentHashMap<Object, ITransportImpl> mux;
+  private ConcurrentHashMap<Long, ITransportImpl> mux;
   private ScheduledExecutorService scheduler;
   private int heartbeatPeriod;
   private int heartbeatTimeout;

@@ -77,7 +77,6 @@ public class AmqpClientAction extends GuardedAction
       eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
       eventPipe.addFirst( new RegisterAlgo( amqpClient));
       eventPipe.addFirst( new ExpirationAlgo());
-      eventPipe.addFirst( new DemuxAlgo( amqpClient.getMuxMap()));
       if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       
@@ -85,9 +84,10 @@ public class AmqpClientAction extends GuardedAction
       int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
       amqpClient.setHeartbeatPeriod( heartbeatPeriod);
       amqpClient.setHeartbeatTimeout( heartbeatTimeout);
-      if ( publishQueue != null) amqpClient.getEventPipe().addLast( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
+      if ( publishQueue != null) amqpClient.getEventPipe().addFirst( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
       
       eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));
+      eventPipe.addFirst( new DemuxAlgo( amqpClient.getMuxMap()));
       
       transport.setConnectTimeout( connectTimeout);
       transport.connect().await();
