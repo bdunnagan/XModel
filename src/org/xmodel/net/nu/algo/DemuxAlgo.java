@@ -17,18 +17,15 @@ public class DemuxAlgo extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
-    if ( request != null)
+    Object channel = transport.getProtocol().envelope().getChannel( envelope);
+    if ( channel != null)
     {
-      Object channel = transport.getProtocol().envelope().getChannel( request);
-      if ( channel != null)
+      ITransportImpl channelTransport = channels.get( channel);
+      if ( channelTransport != null) 
       {
-        ITransportImpl channelTransport = channels.get( channel);
-        if ( channelTransport != null) 
-        {
-          return channelTransport.getEventPipe().notifyReceive( channelTransport, message, messageContext, request);
-        }
+        return channelTransport.getEventPipe().notifyReceive( channelTransport, envelope);
       }
     }
     return false;

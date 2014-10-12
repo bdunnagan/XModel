@@ -36,7 +36,7 @@ public class EventPipe implements IEventHandler
   }
   
   @Override
-  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life) throws IOException
   {
     for( IEventHandler handler: getHandlers())
     {

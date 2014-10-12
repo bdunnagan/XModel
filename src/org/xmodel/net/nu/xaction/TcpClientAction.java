@@ -30,8 +30,8 @@ public class TcpClientAction extends GuardedAction
     var = Conventions.getVarName( document.getRoot(), true);
     localHostExpr = document.getExpression( "localHost", true);
     localPortExpr = document.getExpression( "localPort", true);
-    remoteHostExpr = document.getExpression( "remoteHost", true);
-    remotePortExpr = document.getExpression( "remotePort", true);
+    remoteHostExpr = document.getExpression( "host", true);
+    remotePortExpr = document.getExpression( "port", true);
     connectTimeoutExpr = document.getExpression( "connectTimeout", true);
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);

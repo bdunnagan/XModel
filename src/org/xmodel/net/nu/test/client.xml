@@ -44,8 +44,9 @@
     </script>
   </assign>
 
-  <if test="false()">
-    <amqpClient var="client" amqpHost="'127.0.0.1'" amqpPort="5672" connectTimeout="3000">
+  <if test="true()">
+    <amqpClient var="client" host="'127.0.0.1'" port="5672" connectTimeout="3000">
+      <protocol>'xml'</protocol>
       <publishQueue>'server_recv'</publishQueue>
       <consumeQueue>'client_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>
@@ -55,7 +56,7 @@
     </amqpClient>
   </if>
   <else>
-    <tcpClient var="client" remoteHost="'127.0.0.1'" remotePort="10000" connectTimeout="3000">
+    <tcpClient var="client" host="'127.0.0.1'" port="10000" connectTimeout="3000">
       <heartbeatPeriod>100000</heartbeatPeriod>
       <heartbeatTimeout>300000</heartbeatTimeout>
       <onConnect>$onConnect</onConnect>
@@ -65,9 +66,9 @@
     </tcpClient>
   </else>
   
-  <!--register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/-->
+  <register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/>
       
-  <run>$send</run>
+  <!--run>$send</run-->
   
   <sleep>60000</sleep>
 </script>

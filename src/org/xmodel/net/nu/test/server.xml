@@ -51,10 +51,10 @@
     </script>
   </assign>
   
-  <if test="false()">
-    <amqpClient var="server" amqpHost="'127.0.0.1'" amqpPort="5672">
+  <if test="true()">
+    <amqpClient var="server" host="'127.0.0.1'" port="5672">
+      <protocol>'xml'</protocol>
       <purge>true()</purge>
-      <publishQueue>'client_recv'</publishQueue>
       <consumeQueue>'server_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>

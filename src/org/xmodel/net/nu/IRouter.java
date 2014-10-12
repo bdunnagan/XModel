@@ -8,5 +8,7 @@ public interface IRouter
   
   public void removeRoute( String route, ITransport transport);
   
+  public void removeRoutes( ITransport transport);
+  
   public Iterator<ITransport> resolve( String route);
 }

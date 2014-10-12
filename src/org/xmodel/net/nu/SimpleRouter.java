@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -51,6 +52,45 @@ public class SimpleRouter implements IRouter
     finally
     {
       routesLock.writeLock().unlock();
+    }
+  }
+
+  @Override
+  public void removeRoutes( ITransport transport)
+  {
+    try
+    {
+      List<String> keys = findRoutes( transport);
+      routesLock.writeLock().lock();
+      for( String key: keys)
+      {
+        Set<ITransport> transports = routes.get( key);
+        if ( transports != null) transports.remove( transport);
+        if ( transports.size() == 0) routes.remove( key);
+      }
+    }
+    finally
+    {
+      routesLock.writeLock().unlock();
+    }
+  }
+  
+  protected List<String> findRoutes( ITransport transport)
+  {
+    List<String> keys = new ArrayList<String>( 3);
+    try
+    {
+      routesLock.readLock().lock();
+      for( Map.Entry<String, Set<ITransport>> entry: routes.entrySet())
+      {
+        if ( entry.getValue().contains( transport))
+          keys.add( entry.getKey());
+      }
+      return keys;
+    }
+    finally
+    {
+      routesLock.readLock().unlock();
     }
   }
 

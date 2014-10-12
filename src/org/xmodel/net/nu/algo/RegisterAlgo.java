@@ -1,5 +1,6 @@
 package org.xmodel.net.nu.algo;
 
+import java.io.IOException;
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.IRouter;
@@ -15,6 +16,13 @@ public class RegisterAlgo extends DefaultEventHandler
     this.router = router;
   }
   
+  @Override
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
+  {
+    router.removeRoutes( transport);
+    return false;
+  }
+
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject envelope, IContext messageContext, IModelObject request)
   {
@@ -38,12 +46,9 @@ public class RegisterAlgo extends DefaultEventHandler
     if ( route == null)
     {
       String name = envelopeProtocol.getRegistrationName( envelope);
-      if ( router != null) 
-      {
-        router.addRoute( name, transport);
-        transport.sendAck( envelope);
-        transport.getEventPipe().notifyRegister( transport, transport.getTransportContext(), name);
-      }
+      router.addRoute( name, transport);
+      transport.sendAck( envelope);
+      transport.getEventPipe().notifyRegister( transport, transport.getTransportContext(), name);
     }
     else
     {
@@ -59,12 +64,9 @@ public class RegisterAlgo extends DefaultEventHandler
     if ( route == null)
     {
       String name = envelopeProtocol.getRegistrationName( envelope);
-      if ( router != null)
-      {
-        router.removeRoute( name, transport);
-        transport.sendAck( envelope);
-        transport.getEventPipe().notifyDeregister( transport, transport.getTransportContext(), name);
-      }
+      router.removeRoute( name, transport);
+      transport.sendAck( envelope);
+      transport.getEventPipe().notifyDeregister( transport, transport.getTransportContext(), name);
     }
     else
     {

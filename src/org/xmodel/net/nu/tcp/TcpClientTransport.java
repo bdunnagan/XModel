@@ -13,8 +13,10 @@ import java.net.ConnectException;
 import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
+import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
+import org.xmodel.log.SLog;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
@@ -142,6 +144,19 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
     return new SuccessAsyncFuture<ITransport>( this);
   }
   
+  @Override
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
+  {
+    if ( error == Error.heartbeatLost)
+    {
+      SLog.errorf( this, "Lost heartbeat on transport, %s", transport);
+      transport.disconnect();
+      return true;
+    }
+
+    return super.notifyError( transport, context, error, request);
+  }
+
   private SocketAddress localAddress;
   private SocketAddress remoteAddress;
   private IRouter router;

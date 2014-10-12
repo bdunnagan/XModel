@@ -7,6 +7,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
@@ -14,9 +17,13 @@ import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.AbstractTransport;
+import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.algo.HeartbeatAlgo;
+import org.xmodel.net.nu.algo.MuxAlgo;
+import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.net.nu.protocol.Protocol;
@@ -35,10 +42,13 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 {
   public static final String notConnectedError = "Not connected";
   
-  public AmqpTransport( Protocol protocol, IContext transportContext)
+  public AmqpTransport( Protocol protocol, IContext transportContext, ScheduledExecutorService scheduler)
   {
     super( protocol, transportContext);
-  
+
+    if ( scheduler == null) scheduler = Executors.newScheduledThreadPool( 1);
+    this.scheduler = scheduler;
+    
     publishChannelRef = new AtomicReference<Channel>();
     consumerChannels = Collections.synchronizedMap( new HashMap<String, Channel>());
     
@@ -49,6 +59,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     connectionFactory.setHost( "localhost");
     
     routes = new HashMap<String, AmqpNamedTransport>();
+    mux = new ConcurrentHashMap<Object, ITransportImpl>();
   }
   
   public void setRemoteAddress( InetSocketAddress address)
@@ -71,6 +82,21 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   {
     this.consumeQueue = queue;
     this.purgeConsumeQueue = purge;
+  }
+
+  public void setHeartbeatPeriod( int period)
+  {
+    this.heartbeatPeriod = period;
+  }
+  
+  public void setHeartbeatTimeout( int timeout)
+  {
+    this.heartbeatTimeout = timeout;
+  }
+  
+  public ConcurrentHashMap<Object, ITransportImpl> getMuxMap()
+  {
+    return mux;
   }
   
   @Override
@@ -125,7 +151,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       consumerChannels.put( name, consumeChannel);
       
       consumeChannel.queueDeclare( name, false, true, true, Collections.<String, Object>emptyMap());
-      consumeChannel.basicConsume( name, false, "", new TransportConsumer( consumeChannel));
+      consumeChannel.basicConsume( name, true, "", new TransportConsumer( consumeChannel));
     }
     catch( IOException e)
     {
@@ -192,7 +218,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       }
     };
     
-    // add replyTo if envelope
     IEnvelopeProtocol envelopeProtocol = getProtocol().envelope();
     envelopeProtocol.setReplyTo( envelope, replyQueue);
     
@@ -328,12 +353,18 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void addRoute( String route, ITransport transport)
   {
+    // TODO: this is slightly incorrect in that transport arg may be AmqpTransport
     synchronized( routes)
     {
       AmqpNamedTransport childTransport = routes.get( route);
       if ( childTransport == null)
       {
         childTransport = new AmqpNamedTransport( route, consumeQueue, this);
+        EventPipe eventPipe = childTransport.getEventPipe();
+        eventPipe.addFirst( new MuxAlgo( mux));
+        eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
+        eventPipe.addLast( new HeartbeatAlgo( childTransport, heartbeatPeriod, heartbeatTimeout, scheduler));
+        childTransport.connect();
         routes.put( route, childTransport);
       }
       childTransport.incrementReferenceCount();
@@ -343,16 +374,29 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void removeRoute( String route, ITransport transport)
   {
+    // TODO: this is slightly incorrect in that transport arg may be AmqpTransport
     synchronized( routes)
     {
       AmqpNamedTransport childTransport = routes.get( route);
       if ( childTransport != null && childTransport.decrementReferenceCount() == 0)
       {
-        routes.remove( route);
+        //
+        // AmqpNamedTransport will call this method when heartbeat is lost.  In this case,
+        // this method must verify that a new AmqpNamedTransport has not already reconnected.
+        //
+        if ( transport instanceof AmqpTransport || transport == childTransport)
+          routes.remove( route);
       }
     }
   }
 
+  @Override
+  public void removeRoutes( ITransport transport)
+  {
+    String route = ((AmqpNamedTransport)transport).getPublishQueue();
+    removeRoute( route, transport);
+  }
+  
   @Override
   public Iterator<ITransport> resolve( String route)
   {
@@ -407,4 +451,8 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;
   private Map<String, AmqpNamedTransport> routes;
+  private ConcurrentHashMap<Object, ITransportImpl> mux;
+  private ScheduledExecutorService scheduler;
+  private int heartbeatPeriod;
+  private int heartbeatTimeout;
 }

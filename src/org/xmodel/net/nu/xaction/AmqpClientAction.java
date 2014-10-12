@@ -6,6 +6,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.algo.DemuxAlgo;
 import org.xmodel.net.nu.algo.ExpirationAlgo;
 import org.xmodel.net.nu.algo.HeartbeatAlgo;
 import org.xmodel.net.nu.algo.ReconnectAlgo;
@@ -28,8 +29,8 @@ public class AmqpClientAction extends GuardedAction
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), true);
-    amqpHostExpr = document.getExpression( "amqpHost", true);
-    amqpPortExpr = document.getExpression( "amqpPort", true);
+    amqpHostExpr = document.getExpression( "host", true);
+    amqpPortExpr = document.getExpression( "port", true);
     publishExchangeExpr = document.getExpression( "publishExchange", true);
     publishQueueExpr = document.getExpression( "publishQueue", true);
     consumeQueueExpr = document.getExpression( "consumeQueue", true);
@@ -63,7 +64,7 @@ public class AmqpClientAction extends GuardedAction
     
     try
     {
-      AmqpTransport amqpClient = new AmqpTransport( ProtocolSchema.getProtocol( protocolExpr, context), context);
+      AmqpTransport amqpClient = new AmqpTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
       Conventions.putCache( context, var, amqpClient);
             
       amqpClient.setRemoteAddress( new InetSocketAddress( amqpHost, amqpPort));
@@ -76,12 +77,15 @@ public class AmqpClientAction extends GuardedAction
       eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
       eventPipe.addFirst( new RegisterAlgo( amqpClient));
       eventPipe.addFirst( new ExpirationAlgo());
+      eventPipe.addFirst( new DemuxAlgo( amqpClient.getMuxMap()));
       if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       
       int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 10000;
       int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
-      if ( heartbeatPeriod > 0) eventPipe.addFirst( new HeartbeatAlgo( transport, heartbeatPeriod, heartbeatTimeout, scheduler));
+      amqpClient.setHeartbeatPeriod( heartbeatPeriod);
+      amqpClient.setHeartbeatTimeout( heartbeatTimeout);
+      if ( publishQueue != null) amqpClient.getEventPipe().addLast( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
       
       eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));
       

@@ -8,7 +8,7 @@ import org.xmodel.xpath.expression.IContext;
 
 public interface IEventHandler
 {
-  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life) throws IOException;
   
   public boolean notifyReceive( ITransportImpl transport, ByteBuffer buffer) throws IOException;
   

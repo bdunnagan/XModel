@@ -61,7 +61,7 @@ public class Reference implements IModelObject
   @Override
   public void setStorageClass( IStorageClass storageClass)
   {
-    throw new UnsupportedOperationException();
+    referent.setStorageClass( storageClass);
   }
 
   /* (non-Javadoc)
@@ -70,7 +70,7 @@ public class Reference implements IModelObject
   @Override
   public IStorageClass getStorageClass()
   {
-    throw new UnsupportedOperationException();
+    return referent.getStorageClass();
   }
 
   /* (non-Javadoc)

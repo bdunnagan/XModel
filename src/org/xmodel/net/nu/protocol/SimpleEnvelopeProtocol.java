@@ -44,8 +44,9 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message)
   {
     IModelObject envelope = new ModelObject( "s");
-    envelope.setAttribute( keyAttrName, Xlate.get( requestEnvelope, keyAttrName, (String)null));
-    envelope.setAttribute( routeAttrName, Xlate.get( requestEnvelope, routeAttrName, (String)null));
+    envelope.setAttribute( keyAttrName, requestEnvelope.getAttribute( keyAttrName));
+    envelope.setAttribute( routeAttrName, requestEnvelope.getAttributeNode( routeAttrName));
+    envelope.setAttribute( channelAttrName, requestEnvelope.getAttributeNode( channelAttrName));
     envelope.addChild( message);
     return envelope;
   }
@@ -54,8 +55,9 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   public IModelObject buildAck( IModelObject requestEnvelope)
   {
     IModelObject ack = new ModelObject( "a");
-    ack.setAttribute( keyAttrName, Xlate.get( requestEnvelope, keyAttrName, (String)null));
-    ack.setAttribute( routeAttrName, Xlate.get( requestEnvelope, routeAttrName, (String)null));
+    ack.setAttribute( keyAttrName, requestEnvelope.getAttribute( keyAttrName));
+    ack.setAttribute( routeAttrName, requestEnvelope.getAttributeNode( routeAttrName));
+    ack.setAttribute( channelAttrName, requestEnvelope.getAttributeNode( channelAttrName));
     return ack;
   }
 

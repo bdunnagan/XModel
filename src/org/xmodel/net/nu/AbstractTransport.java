@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
+import org.xmodel.future.FailureAsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.net.nu.protocol.ThreadSafeProtocol;
 import org.xmodel.util.HexDump;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.expression.IContext;
 
 public abstract class AbstractTransport extends DefaultEventHandler implements ITransportImpl
@@ -27,8 +30,16 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   @Override
   public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
-    eventPipe.notifySend( this, envelope, messageContext, timeout, retries, life);
-    return sendImpl( envelope, null);
+    try
+    {
+      eventPipe.notifySend( this, envelope, messageContext, timeout, retries, life);
+      return sendImpl( envelope, null);
+    }
+    catch( IOException e)
+    {
+      log.exception( e);
+      return new FailureAsyncFuture<ITransport>( this, e);
+    }
   }
 
   @Override
@@ -56,6 +67,13 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   }
   
   @Override
+  public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  {
+    if ( log.verbose()) log.verbosef( "Sending message:\n%s", XmlIO.write( Style.printable, envelope));
+    return false;
+  }
+
+  @Override
   public boolean notifyReceive( ITransportImpl transport, ByteBuffer buffer) throws IOException
   {
     if ( log.verbose()) log.verbosef( "Read buffer contains:\n%s", HexDump.toString( Unpooled.wrappedBuffer( buffer)));
@@ -67,13 +85,13 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
       if ( envelope != null)
       {
         // deliver
-        eventPipe.notifyReceive( this, envelope);
+        eventPipe.notifyReceive( transport, envelope);
         return true;
       }
     }
     catch( IOException e)
     {
-      eventPipe.notifyException( this, e);
+      eventPipe.notifyException( transport, e);
     }
     
     return false;
