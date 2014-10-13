@@ -9,11 +9,11 @@
       
       <create var="script">
         <script>
-          <throw>'Oops!'</throw>
+          <print>format( 'The time is %s', xi:date-format( 'hh:mm:ss', xi:date-now())</print>
         </script>
       </create>
       
-      <request var="result" via="$client" timeout="5000" retries="0" life="5000">$script</request>
+      <run scheduler="$scheduler" delay="3000">$send</run>
     </script>
   </assign>
 
@@ -35,6 +35,7 @@
   <assign var="onConnect">
     <script in="transport">
       <logi>'[CLIENT] Connected'</logi>
+      <register name="'bob'" via="$client" timeout="10000" retries="0" life="60000"/>
     </script>
   </assign>
   
@@ -45,7 +46,9 @@
   </assign>
 
   <if test="true()">
-    <amqpClient var="client" host="'127.0.0.1'" port="5672" connectTimeout="3000">
+    <amqpClient var="client" host="'192.168.1.4'" port="5672" connectTimeout="3000">
+      <heartbeatPeriod>0</heartbeatPeriod>
+      <heartbeatTimeout>9000</heartbeatTimeout>
       <protocol>'xml'</protocol>
       <publishQueue>'server_recv'</publishQueue>
       <consumeQueue>'client_recv'</consumeQueue>
@@ -66,9 +69,9 @@
     </tcpClient>
   </else>
   
-  <register name="'bob'" via="$client" timeout="60000" retries="0" life="60000"/>
       
-  <!--run>$send</run-->
+  <scheduler var="scheduler" threads="1"/>    
+  <run scheduler="$scheduler" delay="3000">$send</run>
   
   <sleep>60000</sleep>
 </script>

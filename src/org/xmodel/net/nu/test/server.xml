@@ -52,7 +52,9 @@
   </assign>
   
   <if test="true()">
-    <amqpClient var="server" host="'127.0.0.1'" port="5672">
+    <amqpClient var="server" host="'192.168.1.4'" port="5672">
+      <heartbeatPeriod>0</heartbeatPeriod>
+      <heartbeatTimeout>9000</heartbeatTimeout>
       <protocol>'xml'</protocol>
       <purge>true()</purge>
       <consumeQueue>'server_recv'</consumeQueue>

@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -21,13 +22,13 @@ import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
-import org.xmodel.net.nu.algo.HeartbeatAlgo;
 import org.xmodel.net.nu.algo.MuxAlgo;
 import org.xmodel.net.nu.algo.RequestTrackingAlgo;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
+
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP.Queue.DeclareOk;
@@ -57,6 +58,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     
     connectionFactory = new ConnectionFactory();
     connectionFactory.setHost( "localhost");
+    connectionFactory.setRequestedHeartbeat( 30);
     
     routes = new HashMap<String, AmqpNamedTransport>();
     mux = new ConcurrentHashMap<Long, ITransportImpl>();
@@ -84,14 +86,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.purgeConsumeQueue = purge;
   }
 
-  public void setHeartbeatPeriod( int period)
-  {
-    this.heartbeatPeriod = period;
-  }
-  
   public void setHeartbeatTimeout( int timeout)
   {
-    this.heartbeatTimeout = timeout;
+    connectionFactory.setRequestedHeartbeat( timeout);
   }
   
   public ConcurrentHashMap<Long, ITransportImpl> getMuxMap()
@@ -142,7 +139,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     {
       log.errorf( "Transport already registered to %s", name);
       getEventPipe().notifyError( this, messageContext, Error.sendFailed, envelope);
-      return true;
+      return false;
     }
     
     try
@@ -156,7 +153,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     catch( IOException e)
     {
       getEventPipe().notifyException( this, e);
-      return true;
+      return false;
     }
     
     return false;
@@ -313,6 +310,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     catch( IOException e)
     {
       log.exception( e);
+      getEventPipe().notifyError( this, getTransportContext(), Error.connectError, null);
       return new FailureAsyncFuture<ITransport>( this, e);
     }
   }
@@ -363,7 +361,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
         EventPipe eventPipe = childTransport.getEventPipe();
         eventPipe.addFirst( new MuxAlgo( mux));
         eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
-        eventPipe.addFirst( new HeartbeatAlgo( childTransport, heartbeatPeriod, heartbeatTimeout, scheduler));
         childTransport.connect();
         routes.put( route, childTransport);
       }
@@ -393,8 +390,11 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   @Override
   public void removeRoutes( ITransport transport)
   {
-    String route = ((AmqpNamedTransport)transport).getPublishQueue();
-    removeRoute( route, transport);
+    if ( transport instanceof AmqpNamedTransport)
+    {
+      String route = ((AmqpNamedTransport)transport).getPublishQueue();
+      removeRoute( route, transport);
+    }
   }
   
   @Override
@@ -453,6 +453,4 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   private Map<String, AmqpNamedTransport> routes;
   private ConcurrentHashMap<Long, ITransportImpl> mux;
   private ScheduledExecutorService scheduler;
-  private int heartbeatPeriod;
-  private int heartbeatTimeout;
 }
