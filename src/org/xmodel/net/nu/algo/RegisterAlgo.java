@@ -15,6 +15,11 @@ public class RegisterAlgo extends DefaultEventHandler
   {
     this.router = router;
   }
+
+  public IRouter getRouter()
+  {
+    return router;
+  }
   
   @Override
   public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
@@ -39,7 +44,7 @@ public class RegisterAlgo extends DefaultEventHandler
     return false;
   }
   
-  private void handleRegister( ITransportImpl transport, IModelObject envelope)
+  protected void handleRegister( ITransportImpl transport, IModelObject envelope)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
     String route = envelopeProtocol.getRoute( envelope);
@@ -57,7 +62,7 @@ public class RegisterAlgo extends DefaultEventHandler
     }
   }
   
-  private void handleDeregister( ITransportImpl transport, IModelObject envelope)
+  protected void handleDeregister( ITransportImpl transport, IModelObject envelope)
   {
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
     String route = envelopeProtocol.getRoute( envelope);

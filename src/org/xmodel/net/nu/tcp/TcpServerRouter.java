@@ -9,11 +9,13 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.net.nu.DefaultEventHandler;
@@ -123,6 +125,18 @@ public class TcpServerRouter implements IRouter
   public void removeRoute( String route, ITransport transport)
   {
     router.removeRoute( route, transport);
+  }
+
+  @Override
+  public void removeRoutes( ITransport transport)
+  {
+    router.removeRoutes( transport);
+  }
+
+  @Override
+  public boolean hasRoute( String route)
+  {
+    return router.hasRoute( route);
   }
 
   @Override

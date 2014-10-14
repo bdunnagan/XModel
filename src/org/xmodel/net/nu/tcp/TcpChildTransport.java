@@ -2,8 +2,10 @@ package org.xmodel.net.nu.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
+
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
@@ -58,6 +60,18 @@ public class TcpChildTransport extends AbstractChannelTransport implements IRout
   public void removeRoute( String route, ITransport transport)
   {
     router.removeRoute( route, transport);
+  }
+
+  @Override
+  public void removeRoutes( ITransport transport)
+  {
+    router.removeRoutes( transport);
+  }
+
+  @Override
+  public boolean hasRoute( String route)
+  {
+    return router.hasRoute( route);
   }
 
   @Override

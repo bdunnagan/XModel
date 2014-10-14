@@ -26,11 +26,22 @@ public class RequestTrackingAlgo extends DefaultEventHandler
 {
   public RequestTrackingAlgo( ScheduledExecutorService scheduler)
   {
-    this.requests = new ConcurrentHashMap<Object, Request>();
+    this.requests = new ConcurrentHashMap<Long, Request>();
     this.scheduler = scheduler;
     this.keyCounter = new AtomicLong( System.nanoTime());
     
     log.setLevel( Log.all);
+  }
+  
+  private Long getKey( ITransportImpl transport, IModelObject envelope)
+  {
+    Object key = transport.getProtocol().envelope().getKey( envelope);
+    if ( key != null)
+    {
+      if ( key instanceof Double) return ((Double)key).longValue();
+      else if ( key instanceof String) return Long.parseLong( key.toString());
+    }
+    return null;
   }
   
   @Override
@@ -39,7 +50,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope(); 
     if ( envelopeProtocol.isRequest( envelope))
     {
-      Object key = keyCounter.getAndIncrement();
+      Long key = keyCounter.getAndIncrement();
       envelopeProtocol.setKey( envelope, key);
       
       Request requestState = new Request( transport, envelope, messageContext, timeout);
@@ -62,7 +73,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   
   private void handleResponse( ITransportImpl transport, IModelObject envelope)
   {
-    Object key = transport.getProtocol().envelope().getKey( envelope);
+    Long key = getKey( transport, envelope);
     if ( key != null)
     {
       Request request = requests.remove( key);
@@ -84,10 +95,10 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     // the iterator is created will be returned.  Subsequent requests should fail because
     // the channel is "inactive".
     //
-    Iterator<Entry<Object, Request>> iter = requests.entrySet().iterator();
+    Iterator<Entry<Long, Request>> iter = requests.entrySet().iterator();
     while( iter.hasNext())
     {
-      Entry<Object, Request> entry = iter.next();
+      Entry<Long, Request> entry = iter.next();
       Request request = entry.getValue();
       if ( request.timeoutFuture.cancel( false))
       {
@@ -100,9 +111,9 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   }
 
   @Override
-  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject envelope)
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
-    if ( envelope != null) requests.remove( transport.getProtocol().envelope().getKey( envelope));
+    if ( request != null) requests.remove( getKey( transport, request));
     return false;
   }
 
@@ -110,7 +121,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   {
     transport.getEventPipe().notifyError( transport, messageContext, ITransport.Error.timeout, request.envelope);
   }
-
+  
   protected class Request implements Runnable
   {
     Request( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout)
@@ -142,6 +153,6 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   public final static Log log = Log.getLog( RequestTrackingAlgo.class);
   
   private ScheduledExecutorService scheduler;
-  private Map<Object, Request> requests;
+  private Map<Long, Request> requests;
   private AtomicLong keyCounter;
 }

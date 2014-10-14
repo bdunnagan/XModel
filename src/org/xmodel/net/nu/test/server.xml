@@ -53,8 +53,6 @@
   
   <if test="true()">
     <amqpClient var="server" host="'192.168.1.4'" port="5672">
-      <heartbeatPeriod>0</heartbeatPeriod>
-      <heartbeatTimeout>9000</heartbeatTimeout>
       <protocol>'xml'</protocol>
       <purge>true()</purge>
       <consumeQueue>'server_recv'</consumeQueue>
@@ -68,8 +66,6 @@
   </if>
   <else>
     <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
-      <heartbeatPeriod>100000</heartbeatPeriod>
-      <heartbeatTimeout>300000</heartbeatTimeout>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
       <onRegister>$onRegister</onRegister>

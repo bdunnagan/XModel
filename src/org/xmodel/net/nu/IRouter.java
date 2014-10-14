@@ -10,5 +10,7 @@ public interface IRouter
   
   public void removeRoutes( ITransport transport);
   
+  public boolean hasRoute( String route);
+  
   public Iterator<ITransport> resolve( String route);
 }

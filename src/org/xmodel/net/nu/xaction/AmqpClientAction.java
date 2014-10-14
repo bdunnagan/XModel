@@ -7,12 +7,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransportImpl;
-import org.xmodel.net.nu.algo.DemuxAlgo;
 import org.xmodel.net.nu.algo.ExpirationAlgo;
 import org.xmodel.net.nu.algo.ReconnectAlgo;
-import org.xmodel.net.nu.algo.RegisterAlgo;
 import org.xmodel.net.nu.algo.ReliableAlgo;
 import org.xmodel.net.nu.algo.RequestTrackingAlgo;
+import org.xmodel.net.nu.amqp.AmqpRegisterAlgo;
 import org.xmodel.net.nu.amqp.AmqpTransport;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.GuardedAction;
@@ -63,7 +62,7 @@ public class AmqpClientAction extends GuardedAction
     
     try
     {
-      AmqpTransport amqpClient = new AmqpTransport( ProtocolSchema.getProtocol( protocolExpr, context), context, scheduler);
+      AmqpTransport amqpClient = new AmqpTransport( ProtocolSchema.getProtocol( protocolExpr, context), context);
       Conventions.putCache( context, var, amqpClient);
             
       amqpClient.setRemoteAddress( new InetSocketAddress( amqpHost, amqpPort));
@@ -74,7 +73,7 @@ public class AmqpClientAction extends GuardedAction
       ITransportImpl transport = amqpClient;
       EventPipe eventPipe = transport.getEventPipe();
       eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
-      eventPipe.addFirst( new RegisterAlgo( amqpClient));
+      eventPipe.addFirst( new AmqpRegisterAlgo( amqpClient));
       eventPipe.addFirst( new ExpirationAlgo());
       if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
@@ -83,7 +82,6 @@ public class AmqpClientAction extends GuardedAction
       amqpClient.setHeartbeatTimeout( heartbeatTimeout);
       
       eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));
-      eventPipe.addFirst( new DemuxAlgo( amqpClient.getMuxMap()));
       
       transport.setConnectTimeout( connectTimeout);
       transport.connect().await();

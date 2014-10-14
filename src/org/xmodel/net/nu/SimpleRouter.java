@@ -95,6 +95,20 @@ public class SimpleRouter implements IRouter
   }
 
   @Override
+  public boolean hasRoute( String route)
+  {
+    try
+    {
+      routesLock.readLock().lock();
+      return routes.containsKey( route);
+    }
+    finally
+    {
+      routesLock.readLock().unlock();
+    }
+  }
+
+  @Override
   public Iterator<ITransport> resolve( String route)
   {
     try

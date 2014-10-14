@@ -47,11 +47,8 @@
 
   <if test="true()">
     <amqpClient var="client" host="'192.168.1.4'" port="5672" connectTimeout="3000">
-      <heartbeatPeriod>0</heartbeatPeriod>
-      <heartbeatTimeout>9000</heartbeatTimeout>
       <protocol>'xml'</protocol>
       <publishQueue>'server_recv'</publishQueue>
-      <consumeQueue>'client_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
       <onReceive>$onReceive</onReceive>
@@ -60,8 +57,6 @@
   </if>
   <else>
     <tcpClient var="client" host="'127.0.0.1'" port="10000" connectTimeout="3000">
-      <heartbeatPeriod>100000</heartbeatPeriod>
-      <heartbeatTimeout>300000</heartbeatTimeout>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
       <onReceive>$onReceive</onReceive>
@@ -71,7 +66,7 @@
   
       
   <scheduler var="scheduler" threads="1"/>    
-  <run scheduler="$scheduler" delay="3000">$send</run>
+  <run scheduler="$scheduler" delay="300000">$send</run>
   
   <sleep>60000</sleep>
 </script>

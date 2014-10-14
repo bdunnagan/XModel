@@ -1,22 +1,21 @@
 package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
+
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
-import org.xmodel.log.SLog;
-import org.xmodel.net.nu.AbstractTransport;
+import org.xmodel.future.FailureAsyncFuture;
+import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class AmqpNamedTransport extends AbstractTransport
+public class AmqpNamedTransport implements ITransportImpl
 {
-  public AmqpNamedTransport( String publishQueue, String replyQueue, AmqpTransport transport)
+  public AmqpNamedTransport( String publishQueue, AmqpTransport transport)
   {
-    super( transport.getProtocol(), transport.getTransportContext());
-
     this.publishQueue = publishQueue;
-    this.replyQueue = replyQueue;
     this.transport = transport;
   }
 
@@ -62,34 +61,60 @@ public class AmqpNamedTransport extends AbstractTransport
   @Override
   public AsyncFuture<ITransport> sendImpl( IModelObject message, IModelObject request)
   {
-    return transport.publish( "", publishQueue, replyQueue, message, request);
+    return transport.publish( "", publishQueue, message, request);
   }
 
-  protected void incrementReferenceCount()
+  @Override
+  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
-    references++;
+    try
+    {
+      getEventPipe().notifySend( this, envelope, messageContext, timeout, retries, life);
+      return sendImpl( envelope, null);
+    }
+    catch( IOException e)
+    {
+      AmqpTransport.log.exception( e);
+      return new FailureAsyncFuture<ITransport>( this, e);
+    }
   }
-  
-  protected int decrementReferenceCount()
+
+  @Override
+  public AsyncFuture<ITransport> sendAck( IModelObject envelope)
   {
-    return --references;
+    return sendImpl( transport.getProtocol().envelope().buildAck( envelope), envelope);
+  }
+
+  @Override
+  public EventPipe getEventPipe()
+  {
+    return transport.getEventPipe();
+  }
+
+  @Override
+  public Protocol getProtocol()
+  {
+    return transport.getProtocol();
+  }
+
+  @Override
+  public IContext getTransportContext()
+  {
+    return transport.getTransportContext();
   }
   
   @Override
-  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
+  public int hashCode()
   {
-    if ( error == Error.heartbeatLost)
-    {
-      SLog.errorf( this, "Lost heartbeat on transport, %s", transport);
-      this.transport.removeRoute( publishQueue, this);
-      return true;
-    }
+    return transport.hashCode();
+  }
 
-    return super.notifyError( transport, context, error, request);
+  @Override
+  public boolean equals( Object object)
+  {
+    return object == this || transport.equals( object);
   }
 
   private String publishQueue;
-  private String replyQueue;
   private AmqpTransport transport;
-  private int references;
 }
