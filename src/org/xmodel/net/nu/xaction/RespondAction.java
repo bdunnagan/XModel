@@ -31,15 +31,17 @@ public class RespondAction extends GuardedAction
     IModelObject viaNode = viaExpr.queryFirst( context);
     IModelObject request = requestExpr.queryFirst( context);
     IModelObject message = (messageExpr != null)? getMessage( context): ActionUtil.getMessage( document.getRoot());
-    
-    Object object = viaNode.getValue();
-    if ( object != null && object instanceof ITransport)
+    if ( message != null)
     {
-      ITransport transport = ((ITransport)object);
-      IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
-      IModelObject requestEnvelope = envelopeProtocol.getEnvelope( request);
-      IModelObject responseEnvelope = envelopeProtocol.buildResponseEnvelope( requestEnvelope, message);
-      transport.send( responseEnvelope, null, -1, -1, -1);
+      Object object = viaNode.getValue();
+      if ( object != null && object instanceof ITransport)
+      {
+        ITransport transport = ((ITransport)object);
+        IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
+        IModelObject requestEnvelope = envelopeProtocol.getEnvelope( request);
+        IModelObject responseEnvelope = envelopeProtocol.buildResponseEnvelope( requestEnvelope, message);
+        transport.send( responseEnvelope, null, -1, -1, -1);
+      }
     }
 
     return null;

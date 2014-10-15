@@ -313,6 +313,8 @@ public class RunAction extends GuardedAction
     String[] varArray = vars.split( "\\s*,\\s*");
     for( String var: varArray)
     {
+      if ( var.length() == 0) continue;
+      
       IModelObject varAssignOp = new ModelObject( "assign");
       varAssignOp.setAttribute( "var", var);
       script.addChild( varAssignOp, opInsertIndex++);

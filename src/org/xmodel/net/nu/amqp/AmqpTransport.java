@@ -30,6 +30,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 
 public class AmqpTransport extends AbstractTransport implements IRouter
@@ -77,7 +78,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
 
   public void setHeartbeatTimeout( int timeout)
   {
-    connectionFactory.setRequestedHeartbeat( timeout);
+    connectionFactory.setRequestedHeartbeat( timeout / 1000);
   }
   
   @Override
@@ -148,15 +149,19 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     {
       // connection
       connection = connectionFactory.newConnection(); // use connection pool, or define connection separately
+      connection.addShutdownListener( connectionShutdownListener);
 
       // consume initially on temporary queue
       Channel consumeChannel = connection.createChannel();
+      
+      if ( consumeQueueIsTemp) consumeQueue = null;
       
       if ( consumeQueue != null)
       {
         try
         {
           consumeChannel.queueDeclare( consumeQueue, false, true, true, Collections.<String, Object>emptyMap());
+          consumeQueueIsTemp = false;
         }
         catch( IOException e)
         {
@@ -167,6 +172,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
       {
         DeclareOk declareOk = consumeChannel.queueDeclare();
         consumeQueue = declareOk.getQueue();
+        consumeQueueIsTemp = true;
       }
       
       if ( purgeConsumeQueue) consumeChannel.queuePurge( consumeQueue);
@@ -205,6 +211,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     {
       publishChannelRef.set( null);
       consumerChannels.clear();
+      connection.removeShutdownListener( connectionShutdownListener);
       connection.close();
     }
     catch( IOException e)
@@ -294,11 +301,21 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     }
   };
   
+  private final ShutdownListener connectionShutdownListener = new ShutdownListener() {
+    @Override
+    public void shutdownCompleted( ShutdownSignalException e)
+    {
+      System.out.println( "Connection shutdown listener fired");
+      getEventPipe().notifyError( AmqpTransport.this, getTransportContext(), Error.connectError, null);
+    }
+  };
+  
   private ConnectionFactory connectionFactory;
   private Connection connection;
   private String publishExchange;
   private String publishQueue;
   private String consumeQueue;
+  private boolean consumeQueueIsTemp;
   private boolean purgeConsumeQueue;
   private AtomicReference<Channel> publishChannelRef;
   private Map<String, Channel> consumerChannels;

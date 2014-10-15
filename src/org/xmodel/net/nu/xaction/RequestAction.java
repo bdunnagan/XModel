@@ -36,21 +36,22 @@ public class RequestAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
-    
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
-    int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
-    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
-    
-    IContext messageContext = new StatefulContext( context);
-context.set( "request", message); //????
-    
-    AsyncSendGroup group = new AsyncSendGroup( context);
-    group.setReceiveScript( Conventions.getScript( document, context, onReceiveExpr));
-    group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
-    group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
-    
-    Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
-    group.send( transports, message, false, messageContext, timeout, retries, life);
+    if ( message != null)
+    {
+      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+      int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
+      int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
+      
+      IContext messageContext = new StatefulContext( context);
+      
+      AsyncSendGroup group = new AsyncSendGroup( context);
+      group.setReceiveScript( Conventions.getScript( document, context, onReceiveExpr));
+      group.setErrorScript( Conventions.getScript( document, context, onErrorExpr));
+      group.setCompleteScript( Conventions.getScript( document, context, onCompleteExpr));
+      
+      Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
+      group.send( transports, message, false, messageContext, timeout, retries, life);
+    }
 
     return null;
   }

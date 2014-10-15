@@ -113,7 +113,11 @@ public class RequestTrackingAlgo extends DefaultEventHandler
   @Override
   public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
   {
-    if ( request != null) requests.remove( getKey( transport, request));
+    if ( request != null) 
+    {
+      Long key = getKey( transport, request);
+      if ( key != null) requests.remove( key);
+    }
     return false;
   }
 
@@ -133,6 +137,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       
       if ( timeout > 0)
       {
+        System.out.printf( "Setting timeout, %d\n", timeout);
         this.timeoutFuture = scheduler.schedule( this, timeout, TimeUnit.MILLISECONDS);
       }
     }

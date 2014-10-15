@@ -22,6 +22,7 @@ public class ReliableAlgo extends DefaultEventHandler
   {
     this.transport = transport;
     this.scheduler = scheduler;
+    this.resendTolerance = 100;
     
     // TODO: overkill?
     this.queue = new ConcurrentLinkedQueue<QueuedMessage>();
@@ -30,12 +31,17 @@ public class ReliableAlgo extends DefaultEventHandler
     log.setLevel( Log.all);
   }
   
+  public void setResendTolerance( int tolerance)
+  {
+    resendTolerance = tolerance;
+  }
+  
   @Override
   public boolean notifySend( ITransportImpl transport, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     if ( transport.getProtocol().envelope().isRequest( envelope))
     {
-      long expiry = (life >= 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
+      long expiry = (life > 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
       QueuedMessage item = new QueuedMessage( transport, envelope, messageContext, timeout, retries, expiry);
       sent.put( envelope, item);
     }
@@ -73,15 +79,20 @@ public class ReliableAlgo extends DefaultEventHandler
         if ( item != null)
         {
           int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
-          if ( timeRemaining > 0) 
+          if ( timeRemaining > resendTolerance) 
           {
-            log.debugf( "Send timeout for message, %s: retries=%d, expiry=%d", request, item.retries, timeRemaining);
+            log.debugf( "Message timeout, %s: retries=%d, expiry=%d", request, item.retries, timeRemaining);
             if ( item.retries >= 0)
             {
               if ( item.retries > 0) item.retries--;
               transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
               return true;
             }
+          }
+          else
+          {
+            notifyExpired( item);
+            return true;
           }
         }
       }
@@ -111,14 +122,14 @@ public class ReliableAlgo extends DefaultEventHandler
     log.debugf( "Queueing message, %s", item.message);
     
     int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
-    if ( timeRemaining > 0)
+    if ( timeRemaining > resendTolerance)
     {
       item.expireFuture = scheduler.schedule( new ExpireTask( item), timeRemaining, TimeUnit.MILLISECONDS);
       queue.offer( item);
     }
     else
     {
-      transport.getEventPipe().notifyError( item.transport, item.messageContext, ITransport.Error.messageExpired, item.message);
+      notifyExpired( item);
     }
   }
   
@@ -130,15 +141,24 @@ public class ReliableAlgo extends DefaultEventHandler
       if ( item.expireFuture.cancel( false))
       {
         int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
-        if ( timeRemaining > 0) 
+        if ( timeRemaining > resendTolerance) 
         {
           transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+        }
+        else
+        {
+          notifyExpired( item);
         }
       }
       
       item = queue.poll();
     }
   }
+  
+  private void notifyExpired( QueuedMessage item)
+  {
+    transport.getEventPipe().notifyError( item.transport, item.messageContext, ITransport.Error.messageExpired, item.message);
+  }    
   
   private class QueuedMessage
   {
@@ -171,7 +191,7 @@ public class ReliableAlgo extends DefaultEventHandler
     @Override
     public void run()
     {
-      transport.getEventPipe().notifyError( item.transport, item.messageContext, ITransport.Error.messageExpired, item.message);
+      notifyExpired( item);
     }
 
     private QueuedMessage item;
@@ -183,4 +203,5 @@ public class ReliableAlgo extends DefaultEventHandler
   private ScheduledExecutorService scheduler;
   private Queue<QueuedMessage> queue;
   private Map<IModelObject, QueuedMessage> sent;
+  private int resendTolerance;
 }

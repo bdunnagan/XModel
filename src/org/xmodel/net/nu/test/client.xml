@@ -6,12 +6,14 @@
   <assign var="send">
     <script>
       <logi>'[CLIENT] Send'</logi>
-      
-      <create var="script">
-        <script>
-          <print>format( 'The time is %s', xi:date-format( 'hh:mm:ss', xi:date-now())</print>
-        </script>
-      </create>
+
+      <run var="result" via="$client" timeout="30000" retries="0">
+        <return>101</return>
+      </run>
+
+      <print>$result</print>
+
+      <request via="$client" timeout="10000" retries="0">$script</request>
       
       <run scheduler="$scheduler" delay="3000">$send</run>
     </script>
@@ -35,7 +37,7 @@
   <assign var="onConnect">
     <script in="transport">
       <logi>'[CLIENT] Connected'</logi>
-      <register name="'bob'" via="$client" timeout="10000" retries="0" life="60000"/>
+      <register name="'bob'" via="$client" timeout="15000" retries="0" life="0"/>
     </script>
   </assign>
   
@@ -66,7 +68,7 @@
   
       
   <scheduler var="scheduler" threads="1"/>    
-  <run scheduler="$scheduler" delay="300000">$send</run>
+  <run scheduler="$scheduler" delay="3000">$send</run>
   
   <sleep>60000</sleep>
 </script>
