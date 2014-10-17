@@ -263,7 +263,7 @@ public class RunAction extends GuardedAction
           if ( thrown != null) handleException( thrown, runContext, onComplete, onError);
         }
         
-        setVar( runContext, results);
+        setVar( context, results);
       }
       catch( InterruptedException e)
       {

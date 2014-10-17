@@ -85,7 +85,7 @@ public class ReliableAlgo extends DefaultEventHandler
             if ( item.retries >= 0)
             {
               if ( item.retries > 0) item.retries--;
-              transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+              transport.send( null, item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
               return true;
             }
           }
@@ -143,7 +143,7 @@ public class ReliableAlgo extends DefaultEventHandler
         int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
         if ( timeRemaining > resendTolerance) 
         {
-          transport.send( item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+          transport.send( null, item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
         }
         else
         {

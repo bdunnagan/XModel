@@ -18,7 +18,7 @@ public interface ITransport
   
   public AsyncFuture<ITransport> disconnect();
   
-  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
+  public AsyncFuture<ITransport> send( IModelObject request, IModelObject envelope, IContext messageContext, int timeout, int retries, int life);
   
   public AsyncFuture<ITransport> sendAck( IModelObject envelope);
     

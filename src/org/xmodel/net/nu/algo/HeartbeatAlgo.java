@@ -106,7 +106,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
     {
       log.verbosef( "Sending heartbeat for transport, %s, period=%d", transport, period);
       IModelObject envelope = transport.getProtocol().envelope().buildHeartbeatEnvelope();
-      transport.send( envelope, transport.getTransportContext(), 0, 0, timeout);
+      transport.send( null, envelope, transport.getTransportContext(), 0, 0, timeout);
       heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
     }
   };

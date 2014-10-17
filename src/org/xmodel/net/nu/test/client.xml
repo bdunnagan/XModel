@@ -7,15 +7,18 @@
     <script>
       <logi>'[CLIENT] Send'</logi>
 
-      <run var="result" via="$client" timeout="30000" retries="0">
-        <return>101</return>
+      <create var="x" name="'x'"/>
+
+      <run var="r" via="$client" timeout="30000" retries="0" vars="'x'">
+        <set target="$x">1</set>
+        <return>$x</return>
       </run>
 
-      <print>$result</print>
+      <print>count( $r)</print>
 
-      <request via="$client" timeout="10000" retries="0">$script</request>
+      <!--request via="$client" timeout="10000" retries="0">$script</request>
       
-      <run scheduler="$scheduler" delay="3000">$send</run>
+      <run scheduler="$scheduler" delay="3000">$send</run-->
     </script>
   </assign>
 
@@ -23,7 +26,6 @@
     <script in="transport, message">
       <run executor="$worker">
         <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
-        <print>$message</print>
       </run>
     </script>
   </assign>
@@ -68,7 +70,7 @@
   
       
   <scheduler var="scheduler" threads="1"/>    
-  <run scheduler="$scheduler" delay="3000">$send</run>
+  <run>$send</run>
   
   <sleep>60000</sleep>
 </script>

@@ -40,7 +40,7 @@ public class RegisterAction extends GuardedAction
     {
       ITransport transport = iter.next();
       IModelObject envelope = transport.getProtocol().envelope().buildRegisterEnvelope( name, life);
-      transport.send( envelope, messageContext, timeout, retries, life);
+      transport.send( null, envelope, messageContext, timeout, retries, life);
     }
 
     return null;

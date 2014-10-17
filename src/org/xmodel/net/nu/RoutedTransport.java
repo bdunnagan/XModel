@@ -35,9 +35,9 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public AsyncFuture<ITransport> send( IModelObject message, IContext messageContext, int timeout, int retries, int life)
+  public AsyncFuture<ITransport> send( IModelObject request, IModelObject message, IContext messageContext, int timeout, int retries, int life)
   {
-    return via.send( message, messageContext, timeout, retries, life);
+    return via.send( request, message, messageContext, timeout, retries, life);
   }
   
   @Override

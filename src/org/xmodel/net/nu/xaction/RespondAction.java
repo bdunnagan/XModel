@@ -40,7 +40,7 @@ public class RespondAction extends GuardedAction
         IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
         IModelObject requestEnvelope = envelopeProtocol.getEnvelope( request);
         IModelObject responseEnvelope = envelopeProtocol.buildResponseEnvelope( requestEnvelope, message);
-        transport.send( responseEnvelope, null, -1, -1, -1);
+        transport.send( requestEnvelope, responseEnvelope, null, -1, -1, -1);
       }
     }
 

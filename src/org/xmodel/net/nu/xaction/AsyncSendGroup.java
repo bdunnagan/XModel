@@ -1,8 +1,10 @@
 package org.xmodel.net.nu.xaction;
 
 import java.util.Iterator;
-import java.util.concurrent.Semaphore;
+import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
@@ -53,7 +55,7 @@ public class AsyncSendGroup
       IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
       IModelObject envelope = isEnvelope? message: envelopeProtocol.buildRequestEnvelope( null, message, life);
       
-      transport.send( envelope, messageContext, timeout, retries, life);
+      transport.send( null, envelope, messageContext, timeout, retries, life);
     }
 
     sentCount.set( count);
@@ -64,35 +66,37 @@ public class AsyncSendGroup
 
   public Object[] sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
-    semaphore = new Semaphore( 0);
+    syncQueue = new SynchronousQueue<Object[]>();
     send( transports, message, isEnvelope, messageContext, timeout, retries, life);
-    semaphore.acquire();
-    return results;
+    return syncQueue.take();
   }
   
-  public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
+  public void notifyReceive( ITransport transport, IModelObject envelope, IContext messageContext, IModelObject requestMessage)
   {
+    Object[] results = null;
+    
     // ignore acks
-    if ( requestMessage != null && onReceive != null) 
+    if ( requestMessage != null) 
     {
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
 
       // only used by RunAction
-      Object[] results = new Object[] { message.getValue()};
-      if ( message.getChildren().size() > 0) results[ 0] = message.getChildren();
+      IModelObject message = transport.getProtocol().envelope().getMessage( envelope);
+      results = new Object[] { message.getValue()};
+      List<IModelObject> children = message.getChildren(); 
+      if ( children.size() > 0) results[ 0] = children;
       // only used by RunAction
       
       synchronized( messageContext)
       {
-        this.results = results; // only used by RunAction
-        ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onReceive);
+        ScriptAction.passVariables( new Object[] { transportNode, envelope}, messageContext, onReceive);
       }
       
-      onReceive.run( messageContext);
+      if ( onReceive != null) onReceive.run( messageContext);
     }
     
-    notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
+    notifyWhenAllRequestsComplete( doneCount.incrementAndGet(), results);
   }
 
   private void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
@@ -108,16 +112,19 @@ public class AsyncSendGroup
       onError.run( errorContext);
     }
     
-    notifyWhenAllRequestsComplete( doneCount.incrementAndGet());
+    notifyWhenAllRequestsComplete( doneCount.incrementAndGet(), null);
   }
 
-  private void notifyWhenAllRequestsComplete( int requestsCompleted)
+  private void notifyWhenAllRequestsComplete( int requestsCompleted, Object[] result)
   {
     int sent = sentCount.get();
     if ( sent > 0)
     {
       if ( requestsCompleted == sent)
+      {
         notifyComplete();
+        syncQueue.offer( (result != null)? result: new Object[ 0]);
+      }
     }
   }
 
@@ -142,8 +149,6 @@ public class AsyncSendGroup
         log.exception( e);
       }
     }
-    
-    if ( semaphore != null) semaphore.release();
   }
 
   class EventHandler extends DefaultEventHandler
@@ -173,6 +178,5 @@ public class AsyncSendGroup
   private IXAction onReceive;
   private IXAction onError;
   private IXAction onComplete;
-  private Semaphore semaphore;
-  private Object[] results;
+  private SynchronousQueue<Object[]> syncQueue;
 }

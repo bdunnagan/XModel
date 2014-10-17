@@ -5,11 +5,11 @@
     <script in="transport, name">
       <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
       
-      <request via="$server" to="'bob'">
+      <!--request via="$server" to="'bob'">
         <script>
           <print>'Update, Client!'</print>
         </script>
-      </request>
+      </request-->
     </script>
   </assign>
   

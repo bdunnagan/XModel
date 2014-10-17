@@ -24,10 +24,6 @@ import org.xmodel.xpath.expression.IContext;
 import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.function.Function;
 
-
-/**
- * An implementation of the X-Path boolean() function.
- */
 public class IsDefinedFunction extends Function
 {
   public final static String name = "is-defined";

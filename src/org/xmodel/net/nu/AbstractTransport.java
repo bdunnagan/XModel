@@ -28,12 +28,12 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
   }
   
   @Override
-  public AsyncFuture<ITransport> send( IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
+  public AsyncFuture<ITransport> send( IModelObject request, IModelObject envelope, IContext messageContext, int timeout, int retries, int life)
   {
     try
     {
       eventPipe.notifySend( this, envelope, messageContext, timeout, retries, life);
-      return sendImpl( envelope, null);
+      return sendImpl( envelope, request);
     }
     catch( IOException e)
     {
