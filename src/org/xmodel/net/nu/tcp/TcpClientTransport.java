@@ -95,7 +95,7 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
         }
         else
         {
-          getEventPipe().notifyError( (ITransportImpl)future, getTransportContext(), translateConnectError( channelFuture.cause()), null);
+          getEventPipe().notifyError( (ITransportImpl)future.getInitiator(), getTransportContext(), translateConnectError( channelFuture.cause()), null);
         }
         
         super.operationComplete( channelFuture);

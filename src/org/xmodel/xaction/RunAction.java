@@ -79,8 +79,8 @@ public class RunAction extends GuardedAction
     if ( toExpr == null) toExpr = document.getExpression( "clients", true);
     
     timeoutExpr = document.getExpression( "timeout", true);
-    retriesExpr = document.getExpression( "timeout", true);
-    lifeExpr = document.getExpression( "timeout", true);
+    retriesExpr = document.getExpression( "retries", true);
+    lifeExpr = document.getExpression( "life", true);
     
     delayExpr = document.getExpression( "delay", true);
     

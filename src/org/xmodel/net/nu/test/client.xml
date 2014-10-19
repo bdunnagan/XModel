@@ -9,7 +9,7 @@
 
       <create var="x" name="'x'"/>
 
-      <run var="r" via="$client" timeout="0" vars="'x'">
+      <run var="r" via="$client" timeout="2000" retries="0" life="0" vars="'x'">
         <set target="$x">1</set>
         <return>$x</return>
       </run>

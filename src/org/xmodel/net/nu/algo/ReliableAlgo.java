@@ -41,9 +41,13 @@ public class ReliableAlgo extends DefaultEventHandler
   {
     if ( transport.getProtocol().envelope().isRequest( envelope))
     {
-      long expiry = (life > 0)? System.currentTimeMillis() + life: 0;
-      QueuedMessage item = new QueuedMessage( transport, envelope, messageContext, timeout, retries, expiry);
-      sent.put( envelope, item);
+      QueuedMessage item = sent.get( envelope);
+      if ( item == null && (retries >= 0 || life >= 0))
+      {
+        long expiry = (life >= 0)? System.currentTimeMillis() + life: -1;
+        item = new QueuedMessage( transport, envelope, messageContext, timeout, retries, expiry);
+        sent.put( envelope, item);
+      }
     }
 
     return false;
@@ -52,7 +56,11 @@ public class ReliableAlgo extends DefaultEventHandler
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
   {
-    if ( request != null) sent.remove( request);
+    if ( request != null) 
+    {
+      if ( sent.remove( request) == null)
+        return true;
+    }
     return false;
   }
 
@@ -75,17 +83,18 @@ public class ReliableAlgo extends DefaultEventHandler
         // If this behavior is not desired, then set the expiry of the message to
         // be <= timeout.
         //
-        QueuedMessage item = sent.get( request);
+        QueuedMessage item = sent.remove( request);
         if ( item != null)
         {
           int timeRemaining = item.getTimeRemaining();
           if ( timeRemaining > resendTolerance) 
           {
             log.debugf( "Message timeout, %s: retries=%d, expiry=%d", request, item.retries, timeRemaining);
-            if ( item.retries >= 0)
+            
+            if ( item.retries == Integer.MAX_VALUE || item.retries-- > 0)
             {
-              if ( item.retries > 0) item.retries--;
               transport.send( null, item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
+              sent.put( request, item);
               return true;
             }
           }
@@ -168,13 +177,13 @@ public class ReliableAlgo extends DefaultEventHandler
       this.message = message;
       this.messageContext = messageContext;
       this.timeout = timeout;
-      this.retries = retries;
+      this.retries = (retries != 0)? retries: Integer.MAX_VALUE;
       this.expiry = expiry;
     }
     
     public int getTimeRemaining()
     {
-      return (expiry > 0)? (int)(expiry - System.currentTimeMillis()): 0;
+      return (expiry >= 0)? (int)(expiry - System.currentTimeMillis()): Integer.MAX_VALUE;
     }
     
     public ITransportImpl transport;

@@ -26,7 +26,7 @@
       <run executor="$executor">
         <logi>format( '[SERVER] Received:\n%s', $message)</logi>
   
-        <sleep>35000</sleep>
+        <sleep>7000</sleep>
         
         <try>
           <run var="result">$message</run>
