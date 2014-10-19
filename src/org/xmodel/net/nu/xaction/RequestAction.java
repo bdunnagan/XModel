@@ -38,9 +38,9 @@ public class RequestAction extends GuardedAction
     IModelObject message = (messageExpr != null)? messageExpr.queryFirst( context): ActionUtil.getMessage( document.getRoot());
     if ( message != null)
     {
-      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
-      int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
-      int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
+      int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): 0;
+      int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): 0;
+      int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): 0;
       
       IContext messageContext = new StatefulContext( context);
       

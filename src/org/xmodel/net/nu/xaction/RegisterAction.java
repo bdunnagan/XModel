@@ -29,9 +29,9 @@ public class RegisterAction extends GuardedAction
   protected Object[] doAction( IContext context)
   {
     String name = nameExpr.evaluateString( context);
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): -1;
     int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
-    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
+    int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): -1;
     
     IContext messageContext = new StatefulContext( context);
     

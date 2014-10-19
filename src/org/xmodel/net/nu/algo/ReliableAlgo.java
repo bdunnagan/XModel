@@ -41,7 +41,7 @@ public class ReliableAlgo extends DefaultEventHandler
   {
     if ( transport.getProtocol().envelope().isRequest( envelope))
     {
-      long expiry = (life > 0)? System.currentTimeMillis() + life: Long.MAX_VALUE;
+      long expiry = (life > 0)? System.currentTimeMillis() + life: 0;
       QueuedMessage item = new QueuedMessage( transport, envelope, messageContext, timeout, retries, expiry);
       sent.put( envelope, item);
     }
@@ -78,7 +78,7 @@ public class ReliableAlgo extends DefaultEventHandler
         QueuedMessage item = sent.get( request);
         if ( item != null)
         {
-          int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
+          int timeRemaining = item.getTimeRemaining();
           if ( timeRemaining > resendTolerance) 
           {
             log.debugf( "Message timeout, %s: retries=%d, expiry=%d", request, item.retries, timeRemaining);
@@ -121,7 +121,7 @@ public class ReliableAlgo extends DefaultEventHandler
   {
     log.debugf( "Queueing message, %s", item.message);
     
-    int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
+    int timeRemaining = item.getTimeRemaining();
     if ( timeRemaining > resendTolerance)
     {
       item.expireFuture = scheduler.schedule( new ExpireTask( item), timeRemaining, TimeUnit.MILLISECONDS);
@@ -140,7 +140,7 @@ public class ReliableAlgo extends DefaultEventHandler
     {
       if ( item.expireFuture.cancel( false))
       {
-        int timeRemaining = (int)(item.expiry - System.currentTimeMillis());
+        int timeRemaining = item.getTimeRemaining();
         if ( timeRemaining > resendTolerance) 
         {
           transport.send( null, item.message, item.messageContext, Math.min( timeRemaining, item.timeout), item.retries, timeRemaining);
@@ -170,6 +170,11 @@ public class ReliableAlgo extends DefaultEventHandler
       this.timeout = timeout;
       this.retries = retries;
       this.expiry = expiry;
+    }
+    
+    public int getTimeRemaining()
+    {
+      return (expiry > 0)? (int)(expiry - System.currentTimeMillis()): 0;
     }
     
     public ITransportImpl transport;

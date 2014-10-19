@@ -1,6 +1,8 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
+  <executor var="executor" threads="2"/>
+
   <assign var="onRegister">
     <script in="transport, name">
       <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
@@ -21,15 +23,19 @@
   
   <assign var="onReceive">
     <script in="transport, message">
-      <logi>format( '[SERVER] Received:\n%s', $message)</logi>
-
-      <try>
-        <run var="result">$message</run>
-        <respond via="$transport" request="$message">$result</respond>
-      </try>      
-      <catch>
-        <respond via="$transport" request="$message">$exception</respond>
-      </catch>
+      <run executor="$executor">
+        <logi>format( '[SERVER] Received:\n%s', $message)</logi>
+  
+        <sleep>35000</sleep>
+        
+        <try>
+          <run var="result">$message</run>
+          <respond via="$transport" request="$message">$result</respond>
+        </try>      
+        <catch>
+          <respond via="$transport" request="$message">$exception</respond>
+        </catch>
+      </run>
     </script>
   </assign>
 
@@ -51,7 +57,7 @@
     </script>
   </assign>
   
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="server" host="'192.168.1.4'" port="5672">
       <protocol>'xml'</protocol>
       <purge>true()</purge>

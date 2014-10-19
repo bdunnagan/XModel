@@ -79,7 +79,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       Request request = requests.remove( key);
       
       // receive/timeout exclusion
-      if ( request != null && request.timeoutFuture.cancel( false))
+      if ( request != null && (request.timeoutFuture == null || request.timeoutFuture.cancel( false)))
       {
         if ( transport.getProtocol().envelope().getType( envelope) != Type.ack)
           transport.getEventPipe().notifyReceive( transport, envelope, request.messageContext, request.envelope);
@@ -100,7 +100,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     {
       Entry<Long, Request> entry = iter.next();
       Request request = entry.getValue();
-      if ( request.timeoutFuture.cancel( false))
+      if ( request.timeoutFuture == null || request.timeoutFuture.cancel( false))
       {
         iter.remove();
         transport.getEventPipe().notifyError( transport, request.messageContext, ITransport.Error.channelClosed, request.envelope);
@@ -137,7 +137,6 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       
       if ( timeout > 0)
       {
-        System.out.printf( "Setting timeout, %d\n", timeout);
         this.timeoutFuture = scheduler.schedule( this, timeout, TimeUnit.MILLISECONDS);
       }
     }

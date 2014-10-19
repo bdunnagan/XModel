@@ -229,7 +229,7 @@ public class RunAction extends GuardedAction
    */
   private void runRemote( IContext context)
   {
-    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): Integer.MAX_VALUE;
+    int timeout = (timeoutExpr != null)? (int)timeoutExpr.evaluateNumber( context): -1;
     int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
     int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
