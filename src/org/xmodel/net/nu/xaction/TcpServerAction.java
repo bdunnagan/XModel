@@ -168,7 +168,7 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
   {
   }
   
-  private IModelObject unwrap( ITransport transport, IModelObject envelope)
+  private Object unwrap( ITransport transport, IModelObject envelope)
   {
     return transport.getProtocol().envelope().getMessage( envelope);
   }

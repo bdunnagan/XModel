@@ -1,5 +1,6 @@
 package org.xmodel.net.nu.protocol;
 
+import java.util.List;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.Xlate;
@@ -40,14 +41,29 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
     return envelope;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message)
+  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, Object message)
   {
     IModelObject envelope = new ModelObject( "s");
     envelope.setAttribute( keyAttrName, requestEnvelope.getAttribute( keyAttrName));
     envelope.setAttribute( routeAttrName, requestEnvelope.getAttributeNode( routeAttrName));
     envelope.setAttribute( channelAttrName, requestEnvelope.getAttributeNode( channelAttrName));
-    envelope.addChild( message);
+    
+    if ( message instanceof List)
+    {
+      for( Object element: (List<Object>)message)
+        envelope.addChild( (IModelObject)element);
+    }
+    else if ( message instanceof IModelObject)
+    {
+      envelope.addChild( (IModelObject)message);
+    }
+    else
+    {
+      envelope.setAttribute( valueMessageAttrName, message);
+    }
+    
     return envelope;
   }
 
@@ -98,10 +114,14 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   }
 
   @Override
-  public IModelObject getMessage( IModelObject envelope)
+  public Object getMessage( IModelObject envelope)
   {
     if ( envelope == null) return null;
-    return envelope.getChild( 0);
+    
+    Object message = envelope.getAttribute( valueMessageAttrName);
+    if ( message != null) return message;
+    
+    return envelope.getChildren();
   }
 
   @Override
@@ -164,4 +184,5 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
   private final static String expiryAttrName = "e";
   private final static String replyAttrName = "r";
   private final static String channelAttrName = "c";
+  private final static String valueMessageAttrName = "v";
 }

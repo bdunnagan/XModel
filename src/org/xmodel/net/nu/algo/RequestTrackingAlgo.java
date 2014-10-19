@@ -38,7 +38,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     Object key = transport.getProtocol().envelope().getKey( envelope);
     if ( key != null)
     {
-      if ( key instanceof Double) return ((Double)key).longValue();
+      if ( key instanceof Number) return ((Number)key).longValue();
       else if ( key instanceof String) return Long.parseLong( key.toString());
     }
     return null;

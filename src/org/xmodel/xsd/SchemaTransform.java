@@ -19,12 +19,21 @@
  */
 package org.xmodel.xsd;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.xmodel.*;
+
+import org.xmodel.IModelObject;
+import org.xmodel.ModelAlgorithms;
+import org.xmodel.ModelObject;
+import org.xmodel.Reference;
+import org.xmodel.Xlate;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.XPath;
 import org.xmodel.xpath.expression.IExpression;
 
@@ -1045,4 +1054,14 @@ public class SchemaTransform
   private Map<String, IModelObject> globalComplexTypes = new HashMap<String, IModelObject>();
   private Map<String, IModelObject> primitives = new HashMap<String, IModelObject>();
   private boolean unordered;
+  
+  public static void main( String[] args) throws Exception
+  {
+    String filename = "/Users/bdunnagan/git/SonarServer/IP6SonarServer/xsd/server/db/http_measure.xsd";
+    IModelObject xsd = new XmlIO().read( new BufferedInputStream( new FileInputStream( filename)));
+    
+    SchemaTransform t = new SchemaTransform();
+    IModelObject schema = t.transform( xsd);
+    System.out.println( XmlIO.write( Style.printable, schema));
+  }
 }

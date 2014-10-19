@@ -16,7 +16,7 @@ public class BooleanSerializer extends AbstractSerializer
   @Override
   public Object readObject( DataInput input) throws IOException, ClassNotFoundException, CompressorException
   {
-    return input.readByte();
+    return input.readByte() == 1;
   }
 
   /* (non-Javadoc)

@@ -17,7 +17,7 @@ public interface IEnvelopeProtocol
   
   public IModelObject buildRequestEnvelope( String route, IModelObject message, int life);
   
-  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, IModelObject message);
+  public IModelObject buildResponseEnvelope( IModelObject requestEnvelope, Object message);
   
   public IModelObject buildAck( IModelObject requestEnvelope);
   
@@ -27,7 +27,7 @@ public interface IEnvelopeProtocol
     
   public String getRegistrationName( IModelObject envelope);
   
-  public IModelObject getMessage( IModelObject envelope);
+  public Object getMessage( IModelObject envelope);
   
   public IModelObject getEnvelope( IModelObject message);
   

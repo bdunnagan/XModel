@@ -152,7 +152,7 @@ class EventHandlerAdapter extends DefaultEventHandler
     return false;
   }
   
-  private IModelObject unwrap( IModelObject envelope)
+  private Object unwrap( IModelObject envelope)
   {
     return transport.getProtocol().envelope().getMessage( envelope);
   }
