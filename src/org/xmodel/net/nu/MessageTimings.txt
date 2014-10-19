@@ -1,0 +1,7 @@
+Time | Retry | Life | Effect
+----------------------------------------------------------------
+ 0   |  na   |  na  | Wait forever (leaks)
+ 1+  |  0    |  0   | Retry forever (no leak)
+ 1+  |  0    |  1+  | Retry for life
+ 1+  |  1+   |  0   | Finite retry
+ 1+  |  1+   |  1+  | Finite retry, finite life
