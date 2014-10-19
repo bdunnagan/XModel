@@ -1,7 +1,6 @@
 package org.xmodel.net.nu.xaction;
 
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
@@ -30,7 +29,7 @@ public class RespondAction extends GuardedAction
   {
     IModelObject viaNode = viaExpr.queryFirst( context);
     IModelObject request = requestExpr.queryFirst( context);
-    IModelObject message = (messageExpr != null)? getMessage( context): ActionUtil.getMessage( document.getRoot());
+    Object message = (messageExpr != null)? getMessage( context): ActionUtil.getMessage( document.getRoot());
     if ( message != null)
     {
       Object object = viaNode.getValue();
@@ -47,38 +46,15 @@ public class RespondAction extends GuardedAction
     return null;
   }
   
-  private IModelObject getMessage( IContext context)
+  private Object getMessage( IContext context)
   {
     switch( messageExpr.getType( context))
     {
-      case NODES:
-      {
-        return messageExpr.queryFirst( context);
-      }
-        
-      case NUMBER:
-      {
-        IModelObject message = new ModelObject( "message");
-        message.setValue( messageExpr.evaluateNumber( context));
-        return message;
-      }
-      
-      case BOOLEAN:
-      {
-        IModelObject message = new ModelObject( "message");
-        message.setValue( messageExpr.evaluateBoolean( context));
-        return message;
-      }
-      
-      case STRING:
-      {
-        IModelObject message = new ModelObject( "message");
-        message.setValue( messageExpr.evaluateString( context));
-        return message;
-      }
-      
-      default:
-        return null;
+      case NODES:   return messageExpr.evaluateNodes( context);
+      case NUMBER:  return messageExpr.evaluateNumber( context);
+      case BOOLEAN: return messageExpr.evaluateBoolean( context);
+      case STRING:  return messageExpr.evaluateString( context);
+      default:      return null;
     }
   }
   

@@ -283,7 +283,12 @@ public class RunAction extends GuardedAction
         IModelObject element = elements.get( 0);
         if ( element.isType( "exception"))
         {
-          return (Throwable)element.getValue();
+          Object value = element.getValue();
+          if ( value != null)
+          {
+            if ( value instanceof Throwable) return (Throwable)value;
+            return new XActionException( value.toString());
+          }
         }
       }
     }

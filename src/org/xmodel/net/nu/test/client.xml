@@ -7,11 +7,8 @@
     <script>
       <logi>'[CLIENT] Send'</logi>
 
-      <create var="x" name="'x'"/>
-
-      <run var="r" via="$client" timeout="30000" retries="0" vars="'x'">
-        <set target="$x">1</set>
-        <return>$x</return>
+      <run var="r" via="$client" timeout="30000" retries="0">
+        <return>empty()</return>
       </run>
 
       <print>count( $r)</print>
@@ -39,7 +36,7 @@
   <assign var="onConnect">
     <script in="transport">
       <logi>'[CLIENT] Connected'</logi>
-      <register name="'bob'" via="$client" timeout="15000" retries="0" life="0"/>
+      <!--register name="'bob'" via="$client" timeout="15000" retries="0" life="0"/-->
     </script>
   </assign>
   
@@ -49,9 +46,9 @@
     </script>
   </assign>
 
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="client" host="'192.168.1.4'" port="5672" connectTimeout="3000">
-      <protocol>'xml'</protocol>
+      <protocol>'xip'</protocol>
       <publishQueue>'server_recv'</publishQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
@@ -61,6 +58,7 @@
   </if>
   <else>
     <tcpClient var="client" host="'127.0.0.1'" port="10000" connectTimeout="3000">
+      <protocol>'xip'</protocol>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
       <onReceive>$onReceive</onReceive>

@@ -51,9 +51,9 @@
     </script>
   </assign>
   
-  <if test="true()">
+  <if test="false()">
     <amqpClient var="server" host="'192.168.1.4'" port="5672">
-      <protocol>'xml'</protocol>
+      <protocol>'xip'</protocol>
       <purge>true()</purge>
       <consumeQueue>'server_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>
@@ -66,6 +66,7 @@
   </if>
   <else>
     <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
+      <protocol>'xip'</protocol>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
       <onRegister>$onRegister</onRegister>

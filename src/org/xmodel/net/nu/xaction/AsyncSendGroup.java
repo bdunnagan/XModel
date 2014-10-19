@@ -1,10 +1,8 @@
 package org.xmodel.net.nu.xaction;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
@@ -81,12 +79,9 @@ public class AsyncSendGroup
       ModelObject transportNode = new ModelObject( "transport");
       transportNode.setValue( transport);
 
-      // only used by RunAction
-      IModelObject message = transport.getProtocol().envelope().getMessage( envelope);
-      results = new Object[] { message.getValue()};
-      List<IModelObject> children = message.getChildren(); 
-      if ( children.size() > 0) results[ 0] = children;
-      // only used by RunAction
+      // Used by RunAction
+      results = new Object[] { transport.getProtocol().envelope().getMessage( envelope)};
+      // Used by RunAction
       
       synchronized( messageContext)
       {
