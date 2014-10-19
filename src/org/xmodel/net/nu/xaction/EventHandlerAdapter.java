@@ -7,6 +7,7 @@ import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xaction.Conventions;
 import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
@@ -68,8 +69,8 @@ class EventHandlerAdapter extends DefaultEventHandler
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject envelope, IContext messageContext, IModelObject requestEnvelope)
   {
-    // ignore acks
-    if ( envelope == null) return false;
+    if ( transport.getProtocol().envelope().getType( envelope) == Type.ack)
+      return false;
     
     IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
     if ( onReceive != null) 

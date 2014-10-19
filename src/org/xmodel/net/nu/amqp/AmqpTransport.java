@@ -76,7 +76,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     this.purgeConsumeQueue = purge;
   }
 
-  public void setHeartbeatTimeout( int timeout)
+  public void setAmqpHeartbeatTimeout( int timeout)
   {
     connectionFactory.setRequestedHeartbeat( timeout / 1000);
   }

@@ -16,7 +16,6 @@ import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
-import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
 
 /**
@@ -81,8 +80,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       // receive/timeout exclusion
       if ( request != null && (request.timeoutFuture == null || request.timeoutFuture.cancel( false)))
       {
-        if ( transport.getProtocol().envelope().getType( envelope) != Type.ack)
-          transport.getEventPipe().notifyReceive( transport, envelope, request.messageContext, request.envelope);
+        transport.getEventPipe().notifyReceive( transport, envelope, request.messageContext, request.envelope);
       }
     }
   }

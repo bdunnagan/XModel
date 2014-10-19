@@ -7,11 +7,11 @@
     <script in="transport, name">
       <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
       
-      <!--request via="$server" to="'bob'">
+      <request via="$server" to="'bob'">
         <script>
           <print>'Update, Client!'</print>
         </script>
-      </request-->
+      </request>
     </script>
   </assign>
   
@@ -26,8 +26,6 @@
       <run executor="$executor">
         <logi>format( '[SERVER] Received:\n%s', $message)</logi>
   
-        <sleep>7000</sleep>
-        
         <try>
           <run var="result">$message</run>
           <respond via="$transport" request="$message">$result</respond>
@@ -57,7 +55,7 @@
     </script>
   </assign>
   
-  <if test="false()">
+  <if test="true()">
     <amqpClient var="server" host="'192.168.1.4'" port="5672">
       <protocol>'xip'</protocol>
       <purge>true()</purge>

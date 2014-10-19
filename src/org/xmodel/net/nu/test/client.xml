@@ -9,12 +9,12 @@
 
       <create var="x" name="'x'"/>
 
-      <run var="r" via="$client" timeout="2000" retries="0" life="0" vars="'x'">
+      <run var="r" via="$client" timeout="2000" retries="0" vars="'x'">
         <set target="$x">1</set>
         <return>$x</return>
       </run>
 
-      <print>count( $r)</print>
+      <print>$r</print>
 
       <!--request via="$client" timeout="10000" retries="0">$script</request>
       
@@ -39,7 +39,7 @@
   <assign var="onConnect">
     <script in="transport">
       <logi>'[CLIENT] Connected'</logi>
-      <!--register name="'bob'" via="$client" timeout="15000" retries="0" life="0"/-->
+      <register name="'bob'" via="$client" timeout="15000" retries="0"/>
     </script>
   </assign>
   
@@ -49,9 +49,10 @@
     </script>
   </assign>
 
-  <if test="false()">
+  <if test="true()">
     <amqpClient var="client" host="'192.168.1.4'" port="5672" connectTimeout="3000">
-      <protocol>'xml'</protocol>
+      <heartbeatPeriod>5000</heartbeatPeriod>
+      <heartbeatTimeout>10000</heartbeatTimeout>
       <publishQueue>'server_recv'</publishQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
@@ -70,7 +71,7 @@
   
       
   <scheduler var="scheduler" threads="1"/>    
-  <run>$send</run>
+  <!--run>$send</run-->
   
   <sleep>60000</sleep>
 </script>

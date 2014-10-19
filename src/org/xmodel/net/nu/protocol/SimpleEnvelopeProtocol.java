@@ -100,6 +100,7 @@ public final class SimpleEnvelopeProtocol implements IEnvelopeProtocol
       case request:
       case register:
       case deregister:
+      case heartbeat:
         return true;
         
       default:

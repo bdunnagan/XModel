@@ -29,15 +29,16 @@ public class HeartbeatAlgo extends DefaultEventHandler
   }
   
   @Override
-  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
+  public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
   {
     resetHeartbeatTimeout();
     
-    if ( transport.getProtocol().envelope().getType( envelope) == Type.heartbeat)
+    if ( transport.getProtocol().envelope().getType( message) == Type.heartbeat)
     {
-      transport.sendAck( envelope);
+      transport.sendAck( message);
       return true;
     }
+    
     return false;
   }
 
@@ -54,7 +55,6 @@ public class HeartbeatAlgo extends DefaultEventHandler
   {
     stopHeartbeat();
     stopHeartbeatTimeout();
-    
     return false;
   }
 
@@ -73,32 +73,44 @@ public class HeartbeatAlgo extends DefaultEventHandler
 
   private void startHeartbeat()
   {
-    log.verbosef( "Starting heartbeat for transport, %s, period=%d", transport, period);
-    heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
+    if ( period > 0)
+    {
+      log.verbosef( "Starting heartbeat for transport, %s, period=%d", transport, period);
+      heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
+    }
   }
   
   private void stopHeartbeat()
   {
-    log.verbosef( "Stopping heartbeat for transport, %s", transport);
-    ScheduledFuture<?> heartbeatFuture = heartbeatFutureRef.get();
-    if ( heartbeatFuture != null) heartbeatFuture.cancel( false);
+    if ( period > 0)
+    {
+      log.verbosef( "Stopping heartbeat for transport, %s", transport);
+      ScheduledFuture<?> heartbeatFuture = heartbeatFutureRef.get();
+      if ( heartbeatFuture != null) heartbeatFuture.cancel( false);
+    }
   }
   
   private void resetHeartbeatTimeout()
   {
-    log.verbosef( "Reset heartbeat timeout for transport, %s, timeout=%d", transport, timeout);
-    ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
-    if ( timeoutFuture == null || timeoutFuture.cancel( false))
+    if ( timeout > 0)
     {
-      timeoutFutureRef.set( scheduler.schedule( timeoutRunnable, timeout, TimeUnit.MILLISECONDS));
+      log.verbosef( "Reset heartbeat timeout for transport, %s, timeout=%d", transport, timeout);
+      ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
+      if ( timeoutFuture == null || timeoutFuture.cancel( false))
+      {
+        timeoutFutureRef.set( scheduler.schedule( timeoutRunnable, timeout, TimeUnit.MILLISECONDS));
+      }
     }
   }
   
   private void stopHeartbeatTimeout()
   {
-    ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
-    if ( timeoutFuture != null) timeoutFuture.cancel( false);
-    timeoutFutureRef.set( null);
+    if ( timeout > 0)
+    {
+      ScheduledFuture<?> timeoutFuture = timeoutFutureRef.get();
+      if ( timeoutFuture != null) timeoutFuture.cancel( false);
+      timeoutFutureRef.set( null);
+    }
   }
   
   private final Runnable heartbeatRunnable = new Runnable() {

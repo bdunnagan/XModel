@@ -56,11 +56,7 @@ public class ReliableAlgo extends DefaultEventHandler
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
   {
-    if ( request != null) 
-    {
-      if ( sent.remove( request) == null)
-        return true;
-    }
+    if ( request != null) sent.remove( request);
     return false;
   }
 
