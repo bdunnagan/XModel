@@ -9,7 +9,7 @@
 
       <create var="x" name="'x'"/>
 
-      <run var="r" via="$client" timeout="2000" retries="0" vars="'x'">
+      <run var="r" via="$client" timeout="0" vars="'x'">
         <set target="$x">1</set>
         <return>$x</return>
       </run>
@@ -50,9 +50,9 @@
   </assign>
 
   <if test="true()">
-    <amqpClient var="client" host="'192.168.1.4'" port="5672" connectTimeout="3000">
-      <heartbeatPeriod>5000</heartbeatPeriod>
-      <heartbeatTimeout>10000</heartbeatTimeout>
+    <amqpClient var="client" host="'localhost'" port="5673" connectTimeout="3000">
+      <heartbeatPeriod>30000</heartbeatPeriod>
+      <heartbeatTimeout>60000</heartbeatTimeout>
       <publishQueue>'server_recv'</publishQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>

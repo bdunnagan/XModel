@@ -56,7 +56,7 @@
   </assign>
   
   <if test="true()">
-    <amqpClient var="server" host="'192.168.1.4'" port="5672">
+    <amqpClient var="server" host="'127.0.0.1'" port="5673">
       <protocol>'xip'</protocol>
       <purge>true()</purge>
       <consumeQueue>'server_recv'</consumeQueue>
