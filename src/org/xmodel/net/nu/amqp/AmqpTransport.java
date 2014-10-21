@@ -305,7 +305,6 @@ public class AmqpTransport extends AbstractTransport implements IRouter
     @Override
     public void shutdownCompleted( ShutdownSignalException e)
     {
-      System.out.println( "Connection shutdown listener fired");
       getEventPipe().notifyError( AmqpTransport.this, getTransportContext(), Error.connectError, null);
     }
   };

@@ -93,10 +93,6 @@ public class AssignAction extends GuardedAction
     {
       scope.set( var, inlines);
     }
-    else if ( sourceExpr == null)
-    {
-      scope.set( var, context.getObject());
-    }
     else if ( define)
     {
       scope.define( var, sourceExpr);

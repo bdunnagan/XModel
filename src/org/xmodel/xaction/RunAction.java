@@ -29,9 +29,11 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
+import org.xmodel.Reference;
 import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
@@ -238,7 +240,9 @@ public class RunAction extends GuardedAction
     IXAction onComplete = (onCompleteExpr != null)? Conventions.getScript( getDocument(), context, onCompleteExpr): null;
     
     IModelObject script = getScriptNode( context);
-    transferVariables( script, context);
+    IModelObject varAssignScript = new ModelObject( "script");
+    transferVariables( varAssignScript, context);
+    varAssignScript.addChild( new Reference( script)); 
     
     AsyncSendGroup asyncGroup = new AsyncSendGroup( context);
     asyncGroup.setReceiveScript( onSuccess);
@@ -328,7 +332,7 @@ public class RunAction extends GuardedAction
       if ( value instanceof List)
       {
         for( IModelObject element: (List<IModelObject>)value)
-          varAssignOp.addChild( element);
+          varAssignOp.addChild( new Reference( element));
       }
       else
       {

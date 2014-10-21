@@ -80,7 +80,7 @@ class EventHandlerAdapter extends DefaultEventHandler
       
       synchronized( messageContext)
       {
-        ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope)}, messageContext, onReceive);
+        ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope), unwrap( requestEnvelope)}, messageContext, onReceive);
       }
       
       onReceive.run( messageContext);

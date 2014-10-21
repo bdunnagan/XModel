@@ -108,6 +108,7 @@ public class XActionDocument
 
     // initialize packages
     packages.add( "org.xmodel.xaction");
+    packages.add( "org.xmodel.net.nu.xaction");
     packages.add( "org.xmodel.log.xaction");
     
     // load defined packages

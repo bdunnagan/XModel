@@ -85,7 +85,7 @@ public class AmqpClientAction extends GuardedAction
       
       int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
       int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 30000;
-      if ( publishQueue != null && heartbeatPeriod > 0) 
+      if ( (publishQueue != null && heartbeatPeriod > 0) || heartbeatTimeout > 0) 
       {
         eventPipe.addLast( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
       }

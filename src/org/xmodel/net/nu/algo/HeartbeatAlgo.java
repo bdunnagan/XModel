@@ -24,8 +24,6 @@ public class HeartbeatAlgo extends DefaultEventHandler
     this.scheduler = scheduler;
     this.heartbeatFutureRef = new AtomicReference<ScheduledFuture<?>>();
     this.timeoutFutureRef = new AtomicReference<ScheduledFuture<?>>();
-
-    log.setLevel( Log.all);
   }
   
   @Override

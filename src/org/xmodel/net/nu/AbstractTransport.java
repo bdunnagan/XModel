@@ -23,8 +23,6 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
     
     eventPipe = new EventPipe();
     eventPipe.addLast( this);    
-    
-    log.setLevel( Log.all);
   }
   
   @Override

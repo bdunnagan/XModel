@@ -118,7 +118,7 @@ public class AsyncSendGroup
       if ( requestsCompleted == sent)
       {
         notifyComplete();
-        syncQueue.offer( (result != null)? result: new Object[ 0]);
+        if ( syncQueue != null) syncQueue.offer( (result != null)? result: new Object[ 0]);
       }
     }
   }
