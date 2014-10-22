@@ -29,6 +29,16 @@ public class EventPipe implements IEventHandler
   {
     handlers.remove( handler);
   }
+
+  public synchronized IEventHandler getHandler( Class<? extends IEventHandler> handlerClass)
+  {
+    for( IEventHandler handler: getHandlers())
+    {
+      if ( handlerClass.isInstance( handler))
+        return handler;
+    }
+    return null;
+  }
   
   private synchronized IEventHandler[] getHandlers()
   {
@@ -57,9 +67,6 @@ public class EventPipe implements IEventHandler
     return false;
   }
 
-  /* (non-Javadoc)
-   * @see org.xmodel.net.nu.IEventHandler#notifyReceive(org.xmodel.IModelObject)
-   */
   @Override
   public boolean notifyReceive( ITransportImpl transport, IModelObject envelope)
   {
@@ -146,6 +153,21 @@ public class EventPipe implements IEventHandler
         return true;
     }
     return false;
+  }
+
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    
+    sb.append( String.format( "EventPipe: %X\n", hashCode()));
+    for( IEventHandler handler: getHandlers())
+    {
+      sb.append( handler.getClass().getSimpleName());
+      sb.append( '\n');
+    }
+    
+    return sb.toString();
   }
 
   private Deque<IEventHandler> handlers;

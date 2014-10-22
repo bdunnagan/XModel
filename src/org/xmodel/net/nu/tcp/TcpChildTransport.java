@@ -2,17 +2,13 @@ package org.xmodel.net.nu.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.SocketChannel;
-
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.SuccessAsyncFuture;
-import org.xmodel.log.SLog;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
-import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.algo.ReconnectAlgo;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -40,8 +36,11 @@ public class TcpChildTransport extends AbstractChannelTransport implements IRout
   }
 
   @Override
-  public AsyncFuture<ITransport> disconnect()
+  public AsyncFuture<ITransport> disconnect( boolean reconnect)
   {
+    ReconnectAlgo algo = (ReconnectAlgo)getEventPipe().getHandler( ReconnectAlgo.class);
+    if ( algo != null) algo.setReconnect( reconnect);
+    
     Channel channel = channelRef.get();
     if ( channel != null) channel.close();
     
@@ -78,19 +77,6 @@ public class TcpChildTransport extends AbstractChannelTransport implements IRout
   public Iterator<ITransport> resolve( String route)
   {
     return router.resolve( route);
-  }
-
-  @Override
-  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
-  {
-    if ( error == Error.heartbeatLost)
-    {
-      SLog.errorf( this, "Lost heartbeat on transport, %s", transport);
-      transport.disconnect();
-      return true;
-    }
-
-    return super.notifyError( transport, context, error, request);
   }
 
   private IRouter router;

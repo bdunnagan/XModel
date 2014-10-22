@@ -27,6 +27,18 @@ public class TcpTest
     class ServerEventHandler implements ITcpServerEventHandler
     {
       @Override
+      public boolean notifyRegister( ITransport transport, IContext transportContext, String name)
+      {
+        return false;
+      }
+
+      @Override
+      public boolean notifyDeregister( ITransport transport, IContext transportContext, String name)
+      {
+        return false;
+      }
+
+      @Override
       public void notifyReceive( ITransport transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
@@ -76,18 +88,18 @@ public class TcpTest
       {
         System.out.println( "[CLIENT] Connected!");
         
-        try
-        {
-          transport.respond( new XmlIO().read( 
-              "<message>"+
-              "  <print>'Hi'</print>"+
-              "</message>"
-            ), null);
-        }
-        catch( XmlException e)
-        {
-          throw new IOException( e);
-        }
+//        try
+//        {
+//          transport.respond( new XmlIO().read( 
+//              "<message>"+
+//              "  <print>'Hi'</print>"+
+//              "</message>"
+//            ), null);
+//        }
+//        catch( XmlException e)
+//        {
+//          throw new IOException( e);
+//        }
         
         return false;
       }
@@ -126,18 +138,18 @@ public class TcpTest
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
-    TcpClientTransport client = new TcpClientTransport( protocol, clientContext, null);
-    client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
-    
-    client.getEventPipe().addLast( new ClientEventHandler( client));
-    
-    client.connect( 1000).await();
-    
-    System.out.println( "Sleeping ...");
-    Thread.sleep( 100);
-    
-    System.out.println( "Disconnecting client ...");
-    client.disconnect();
+//    TcpClientTransport client = new TcpClientTransport( protocol, clientContext, null);
+//    client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 10000));
+//    
+//    client.getEventPipe().addLast( new ClientEventHandler( client));
+//    
+//    client.connect( 1000).await();
+//    
+//    System.out.println( "Sleeping ...");
+//    Thread.sleep( 100);
+//    
+//    System.out.println( "Disconnecting client ...");
+//    client.disconnect(false);
     
     System.out.println( "Sleeping ...");
     Thread.sleep( 100);

@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -18,10 +17,10 @@ import org.xmodel.net.nu.AbstractTransport;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.SimpleRouter;
+import org.xmodel.net.nu.algo.ReconnectAlgo;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
-
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.AMQP.Queue.DeclareOk;
@@ -205,8 +204,11 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
 
   @Override
-  public AsyncFuture<ITransport> disconnect()
+  public AsyncFuture<ITransport> disconnect( boolean reconnect)
   {
+    ReconnectAlgo algo = (ReconnectAlgo)getEventPipe().getHandler( ReconnectAlgo.class);
+    if ( algo != null) algo.setReconnect( reconnect);
+    
     try
     {
       publishChannelRef.set( null);
@@ -267,7 +269,7 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   {
     return router.resolve( route);
   }
-
+  
   private class TransportConsumer extends DefaultConsumer
   {
     public TransportConsumer( Channel channel)

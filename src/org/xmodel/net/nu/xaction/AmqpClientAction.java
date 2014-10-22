@@ -72,28 +72,22 @@ public class AmqpClientAction extends GuardedAction
       if ( publishQueue != null) amqpClient.setPublishQueue( publishQueue);
       if ( consumeQueue != null) amqpClient.setConsumeQueue( consumeQueue, purge);
       
+      int amqpHeartbeatTimeout = (amqpHeartbeatTimeoutExpr != null)? (int)amqpHeartbeatTimeoutExpr.evaluateNumber( context): 30000;
+      amqpClient.setAmqpHeartbeatTimeout( amqpHeartbeatTimeout);
+      
+      int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 0;
+      int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 0;
+      
       ITransportImpl transport = amqpClient;
       EventPipe eventPipe = transport.getEventPipe();
       eventPipe.addFirst( new RequestTrackingAlgo( scheduler));
-      eventPipe.addFirst( new AmqpRegisterAlgo( amqpClient));
+      eventPipe.addFirst( new AmqpRegisterAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
       eventPipe.addFirst( new ExpirationAlgo());
       if ( retry) eventPipe.addLast( new ReconnectAlgo( scheduler));
       if ( reliable) eventPipe.addLast( new ReliableAlgo( transport, scheduler));
       
-      int amqpHeartbeatTimeout = (amqpHeartbeatTimeoutExpr != null)? (int)amqpHeartbeatTimeoutExpr.evaluateNumber( context): 30000;
-      amqpClient.setAmqpHeartbeatTimeout( amqpHeartbeatTimeout);
-      
-      int heartbeatTimeout = (heartbeatTimeoutExpr != null)? (int)heartbeatTimeoutExpr.evaluateNumber( context): 30000;
-      int heartbeatPeriod = (heartbeatPeriodExpr != null)? (int)heartbeatPeriodExpr.evaluateNumber( context): 30000;
-      if ( (publishQueue != null && heartbeatPeriod > 0) || heartbeatTimeout > 0) 
-      {
-        eventPipe.addLast( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler));
-      }
-      else
-      {
-        eventPipe.addLast( new HeartbeatAlgo( amqpClient, 0, 0, scheduler));
-      }
-      
+      if ( publishQueue != null) eventPipe.addLast( new HeartbeatAlgo( amqpClient, heartbeatPeriod, heartbeatTimeout, scheduler)); 
+            
       eventPipe.addLast( new EventHandlerAdapter( getDocument(), transport, context));
       
       transport.setConnectTimeout( connectTimeout);

@@ -4,19 +4,16 @@ import java.util.Iterator;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
-import org.xmodel.xaction.IXAction;
-import org.xmodel.xaction.ScriptAction;
+import org.xmodel.net.nu.protocol.IEnvelopeProtocol.Type;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.StatefulContext;
 
-public class AsyncSendGroup
+public abstract class AsyncSendGroup
 {
   public AsyncSendGroup( IContext callContext)
   {
@@ -24,22 +21,13 @@ public class AsyncSendGroup
     this.sentCount = new AtomicInteger();
     this.doneCount = new AtomicInteger();
   }
+  
+  protected abstract void onSuccess( ITransport transport, IContext messageContext, IModelObject message, IModelObject request);
+  
+  protected abstract void onError( ITransport transport, IContext messageContext, Error error, IModelObject request);
 
-  public void setReceiveScript( IXAction onSuccess)
-  {
-    this.onReceive = onSuccess;
-  }
-  
-  public void setErrorScript( IXAction onError)
-  {
-    this.onError = onError;
-  }
-  
-  public void setCompleteScript( IXAction onComplete)
-  {
-    this.onComplete = onComplete;
-  }
-  
+  protected abstract void onComplete( IContext callContext);
+    
   public void send( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life)
   {
     int count = 0;
@@ -47,12 +35,12 @@ public class AsyncSendGroup
     {
       ITransport transport = transports.next();
       
-      transport.getEventPipe().addLast( new EventHandler());
-      count++;
-
       IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
       IModelObject envelope = isEnvelope? message: envelopeProtocol.buildRequestEnvelope( null, message, life);
       
+      transport.getEventPipe().addLast( new EventHandler( envelope));
+      count++;
+
       transport.send( null, envelope, messageContext, timeout, retries, life);
     }
 
@@ -69,43 +57,32 @@ public class AsyncSendGroup
     return syncQueue.take();
   }
   
-  public void notifyReceive( ITransport transport, IModelObject envelope, IContext messageContext, IModelObject requestMessage)
+  public void notifyReceive( final ITransport transport, final IModelObject envelope, final IContext messageContext, final IModelObject requestMessage)
   {
-    Object[] results = null;
-    
     // ignore acks
-    if ( requestMessage != null) 
+    IEnvelopeProtocol envelopeProtocol = transport.getProtocol().envelope();
+    if ( requestMessage != null && envelopeProtocol.getType( envelope) != Type.ack)
     {
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-
-      // Used by RunAction
-      results = new Object[] { transport.getProtocol().envelope().getMessage( envelope)};
-      // Used by RunAction
-      
-      synchronized( messageContext)
-      {
-        ScriptAction.passVariables( new Object[] { transportNode, envelope}, messageContext, onReceive);
-      }
-      
-      if ( onReceive != null) onReceive.run( messageContext);
+      messageContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          onSuccess( transport, messageContext, envelope, requestMessage);
+        }
+      });
     }
     
+    Object[] results = new Object[] { envelopeProtocol.getMessage( envelope)};
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet(), results);
   }
-
-  private void notifyError( ITransport transport, IContext context, Error error, IModelObject request)
+  
+  private void notifyError( final ITransport transport, final IContext context, final Error error, final IModelObject request)
   {
-    if ( onError != null) 
-    {
-      StatefulContext errorContext = new StatefulContext( context);
-      
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      ScriptAction.passVariables( new Object[] { transport, error.toString()}, errorContext, onError);
-      onError.run( errorContext);
-    }
+    context.getExecutor().execute( new Runnable() {
+      public void run()
+      {
+        onError( transport, context, error, request);
+      }
+    });
     
     notifyWhenAllRequestsComplete( doneCount.incrementAndGet(), null);
   }
@@ -125,44 +102,51 @@ public class AsyncSendGroup
 
   private void notifyComplete()
   {
-    IXAction onComplete;
-    
-    synchronized( this)
-    {
-      onComplete = this.onComplete;
-      this.onComplete = null;
-    }
-    
-    if ( onComplete != null)
-    {
-      try
+    callContext.getExecutor().execute( new Runnable() {
+      public void run() 
       {
-        onComplete.run( callContext);
+        try
+        {
+          onComplete( callContext);
+        }
+        catch( Exception e)
+        {
+          log.exception( e);
+        }
       }
-      catch( Exception e)
-      {
-        log.exception( e);
-      }
-    }
+    });
   }
 
   class EventHandler extends DefaultEventHandler
   {
-    @Override
-    public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
+    public EventHandler( IModelObject request)
     {
-      transport.getEventPipe().remove( this);
-      AsyncSendGroup.this.notifyReceive( transport, message, messageContext, requestMessage);
+      this.request = request;
+    }
+    
+    @Override
+    public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject request)
+    {
+      if ( request == this.request)
+      {
+        transport.getEventPipe().remove( this);
+        AsyncSendGroup.this.notifyReceive( transport, message, messageContext, request);
+      }
       return false;
     }
 
     @Override
     public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
     {
-      transport.getEventPipe().remove( this);
-      AsyncSendGroup.this.notifyError( transport, context, error, request);
+      if ( request == this.request)
+      {
+        transport.getEventPipe().remove( this);
+        AsyncSendGroup.this.notifyError( transport, context, error, request);
+      }
       return false;
     }
+    
+    private IModelObject request;
   }
   
   public static Log log = Log.getLog( AsyncSendGroup.class);
@@ -170,8 +154,5 @@ public class AsyncSendGroup
   private IContext callContext;
   private AtomicInteger sentCount;
   private AtomicInteger doneCount;
-  private IXAction onReceive;
-  private IXAction onError;
-  private IXAction onComplete;
   private SynchronousQueue<Object[]> syncQueue;
 }

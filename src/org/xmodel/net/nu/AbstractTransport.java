@@ -22,7 +22,7 @@ public abstract class AbstractTransport extends DefaultEventHandler implements I
     this.transportContext = transportContext;
     
     eventPipe = new EventPipe();
-    eventPipe.addLast( this);    
+    eventPipe.addLast( this);
   }
   
   @Override

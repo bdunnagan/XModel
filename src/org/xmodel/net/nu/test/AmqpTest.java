@@ -34,7 +34,7 @@ public class AmqpTest
       public boolean notifyReceive( ITransportImpl transport, IModelObject message, IContext messageContext, IModelObject requestMessage)
       {
         System.out.printf( "[SERVER] %s\n", XmlIO.write( Style.printable, message));
-        transport.ack( message);
+        //transport.ack( message);
         return false;
       }
 
@@ -88,18 +88,18 @@ public class AmqpTest
       {
         System.out.println( "[CLIENT] Connected!");
         
-        try
-        {
-          transport.request( new XmlIO().read( 
-              "<message>"+
-              "  <print>'Hi'</print>"+
-              "</message>"
-            ), transportContext, 1000);
-        }
-        catch( XmlException e)
-        {
-          throw new IOException( e);
-        }
+//        try
+//        {
+//          transport.request( new XmlIO().read( 
+//              "<message>"+
+//              "  <print>'Hi'</print>"+
+//              "</message>"
+//            ), transportContext, 1000);
+//        }
+//        catch( XmlException e)
+//        {
+//          throw new IOException( e);
+//        }
         
         return false;
       }
@@ -134,19 +134,19 @@ public class AmqpTest
     IContext context = new StatefulContext();
     AmqpTransport server = new AmqpTransport( protocol, context);
     server.setPublishQueue( "test_client");
-    server.setConsumeQueue( "test_server");
+    //server.setConsumeQueue( "test_server");
     server.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 5672));
     server.getEventPipe().addLast( new ServerEventHandler( server));
-    server.connect( 1000).await();
+    //server.connect( 1000).await();
     
     System.out.println( "Starting client ...");
     IContext clientContext = new StatefulContext();
     AmqpTransport client = new AmqpTransport( protocol, clientContext);
     client.setPublishQueue( "test_server");
-    client.setConsumeQueue( "test_client");
+    //client.setConsumeQueue( "test_client");
     client.setRemoteAddress( new InetSocketAddress( "127.0.0.1", 5672));
     client.getEventPipe().addLast( new ClientEventHandler( client));
-    client.connect( 1000).await();
+    //client.connect( 1000).await();
     
     System.out.println( "Sleeping ...");
     Thread.sleep( 100);

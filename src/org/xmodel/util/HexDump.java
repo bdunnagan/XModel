@@ -59,7 +59,7 @@ public class HexDump
   {
     StringBuilder sb = new StringBuilder();
     StringBuilder text = new StringBuilder();
-    int bpl = 16, n = 0;
+    int bpl = 32, n = 0;
     for( int i=0; i<buffer.readableBytes(); i++)
     {
       int c = buffer.getByte( buffer.readerIndex() + i) & 0xFF;

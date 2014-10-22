@@ -1,38 +1,45 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
-  <executor var="worker" name="'worker'" thread="1"/>
+  <executor var="executor" name="'worker'" thread="5"/>
 
   <assign var="send">
     <script>
       <logi>'[CLIENT] Send'</logi>
 
-      <create var="x" name="'x'"/>
+      <assign var="sendSuccess">
+        <script>
+          <print>$result</print>
+        </script>
+      </assign>
 
-      <run var="r" via="$client" timeout="0" vars="'x'">
-        <set target="$x">1</set>
-        <return>$x</return>
-      </run>
-
-      <print>$r</print>
-
-      <!--request via="$client" timeout="10000" retries="0">$script</request>
-      
-      <run scheduler="$scheduler" delay="3000">$send</run-->
+      <for var="i" from="1" to="100">
+        <logi>$i</logi>
+        <run var="result" via="$client" vars="'i'" timeout="10000" life="10000" onSuccess="$sendSuccess">
+          <return>$i</return>
+        </run>
+      </for>
     </script>
   </assign>
 
   <assign var="onReceive">
-    <script in="transport, message">
-      <run executor="$worker">
-        <logi>format( '[CLIENT] Received:\n%s', $message)</logi>
+    <script in="transport, message, request">
+      <run when="name( $message) = 'script'" executor="$executor">
+        <try>
+          <run var="result">$message</run>
+          <assign when="not( is-defined( 'result'))" var="result">empty()</assign>
+          <respond via="$transport" request="$message">$result</respond>
+        </try>      
+        <catch>
+          <respond via="$transport" request="$message">$exception</respond>
+        </catch>
       </run>
     </script>
   </assign>
 
   <assign var="onError">
-    <script in="transport, error">
-      <logi>format( '[CLIENT] Error: %s', $error)</logi>
+    <script in="transport, error, request">
+      <logi>format( '[CLIENT] Error: %s, Request: %s', $error, $request)</logi>
     </script>
   </assign>
 
@@ -50,9 +57,9 @@
   </assign>
 
   <if test="true()">
-    <amqpClient var="client" host="'localhost'" port="5673" connectTimeout="3000">
-      <heartbeatPeriod>30000</heartbeatPeriod>
-      <heartbeatTimeout>60000</heartbeatTimeout>
+    <amqpClient var="client" host="'localhost'" port="5672" connectTimeout="3000">
+      <heartbeatPeriod>5000</heartbeatPeriod>
+      <heartbeatTimeout>15000</heartbeatTimeout>
       <publishQueue>'server_recv'</publishQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
@@ -71,7 +78,7 @@
   
       
   <scheduler var="scheduler" threads="1"/>    
-  <!--run>$send</run-->
+  <run when="false()">$send</run>
   
   <sleep>60000</sleep>
 </script>

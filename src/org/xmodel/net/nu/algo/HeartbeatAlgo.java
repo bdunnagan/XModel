@@ -62,7 +62,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
     if ( error == Error.heartbeatLost)
     {
       SLog.errorf( this, "Lost heartbeat on transport, %s", transport);
-      transport.disconnect();
+      transport.disconnect( true);
       return true;
     }
 
@@ -116,7 +116,7 @@ public class HeartbeatAlgo extends DefaultEventHandler
     {
       log.verbosef( "Sending heartbeat for transport, %s, period=%d", transport, period);
       IModelObject envelope = transport.getProtocol().envelope().buildHeartbeatEnvelope();
-      transport.send( null, envelope, transport.getTransportContext(), 0, 0, timeout);
+      transport.send( null, envelope, transport.getTransportContext(), period, -1, period);
       heartbeatFutureRef.set( scheduler.schedule( heartbeatRunnable, period, TimeUnit.MILLISECONDS));
     }
   };

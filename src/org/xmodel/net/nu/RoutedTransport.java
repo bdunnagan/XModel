@@ -29,9 +29,9 @@ public final class RoutedTransport implements ITransport
   }
   
   @Override
-  public AsyncFuture<ITransport> disconnect()
+  public AsyncFuture<ITransport> disconnect(boolean reconnect)
   {
-    return via.disconnect();
+    return via.disconnect(false);
   }
   
   @Override

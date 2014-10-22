@@ -72,7 +72,7 @@ public class ReliableAlgo extends DefaultEventHandler
   {
     if ( request != null)
     {
-      if ( error.equals( ITransport.Error.timeout))
+      if ( error == Error.timeout)
       {
         //
         // Remote host was busy, so re-send message unless it has expired.
@@ -101,7 +101,7 @@ public class ReliableAlgo extends DefaultEventHandler
           }
         }
       }
-      else
+      else if ( error != Error.messageExpired)
       {
         //
         // Connection is offline, so queue message until connection is re-established.

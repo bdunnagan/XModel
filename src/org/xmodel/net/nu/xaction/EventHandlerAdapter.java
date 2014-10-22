@@ -3,6 +3,7 @@ package org.xmodel.net.nu.xaction;
 import java.io.IOException;
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
+import org.xmodel.log.SLog;
 import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransport.Error;
@@ -13,138 +14,210 @@ import org.xmodel.xaction.IXAction;
 import org.xmodel.xaction.ScriptAction;
 import org.xmodel.xaction.XActionDocument;
 import org.xmodel.xpath.expression.IContext;
-import org.xmodel.xpath.expression.IExpression;
 import org.xmodel.xpath.expression.StatefulContext;
 
-class EventHandlerAdapter extends DefaultEventHandler
+public class EventHandlerAdapter extends DefaultEventHandler
 {
   public EventHandlerAdapter( XActionDocument document, ITransport transport, IContext context)
   {
     this.transport = transport;
-    this.context = context;
-    this.document = document;
     
-    onConnectExpr = document.getExpression( "onConnect", true);
-    onDisconnectExpr = document.getExpression( "onDisconnect", true);
-    onRegisterExpr = document.getExpression( "onRegister", true);
-    onDeregisterExpr = document.getExpression( "onDeregister", true);
-    onReceiveExpr = document.getExpression( "onReceive", true);
-    onErrorExpr = document.getExpression( "onError", true);
+    onConnect = Conventions.getScript( document, context, document.getExpression( "onConnect", true));
+    onDisconnect = Conventions.getScript( document, context, document.getExpression( "onDisconnect", true));
+    onRegister = Conventions.getScript( document, context, document.getExpression( "onRegister", true));
+    onDeregister = Conventions.getScript( document, context, document.getExpression( "onDeregister", true));
+    onReceive = Conventions.getScript( document, context, document.getExpression( "onReceive", true));
+    onError = Conventions.getScript( document, context, document.getExpression( "onError", true));
   }
   
   @Override
-  public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
+  public boolean notifyConnect( final ITransportImpl transport, final IContext transportContext) throws IOException
   {
-    IXAction onConnect = Conventions.getScript( document, context, onConnectExpr);
     if ( onConnect != null) 
     {
-      StatefulContext connectContext = new StatefulContext( transportContext);
-      
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      ScriptAction.passVariables( new Object[] { transportNode}, connectContext, onConnect);
-      onConnect.run( connectContext);
+      transportContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          StatefulContext connectContext = new StatefulContext( transportContext);
+          
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+          
+          ScriptAction.passVariables( new Object[] { transportNode}, connectContext, onConnect);
+          try
+          {
+            onConnect.run( connectContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
     return false;
   }
 
   @Override
-  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
+  public boolean notifyDisconnect( final ITransportImpl transport, final IContext transportContext) throws IOException
   {
-    IXAction onDisconnect = Conventions.getScript( document, context, onDisconnectExpr);
     if ( onDisconnect != null) 
     {
-      StatefulContext disconnectContext = new StatefulContext( transportContext);
-      
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      ScriptAction.passVariables( new Object[] { transportNode}, disconnectContext, onDisconnect);
-      onDisconnect.run( disconnectContext);
+      transportContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          StatefulContext disconnectContext = new StatefulContext( transportContext);
+          
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+          
+          ScriptAction.passVariables( new Object[] { transportNode}, disconnectContext, onDisconnect);
+          try
+          {
+            onDisconnect.run( disconnectContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
     return false;
   }
 
   @Override
-  public boolean notifyReceive( ITransportImpl transport, IModelObject envelope, IContext messageContext, IModelObject requestEnvelope)
+  public boolean notifyReceive( final ITransportImpl transport, final IModelObject envelope, final IContext messageContext, final IModelObject requestEnvelope)
   {
     if ( transport.getProtocol().envelope().getType( envelope) == Type.ack)
       return false;
     
-    IXAction onReceive = Conventions.getScript( document, messageContext, onReceiveExpr);
     if ( onReceive != null) 
     {
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      synchronized( messageContext)
-      {
-        ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope), unwrap( requestEnvelope)}, messageContext, onReceive);
-      }
-      
-      onReceive.run( messageContext);
+      messageContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+          
+          synchronized( messageContext)
+          {
+            ScriptAction.passVariables( new Object[] { transportNode, unwrap( envelope), unwrap( requestEnvelope)}, messageContext, onReceive);
+          }
+          
+          try
+          {
+            onReceive.run( messageContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
+    
     return false;
   }
 
   @Override
-  public boolean notifyRegister( ITransportImpl transport, IContext transportContext, String name)
+  public boolean notifyRegister( final ITransportImpl transport, final IContext transportContext, final String name)
   {
-    IXAction onRegister = Conventions.getScript( document, transportContext, onRegisterExpr);
     if ( onRegister != null) 
     {
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      synchronized( transportContext)
-      {
-        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
-      }
-      
-      onRegister.run( transportContext);
+      transportContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+          
+          synchronized( transportContext)
+          {
+            ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onRegister);
+          }
+    
+          try
+          {
+            onRegister.run( transportContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
+    
     return false;
   }
 
   @Override
-  public boolean notifyDeregister( ITransportImpl transport, IContext transportContext, String name)
+  public boolean notifyDeregister( final ITransportImpl transport, final IContext transportContext, final String name)
   {
-    IXAction onDeregister = Conventions.getScript( document, transportContext, onDeregisterExpr);
     if ( onDeregister != null) 
     {
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-      
-      synchronized( transportContext)
-      {
-        ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
-      }
-      
-      onDeregister.run( transportContext);
+      transportContext.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+          
+          synchronized( transportContext)
+          {
+            ScriptAction.passVariables( new Object[] { transportNode, name}, transportContext, onDeregister);
+          }
+    
+          try
+          {
+            onDeregister.run( transportContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
+    
     return false;
   }
 
   @Override
-  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject requestEnvelope)
+  public boolean notifyError( final ITransportImpl transport, final IContext context, final Error error, final IModelObject requestEnvelope)
   {
-    IXAction onError = Conventions.getScript( document, context, onErrorExpr);
     if ( onError != null) 
     {
-      StatefulContext messageContext = new StatefulContext( context);
-      
-      ModelObject transportNode = new ModelObject( "transport");
-      transportNode.setValue( transport);
-
-      synchronized( messageContext)
-      {
-        ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( requestEnvelope)}, messageContext, onError);
-      }
-      
-      onError.run( messageContext);
+      context.getExecutor().execute( new Runnable() {
+        public void run()
+        {
+          StatefulContext messageContext = new StatefulContext( context);
+          
+          ModelObject transportNode = new ModelObject( "transport");
+          transportNode.setValue( transport);
+    
+          synchronized( messageContext)
+          {
+            ScriptAction.passVariables( new Object[] { transport, error.toString(), unwrap( requestEnvelope)}, messageContext, onError);
+          }
+    
+          try
+          {
+            onError.run( messageContext);
+          }
+          catch( Exception e)
+          {
+            handleException( e);
+          }
+        }
+      });
     }
+    
     return false;
+  }
+  
+  private void handleException( Exception e)
+  {
+    SLog.exception( this, e);
   }
 
   @Override
@@ -159,12 +232,10 @@ class EventHandlerAdapter extends DefaultEventHandler
   }
   
   private ITransport transport;
-  private IContext context;
-  private XActionDocument document;
-  private IExpression onConnectExpr;
-  private IExpression onDisconnectExpr;
-  private IExpression onRegisterExpr;
-  private IExpression onDeregisterExpr;
-  private IExpression onReceiveExpr;
-  private IExpression onErrorExpr;
+  private IXAction onConnect;
+  private IXAction onDisconnect;
+  private IXAction onRegister;
+  private IXAction onDeregister;
+  private IXAction onReceive;
+  private IXAction onError;
 }

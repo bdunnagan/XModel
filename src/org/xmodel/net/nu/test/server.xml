@@ -1,17 +1,21 @@
 <script>
   <package>org.xmodel.net.nu.xaction</package>
 
-  <executor var="executor" threads="2"/>
+  <executor var="executor" threads="5"/>
 
   <assign var="onRegister">
     <script in="transport, name">
-      <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
-      
-      <request via="$server" to="'bob'">
-        <script>
-          <print>'Update, Client!'</print>
-        </script>
-      </request>
+      <run executor="$executor">
+        <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
+        
+        <run var="r" via="$server" to="$name">
+          <script>
+            <return>'Works!'</return>
+          </script>
+        </run>
+        
+        <print>format( 'Result: %s', $r)</print>
+      </run>
     </script>
   </assign>
   
@@ -22,12 +26,13 @@
   </assign>
   
   <assign var="onReceive">
-    <script in="transport, message">
-      <run executor="$executor">
+    <script in="transport, message, request">
+      <run when="name( $message) = 'script'" executor="$executor">
         <logi>format( '[SERVER] Received:\n%s', $message)</logi>
   
         <try>
           <run var="result">$message</run>
+          <assign when="not( is-defined( 'result'))" var="result">empty()</assign>
           <respond via="$transport" request="$message">$result</respond>
         </try>      
         <catch>
@@ -56,9 +61,9 @@
   </assign>
   
   <if test="true()">
-    <amqpClient var="server" host="'127.0.0.1'" port="5673">
-      <protocol>'xip'</protocol>
-      <purge>true()</purge>
+    <amqpClient var="server" host="'127.0.0.1'" port="5672" purge="true()" protocol="'xip'">
+      <heartbeatPeriod>5000</heartbeatPeriod>
+      <heartbeatTimeout>15000</heartbeatTimeout>
       <consumeQueue>'server_recv'</consumeQueue>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>
@@ -69,7 +74,7 @@
     </amqpClient>
   </if>
   <else>
-    <tcpServer var="server" bindHost="'0.0.0.0'" bindPort="10000">
+    <tcpServer var="server" host="'0.0.0.0'" port="10000">
       <protocol>'xip'</protocol>
       <onConnect>$onConnect</onConnect>
       <onDisconnect>$onDisconnect</onDisconnect>

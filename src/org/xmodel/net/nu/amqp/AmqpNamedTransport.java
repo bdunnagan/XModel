@@ -1,22 +1,23 @@
 package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
-
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
+import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
-public class AmqpNamedTransport implements ITransportImpl
+public class AmqpNamedTransport extends DefaultEventHandler implements ITransportImpl
 {
   public AmqpNamedTransport( String publishQueue, AmqpTransport transport)
   {
     this.publishQueue = publishQueue;
     this.transport = transport;
+    this.eventPipe = new EventPipe();
   }
 
   public String getPublishQueue()
@@ -45,8 +46,10 @@ public class AmqpNamedTransport implements ITransportImpl
   }
 
   @Override
-  public AsyncFuture<ITransport> disconnect()
+  public AsyncFuture<ITransport> disconnect( boolean reconnect)
   {
+    transport.removeRoutes( this);
+    
     try
     {
       getEventPipe().notifyDisconnect( this, getTransportContext());
@@ -69,7 +72,7 @@ public class AmqpNamedTransport implements ITransportImpl
   {
     try
     {
-      getEventPipe().notifySend( this, envelope, messageContext, timeout, retries, life);
+      transport.getEventPipe().notifySend( this, envelope, messageContext, timeout, retries, life);
       return sendImpl( envelope, null);
     }
     catch( IOException e)
@@ -88,7 +91,7 @@ public class AmqpNamedTransport implements ITransportImpl
   @Override
   public EventPipe getEventPipe()
   {
-    return transport.getEventPipe();
+    return eventPipe;
   }
 
   @Override
@@ -104,17 +107,12 @@ public class AmqpNamedTransport implements ITransportImpl
   }
   
   @Override
-  public int hashCode()
+  public String toString()
   {
-    return transport.hashCode();
+    return publishQueue;
   }
-
-  @Override
-  public boolean equals( Object object)
-  {
-    return object == this || transport.equals( object);
-  }
-
+  
   private String publishQueue;
   private AmqpTransport transport;
+  private EventPipe eventPipe;
 }

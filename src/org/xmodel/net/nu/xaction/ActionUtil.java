@@ -43,12 +43,16 @@ final public class ActionUtil
     {
       if ( toExpr.getType() == ResultType.NODES)
       {
-        List<IModelObject> elements = toExpr.evaluateNodes( context);
-        for( IModelObject element: elements)
+        List<IModelObject> viaElements = viaExpr.evaluateNodes( context);
+        for( IModelObject viaElement: viaElements)
         {
-          Object via = element.getAttribute( "via");
-          String to = Xlate.get( element, "to", (String)null);
-          getTransports( via, to, transports);
+          Object via = viaElement.getValue();
+          List<IModelObject> elements = toExpr.evaluateNodes( context);
+          for( IModelObject element: elements)
+          {
+            String to = Xlate.get( element, (String)null);
+            getTransports( via, to, transports);
+          }
         }
       }
       else

@@ -20,9 +20,15 @@ public class ReconnectAlgo extends DefaultEventHandler
     this.retryDelay = retryMinDelay;
   }
 
+  public void setReconnect( boolean reconnect)
+  {
+    this.reconnect = reconnect;
+  }
+  
   @Override
   public boolean notifyConnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
+    reconnect = true;
     retryDelay = retryMinDelay;
     return false;
   }
@@ -30,8 +36,11 @@ public class ReconnectAlgo extends DefaultEventHandler
   @Override
   public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
-    scheduler.schedule( new ReconnectRunnable( transport), retryDelay, TimeUnit.MILLISECONDS);
-    increaseRetryDelay();
+    if ( reconnect)
+    {
+      scheduler.schedule( new ReconnectRunnable( transport), retryDelay, TimeUnit.MILLISECONDS);
+      increaseRetryDelay();
+    }
     return false;
   }
 
@@ -79,4 +88,5 @@ public class ReconnectAlgo extends DefaultEventHandler
   private int retryDelay;
   private int retryMinDelay;
   private int retryMaxDelay;
+  private boolean reconnect;
 }

@@ -490,7 +490,7 @@ public class Reference implements IModelObject
   @Override
   public void setCachingPolicy( ICachingPolicy cachingPolicy)
   {
-    throw new UnsupportedOperationException();
+    referent.setCachingPolicy( cachingPolicy);
   }
 
   /* (non-Javadoc)
@@ -499,7 +499,7 @@ public class Reference implements IModelObject
   @Override
   public ICachingPolicy getCachingPolicy()
   {
-    return null;
+    return referent.getCachingPolicy();
   }
 
   /* (non-Javadoc)
@@ -508,7 +508,7 @@ public class Reference implements IModelObject
   @Override
   public void setDirty( boolean dirty)
   {
-    throw new UnsupportedOperationException();
+    referent.setDirty( dirty);
   }
 
   /* (non-Javadoc)
@@ -517,7 +517,7 @@ public class Reference implements IModelObject
   @Override
   public ITransaction transaction()
   {
-    throw new UnsupportedOperationException();
+    return referent.transaction();
   }
 
   /* (non-Javadoc)
@@ -526,7 +526,7 @@ public class Reference implements IModelObject
   @Override
   public void clearCache() throws CachingException
   {
-    throw new UnsupportedOperationException();
+    referent.clearCache();
   }
   
   /**

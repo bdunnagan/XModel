@@ -19,11 +19,9 @@
  */
 package org.xmodel.compress;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -844,12 +842,25 @@ public class TabularCompressor extends AbstractCompressor
       };
     Arrays.sort( tags);
     TabularCompressor.setImplicitTable( tags);
+//    
+//    File file = new File( "/Users/bdunnagan/git/Sonar/IP6Sonar2/src/com/nephos6/ip6sonar/web/ipsonar-scripts.xip");
     
-    File file = new File( "/Users/bdunnagan/git/Sonar/IP6Sonar2/src/com/nephos6/ip6sonar/web/ipsonar-scripts.xip");
+//    ICompressor c = new TabularCompressor( false, true);
+//    IModelObject purchases = c.decompress( new BufferedInputStream( new FileInputStream( file)));
+//    System.out.println( XmlIO.write( Style.printable, purchases));
     
-    ICompressor c = new TabularCompressor( false, true);
-    IModelObject purchases = c.decompress( new BufferedInputStream( new FileInputStream( file)));
-    System.out.println( XmlIO.write( Style.printable, purchases));
+    String hex = "1F8B0800000000000000A552CB8A143114BDF1B11851147AE7AA1994DE4C8ABCEA91F81C5B172E446166218814A93C7A4ABBAA9AAAA47010C14FB7BA5BA61910145C04CEBD398773937B1EDC335D1B5C1BC07471027DD9EAC65D15E1727328625B1F6863B78E13310E13AE2D6CFAEE8B33610B7B3774B1376E8F4DD75B674B1D0EFDC6056D75D0F0D55DC2A8D7D141E38641AF769202D00CEE26088EAC1B717043A02011DC1F9BC46CE2F69431D46B50086EAF745C397882003D86A7086EA589E0F00CE03982799549AE25F105A1B9D0D4CB8A59CA0937AC90362B327881E011B75E5A927B9C91DC6051F01C6B9D6A9C5705B3DC114FB4018E60C6081598124CC4394D15658A487889E0E11FFA49460521044EE1E60C6EBC4270A77581969BBE1E292C11FC9C1EF8E9F87B5CBC3FC36F3E9EE3B71FCEF0BBD3A56AB429B5B5FD42CDE3C26B4533C59D125EE554D96C71327547D70F75D74E8C6C5B5EB1D934BEF226258AAB3C55BED869BD57DEEDF4BFE50743B55DECDEA8FEE6ECE2C7F1C9FC7F4712D746A2194B18CD134A45C2B8F8ABFF67D87FD6EC62BAE9C77AE8FAF2A21BC22E8ECB6B69D8138FA6D4EA7697B8E5BFACFBF5B4EE34358ECA5C63C128C5427389AB540B2C652504333477DCC22FE93DB68213030000";
+    ByteArrayOutputStream b = new ByteArrayOutputStream();
+    for( int i=0; i<hex.length(); i+=2)
+    {
+      int c = Integer.parseInt( hex.substring( i, i+2), 16);
+      b.write( c);
+    }
+    b.flush();
+    b.close();
     
+    ICompressor c = new ZipCompressor( new TabularCompressor( false, false));
+    IModelObject o = c.decompress( new ByteArrayInputStream( b.toByteArray()));
+    System.out.println( XmlIO.write( Style.printable, o));
   }
 }

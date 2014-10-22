@@ -76,11 +76,11 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     if ( key != null)
     {
       Request request = requests.remove( key);
-      
+            
       // receive/timeout exclusion
       if ( request != null && (request.timeoutFuture == null || request.timeoutFuture.cancel( false)))
       {
-        transport.getEventPipe().notifyReceive( transport, envelope, request.messageContext, request.envelope);
+        request.transport.getEventPipe().notifyReceive( request.transport, envelope, request.messageContext, request.envelope);
       }
     }
   }

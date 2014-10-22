@@ -5,6 +5,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.nio.ByteBuffer;
+import org.xmodel.log.Log;
 import org.xmodel.log.SLog;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.util.HexDump;
@@ -20,7 +21,7 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   public void handlerAdded( ChannelHandlerContext ctx) throws Exception
   {
     super.handlerAdded( ctx);
-    readBuffer = ByteBuffer.allocate( 1024);
+    readBuffer = ByteBuffer.allocate( 8192);
   }
 
   @Override
@@ -58,22 +59,19 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
     int shortage = buffer.readableBytes() - readBuffer.remaining();
     if ( shortage > 0)
     {
-      System.out.printf( "shortage=%d\n", shortage);
       readBuffer.flip();
       ByteBuffer newBuffer = ByteBuffer.allocate( readBuffer.capacity() + (shortage * 2));
       newBuffer.put( readBuffer);
       readBuffer = newBuffer;
     }
     
-    //System.out.printf( "put: position=%d, limit=%d\n", readBuffer.position(), readBuffer.limit());
     int readableBytes = buffer.readableBytes();
     buffer.readBytes( readBuffer.array(), readBuffer.position(), readableBytes);
     readBuffer.position( readBuffer.position() + readableBytes);
     readBuffer.limit( readBuffer.capacity());
     readBuffer.flip();
     
-    //System.out.printf( "get: position=%d, limit=%d\n", readBuffer.position(), readBuffer.limit());
-    System.out.println( HexDump.toString( Unpooled.wrappedBuffer( readBuffer)));
+    if ( log.verbose()) log.verbose( HexDump.toString( Unpooled.wrappedBuffer( readBuffer)));
     
     buffer.release();
 
@@ -95,6 +93,8 @@ public class XioInboundHandler extends ChannelInboundHandlerAdapter
   {
     SLog.exceptionf( this, cause, "Unhandled exception ...");
   }
+  
+  public final static Log log = Log.getLog( XioInboundHandler.class);
 
   private ITransportImpl transport;
   private ByteBuffer readBuffer;

@@ -28,8 +28,8 @@ public class TcpServerAction extends GuardedAction implements ITcpServerEventHan
     super.configure( document);
     
     var = Conventions.getVarName( document.getRoot(), true);
-    bindHostExpr = document.getExpression( "bindHost", true);
-    bindPortExpr = document.getExpression( "bindPort", true);
+    bindHostExpr = document.getExpression( "host", true);
+    bindPortExpr = document.getExpression( "port", true);
     protocolExpr = document.getExpression( "protocol", true);
     schedulerExpr = document.getExpression( "scheduler", true);
     reliableExpr = document.getExpression( "reliable", true);

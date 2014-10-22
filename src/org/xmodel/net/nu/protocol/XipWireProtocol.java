@@ -28,20 +28,56 @@ public class XipWireProtocol implements IWireProtocol
   public byte[] encode( IModelObject message) throws IOException
   {
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
+    
+    stream.write( 0);
+    stream.write( 0);
+    stream.write( 0);
+    stream.write( 0);
+    
     compressor.compress( message, stream);
-    return stream.toByteArray();
+    
+    byte[] bytes = stream.toByteArray();
+    int ml = bytes.length - 4;
+    bytes[ 3] = (byte)(ml & 0xFF);
+    bytes[ 2] = (byte)((ml >> 8) & 0xFF);
+    bytes[ 1] = (byte)((ml >> 16) & 0xFF);
+    bytes[ 0] = (byte)((ml >> 24) & 0xFF);
+    
+    return bytes;
   }
 
   @Override
   public IModelObject decode( byte[] message, int offset, int length) throws IOException
   {
-    return compressor.decompress( new ByteArrayInputStream( message, offset, length));
+    if ( (offset + length) < 4) return null;
+    
+    int ml = ((int)message[ offset++]) & 0xFF;
+    ml <<= 8; ml += ((int)message[ offset++]) & 0xFF;
+    ml <<= 8; ml += ((int)message[ offset++]) & 0xFF;
+    ml <<= 8; ml += ((int)message[ offset++]) & 0xFF;
+    
+    if ( (offset + ml) <= length)
+    {
+      return compressor.decompress( new ByteArrayInputStream( message, offset, length));
+    }
+    else
+    {
+      return null;
+    }
   }
 
   @Override
   public IModelObject decode( ByteBuffer buffer) throws IOException
   {
-    return compressor.decompress( new ByteBufferInputStream( buffer));
+    int ml = buffer.getInt();
+    if ( buffer.remaining() >= ml)
+    {
+      return compressor.decompress( new ByteBufferInputStream( buffer));
+    }
+    else
+    {
+      return null;
+    }
   }
 
   private ICompressor compressor;
@@ -62,6 +98,6 @@ public class XipWireProtocol implements IWireProtocol
     
     b.flip();
     for( int i=0; i<3; i++)
-      System.out.println( XmlIO.write( Style.printable, p.decode( b)));
+      System.out.printf( "%d: %s", i, XmlIO.write( Style.printable, p.decode( b)));
   }
 }

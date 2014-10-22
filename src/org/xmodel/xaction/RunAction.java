@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.xmodel.IModelObject;
 import org.xmodel.ModelAlgorithms;
 import org.xmodel.ModelObject;
@@ -38,6 +37,7 @@ import org.xmodel.Xlate;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.log.Log;
 import org.xmodel.net.nu.ITransport;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.xaction.ActionUtil;
 import org.xmodel.net.nu.xaction.AsyncSendGroup;
 import org.xmodel.xpath.expression.IContext;
@@ -156,6 +156,20 @@ public class RunAction extends GuardedAction
     setVar( context, results);
   }
   
+  @SuppressWarnings("unchecked")
+  private void setVar( IContext context, Object[] results)
+  {
+    if ( var != null && results != null && results.length > 0)
+    {
+      Object result = results[ 0];
+      IVariableScope scope = context.getScope();
+      if ( result instanceof List) scope.set( var, (List<IModelObject>)result);
+      else if ( result instanceof String) scope.set( var, result.toString());
+      else if ( result instanceof Number) scope.set( var, (Number)result);
+      else if ( result instanceof Boolean) scope.set( var, (Boolean)result);
+    }
+  }
+  
   /**
    * Dispatch the script via the specified dispatcher.
    * @param context The context.
@@ -235,31 +249,82 @@ public class RunAction extends GuardedAction
     int life = (lifeExpr != null)? (int)lifeExpr.evaluateNumber( context): -1;
     int retries = (retriesExpr != null)? (int)retriesExpr.evaluateNumber( context): (life >= 0)? 0: -1;
     
-    IXAction onSuccess = (onSuccessExpr != null)? Conventions.getScript( getDocument(), context, onSuccessExpr): null;
-    IXAction onError = (onErrorExpr != null)? Conventions.getScript( getDocument(), context, onErrorExpr): null;
-    IXAction onComplete = (onCompleteExpr != null)? Conventions.getScript( getDocument(), context, onCompleteExpr): null;
-    
     IModelObject script = getScriptNode( context);
     IModelObject varAssignScript = new ModelObject( "script");
     transferVariables( varAssignScript, context);
-    varAssignScript.addChild( new Reference( script)); 
+    varAssignScript.addChild( new Reference( script));
     
-    AsyncSendGroup asyncGroup = new AsyncSendGroup( context);
-    asyncGroup.setReceiveScript( onSuccess);
-    asyncGroup.setErrorScript( onError);
-    asyncGroup.setCompleteScript( onComplete);
+    final IXAction onSuccess = Conventions.getScript( document, context, onSuccessExpr);
+    final IXAction onError = Conventions.getScript( document, context, onErrorExpr);
+    final IXAction onComplete = Conventions.getScript( document, context, onCompleteExpr);
+    
+    AsyncSendGroup asyncGroup = new AsyncSendGroup( context) {
+      @Override
+      protected void onSuccess( ITransport transport, IContext messageContext, IModelObject message, IModelObject request)
+      {
+        if ( onSuccess != null) 
+        {
+//          ModelObject transportNode = new ModelObject( "transport");
+//          transportNode.setValue( transport);
+          
+          Object[] results = new Object[] { transport.getProtocol().envelope().getMessage( message)};
+          
+          synchronized( messageContext)
+          {
+            //ScriptAction.passVariables( new Object[] { transportNode, message}, messageContext, onSuccess);
+            setVar( messageContext, results); 
+          }
+          
+          onSuccess.run( messageContext);
+        }
+      }
+      
+      @Override
+      protected void onError( ITransport transport, IContext context, Error error, IModelObject request)
+      {
+        if ( onError != null)
+        {
+//          ModelObject transportNode = new ModelObject( "transport");
+//          transportNode.setValue( transport);
+
+          IContext errorContext = new StatefulContext( context);
+          //ScriptAction.passVariables( new Object[] { transport, error.toString()}, errorContext, onError);
+          errorContext.set( "error", error.toString());
+          onError.run( errorContext);
+        }
+      }
+      
+      @Override
+      protected void onComplete( IContext callContext)
+      {
+        if ( onComplete != null)
+        {
+          onComplete.run( callContext);
+        }
+      }
+    };
+
+    if ( var != null) context.getScope().clear( var);
+    
+    StatefulContext runContext = new StatefulContext( context);
     
     Iterator<ITransport> transports = ActionUtil.resolveTransport( context, viaExpr, toExpr);
+    if ( !transports.hasNext() && onError != null) 
+    {
+      runContext.set( "error", "offline");
+      onError.run( runContext);
+    }
+    
     if ( isAsynchronous())
     {
-      asyncGroup.send( transports, script, false, new StatefulContext( context), timeout, retries, life);
+      runContext.getScope().copyFrom( context.getScope());
+      asyncGroup.send( transports, varAssignScript, false, runContext, timeout, retries, life);
     }
     else
     {
       try
       {
-        StatefulContext runContext = new StatefulContext( context);
-        Object[] results = asyncGroup.sendAndWait( transports, script, false, runContext, timeout, retries, life);
+        Object[] results = asyncGroup.sendAndWait( transports, varAssignScript, false, runContext, timeout, retries, life);
         
         if ( results != null && results.length > 0) 
         {
@@ -298,20 +363,6 @@ public class RunAction extends GuardedAction
     }
     
     return null;
-  }
-  
-  @SuppressWarnings("unchecked")
-  private void setVar( IContext context, Object[] results)
-  {
-    if ( var != null && results != null && results.length > 0)
-    {
-      Object result = results[ 0];
-      IVariableScope scope = context.getScope();
-      if ( result instanceof List) scope.set( var, (List<IModelObject>)result);
-      else if ( result instanceof String) scope.set( var, result.toString());
-      else if ( result instanceof Number) scope.set( var, (Number)result);
-      else if ( result instanceof Boolean) scope.set( var, (Boolean)result);
-    }
   }
   
   @SuppressWarnings("unchecked")
