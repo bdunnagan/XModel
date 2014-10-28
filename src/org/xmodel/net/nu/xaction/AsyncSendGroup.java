@@ -52,9 +52,16 @@ public abstract class AsyncSendGroup
 
   public Object[] sendAndWait( Iterator<ITransport> transports, IModelObject message, boolean isEnvelope, IContext messageContext, int timeout, int retries, int life) throws InterruptedException
   {
-    syncQueue = new SynchronousQueue<Object[]>();
-    send( transports, message, isEnvelope, messageContext, timeout, retries, life);
-    return syncQueue.take();
+    if ( transports.hasNext())
+    {
+      syncQueue = new SynchronousQueue<Object[]>();
+      send( transports, message, isEnvelope, messageContext, timeout, retries, life);
+      return syncQueue.take();
+    }
+    else
+    {
+      return null;
+    }
   }
   
   public void notifyReceive( final ITransport transport, final IModelObject envelope, final IContext messageContext, final IModelObject requestMessage)
