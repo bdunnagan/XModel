@@ -1,12 +1,17 @@
 package org.xmodel.json;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
-import org.xmodel.Xlate;
+import org.xmodel.util.JsonParser;
+import org.xmodel.xml.IXmlIO.Style;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.function.StringFunction;
 
 /**
@@ -14,10 +19,12 @@ import org.xmodel.xpath.function.StringFunction;
  */
 public class JsonIO
 {
-  public List<IModelObject> read( String json, String ... attributes)
+  @SuppressWarnings("unchecked")
+  public List<IModelObject> read( String json) throws ParseException
   {
-    // TODO: implement and use xsd 
-    throw new UnsupportedOperationException();
+    Object parsed = parser.parse( json);
+    if ( parsed instanceof List) return (List<IModelObject>)parsed;
+    return Collections.singletonList( (IModelObject)parsed);
   }
   
   public String write( List<IModelObject> elements)
@@ -77,55 +84,79 @@ public class JsonIO
   protected void writeComplexContent( IModelObject element, StringBuilder json)
   {
     json.append( '{');
+    json.append( '\n');
     
     for( String attrName: element.getAttributeNames())
     {
       json.append( "\"");
-      json.append( (attrName.length() > 0)? attrName: "val");
+      json.append( (attrName.length() == 0)? "val": attrName);
       json.append( "\":");
       writeValue( element.getAttribute( attrName), json);
       json.append( ',');
     }
     
-    List<IModelObject> children = new ArrayList<IModelObject>( element.getChildren());
-    for( int i=0; i<children.size(); i++)
+    Map<String, List<IModelObject>> groups = groupChildrenByType( element.getChildren());
+    if ( groups != null)
     {
-      IModelObject child = children.get( i);
-      if ( !isComplex( child))
+      for( Map.Entry<String, List<IModelObject>> entry: groups.entrySet())
       {
         json.append( "\"");
-        json.append( child.getType());
+        json.append( entry.getKey());
         json.append( "\":");
-        writeSimpleContent( child, json);
-        json.append( ',');
-      }
-      else
-      {
-        json.append( "\"");
-        json.append( child.getType());
-        json.append( "\":[");
-        writeComplexContent( child, json);
-        json.append( ',');
         
-        for( int j=i+1; j<children.size(); j++)
+        List<IModelObject> group = entry.getValue();
+        if ( group.size() == 1 && !isComplex( group.get( 0)))
         {
-          IModelObject child2 = children.get( j);
-          if ( child2.getType().equals( child.getType()))
+          writeSimpleContent( group.get( 0), json);
+          json.append( ',');
+        }
+        else if ( group.size() == 1)
+        {
+          IModelObject child = group.get( 0);
+          if ( isValueOnly( child))
           {
-            children.remove( j--);
-            writeComplexContent( child2, json);
+            writeSimpleContent( child, json);
+          }
+          else
+          {
+            writeComplexContent( child, json);
+          }
+          json.append( ',');
+        }
+        else
+        {
+          json.append( "[");
+          
+          for( IModelObject child: group)
+          {
+            if ( isValueOnly( child))
+            {
+              writeSimpleContent( child, json);
+            }
+            else
+            {
+              writeComplexContent( child, json);
+            }
             json.append( ',');
           }
+          
+          removeTrailingSeperator( json);
+          json.append( ']');
+          json.append( ',');
         }
-        
-        removeTrailingSeperator( json);
-        json.append( ']');
-        json.append( ',');
       }
     }
     
     removeTrailingSeperator( json);
+    json.append( '\n');
     json.append( '}');
+  }
+  
+  protected boolean isValueOnly( IModelObject element)
+  {
+    Collection<String> attributes = element.getAttributeNames();
+    boolean hasValue = attributes.contains( "");
+    return attributes.size() == 1 && hasValue && element.getNumberOfChildren() == 0; 
   }
   
   protected boolean isComplex( IModelObject element)
@@ -133,6 +164,23 @@ public class JsonIO
     Collection<String> attributes = element.getAttributeNames();
     boolean hasValue = attributes.contains( "");
     return (hasValue && attributes.size() > 1) || (!hasValue && attributes.size() > 0) || element.getNumberOfChildren() > 0;
+  }
+  
+  protected Map<String, List<IModelObject>> groupChildrenByType( List<IModelObject> children)
+  {
+    if ( children.size() == 0) return null;
+    Map<String, List<IModelObject>> map = new HashMap<String, List<IModelObject>>();
+    for( IModelObject child: children)
+    {
+      List<IModelObject> list = map.get( child.getType());
+      if ( list == null)
+      {
+        list = new ArrayList<IModelObject>();
+        map.put( child.getType(), list);
+      }
+      list.add( child);
+    }
+    return map;
   }
   
   protected void writeValue( Object value, StringBuilder json)
@@ -179,41 +227,31 @@ public class JsonIO
     int n = json.length();
     if ( json.charAt( n-1) == ',') json.setLength( n-1);
   }
+    
+  private JsonParser parser = new JsonParser();
   
   public static void main( String[] args) throws Exception
   {
     // TESTS
     // 1. no value, no attrs, no child
+   
+    String xml =
+      "<serviceProfile id=\"...\" name=\"My Service Profile\">"+
+      "  <loadBalancer instrumentAddress=\"1.1.1.1\" app_resource_id=\"...\" vm_resource_id=\"...\" kvm_resource_id=\"...\" host_resource_id=\"...\"/>"+
+      "  <webServer instrumentAddress=\"10.1.1.1\" app_resource_id=\"...\" vm_resource_id=\"...\" kvm_resource_id=\"...\" host_resource_id=\"...\"/>"+
+      "  <webServer instrumentAddress=\"10.1.1.2\" app_resource_id=\"...\" vm_resource_id=\"...\" kvm_resource_id=\"...\" host_resource_id=\"...\"/>"+
+      "  <webServer instrumentAddress=\"10.1.1.3\" app_resource_id=\"...\" vm_resource_id=\"...\" kvm_resource_id=\"...\" host_resource_id=\"...\"/>"+
+      "</serviceProfile>";
     
-    IModelObject el = new ModelObject( "result");
-    IModelObject c1;
+    IModelObject el = new XmlIO().read( xml);
     
-    c1 = new ModelObject( "sample");
-    Xlate.set( c1, "id", "A");
-    Xlate.set( c1, "timestamp", 1);
-    Xlate.set( c1, 1);
-    el.addChild( c1);
-    
-    c1 = new ModelObject( "x");
-    //Xlate.set( c1, 2);
-    el.addChild( c1);
-    
-    IModelObject c2;
-    c2 = new ModelObject( "y");
-    Xlate.set( c2, true);
-    c1.addChild( c2);
-    
-    c1 = new ModelObject( "sample");
-    Xlate.set( c1, "id", "B");
-    Xlate.set( c1, "timestamp", 2);
-    Xlate.set( c1, 2);
-    el.addChild( c1);
-    
-    c1 = new ModelObject( "x");
-    //Xlate.set( c1, 2);
-    el.addChild( c1);
+    System.out.println( XmlIO.write( Style.printable, el));
     
     JsonIO json = new JsonIO();
-    System.out.println( json.write( el));
+    String s = json.write( el);
+    System.out.println( s);
+ 
+    el = json.read( s).get( 0);
+    System.out.println( XmlIO.write( Style.printable, el));
   }
 }

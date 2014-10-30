@@ -1,8 +1,11 @@
 package org.xmodel.util;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.xmodel.IModelObject;
 import org.xmodel.ModelObject;
 
@@ -184,9 +187,10 @@ public class JsonParser
    * @param name Null or the name of the key associated with this object.
    * @return Returns the object that was parsed.
    */
+  @SuppressWarnings("unchecked")
   private IModelObject parseObject( String json, String name) throws ParseException
   {
-    IModelObject element = new ModelObject( (name != null)? name: "object");
+    IModelObject element = new ModelObject( (name != null)? name: defaultName);
     int count = 0;
     while( index < json.length())
     {
@@ -195,7 +199,6 @@ public class JsonParser
         Object token = parseValue( json, null);
         if ( token == objectEndToken) break;
         if ( token != commaToken) throw new ParseException( expectedComma, index);
-        if ( token == arrayEndToken) throw new ParseException( unexpectedCharacter, index);
       }
       
       Object key = parseValue( json, null);
@@ -215,7 +218,12 @@ public class JsonParser
       
       if ( value != null)
       {
-        if ( value instanceof IModelObject)
+        if ( value instanceof List)
+        {
+          for( IModelObject child: (List<IModelObject>)value)
+            element.addChild( child);
+        }
+        else if ( value instanceof IModelObject)
         {
           element.addChild( (IModelObject)value);
         }
@@ -226,6 +234,9 @@ public class JsonParser
       }
     }
     
+    if ( name == null && element.getNumberOfChildren() == 1)
+      return element.getChild( 0);
+    
     return element;
   }
   
@@ -235,9 +246,9 @@ public class JsonParser
    * @param name Null or the name of the key associated with this array.
    * @return Returns the array that was parsed.
    */
-  private IModelObject parseArray( String json, String name) throws ParseException
+  private List<IModelObject> parseArray( String json, String name) throws ParseException
   {
-    IModelObject array = new ModelObject( (name != null)? name: "array");
+    List<IModelObject> list = new ArrayList<IModelObject>();
     
     int count = 0;
     while( index < json.length())
@@ -250,24 +261,24 @@ public class JsonParser
         if ( token == objectEndToken) throw new ParseException( unexpectedCharacter, index);
       }
       
-      Object value = parseValue( json, null);
+      Object value = parseValue( json, name);
       if ( value == arrayEndToken) break;
       if ( value == commaToken) throw new ParseException( unexpectedCharacter, index);
       if ( value == objectEndToken) throw new ParseException( unexpectedCharacter, index);
      
       if ( value instanceof IModelObject)
       {
-        array.addChild( (IModelObject)value);
+        list.add( (IModelObject)value);
       }
       else
       {
-        IModelObject item = new ModelObject( "value");
+        IModelObject item = new ModelObject( name);
         item.setValue( value);
-        array.addChild( item);
+        list.add( item);
       }
     }
 
-    return array;
+    return list;
   }
   
   private final static Pattern numberRegex = Pattern.compile( "[+-]?(0|([1-9]\\d*+))([.]\\d++)?([eE][+-]\\d++)?");
@@ -275,13 +286,17 @@ public class JsonParser
   private final static Object objectEndToken = new Object();
   private final static Object arrayEndToken = new Object();
   private final static Object commaToken = new Object();
+  private final static String defaultName = "object";
   
   private int index;
+  
   
   public static void main( String[] args) throws Exception
   {
     JsonParser json = new JsonParser();
     Object object = null;
+    
+    object = json.parse( "{\"x\": [{\"y\": 1}, {\"y\": 2}]}"); System.out.println( object);
     
     object = json.parse( "true"); System.out.println( object);
     object = json.parse( "false"); System.out.println( object);
@@ -307,6 +322,9 @@ public class JsonParser
     object = json.parse( "[ \"Bob\", \"Melissa\"]"); System.out.println( object);
     object = json.parse( "[1,2,3]"); System.out.println( object);
     
-    object = json.parse( "{\"object\":{\"name\":\"Bob\",\"state\": \"being\"}}"); System.out.println( object);
+    object = json.parse( "{\"object\":{\"name\":\"Bob\", \"state\": \"being\", \"child\": [ 1, 2]}}"); System.out.println( object);
+    
+    object = json.parse( "{\"list\":{ \"item\":[\"1\",\"2\"]}}");
+    System.out.println( object);
   }
 }
