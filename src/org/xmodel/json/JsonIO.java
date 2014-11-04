@@ -3,10 +3,8 @@ package org.xmodel.json;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.xmodel.IModelObject;
-import org.xmodel.ModelObject;
-import org.xmodel.Xlate;
+import org.xmodel.xml.XmlIO;
 import org.xmodel.xpath.function.StringFunction;
 
 /**
@@ -182,38 +180,16 @@ public class JsonIO
   
   public static void main( String[] args) throws Exception
   {
-    // TESTS
-    // 1. no value, no attrs, no child
+    String xml = 
+      "<causes>\n"+
+      "  <cause message='This is a message with % in it'/>\n"+
+      "  <cause message='This is a message with % in it'/>\n"+
+      "</causes>";
+
     
-    IModelObject el = new ModelObject( "result");
-    IModelObject c1;
-    
-    c1 = new ModelObject( "sample");
-    Xlate.set( c1, "id", "A");
-    Xlate.set( c1, "timestamp", 1);
-    Xlate.set( c1, 1);
-    el.addChild( c1);
-    
-    c1 = new ModelObject( "x");
-    //Xlate.set( c1, 2);
-    el.addChild( c1);
-    
-    IModelObject c2;
-    c2 = new ModelObject( "y");
-    Xlate.set( c2, true);
-    c1.addChild( c2);
-    
-    c1 = new ModelObject( "sample");
-    Xlate.set( c1, "id", "B");
-    Xlate.set( c1, "timestamp", 2);
-    Xlate.set( c1, 2);
-    el.addChild( c1);
-    
-    c1 = new ModelObject( "x");
-    //Xlate.set( c1, 2);
-    el.addChild( c1);
+    IModelObject e = new XmlIO().read( xml);
     
     JsonIO json = new JsonIO();
-    System.out.println( json.write( el));
+    System.out.println( json.write( e));
   }
 }
