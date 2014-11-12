@@ -126,6 +126,11 @@ public class XmlIO implements IXmlIO
   {
     maxLines = count;
   }
+  
+  public void setIncludeHeader( boolean includeHeader)
+  {
+    this.outputHeader = includeHeader;
+  }
 
   /**
    * Set whether a document node is created.
@@ -287,6 +292,7 @@ public class XmlIO implements IXmlIO
     try
     {
       line = 0; lines.clear();
+      if ( outputHeader) { stream.write( header); stream.write( cr);}
       output( depth, root, stream);
     }
     catch( IOException e)
@@ -304,6 +310,7 @@ public class XmlIO implements IXmlIO
     {
       line = 0; lines.clear();
       FileOutputStream stream = new FileOutputStream( file);
+      if ( outputHeader) { stream.write( header); stream.write( cr);}
       output( depth, root, stream);
     }
     catch( IOException e)
@@ -340,9 +347,6 @@ public class XmlIO implements IXmlIO
    */
   protected void output( int indent, IModelObject root, OutputStream stream) throws IOException
   {
-    // write header if requested
-    if ( outputHeader) { stream.write( header); stream.write( cr);}
-    
     // observe line-count limit
     if ( maxLines > 0 && lines.size() > maxLines)
     {
