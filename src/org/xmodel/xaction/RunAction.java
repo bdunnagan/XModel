@@ -382,8 +382,16 @@ public class RunAction extends GuardedAction
       Object value = context.get( var);
       if ( value instanceof List)
       {
-        for( IModelObject element: (List<IModelObject>)value)
-          varAssignOp.addChild( new Reference( element));
+        List<IModelObject> list = (List<IModelObject>)value;
+        if ( list.size() == 0)
+        {
+          varAssignOp.setValue( "empty()");
+        }
+        else
+        {
+          for( IModelObject element: list)
+            varAssignOp.addChild( new Reference( element));
+        }
       }
       else
       {
