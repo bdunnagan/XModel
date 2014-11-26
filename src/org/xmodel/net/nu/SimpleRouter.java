@@ -56,7 +56,7 @@ public class SimpleRouter implements IRouter
   }
 
   @Override
-  public void removeRoutes( ITransport transport)
+  public Iterator<String> removeRoutes( ITransport transport)
   {
     try
     {
@@ -68,6 +68,7 @@ public class SimpleRouter implements IRouter
         if ( transports != null) transports.remove( transport);
         if ( transports.size() == 0) routes.remove( key);
       }
+      return keys.iterator();
     }
     finally
     {

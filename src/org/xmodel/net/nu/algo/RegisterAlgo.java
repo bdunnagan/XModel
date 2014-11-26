@@ -1,8 +1,10 @@
 package org.xmodel.net.nu.algo;
 
 import java.io.IOException;
+import java.util.Iterator;
 import org.xmodel.IModelObject;
 import org.xmodel.net.nu.DefaultEventHandler;
+import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.IRouter;
 import org.xmodel.net.nu.ITransportImpl;
 import org.xmodel.net.nu.protocol.IEnvelopeProtocol;
@@ -24,7 +26,20 @@ public class RegisterAlgo extends DefaultEventHandler
   @Override
   public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
   {
-    router.removeRoutes( transport);
+    // remove routes
+    Iterator<String> routes = router.removeRoutes( transport);
+
+    if ( routes != null)
+    {
+      // send deregister notification
+      EventPipe eventPipe = transport.getEventPipe();
+      while( routes.hasNext())
+      {
+        String route = routes.next();
+        eventPipe.notifyDeregister( transport, transport.getTransportContext(), route);
+      }
+    }
+    
     return false;
   }
 

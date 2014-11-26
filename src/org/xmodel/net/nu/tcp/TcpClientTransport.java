@@ -115,9 +115,9 @@ public class TcpClientTransport extends AbstractChannelTransport implements IRou
   }
 
   @Override
-  public void removeRoutes( ITransport transport)
+  public Iterator<String> removeRoutes( ITransport transport)
   {
-    router.removeRoutes( transport);
+    return router.removeRoutes( transport);
   }
 
   @Override

@@ -253,9 +253,9 @@ public class AmqpTransport extends AbstractTransport implements IRouter
   }
 
   @Override
-  public void removeRoutes( ITransport transport)
+  public Iterator<String> removeRoutes( ITransport transport)
   {
-    router.removeRoutes( transport);
+    return router.removeRoutes( transport);
   }
   
   @Override

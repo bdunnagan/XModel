@@ -1,6 +1,7 @@
 package org.xmodel.net.nu.amqp;
 
 import java.io.IOException;
+import java.util.Iterator;
 import org.xmodel.IModelObject;
 import org.xmodel.future.AsyncFuture;
 import org.xmodel.future.FailureAsyncFuture;
@@ -48,8 +49,6 @@ public class AmqpNamedTransport extends DefaultEventHandler implements ITranspor
   @Override
   public AsyncFuture<ITransport> disconnect( boolean reconnect)
   {
-    transport.removeRoutes( this);
-    
     try
     {
       getEventPipe().notifyDisconnect( this, getTransportContext());
@@ -59,6 +58,26 @@ public class AmqpNamedTransport extends DefaultEventHandler implements ITranspor
       getEventPipe().notifyException( this, e);
     }
     return null;
+  }
+  
+  @Override
+  public boolean notifyDisconnect( ITransportImpl transport, IContext transportContext) throws IOException
+  {
+    // remove routes
+    Iterator<String> routes = this.transport.removeRoutes( transport);
+
+    if ( routes != null)
+    {
+      // send deregister notification
+      EventPipe eventPipe = getEventPipe();
+      while( routes.hasNext())
+      {
+        String route = routes.next();
+        eventPipe.notifyDeregister( transport, transport.getTransportContext(), route);
+      }
+    }
+    
+    return false;
   }
 
   @Override

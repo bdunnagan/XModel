@@ -62,9 +62,9 @@ public class TcpChildTransport extends AbstractChannelTransport implements IRout
   }
 
   @Override
-  public void removeRoutes( ITransport transport)
+  public Iterator<String> removeRoutes( ITransport transport)
   {
-    router.removeRoutes( transport);
+    return router.removeRoutes( transport);
   }
 
   @Override
