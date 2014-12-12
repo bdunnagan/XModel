@@ -54,6 +54,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
       
       Request requestState = new Request( transport, envelope, messageContext, timeout);
       requests.put( key, requestState);
+      log.verbosef( "notifySend.pending=%d", requests.size());
     }
     
     return false;
@@ -115,6 +116,7 @@ public class RequestTrackingAlgo extends DefaultEventHandler
     {
       Long key = getKey( transport, request);
       if ( key != null) requests.remove( key);
+      log.verbosef( "notifyError.pending=%d", requests.size());
     }
     return false;
   }

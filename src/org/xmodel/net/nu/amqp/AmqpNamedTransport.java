@@ -9,6 +9,7 @@ import org.xmodel.net.nu.DefaultEventHandler;
 import org.xmodel.net.nu.EventPipe;
 import org.xmodel.net.nu.ITransport;
 import org.xmodel.net.nu.ITransportImpl;
+import org.xmodel.net.nu.ITransport.Error;
 import org.xmodel.net.nu.protocol.Protocol;
 import org.xmodel.xpath.expression.IContext;
 
@@ -78,6 +79,13 @@ public class AmqpNamedTransport extends DefaultEventHandler implements ITranspor
     }
     
     return false;
+  }
+
+  @Override
+  public boolean notifyError( ITransportImpl transport, IContext context, Error error, IModelObject request)
+  {
+    this.transport.getEventPipe().notifyError( this.transport, context, error, request);
+    return error != Error.heartbeatLost;
   }
 
   @Override

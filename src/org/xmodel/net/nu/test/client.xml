@@ -3,82 +3,84 @@
 
   <executor var="executor" name="'worker'" thread="5"/>
 
-  <assign var="send">
-    <script>
-      <logi>'[CLIENT] Send'</logi>
-
-      <assign var="sendSuccess">
-        <script>
-          <print>$result</print>
-        </script>
-      </assign>
-
-      <for var="i" from="1" to="100">
-        <logi>$i</logi>
-        <run var="result" via="$client" vars="'i'" timeout="10000" life="10000" onSuccess="$sendSuccess">
-          <return>$i</return>
+  <run executor="$executor">
+    <assign var="send">
+      <script>
+        <logi>'[CLIENT] Send'</logi>
+  
+        <assign var="sendSuccess">
+          <script>
+            <print>$result</print>
+          </script>
+        </assign>
+  
+        <for var="i" from="1" to="100">
+          <logi>$i</logi>
+          <run var="result" via="$client" vars="'i'" timeout="1000" life="1000" onSuccess="$sendSuccess">
+            <return>$i</return>
+          </run>
+        </for>
+      </script>
+    </assign>
+  
+    <assign var="onReceive">
+      <script in="transport, message, request">
+        <print>format( '%s', $message)</print>
+        <run when="name( $message) = 'script'" executor="$executor">
+          <try>
+            <run var="result">$message</run>
+            <assign when="not( is-defined( 'result'))" var="result">empty()</assign>
+            <respond via="$transport" request="$message">$result</respond>
+          </try>      
+          <catch>
+            <respond via="$transport" request="$message">$exception</respond>
+          </catch>
         </run>
-      </for>
-    </script>
-  </assign>
-
-  <assign var="onReceive">
-    <script in="transport, message, request">
-      <run when="name( $message) = 'script'" executor="$executor">
-        <try>
-          <run var="result">$message</run>
-          <assign when="not( is-defined( 'result'))" var="result">empty()</assign>
-          <respond via="$transport" request="$message">$result</respond>
-        </try>      
-        <catch>
-          <respond via="$transport" request="$message">$exception</respond>
-        </catch>
-      </run>
-    </script>
-  </assign>
-
-  <assign var="onError">
-    <script in="transport, error, request">
-      <logi>format( '[CLIENT] Error: %s, Request: %s', $error, $request)</logi>
-    </script>
-  </assign>
-
-  <assign var="onConnect">
-    <script in="transport">
-      <logi>'[CLIENT] Connected'</logi>
-      <register name="'bob'" via="$client" timeout="15000" retries="0"/>
-    </script>
-  </assign>
+      </script>
+    </assign>
   
-  <assign var="onDisconnect">
-    <script in="transport">
-      <logi>'[CLIENT] Disconnected'</logi>
-    </script>
-  </assign>
-
-  <if test="true()">
-    <amqpClient var="client" host="'localhost'" port="5672" connectTimeout="3000">
-      <heartbeatPeriod>5000</heartbeatPeriod>
-      <heartbeatTimeout>15000</heartbeatTimeout>
-      <publishQueue>'server_recv'</publishQueue>
-      <onConnect>$onConnect</onConnect>
-      <onDisconnect>$onDisconnect</onDisconnect>
-      <onReceive>$onReceive</onReceive>
-      <onError>$onError</onError>
-    </amqpClient>
-  </if>
-  <else>
-    <tcpClient var="client" host="'127.0.0.1'" port="10000" connectTimeout="3000">
-      <onConnect>$onConnect</onConnect>
-      <onDisconnect>$onDisconnect</onDisconnect>
-      <onReceive>$onReceive</onReceive>
-      <onError>$onError</onError>
-    </tcpClient>
-  </else>
+    <assign var="onError">
+      <script in="transport, error, request">
+        <logi>format( '[CLIENT] Error: %s, Request: %s', $error, $request)</logi>
+      </script>
+    </assign>
   
-      
-  <scheduler var="scheduler" threads="1"/>    
-  <run when="false()">$send</run>
+    <assign var="onConnect">
+      <script in="transport">
+        <logi>'[CLIENT] Connected'</logi>
+      </script>
+    </assign>
+    
+    <assign var="onDisconnect">
+      <script in="transport">
+        <logi>'[CLIENT] Disconnected'</logi>
+      </script>
+    </assign>
   
-  <sleep>60000</sleep>
+    <if test="true()">
+      <amqpClient var="client" host="'localhost'" port="5672" connectTimeout="3000">
+        <heartbeatPeriod>5000</heartbeatPeriod>
+        <heartbeatTimeout>15000</heartbeatTimeout>
+        <publishQueue>'server_recv'</publishQueue>
+        <onConnect>$onConnect</onConnect>
+        <onDisconnect>$onDisconnect</onDisconnect>
+        <onReceive>$onReceive</onReceive>
+        <onError>$onError</onError>
+      </amqpClient>
+    </if>
+    <else>
+      <tcpClient var="client" host="'127.0.0.1'" port="10000" connectTimeout="3000">
+        <onConnect>$onConnect</onConnect>
+        <onDisconnect>$onDisconnect</onDisconnect>
+        <onReceive>$onReceive</onReceive>
+        <onError>$onError</onError>
+      </tcpClient>
+    </else>
+    
+        
+    <scheduler var="scheduler" threads="1"/>    
+    <run when="false()">$send</run>
+    
+    <register name="'bob'" via="$client" timeout="15000" retries="0"/>
+  </run>
 </script>

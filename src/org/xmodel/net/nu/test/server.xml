@@ -2,19 +2,28 @@
   <package>org.xmodel.net.nu.xaction</package>
 
   <executor var="executor" threads="5"/>
+  <scheduler var="scheduler" threads="1"/>
+
+  <assign var="schedule">
+    <script>
+      <run var="r" via="$server" to="$name" timeout="1000" lifetime="1000">
+        <script>
+          <create var="result">
+            <result>Works!</result>
+          </create>
+          <return>$result</return>
+        </script>
+      </run>
+      
+      <run delay="1000" scheduler="$scheduler">$schedule</run>
+    </script>
+  </assign>
 
   <assign var="onRegister">
     <script in="transport, name">
       <run executor="$executor">
         <print>format( 'Transport %s registered with name, %s', $transport, $name)</print>
-        
-        <run var="r" via="$server" to="$name">
-          <script>
-            <return>'Works!'</return>
-          </script>
-        </run>
-        
-        <print>format( 'Result: %s', $r)</print>
+        <run delay="1000" scheduler="$scheduler">$schedule</run>
       </run>
     </script>
   </assign>

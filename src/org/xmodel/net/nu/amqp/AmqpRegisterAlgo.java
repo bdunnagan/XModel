@@ -29,9 +29,9 @@ public class AmqpRegisterAlgo extends RegisterAlgo
     String replyQueue = envelopeProtocol.getReplyTo( envelope);
     
     AmqpNamedTransport childTransport = new AmqpNamedTransport( replyQueue, (AmqpTransport)transport);
-    childTransport.getEventPipe().addFirst( childTransport);
     childTransport.getEventPipe().addFirst( new HeartbeatAlgo( childTransport, heartbeatPeriod, heartbeatTimeout, scheduler));
     childTransport.getEventPipe().addLast( transport.getEventPipe().getHandler( EventHandlerAdapter.class));
+    childTransport.getEventPipe().addFirst( childTransport);
     childTransport.connect();
     
     super.handleRegister( childTransport, envelope);
